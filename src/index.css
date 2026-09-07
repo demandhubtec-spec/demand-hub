@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0a0a0e;
+  --surface: #131218;
+  --surface-2: #1b1a22;
+  --border: rgba(255, 255, 255, 0.09);
+  --ink: #f2f0f5;
+  --muted: #8b8794;
+  --primary: #7e39a0;
+  --primary-bright: #b26fd6;
+  --primary-tint: rgba(126, 57, 160, 0.18);
+  --positive: #37c77e;
+  --positive-tint: rgba(55, 199, 126, 0.13);
+  --attention: #e2965a;
+  --attention-tint: rgba(226, 150, 90, 0.13);
+  --negative: #e2585a;
+  --negative-tint: rgba(226, 88, 90, 0.13);
+  --radius: 9px;
+  --sidebar-w: 258px;
+  --sidebar-w-collapsed: 76px;
+  --sb-bg: #0a0a0e;
+  --sb-bg-2: #141319;
+  --sb-text: #c7c2cf;
+  --sb-text-active: #fff;
+  --sb-border: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --bg: #f7f5fa;
+  --surface: #ffffff;
+  --surface-2: #f1eef5;
+  --border: #e4e1e8;
+  --ink: #171716;
+  --muted: #6e6a74;
+  --primary: #7e39a0;
+  --primary-bright: #7e39a0;
+  --primary-tint: #f1ebf6;
+  --positive: #2f8f5b;
+  --positive-tint: #e7f5ee;
+  --attention: #c2703a;
+  --attention-tint: #fbeee4;
+  --negative: #b23b3b;
+  --negative-tint: #fbeaea;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  color: var(--ink);
+  background-color: var(--bg);
+  background-image: linear-gradient(rgba(178, 111, 214, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(178, 111, 214, 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.3s ease;
+}
+
+body[data-theme="dark"] {
+  animation: gridshift 40s linear infinite;
+}
+
+[data-theme="light"] body,
+body[data-theme="light"] {
+  background-image: none;
+  animation: none;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Space Grotesk", sans-serif;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+p {
+  margin: 0;
+}
+button {
+  font-family: inherit;
+  cursor: pointer;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+a {
+  color: inherit;
+}
+::selection {
+  background: var(--primary-tint);
+  color: var(--primary-bright);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(178, 111, 214, 0.35);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(178, 111, 214, 0.6);
+}
+
+@keyframes gridshift {
+  from {
+    background-position: 0 0, 0 0;
+  }
+  to {
+    background-position: 130px 130px, 130px 130px;
+  }
+}
+
+/* Sweep-of-light hover effect used on nav items */
+.nav-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.nav-sweep::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(120deg, transparent, rgba(178, 111, 214, 0.4), transparent);
+  transform: skewX(-20deg);
+  transition: left 0.55s ease;
+  pointer-events: none;
+}
+.nav-sweep:hover::after {
+  left: 130%;
+}
+
+/* Card top highlight line on hover */
+.card-glow {
+  position: relative;
+  overflow: hidden;
+}
+.card-glow::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-bright), transparent);
+  opacity: 0;
+  transition: opacity 0.35s;
+}
+.card-glow:hover::before {
+  opacity: 0.8;
+}
+
+table tr:last-child td {
+  border-bottom: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
