@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Contrato } from "@/lib/types";
-import { contratosSeed } from "@/data/seed";
 
 export interface ContratoView {
   cliente: string;
@@ -16,8 +15,8 @@ export function useContratos() {
     queryKey: ["contratos"],
     queryFn: async (): Promise<ContratoView[]> => {
       const { data, error } = await supabase.from("contratos").select("*, clientes(nome)");
-      if (error || !data || data.length === 0) return contratosSeed;
-      return (data as (Contrato & { clientes: { nome: string } | null })[]).map((c) => ({
+      if (error) throw error;
+      return ((data ?? []) as (Contrato & { clientes: { nome: string } | null })[]).map((c) => ({
         cliente: c.clientes?.nome ?? "—",
         tipo: c.tipo ?? "—",
         inicio: c.inicio ?? "—",

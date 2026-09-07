@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { FinanceiroLancamento } from "@/lib/types";
-import { lancamentosSeed } from "@/data/seed";
 
 export interface LancamentoView {
+  /** Data original (YYYY-MM-DD), útil para agrupar por mês. */
+  dataISO: string;
   data: string;
   descricao: string;
   cliente: string;
@@ -25,8 +26,9 @@ export function useLancamentos() {
         .from("financeiro_lancamentos")
         .select("*, clientes(nome)")
         .order("data", { ascending: false });
-      if (error || !data || data.length === 0) return lancamentosSeed;
-      return (data as (FinanceiroLancamento & { clientes: { nome: string } | null })[]).map((l) => ({
+      if (error) throw error;
+      return ((data ?? []) as (FinanceiroLancamento & { clientes: { nome: string } | null })[]).map((l) => ({
+        dataISO: l.data,
         data: formatBrDate(l.data),
         descricao: l.descricao ?? "",
         cliente: l.clientes?.nome ?? "—",

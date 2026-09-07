@@ -3,6 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TableWrap, Th, Td } from "@/components/shared/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useContratos } from "@/hooks/useContratos";
 
 export default function Contratos() {
@@ -23,30 +24,34 @@ export default function Contratos() {
         </TabsList>
       </Tabs>
 
-      <TableWrap>
-        <thead>
-          <tr>
-            <Th>Cliente</Th>
-            <Th>Tipo de contrato</Th>
-            <Th>Início</Th>
-            <Th>Renovação</Th>
-            <Th>Status</Th>
-          </tr>
-        </thead>
-        <tbody>
-          {contratos.map((c, i) => (
-            <tr key={i}>
-              <Td>{c.cliente}</Td>
-              <Td>{c.tipo}</Td>
-              <Td>{c.inicio}</Td>
-              <Td>{c.renovacao}</Td>
-              <Td>
-                <StatusBadge status={c.status} />
-              </Td>
+      {contratos.length === 0 ? (
+        <EmptyState>Nenhum contrato cadastrado ainda.</EmptyState>
+      ) : (
+        <TableWrap>
+          <thead>
+            <tr>
+              <Th>Cliente</Th>
+              <Th>Tipo de contrato</Th>
+              <Th>Início</Th>
+              <Th>Renovação</Th>
+              <Th>Status</Th>
             </tr>
-          ))}
-        </tbody>
-      </TableWrap>
+          </thead>
+          <tbody>
+            {contratos.map((c, i) => (
+              <tr key={i}>
+                <Td>{c.cliente}</Td>
+                <Td>{c.tipo}</Td>
+                <Td>{c.inicio}</Td>
+                <Td>{c.renovacao}</Td>
+                <Td>
+                  <StatusBadge status={c.status} />
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </TableWrap>
+      )}
     </section>
   );
 }

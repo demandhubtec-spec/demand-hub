@@ -2,11 +2,12 @@
 // Quando o CLI do Supabase estiver configurado, troque por:
 //   npx supabase gen types typescript --project-id <id> > src/lib/types.ts
 
-export type Departamento = "tecnologia" | "marketing" | "comercial";
+export type Departamento = "tecnologia" | "marketing" | "comercial" | "administrativo";
 export type Papel = "dono" | "colaborador";
 export type ClienteStatus = "ativo" | "pausado" | "prospeccao";
 export type ProjetoStatus = "andamento" | "concluido" | "atrasado";
 export type AtividadeStatus = "a-fazer" | "andamento" | "atrasado" | "concluido";
+export type AtividadePrioridade = "baixa" | "media" | "alta" | "urgente";
 export type LancamentoTipo = "entrada" | "saida";
 export type ContratoStatus = "ativo" | "pendente" | "encerrado";
 
@@ -43,10 +44,12 @@ export interface Atividade {
   id: string;
   projeto_id: string | null;
   titulo: string;
+  descricao: string | null;
   responsavel_id: string | null;
   departamento: Departamento | null;
   prazo: string | null;
   status: AtividadeStatus;
+  prioridade: AtividadePrioridade;
 }
 
 export interface FinanceiroLancamento {

@@ -1,18 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import type { Cliente } from "@/lib/types";
-import { clientesSeed } from "@/data/seed";
-
-function seedAsClientes(): Cliente[] {
-  return clientesSeed.map((c, i) => ({
-    id: `seed-${i}`,
-    nome: c.nome,
-    segmento: c.segmento,
-    status: c.status,
-    privado: c.privado,
-    criado_em: new Date().toISOString(),
-  }));
-}
 
 export function useClientes() {
   return useQuery({
@@ -22,8 +10,8 @@ export function useClientes() {
         .from("clientes")
         .select("*")
         .order("criado_em", { ascending: false });
-      if (error || !data || data.length === 0) return seedAsClientes();
-      return data as Cliente[];
+      if (error) throw error;
+      return (data ?? []) as Cliente[];
     },
   });
 }
