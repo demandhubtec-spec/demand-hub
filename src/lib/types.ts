@@ -68,20 +68,54 @@ export interface Contrato {
   status: ContratoStatus;
 }
 
-// Formato mínimo esperado pelo cliente Supabase tipado.
+// Formato esperado pelo cliente Supabase tipado (mesma forma que
+// `supabase gen types typescript` produziria — Relationships/Views/Functions/
+// Enums/CompositeTypes precisam existir, senão o supabase-js cai num
+// fallback genérico e o TypeScript passa a rejeitar até campos válidos
+// nos `.insert(...)`/`.update(...)`).
 export interface Database {
   public: {
     Tables: {
-      perfis: { Row: Perfil; Insert: Partial<Perfil>; Update: Partial<Perfil> };
-      clientes: { Row: Cliente; Insert: Partial<Cliente>; Update: Partial<Cliente> };
-      projetos: { Row: Projeto; Insert: Partial<Projeto>; Update: Partial<Projeto> };
-      atividades: { Row: Atividade; Insert: Partial<Atividade>; Update: Partial<Atividade> };
+      perfis: {
+        Row: Perfil;
+        Insert: Partial<Perfil>;
+        Update: Partial<Perfil>;
+        Relationships: [];
+      };
+      clientes: {
+        Row: Cliente;
+        Insert: Partial<Cliente>;
+        Update: Partial<Cliente>;
+        Relationships: [];
+      };
+      projetos: {
+        Row: Projeto;
+        Insert: Partial<Projeto>;
+        Update: Partial<Projeto>;
+        Relationships: [];
+      };
+      atividades: {
+        Row: Atividade;
+        Insert: Partial<Atividade>;
+        Update: Partial<Atividade>;
+        Relationships: [];
+      };
       financeiro_lancamentos: {
         Row: FinanceiroLancamento;
         Insert: Partial<FinanceiroLancamento>;
         Update: Partial<FinanceiroLancamento>;
+        Relationships: [];
       };
-      contratos: { Row: Contrato; Insert: Partial<Contrato>; Update: Partial<Contrato> };
+      contratos: {
+        Row: Contrato;
+        Insert: Partial<Contrato>;
+        Update: Partial<Contrato>;
+        Relationships: [];
+      };
     };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
   };
 }
