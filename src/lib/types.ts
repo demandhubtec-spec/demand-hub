@@ -38,6 +38,31 @@ export interface Projeto {
   status: ProjetoStatus;
   progresso: number;
   prazo: string | null;
+  briefing: string | null;
+  responsavel_id: string | null;
+  prioridade: AtividadePrioridade;
+  prazo_inicio: string | null;
+  prazo_fim: string | null;
+}
+
+export interface Mensagem {
+  id: string;
+  projeto_id: string | null;
+  atividade_id: string | null;
+  autor_id: string | null;
+  texto: string;
+  criado_em: string;
+}
+
+export interface Anexo {
+  id: string;
+  projeto_id: string;
+  nome: string;
+  tipo: string | null;
+  tamanho: number | null;
+  storage_path: string;
+  criado_por: string | null;
+  criado_em: string;
 }
 
 export interface Atividade {
@@ -113,6 +138,18 @@ export interface Database {
         Row: Contrato;
         Insert: Partial<Contrato>;
         Update: Partial<Contrato>;
+        Relationships: [];
+      };
+      mensagens: {
+        Row: Mensagem;
+        Insert: Partial<Mensagem>;
+        Update: Partial<Mensagem>;
+        Relationships: [];
+      };
+      anexos: {
+        Row: Anexo;
+        Insert: Partial<Anexo>;
+        Update: Partial<Anexo>;
         Relationships: [];
       };
     };
