@@ -80,6 +80,47 @@ export function useAtividadesTodas() {
   });
 }
 
+/** Atividades de um projeto específico (lista dentro do modal de detalhe do projeto). */
+export function useAtividadesProjeto(projetoId: string | null) {
+  return useQuery({
+    queryKey: ["atividades", "projeto", projetoId],
+    enabled: !!projetoId,
+    queryFn: async (): Promise<AtividadeView[]> => {
+      const { data, error } = await supabase
+        .from("atividades")
+        .select(SELECT)
+        .eq("projeto_id", projetoId!)
+        .order("prazo", { ascending: true, nullsFirst: false });
+      if (error) throw error;
+      return ((data ?? []) as unknown as AtividadeRow[]).map(mapRow);
+    },
+  });
+}
+
+export type AtividadePatch = Partial<{
+  titulo: string;
+  descricao: string | null;
+  status: AtividadeStatus;
+  prioridade: AtividadePrioridade;
+  prazo: string | null;
+  responsavel_id: string | null;
+}>;
+
+export function useUpdateAtividade() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, patch }: { id: string; patch: AtividadePatch }) => {
+      const body: Record<string, unknown> = { ...patch };
+      if ("prazo" in patch) body.prazo = patch.prazo || null;
+      const { error } = await supabase.from("atividades").update(body).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["atividades"] });
+    },
+  });
+}
+
 export function useCreateAtividade() {
   const queryClient = useQueryClient();
   return useMutation({
