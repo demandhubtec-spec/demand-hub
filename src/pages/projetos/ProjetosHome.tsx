@@ -14,7 +14,10 @@ export default function ProjetosHome() {
   const { data: projetos = [] } = useProjetosAll();
   const { hasPrivateAccess } = useAuth();
 
-  const visiveis = clientes.filter((c) => hasPrivateAccess || !c.privado);
+  // Ordem de cadastro, como no protótipo (mais antigos primeiro).
+  const visiveis = clientes
+    .filter((c) => hasPrivateAccess || !c.privado)
+    .sort((a, b) => a.criado_em.localeCompare(b.criado_em));
 
   return (
     <section>
