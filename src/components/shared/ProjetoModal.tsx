@@ -20,25 +20,31 @@ import { useAnexos, useUploadAnexos, useRemoverAnexo, abrirAnexo } from "@/hooks
 import type { Anexo, AtividadePrioridade, AtividadeStatus, Perfil, ProjetoStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-const prioridadeOptions: { value: AtividadePrioridade; label: string }[] = [
-  { value: "urgente", label: "Urgente" },
+// Mesmas opções do protótipo; valores fora delas (ex.: "urgente", "atrasado") só aparecem se já estiverem salvos.
+const prioridadeBase: { value: AtividadePrioridade; label: string }[] = [
   { value: "alta", label: "Alta" },
   { value: "media", label: "Média" },
   { value: "baixa", label: "Baixa" },
 ];
+const prioridadeExtra: Record<string, string> = { urgente: "Urgente" };
 
-const projetoStatusOptions: { value: ProjetoStatus; label: string }[] = [
-  { value: "andamento", label: "Em andamento" },
-  { value: "atrasado", label: "Atrasado" },
-  { value: "concluido", label: "Concluído" },
-];
-
-const atividadeStatusOptions: { value: AtividadeStatus; label: string }[] = [
+const projetoStatusBase: { value: ProjetoStatus; label: string }[] = [
   { value: "a-fazer", label: "A fazer" },
   { value: "andamento", label: "Em andamento" },
-  { value: "atrasado", label: "Atrasado" },
   { value: "concluido", label: "Concluído" },
 ];
+
+const atividadeStatusBase: { value: AtividadeStatus; label: string }[] = [
+  { value: "a-fazer", label: "A fazer" },
+  { value: "andamento", label: "Em andamento" },
+  { value: "concluido", label: "Concluído" },
+];
+const statusExtra: Record<string, string> = { atrasado: "Atrasado" };
+
+function comAtual<T extends string>(base: { value: T; label: string }[], atual: T, extras: Record<string, string>) {
+  if (base.some((o) => o.value === atual)) return base;
+  return [...base, { value: atual, label: extras[atual] ?? atual }];
+}
 
 const ERRO = "Não foi possível salvar — verifique a conexão com o Supabase";
 
@@ -459,7 +465,10 @@ function TelaProjeto({
       <Header voltarLabel={p.empresa !== "—" ? p.empresa : "Projetos"} onVoltar={onFechar} />
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_320px] md:grid-rows-1">
         <div className="min-w-0 overflow-y-auto px-[22px] py-5">
-          <div className="mb-2 font-mono text-[11px] text-muted">{p.empresa !== "—" ? p.empresa : "Projeto interno"}</div>
+          <div className="mb-2 font-mono text-[11px] text-muted">
+            {p.empresa !== "—" ? p.empresa : "Projeto interno"}
+            {p.entregaNumero ? ` · Entrega ${String(p.entregaNumero).padStart(2, "0")}` : ""}
+          </div>
           <DialogPrimitive.Title asChild>
             <div>
               <TitleInput value={local.nome} onSave={(nome) => salvar({ nome }, { nome })} />
@@ -475,13 +484,13 @@ function TelaProjeto({
             <SelectField
               label="Status"
               value={local.status}
-              options={projetoStatusOptions}
+              options={comAtual(projetoStatusBase, local.status, statusExtra)}
               onSave={(v) => salvar({ status: v }, { status: v })}
             />
             <SelectField
               label="Prioridade"
               value={local.prioridade}
-              options={prioridadeOptions}
+              options={comAtual(prioridadeBase, local.prioridade, prioridadeExtra)}
               onSave={(v) => salvar({ prioridade: v }, { prioridade: v })}
             />
             <DateField
@@ -602,13 +611,13 @@ function TelaAtividade({
               <SelectField
                 label="Status"
                 value={local.status}
-                options={atividadeStatusOptions}
+                options={comAtual(atividadeStatusBase, local.status, statusExtra)}
                 onSave={(v) => salvar({ status: v }, { status: v })}
               />
               <SelectField
                 label="Prioridade"
                 value={local.prioridade}
-                options={prioridadeOptions}
+                options={comAtual(prioridadeBase, local.prioridade, prioridadeExtra)}
                 onSave={(v) => salvar({ prioridade: v }, { prioridade: v })}
               />
               <DateField label="Prazo" value={local.prazo} onSave={(v) => salvar({ prazo: v }, { prazo: v })} />
