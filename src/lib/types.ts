@@ -5,7 +5,7 @@
 export type Departamento = "tecnologia" | "marketing" | "comercial" | "administrativo";
 export type Papel = "dono" | "colaborador";
 export type ClienteStatus = "ativo" | "pausado" | "prospeccao";
-export type ProjetoStatus = "andamento" | "concluido" | "atrasado";
+export type ProjetoStatus = "a-fazer" | "andamento" | "concluido" | "atrasado";
 export type AtividadeStatus = "a-fazer" | "andamento" | "atrasado" | "concluido";
 export type AtividadePrioridade = "baixa" | "media" | "alta" | "urgente";
 export type LancamentoTipo = "entrada" | "saida";
@@ -28,6 +28,16 @@ export interface Cliente {
   status: ClienteStatus;
   privado: boolean;
   criado_em: string;
+  contrato_resumo?: string | null;
+  mensalidade?: string | null;
+}
+
+export interface EscopoEntrega {
+  id: string;
+  cliente_id: string;
+  numero: number;
+  nome: string;
+  resumo: string | null;
 }
 
 export interface Projeto {
@@ -43,6 +53,8 @@ export interface Projeto {
   prioridade: AtividadePrioridade;
   prazo_inicio: string | null;
   prazo_fim: string | null;
+  entrega_numero: number | null;
+  subtitulo: string | null;
 }
 
 export interface Mensagem {
@@ -144,6 +156,12 @@ export interface Database {
         Row: Mensagem;
         Insert: Partial<Mensagem>;
         Update: Partial<Mensagem>;
+        Relationships: [];
+      };
+      escopo_entregas: {
+        Row: EscopoEntrega;
+        Insert: Partial<EscopoEntrega>;
+        Update: Partial<EscopoEntrega>;
         Relationships: [];
       };
       anexos: {
