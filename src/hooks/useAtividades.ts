@@ -90,7 +90,8 @@ export function useAtividadesProjeto(projetoId: string | null) {
         .from("atividades")
         .select(SELECT)
         .eq("projeto_id", projetoId!)
-        .order("prazo", { ascending: true, nullsFirst: false });
+        // Ordem de cadastro (as etapas do projeto aparecem na sequência em que foram criadas).
+        .order("criado_em", { ascending: true });
       if (error) throw error;
       return ((data ?? []) as unknown as AtividadeRow[]).map(mapRow);
     },
