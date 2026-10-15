@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Plus, Lock } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Plus, Lock, Folder } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -11,6 +12,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { useClientes, useCreateCliente } from "@/hooks/useClientes";
 import { useProjetosAll, useCreateProjeto } from "@/hooks/useProjetos";
 import { useAuth } from "@/hooks/useAuth";
+import { useEscopoContagem } from "@/hooks/useEscopo";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { departamentoOptions } from "@/data/departamentos";
@@ -30,6 +32,8 @@ export default function Clientes() {
   const createCliente = useCreateCliente();
   const createProjeto = useCreateProjeto();
   const { showToast } = useToast();
+  const navigate = useNavigate();
+  const { data: escopoPorCliente = {} } = useEscopoContagem();
   const [filtro, setFiltro] = React.useState<"todos" | ClienteStatus>("todos");
   const [modalOpen, setModalOpen] = React.useState(false);
 
@@ -120,6 +124,7 @@ export default function Clientes() {
               <Th>Status</Th>
               <Th>Projetos ativos</Th>
               <Th>Última atividade</Th>
+              <Th>Projetos</Th>
             </tr>
           </thead>
           <tbody>
@@ -140,6 +145,26 @@ export default function Clientes() {
                 </Td>
                 <Td>{projetosAtivosDe(c.id)}</Td>
                 <Td>—</Td>
+                <Td>
+                  {(() => {
+                    const doCliente = projetos.filter((p) => p.clienteId === c.id);
+                    if (!doCliente.length) return <span className="text-xs text-muted">—</span>;
+                    const totalEscopo = escopoPorCliente[c.id] ?? 0;
+                    // Com escopo fechado: entregas iniciadas / total do contrato (ex.: 1/13).
+                    const qtd = totalEscopo ? doCliente.filter((p) => p.entregaNumero).length : doCliente.length;
+                    const total = totalEscopo || qtd;
+                    return (
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/projetos/${c.id}`)}
+                        className="inline-flex items-center gap-[5px] px-0.5 py-1 text-[12.5px] font-semibold text-primary-bright hover:underline"
+                      >
+                        <Folder className="h-3.5 w-3.5" />
+                        Ver projetos ({qtd}/{total})
+                      </button>
+                    );
+                  })()}
+                </Td>
               </tr>
             ))}
           </tbody>
