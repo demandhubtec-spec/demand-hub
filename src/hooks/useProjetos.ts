@@ -16,6 +16,8 @@ export interface ProjetoView {
   prioridade: AtividadePrioridade;
   prazoInicio: string | null;
   prazoFim: string | null;
+  entregaNumero: number | null;
+  subtitulo: string | null;
 }
 
 type ProjetoRow = {
@@ -32,6 +34,8 @@ type ProjetoRow = {
   prioridade?: AtividadePrioridade | null;
   prazo_inicio?: string | null;
   prazo_fim?: string | null;
+  entrega_numero?: number | null;
+  subtitulo?: string | null;
   clientes: { nome: string } | null;
 };
 
@@ -50,6 +54,8 @@ function mapRow(p: ProjetoRow): ProjetoView {
     prioridade: p.prioridade ?? "media",
     prazoInicio: p.prazo_inicio ?? null,
     prazoFim: p.prazo_fim ?? p.prazo ?? null,
+    entregaNumero: p.entrega_numero ?? null,
+    subtitulo: p.subtitulo ?? null,
   };
 }
 
@@ -74,6 +80,23 @@ export function useProjetosAll() {
     queryKey: ["projetos", "all"],
     queryFn: async (): Promise<ProjetoView[]> => {
       const { data, error } = await supabase.from("projetos").select("*, clientes(nome)");
+      if (error) throw error;
+      return ((data ?? []) as ProjetoRow[]).map(mapRow);
+    },
+  });
+}
+
+/** Projetos de um cliente (ficha do cliente na aba Projetos). */
+export function useProjetosCliente(clienteId: string | null) {
+  return useQuery({
+    queryKey: ["projetos", "cliente", clienteId],
+    enabled: !!clienteId,
+    queryFn: async (): Promise<ProjetoView[]> => {
+      const { data, error } = await supabase
+        .from("projetos")
+        .select("*, clientes(nome)")
+        .eq("cliente_id", clienteId!)
+        .order("entrega_numero", { ascending: true, nullsFirst: false });
       if (error) throw error;
       return ((data ?? []) as ProjetoRow[]).map(mapRow);
     },
