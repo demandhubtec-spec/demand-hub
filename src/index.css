@@ -181,3 +181,106 @@ table tr:last-child td {
     transition: none !important;
   }
 }
+
+/* Ficha do cliente em PDF (Projetos → cliente → "Exportar ficha em PDF") */
+#printArea {
+  display: none;
+}
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printArea,
+  #printArea * {
+    visibility: visible;
+  }
+  #printArea {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+    background: #fff;
+    color: #171716;
+    font-family: "Inter", sans-serif;
+  }
+  .print-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 24px 32px 16px;
+    border-bottom: 3px solid #7e39a0;
+  }
+  .print-mark {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: #7e39a0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .print-mark svg {
+    width: 60%;
+    height: 60%;
+  }
+  .print-brand {
+    font-family: "Space Grotesk", sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #171716;
+  }
+  .print-meta {
+    padding: 16px 32px 0;
+  }
+  .print-meta h2 {
+    font-family: "Space Grotesk", sans-serif;
+    font-size: 20px;
+    margin-bottom: 2px;
+    color: #171716;
+  }
+  .print-meta p {
+    font-size: 12.5px;
+    color: #6e6a74;
+    margin-bottom: 2px;
+  }
+  .print-section {
+    padding: 14px 32px;
+  }
+  .print-section h3 {
+    font-size: 13px;
+    font-weight: 700;
+    color: #7e39a0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #e4e1e8;
+    padding-bottom: 6px;
+  }
+  .print-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 7px 0;
+    border-bottom: 1px solid #f1eef5;
+    font-size: 12.5px;
+  }
+  .print-row-title {
+    font-weight: 600;
+    color: #171716;
+    flex: 1;
+  }
+  .print-row-meta {
+    color: #6e6a74;
+    white-space: nowrap;
+  }
+  .print-footer {
+    padding: 20px 32px;
+    font-size: 10.5px;
+    color: #9c97a6;
+  }
+}

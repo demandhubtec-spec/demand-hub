@@ -15,6 +15,8 @@ import Acessos from "@/pages/config/Acessos";
 import Faq from "@/pages/Faq";
 import Processos from "@/pages/Processos";
 import Ajuda from "@/pages/Ajuda";
+import ProjetosHome from "@/pages/projetos/ProjetosHome";
+import ProjetosCliente from "@/pages/projetos/ProjetosCliente";
 
 export default function App() {
   return (
@@ -24,6 +26,9 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route index element={<Dashboard />} />
+
+          <Route path="projetos" element={<ProjetosHome />} />
+          <Route path="projetos/:clienteId" element={<ProjetosCliente />} />
 
           <Route path=":dept/visao" element={<DepartmentVisao />} />
           <Route path=":dept/projetos" element={<DepartmentProjetos />} />
