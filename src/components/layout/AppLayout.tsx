@@ -4,6 +4,7 @@ import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { cn } from "@/lib/utils";
 import { navGroups } from "./nav-config";
+import { useClientes } from "@/hooks/useClientes";
 
 function buildTitleMap(): Record<string, string> {
   const map: Record<string, string> = {
@@ -11,6 +12,7 @@ function buildTitleMap(): Record<string, string> {
     "/faq": "FAQ",
     "/processos": "Processos Demand Hub",
     "/ajuda": "Central de ajuda",
+    "/projetos": "Projetos",
   };
   navGroups.forEach((group) => {
     group.children.forEach((child) => {
@@ -37,7 +39,10 @@ export function AppLayout() {
     document.body.setAttribute("data-theme", theme);
   }, [theme]);
 
-  const title = titleMap[location.pathname] ?? "Demand Hub";
+  const { data: clientes = [] } = useClientes();
+  const fichaMatch = location.pathname.match(/^\/projetos\/([^/]+)/);
+  const clienteFicha = fichaMatch ? clientes.find((c) => c.id === fichaMatch[1]) : undefined;
+  const title = clienteFicha ? `${clienteFicha.nome} — Projetos` : (titleMap[location.pathname] ?? "Demand Hub");
 
   return (
     <div className="flex min-h-screen">

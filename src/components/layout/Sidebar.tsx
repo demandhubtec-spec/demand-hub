@@ -2,6 +2,7 @@ import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutGrid,
+  Folder,
   Code2,
   Megaphone,
   Target,
@@ -119,6 +120,25 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             <LayoutGrid className="h-[17px] w-[17px] shrink-0" />
             {!collapsed && <span>Dashboard geral</span>}
           </NavLink>
+
+          {!isColaborador && (
+            <NavLink
+              to="/projetos"
+              onClick={onCloseMobile}
+              className={({ isActive }) =>
+                cn(
+                  "nav-sweep flex items-center gap-3 rounded-[7px] px-3 py-2.5 text-[13.5px] font-medium",
+                  collapsed && "justify-center",
+                  isActive
+                    ? "bg-primary text-white shadow-[0_0_18px_rgba(178,111,214,.4)]"
+                    : "hover:bg-white/[.06] hover:text-white",
+                )
+              }
+            >
+              <Folder className="h-[17px] w-[17px] shrink-0" />
+              {!collapsed && <span>Projetos</span>}
+            </NavLink>
+          )}
 
           {navGroups
             .filter((g) => !isColaborador || g.colaboradorPode)
