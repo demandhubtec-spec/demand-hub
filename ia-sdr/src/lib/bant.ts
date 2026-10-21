@@ -44,3 +44,13 @@ export function evaluateBant(l: BantInput, cfg = SDR_CONFIG.qualificacao): BantR
     faltando,
   };
 }
+
+/**
+ * Normaliza o faturamento informado pela IA para reais.
+ * Leads falam "50 mil" e o modelo às vezes envia 50: valores abaixo de 1.000 são tratados como milhares.
+ */
+export function normalizeFaturamento(v: unknown): number | null {
+  const n = typeof v === "string" ? Number(v.replace(/[^\d.,]/g, "").replace(/\./g, "").replace(",", ".")) : Number(v);
+  if (!isFinite(n) || n <= 0) return null;
+  return n < 1000 ? Math.round(n * 1000) : Math.round(n);
+}

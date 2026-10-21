@@ -4,7 +4,7 @@
  * garantidas aqui no servidor — não dependem do modelo "obedecer" o prompt.
  */
 import { SDR_CONFIG } from "../config/sdr.ts";
-import { evaluateBant } from "./bant.ts";
+import { evaluateBant, normalizeFaturamento } from "./bant.ts";
 import type { Tool } from "./llm.ts";
 import { activeMeeting, db, getLead, logEvent, updateLead, type Lead } from "./db.ts";
 import { env } from "./env.ts";
@@ -25,7 +25,7 @@ export const TOOLS: Tool[] = [
         empresa: { type: "string" },
         segmento: { type: "string" },
         email: { type: "string" },
-        faturamento_mensal: { type: "number", description: "Faturamento médio mensal em reais. Se o lead der uma faixa, use o valor mínimo da faixa." },
+        faturamento_mensal: { type: "number", description: "Faturamento médio MENSAL em REAIS COMPLETOS. Ex.: '50 mil' = 50000; faixa '50 a 60 mil' = 50000 (use o mínimo); '1 milhão por ano' = 83000." },
         autoridade: {
           type: "string",
           enum: ["decisor", "decisor_vai_participar", "sem_decisor"],
@@ -121,8 +121,12 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
   switch (name) {
     case "registrar_qualificacao": {
       const patch: Record<string, unknown> = {};
-      for (const k of ["nome", "empresa", "segmento", "necessidade_resumo", "faturamento_mensal", "autoridade", "prazo"]) {
+      for (const k of ["nome", "empresa", "segmento", "necessidade_resumo", "autoridade", "prazo"]) {
         if (input[k] !== undefined && input[k] !== "") patch[k] = input[k];
+      }
+      if (input.faturamento_mensal !== undefined && input.faturamento_mensal !== "") {
+        const fat = normalizeFaturamento(input.faturamento_mensal);
+        if (fat !== null) patch.faturamento_mensal = fat;
       }
       if (input.email) {
         if (!EMAIL_RE.test(input.email)) return "E-mail inválido. Peça para o lead conferir.";
@@ -141,6 +145,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       await updateLead(leadId, patch);
       return JSON.stringify({
         bant: `${r.score}/4`,
+        faturamento_registrado: merged.faturamento_mensal ? `R$ ${Number(merged.faturamento_mensal).toLocaleString("pt-BR")}/mês` : null,
         B_budget: r.budget,
         A_autoridade: r.authority,
         N_necessidade: r.need,

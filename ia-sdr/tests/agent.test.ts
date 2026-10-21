@@ -135,3 +135,14 @@ test("webhook do Evolution GO: texto, áudio, grupo, mensagem própria e LID", (
   assert.equal(destination({ phone: lid!.phone, whatsapp_jid: lid!.jid }), "123456789012345@lid");
   assert.equal(destination({ phone: "5519988887777", whatsapp_jid: "5519988887777@s.whatsapp.net" }), "5519988887777");
 });
+
+test("faturamento '50' vira R$ 50.000 e qualifica no budget", async () => {
+  const { normalizeFaturamento } = await import("../src/lib/bant.ts");
+  assert.equal(normalizeFaturamento(50), 50000);
+  assert.equal(normalizeFaturamento(50000), 50000);
+  assert.equal(normalizeFaturamento("60 mil"), 60000);
+  assert.equal(normalizeFaturamento("R$ 45.000"), 45000);
+  assert.equal(normalizeFaturamento(0), null);
+  assert.ok(evaluateBant({ faturamento_mensal: normalizeFaturamento(50) }).budget);
+  assert.ok(!evaluateBant({ faturamento_mensal: normalizeFaturamento(20) }).budget);
+});
