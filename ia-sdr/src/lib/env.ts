@@ -30,4 +30,9 @@ export const env = {
 
   /** WhatsApp do Kelvin para receber avisos (handoff, reunião marcada). Só dígitos. */
   get ownerPhone() { return process.env.OWNER_PHONE || ""; },
+  /** Web app do Apps Script da planilha de leads (grava a linha e manda o e-mail de aviso) */
+  get sheetWebhookUrl() { return process.env.SHEET_WEBHOOK_URL || ""; },
+  get sheetWebhookSecret() { return process.env.SHEET_WEBHOOK_SECRET || ""; },
+  /** Para onde vai o aviso de cada cadastro da landing page. Se vazio, usa OWNER_PHONE. */
+  get alertPhone() { return (process.env.ALERT_PHONE || process.env.OWNER_PHONE || "").replace(/\D/g, ""); },
 };

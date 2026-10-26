@@ -40,6 +40,8 @@ export async function POST(req: Request) {
   // Mensagem enviada pelo nosso número: foi a IA ou o Kelvin respondendo na mão?
   if (msg.fromMe) {
     if (!msg.text) return Response.json({ ok: true });
+    // Aviso de novo cadastro que a própria IA mandou para o Kelvin: não é resposta manual
+    if (env.alertPhone && msg.phone === env.alertPhone && msg.text.includes("Novo diagnóstico")) return Response.json({ ok: true });
     waitUntil(
       (async () => {
         await new Promise((r) => setTimeout(r, 5000)); // dá tempo da IA registrar o envio dela

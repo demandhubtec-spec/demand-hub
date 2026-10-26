@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { env } from "./env.ts";
+import { phoneVariants } from "./diagnostico.ts";
 
 let client: SupabaseClient | null = null;
 
@@ -69,7 +70,8 @@ export async function getLead(id: string): Promise<Lead> {
 }
 
 export async function upsertLeadByPhone(phone: string, jid: string, pushName?: string): Promise<Lead> {
-  const found = await db().from("sdr_leads").select("*").eq("phone", phone).maybeSingle();
+  // Busca também a variação com/sem o 9 (o WhatsApp pode trazer o número sem ele)
+  const found = await db().from("sdr_leads").select("*").in("phone", phoneVariants(phone)).limit(1).maybeSingle();
   if (found.data) return found.data as Lead;
   const created = await db()
     .from("sdr_leads")

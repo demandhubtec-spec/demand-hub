@@ -1,0 +1,752 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Diagnóstico Gratuito para Empresas | DemandIA</title>
+<meta name="description" content="Descubra onde sua empresa está perdendo dinheiro. Diagnóstico gratuito de marketing, vendas, processos, equipe e produto, com resultado em até 24h úteis no seu WhatsApp. Atendimento online para todo o Brasil.">
+<meta name="theme-color" content="#0B0420">
+<link rel="canonical" href="https://demandhub.com.br/diagnostico">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Diagnóstico Gratuito | DemandIA">
+<meta property="og:description" content="Descubra onde sua empresa está perdendo dinheiro. Resultado em até 24h úteis no seu WhatsApp.">
+<meta property="og:image" content="https://demandhub.com.br/diagnostico/og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="/diagnostico/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,500..900&family=Geist:wght@400..700&display=swap" rel="stylesheet">
+<script>document.documentElement.classList.add("js")</script>
+<style>
+:root{
+  --noite:#0B0420;--noite2:#07021A;--indigo:#1C0A4A;--card:#150A35;--borda:#3A2A6E;
+  --roxo:#6E3AFF;--roxo2:#5A28E0;--violeta:#A47BFF;--lilas:#B48CFF;--lilas2:#C9B0FF;--nevoa:#E9E1FF;--gelo:#F6F4FB;
+  --texto2:#C9BEEA;--texto3:#8E7FC4;--wa:#25D366;--erro:#FF6B81;
+  --tinta:#0B0420;--tinta2:#4A3F78;--linha:#E1D8FA;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:16px;-webkit-text-size-adjust:100%}
+body{background:var(--noite2);color:#fff;font-family:'Geist',system-ui,sans-serif;font-size:17px;line-height:1.55;overflow-x:hidden}
+img,svg{display:block;max-width:100%}
+a{color:inherit}
+.h{font-family:'Archivo',sans-serif;font-weight:900;font-stretch:80%;text-transform:uppercase;line-height:.92;letter-spacing:-.005em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+.hl{color:var(--lilas)}
+.grad{background:linear-gradient(180deg,#fff 0%,var(--lilas2) 55%,var(--violeta) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ico-ok{width:22px;height:22px;flex-shrink:0}
+
+/* animação ao aparecer */
+.js .rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease,transform .7s cubic-bezier(.2,.7,.2,1)}
+.js .rv.in{opacity:1;transform:none}
+.js .rv.d1{transition-delay:.08s}.js .rv.d2{transition-delay:.16s}.js .rv.d3{transition-delay:.24s}.js .rv.d4{transition-delay:.32s}
+.js .rv-img{opacity:0;transform:scale(.94) translateY(20px);transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.2,1)}
+.js .rv-img.in{opacity:1;transform:none}
+
+/* faixa */
+.band{background:var(--roxo);text-align:center;padding:9px 16px;font-family:'Archivo';font-weight:800;font-stretch:88%;text-transform:uppercase;font-size:13px;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:8px}
+.band svg{width:12px;height:12px;flex-shrink:0}
+@media (max-width:430px){.band{font-size:11.5px;letter-spacing:0;padding:9px 10px;white-space:nowrap}.band svg{width:10px;height:10px}}
+
+/* botões */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;min-height:56px;border:0;cursor:pointer;border-radius:999px;font-family:'Archivo';font-weight:800;font-stretch:96%;text-transform:uppercase;font-size:16.5px;letter-spacing:.01em;padding:18px 28px;text-decoration:none;transition:transform .15s,filter .15s}
+.btn:active{transform:scale(.98)}
+.btn svg{width:22px;height:22px;flex-shrink:0}
+.btn-p{background:linear-gradient(180deg,#7D4DFF,#5A28E0);color:#fff;box-shadow:0 14px 40px rgba(110,58,255,.5),inset 0 -4px 0 rgba(0,0,0,.18)}
+.btn-p:hover{filter:brightness(1.1)}
+.btn-wa{background:var(--wa);color:#05230F;box-shadow:0 14px 40px rgba(37,211,102,.32),inset 0 -4px 0 rgba(0,0,0,.12)}
+
+/* HERO */
+.hero{position:relative;padding:34px 0 56px;overflow:hidden}
+.hero:before{content:"";position:absolute;left:-30%;top:-260px;width:1100px;height:1100px;background:radial-gradient(circle,rgba(110,58,255,.42) 0%,rgba(58,18,184,.14) 40%,rgba(11,4,32,0) 66%);pointer-events:none}
+.hero-bigD{position:absolute;right:-220px;bottom:-120px;width:640px;opacity:.09;pointer-events:none}
+.hero .wrap{position:relative;display:grid;grid-template-columns:1fr;gap:34px}
+.hero-logo{height:34px;width:auto;margin-bottom:30px}
+.hero h1{font-size:clamp(46px,13vw,92px);margin-bottom:22px}
+.hero .sub{font-size:19px;color:var(--texto2);max-width:540px}
+.hero .sub b{color:#fff;font-weight:600}
+.checks{display:grid;gap:12px;margin-top:26px;font-size:17px;font-weight:600}
+.checks div{display:flex;align-items:center;gap:12px}
+
+/* card do formulário */
+.fcard{position:relative;background:linear-gradient(180deg,#1A0D42,#120830);border:1px solid #4A34A0;border-radius:28px;padding:26px 20px 24px;box-shadow:0 30px 80px rgba(0,0,0,.5),0 0 0 6px rgba(110,58,255,.08)}
+.fh{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.fcard h2{font-size:31px}
+.free{flex-shrink:0;background:var(--wa);color:#05230F;font-family:'Archivo';font-weight:800;font-stretch:88%;font-size:13px;text-transform:uppercase;padding:7px 11px;border-radius:10px;transform:rotate(3deg)}
+.prog{display:flex;gap:6px;margin:4px 0 8px}
+.prog i{flex:1;height:6px;border-radius:6px;background:#2A1C5E;overflow:hidden;position:relative}
+.prog i:after{content:"";position:absolute;inset:0;width:0;background:linear-gradient(90deg,var(--roxo),var(--lilas2));transition:width .35s}
+.prog i.on:after{width:100%}
+.steplbl{display:flex;justify-content:space-between;color:var(--texto3);font-size:14px;font-weight:500;margin-bottom:18px}
+.step{display:none;animation:fade .3s ease}
+.step.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.f{margin-bottom:16px}
+.f>label,.f>.lbl{display:block;font-weight:600;font-size:15.5px;margin-bottom:8px;color:var(--nevoa)}
+.f .opt{color:var(--texto3);font-weight:400}
+.f input,.f select,.f textarea{width:100%;min-height:52px;background:#0E0628;border:1.5px solid var(--borda);border-radius:14px;color:#fff;font:inherit;font-size:17px;padding:14px 16px;outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;appearance:none}
+.f select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='9' fill='none' stroke='%23B48CFF' stroke-width='2.2' stroke-linecap='round'%3E%3Cpath d='M1.5 1.5 7 7l5.5-5.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:42px}
+.f textarea{min-height:96px;resize:vertical}
+.f input::placeholder,.f textarea::placeholder{color:#6E61A0}
+.f input:focus,.f select:focus,.f textarea:focus{border-color:var(--violeta);box-shadow:0 0 0 4px rgba(164,123,255,.18)}
+.f.err input,.f.err select,.f.err .chips{border-color:var(--erro)}
+.f .msg{display:none;color:var(--erro);font-size:14px;margin-top:6px}
+.f.err .msg{display:block}
+.row2{display:grid;grid-template-columns:1fr;gap:0 14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;border:1.5px solid transparent;border-radius:16px}
+.chips label{cursor:pointer}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips span{display:inline-flex;align-items:center;gap:7px;min-height:46px;padding:10px 15px;border-radius:999px;background:#0E0628;border:1.5px solid var(--borda);font-size:15.5px;font-weight:500;color:var(--nevoa);transition:all .15s;user-select:none}
+.chips input:checked+span{background:rgba(110,58,255,.28);border-color:var(--violeta);color:#fff;box-shadow:0 0 0 3px rgba(164,123,255,.15)}
+.chips input:checked+span:before{content:"";width:14px;height:10px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 10' fill='none' stroke='%23C9B0FF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 5 5 8.5 12.5 1.5'/%3E%3C/svg%3E") no-repeat center}
+.chips input:focus-visible+span{outline:2px solid var(--lilas2);outline-offset:2px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid2 span{width:100%;justify-content:center;text-align:center;border-radius:14px;padding:10px 6px}
+.fnav{display:flex;gap:10px;margin-top:22px}
+.fnav .btn{flex:1}
+.btn-g{background:transparent;color:var(--texto2);border:1.5px solid var(--borda);flex:0 0 56px!important;width:56px;padding:0!important}
+.lgpd{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:var(--texto3);margin-top:6px;cursor:pointer;min-height:44px}
+.lgpd input{margin-top:2px;width:20px;height:20px;accent-color:var(--roxo);flex-shrink:0}
+.secure{display:flex;align-items:center;justify-content:center;gap:7px;font-size:13.5px;color:var(--texto3);margin-top:14px}
+.secure svg{width:14px;height:14px}
+.formerr{display:none;background:rgba(255,107,129,.12);border:1px solid var(--erro);color:#FFC2CC;border-radius:12px;padding:12px 14px;font-size:15px;margin-top:14px}
+.done{display:none;text-align:center;padding:10px 4px 6px;animation:fade .4s ease}
+.done .ok{width:84px;height:84px;margin:6px auto 18px;border-radius:50%;background:var(--wa);display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 10px rgba(37,211,102,.15),0 0 60px rgba(37,211,102,.5)}
+.done .ok svg{width:44px;height:44px}
+.done h2{font-size:36px;margin-bottom:12px}
+.done p{color:var(--texto2);margin-bottom:12px}
+.done .next{text-align:left;background:#0E0628;border:1px solid var(--borda);border-radius:18px;padding:14px 18px;margin:18px 0}
+.done .next div{display:flex;gap:12px;align-items:flex-start;padding:8px 0;font-size:16px}
+.done .next b{font-family:'Archivo';font-stretch:88%;color:var(--lilas)}
+.done .btn{width:100%}
+
+
+/* sanfonas do formulário */
+.acc{border:1.5px solid var(--borda);border-radius:16px;background:#0E0628;overflow:hidden;transition:border-color .2s}
+.acc.open{border-color:var(--violeta);box-shadow:0 0 0 4px rgba(164,123,255,.12)}
+.acc.is-set:not(.open){border-color:rgba(37,211,102,.55)}
+.f.acc.err{border-color:var(--erro)}
+.acc-h{width:100%;min-height:60px;display:grid;grid-template-columns:1fr auto;grid-template-areas:"q chev" "sel chev";align-items:center;gap:2px 12px;padding:12px 16px;background:none;border:0;color:#fff;font:inherit;text-align:left;cursor:pointer}
+.acc-h .q{grid-area:q;font-weight:600;font-size:15.5px;color:var(--nevoa);line-height:1.3}
+.acc-h .sel{grid-area:sel;font-size:15px;color:var(--texto3);line-height:1.3}
+.acc.is-set .acc-h .sel{color:#7BE3A4;font-weight:600}
+.acc-h .chev{grid-area:chev;width:14px;height:9px;transition:transform .25s}
+.acc.open .chev{transform:rotate(180deg)}
+.acc-p{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease}
+.acc.open .acc-p{grid-template-rows:1fr}
+.acc-p>.opts{overflow:hidden;min-height:0}
+.opts{display:grid;gap:2px;padding:0 8px}
+.acc.open .opts{padding:0 8px 10px}
+.op{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 10px;border-radius:12px;cursor:pointer;font-size:16px;color:var(--nevoa)}
+.op:hover{background:rgba(110,58,255,.12)}
+.op input{position:absolute;opacity:0;pointer-events:none}
+.op i{width:22px;height:22px;flex-shrink:0;border:2px solid #5A4A9A;border-radius:6px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.op input[type=radio]+i{border-radius:50%}
+.op input:checked+i{background:var(--wa);border-color:var(--wa)}
+.op input:checked+i:after{content:"";width:12px;height:9px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 10' fill='none' stroke='%2305230F' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 5 5 8.5 12.5 1.5'/%3E%3C/svg%3E") no-repeat center/contain}
+.op input:checked~span{color:#fff;font-weight:600}
+.op input:focus-visible+i{outline:2px solid var(--lilas2);outline-offset:2px}
+.acc .msg{padding:0 16px 12px}
+
+/* seções */
+section{position:relative;padding:72px 0}
+.sec-h{max-width:780px;margin-bottom:38px}
+.sec-h h2{font-size:clamp(40px,10vw,72px);margin-bottom:16px}
+.sec-h p{font-size:18.5px}
+
+/* CLARA: áreas */
+.claro{background:var(--gelo);color:var(--tinta)}
+.claro .sec-h p{color:var(--tinta2)}
+.claro .hl{color:var(--roxo)}
+.bento{display:grid;grid-template-columns:1fr;gap:14px}
+.bx{position:relative;border-radius:26px;padding:26px;overflow:hidden}
+.claro .bx{background:#fff;border:1px solid var(--linha);box-shadow:0 10px 30px rgba(43,16,120,.06)}
+.bx h3{font-size:28px;margin-bottom:10px}
+.bx p{font-size:16.5px}
+.claro .bx p{color:var(--tinta2)}
+.bx .ic{width:54px;height:54px;border-radius:16px;background:var(--roxo);display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:0 8px 22px rgba(110,58,255,.35)}
+.bx .ic svg{width:28px;height:28px}
+.bx-big{background:linear-gradient(150deg,#2A0C8F,#6E3AFF)!important;color:#fff;border:0!important}
+.bx-big h3{font-size:clamp(36px,9vw,54px)}
+.bx-big p{color:var(--nevoa)!important;font-size:18px;max-width:440px}
+.bx-big .ic{background:#fff}
+.bx-big .q{margin-top:22px;display:grid;gap:10px}
+.bx-big .q span{display:flex;gap:10px;align-items:center;font-weight:600;font-size:16px;color:#fff}
+.bx-big .q span:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--lilas2);flex-shrink:0}
+.bx-dark{background:var(--noite)!important;color:#fff;border:0!important}
+.bx-dark p{color:var(--texto2)!important}
+.bx-dark .btn{margin-top:20px;width:100%}
+
+.lista{list-style:none;display:grid;gap:12px}
+.it{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;align-items:center;background:#fff;border:1px solid var(--linha);border-radius:22px;padding:20px;box-shadow:0 8px 24px rgba(43,16,120,.05)}
+.it .num{display:none}
+.it .ic{width:52px;height:52px;border-radius:15px;background:var(--roxo);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(110,58,255,.32)}
+.it .ic svg{width:27px;height:27px}
+.it h3{font-size:28px;margin-bottom:2px}
+.it .tt p{color:var(--tinta2);font-size:16.5px;line-height:1.35}
+.it ul{grid-column:1/-1;list-style:none;display:grid;gap:8px;margin-top:12px;padding-top:14px;border-top:1px solid var(--linha)}
+.it ul li{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;color:var(--tinta)}
+.it ul li:before{content:"";width:20px;height:20px;flex-shrink:0;border-radius:50%;background:#E6FAEE url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 10' fill='none' stroke='%2318A957' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 5 5 8.5 12.5 1.5'/%3E%3C/svg%3E") no-repeat center/11px}
+.sec-cta{display:flex;flex-direction:column;align-items:flex-start;gap:12px;margin-top:34px}
+.sec-cta .btn{width:100%;max-width:440px}
+.sec-cta span{font-size:14.5px;font-weight:600;opacity:.75}
+
+/* 2027 */
+.y27{background:radial-gradient(ellipse 70% 60% at 20% 30%,#2A0C8F 0%,#120734 45%,var(--noite2) 100%)}
+.y27 .cols{display:grid;grid-template-columns:1fr;gap:34px;align-items:center}
+.y27 .big{font-size:clamp(130px,38vw,280px);line-height:.78;margin-bottom:10px}
+.y27 h2{font-size:clamp(36px,9vw,60px)}
+.y27 .lead{color:var(--texto2);margin-top:16px;font-size:18.5px}
+.pts{display:grid;gap:12px}
+.pt{display:flex;gap:14px;align-items:center;background:rgba(21,10,53,.72);border:1px solid var(--borda);border-radius:18px;padding:16px 18px;font-size:17.5px;font-weight:600}
+.pt .ico-ok{width:34px;height:34px;padding:7px;border-radius:10px;background:rgba(37,211,102,.15);border:1.5px solid var(--wa)}
+
+/* serviços */
+.serv{background:var(--noite2)}
+.serv .sec-h p{color:var(--texto2)}
+.serv .bx{background:var(--card);border:1px solid var(--borda)}
+.serv .bx p{color:var(--texto2)}
+.bx-10x{background:linear-gradient(160deg,#1C0A4A,#0B0420)!important;border:1px solid #6E3AFF!important;box-shadow:0 0 60px rgba(110,58,255,.25)}
+.bx-10x .x{font-size:clamp(56px,16.5vw,150px);line-height:.8;margin:6px 0 10px}
+.bars{display:grid;gap:14px;margin-top:22px}
+.bar{display:grid;grid-template-columns:110px 1fr;align-items:center;gap:12px;font-size:15px;font-weight:600}
+.bar i{display:block;height:40px;border-radius:12px;position:relative}
+.bar i b{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-family:'Archivo';font-stretch:88%;font-size:15px;color:#fff;white-space:nowrap}
+.bar .a{background:linear-gradient(90deg,#C4161C,#FF8A96)}
+.bar .b{background:linear-gradient(90deg,#6E3AFF,#C9B0FF);width:12%;min-width:46px}
+.js .bars .a,.js .bars .b{transform-origin:left;transform:scaleX(0);transition:transform 1.1s cubic-bezier(.2,.7,.2,1) .2s}
+.js .bars.in .a,.js .bars.in .b{transform:none}
+.bar .b b{left:calc(100% + 10px);right:auto;color:var(--lilas2)}
+.fonte{font-size:13px;color:var(--texto3);margin-top:16px;line-height:1.45}
+.sems{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+.sems span{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:10px 18px;border-radius:999px;background:rgba(37,211,102,.1);border:1.5px solid rgba(37,211,102,.55);font-weight:700;font-size:16px}
+.sems svg{width:18px;height:18px}
+
+/* como funciona: linha do tempo */
+.nevoa{background:linear-gradient(180deg,#EDE6FF,#F6F4FB);color:var(--tinta)}
+.nevoa .sec-h p{color:var(--tinta2)}
+.nevoa .hl{color:var(--roxo)}
+.tl{display:grid;gap:0;position:relative}
+.tl:before{content:"";position:absolute;left:27px;top:28px;bottom:28px;width:3px;background:linear-gradient(180deg,var(--roxo),var(--lilas2));border-radius:3px}
+.tli{display:grid;grid-template-columns:58px 1fr;gap:18px;padding:0 0 30px}
+.tli:last-child{padding-bottom:0}
+.tli .n{position:relative;z-index:1;width:58px;height:58px;border-radius:50%;background:var(--roxo);color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Archivo';font-weight:900;font-stretch:80%;font-size:26px;box-shadow:0 0 0 6px #EDE6FF,0 10px 24px rgba(110,58,255,.4)}
+.tli h3{font-size:30px;margin:10px 0 8px}
+.tli p{color:var(--tinta2);font-size:17px;max-width:420px}
+.tli .tag{display:inline-flex;align-items:center;margin-top:12px;font-size:14px;font-weight:700;color:var(--roxo2);background:#fff;border:1px solid var(--linha);padding:7px 13px;border-radius:999px}
+
+/* faq */
+.faqs{background:var(--noite)}
+.faq{max-width:840px}
+.faq details{border-bottom:1px solid var(--borda)}
+.faq summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;font-weight:600;font-size:19px;min-height:64px;padding:14px 0}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:"";flex-shrink:0;width:28px;height:28px;border-radius:50%;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='%23B48CFF' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M6 1.5v9M1.5 6h9'/%3E%3C/svg%3E") no-repeat center/12px;border:1px solid var(--borda);transition:transform .25s}
+.faq details[open] summary:after{transform:rotate(45deg)}
+.faq details p{color:var(--texto2);padding:0 0 20px;font-size:17px;max-width:720px}
+
+/* final */
+.final{text-align:left;padding:84px 0 96px;overflow:hidden;background:var(--noite2)}
+.final:before{content:"";position:absolute;right:-200px;top:50%;width:900px;height:900px;transform:translateY(-50%);background:radial-gradient(circle,rgba(110,58,255,.45),rgba(11,4,32,0) 62%);pointer-events:none}
+.final .wrap{position:relative}
+.final h2{font-size:clamp(44px,11vw,96px);margin-bottom:20px;max-width:900px}
+.final p{color:var(--texto2);font-size:19px;max-width:560px;margin-bottom:30px}
+.final .btns{display:flex;flex-direction:column;gap:12px}
+.final .btn{width:100%}
+
+footer{border-top:1px solid #1E1245;padding:30px 0 110px;color:var(--texto3);font-size:14px;background:var(--noite2)}
+footer .wrap{display:flex;flex-direction:column;gap:14px;align-items:flex-start}
+footer img{height:26px;width:auto}
+
+.mbar{position:fixed;left:0;right:0;bottom:0;z-index:24;padding:10px 14px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:rgba(7,2,26,.94);backdrop-filter:blur(10px);border-top:1px solid #241657;transform:translateY(110%);transition:transform .3s}
+.mbar.show{transform:none}
+.mbar .btn{width:100%;min-height:52px;padding:12px 16px;font-size:15px}
+
+@media (min-width:720px){
+  .row2{grid-template-columns:1fr 1fr}
+  .fcard{padding:32px 30px 28px}
+  .bento{grid-template-columns:repeat(6,1fr)}
+  .areas .bx{grid-column:span 2}
+  .areas .bx.bx-big{grid-column:span 4;grid-row:span 2}
+  .areas .bx.bx-wide{grid-column:span 3}
+  .servs .bx{grid-column:span 3}
+  .servs .bx.bx-10x{grid-column:span 6}
+  .servs .bx.bx-s{grid-column:span 2}
+  .final .btns{flex-direction:row}
+  .final .btn{width:auto}
+  .it{grid-template-columns:64px 56px 1fr 1.25fr;gap:20px;padding:22px 28px}
+  .it .num{display:block;font-family:'Archivo';font-weight:900;font-stretch:80%;font-size:40px;color:transparent;-webkit-text-stroke:1.6px var(--violeta)}
+  .it ul{grid-column:auto;margin:0;padding:0 0 0 24px;border-top:0;border-left:1px solid var(--linha);gap:6px}
+  .sec-cta{flex-direction:row;align-items:center;gap:20px}
+  .sec-cta .btn{width:auto}
+  .tl{grid-template-columns:repeat(3,1fr);gap:28px}
+  .tl:before{left:28px;right:28px;top:27px;bottom:auto;width:auto;height:3px;background:linear-gradient(90deg,var(--roxo),var(--lilas2))}
+  .tli{grid-template-columns:1fr;gap:0;padding:0}
+  .tli .n{margin-bottom:8px}
+}
+@media (min-width:1024px){
+  body{font-size:18px}
+  .band{font-size:14px}
+      .hero{padding:64px 0 96px}
+  .hero .wrap{grid-template-columns:1.1fr .9fr;gap:64px;align-items:start}
+  .hero .copy{position:sticky;top:40px;padding-top:12px}
+  .hero-logo{height:40px;margin-bottom:40px}
+    .hero h1{font-size:84px}
+  section{padding:110px 0}
+  .y27 .cols{grid-template-columns:1fr 1fr;gap:70px}
+  .bx-10x{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:center;padding:40px!important}
+  .bx-10x .x{font-size:118px;white-space:nowrap}
+  .bar{grid-template-columns:120px 1fr;font-size:16px}
+  .bar i{height:46px}
+  .mbar{display:none}
+  footer{padding-bottom:40px}
+  footer .wrap{flex-direction:row;justify-content:space-between;align-items:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+  .js .rv,.js .rv-img,.js .bars .a,.js .bars .b{opacity:1!important;transform:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="band"><svg viewBox="0 0 40 40" aria-hidden="true"><polygon points="20,0 23,17 40,20 23,23 20,40 17,23 0,20 17,17" fill="#fff"/></svg>Para empresas que faturam a partir de R$ 30 mil/mês</div>
+
+
+<main id="topo">
+<!-- HERO -->
+<section class="hero">
+  <img class="hero-bigD" src="/diagnostico/simbolo.svg" alt="" aria-hidden="true" width="640" height="640">
+  <div class="wrap">
+    <div class="copy">
+      <img class="hero-logo" src="/diagnostico/logo.svg" alt="DemandIA" width="150" height="40">
+      <h1 class="h rv">Descubra onde sua empresa está <span class="grad">perdendo dinheiro</span></h1>
+      <p class="sub rv d1">Diagnóstico gratuito de <b>marketing, vendas, processos, equipe e produto</b>. Em até 24h úteis você recebe no WhatsApp o gargalo que mais pesa e o que atacar primeiro.</p>
+      <div class="checks rv d2">
+        <div><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Grátis e sem compromisso</div>
+        <div><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>3 minutos para preencher</div>
+        <div><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Resultado em até 24h úteis no WhatsApp</div>
+      </div>
+    </div>
+
+    <!-- FORMULÁRIO -->
+    <div class="fcard rv-img" id="form">
+      <form id="diag" novalidate>
+        <div class="fh">
+          <h2 class="h">Seu diagnóstico em <span class="hl">3 minutos</span></h2>
+          <span class="free">Grátis</span>
+        </div>
+        <div class="prog" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+        <div class="steplbl"><span id="stepName">Sobre você</span><span id="stepNum">Etapa 1 de 3</span></div>
+
+        <div class="step on" data-step="1" data-name="Sobre você">
+          <div class="f"><label for="nome">Seu nome</label><input id="nome" name="nome" autocomplete="name" placeholder="Como podemos te chamar?" required><div class="msg">Digite seu nome.</div></div>
+          <div class="f"><label for="whatsapp">WhatsApp</label><input id="whatsapp" name="whatsapp" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="(00) 00000-0000" required><div class="msg">Digite um WhatsApp válido com DDD.</div></div>
+          <div class="f"><label for="empresa">Nome da empresa</label><input id="empresa" name="empresa" autocomplete="organization" placeholder="Nome da sua empresa" required><div class="msg">Digite o nome da empresa.</div></div>
+          <div class="row2">
+            <div class="f"><label for="segmento">Segmento</label>
+              <select id="segmento" name="segmento" required>
+                <option value="">Selecione</option>
+                <option>Clínica / saúde / estética</option><option>Imobiliária / construção</option><option>Restaurante / alimentação</option>
+                <option>Loja / varejo / e-commerce</option><option>Prestação de serviços</option><option>Educação / cursos</option>
+                <option>Indústria / distribuição</option><option>Tecnologia / SaaS</option><option>Agência / consultoria</option><option>Outro</option>
+              </select><div class="msg">Escolha o segmento.</div></div>
+            <div class="f"><label for="cargo">Seu cargo</label>
+              <select id="cargo" name="cargo" required>
+                <option value="">Selecione</option>
+                <option value="dono">Dono(a) / sócio(a)</option><option value="diretor">Diretor(a) / gestor(a)</option><option value="colaborador">Colaborador(a)</option>
+              </select><div class="msg">Escolha seu cargo.</div></div>
+          </div>
+          <div class="f"><label for="email">E-mail</label><input id="email" name="email" type="email" autocomplete="email" inputmode="email" placeholder="voce@empresa.com.br" required><div class="msg">Digite um e-mail válido.</div></div>
+        </div>
+
+        <div class="step" data-step="2" data-name="Sua empresa">
+          <div class="f acc" data-req="faturamento" data-type="radio">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">1. Qual o faturamento mensal médio?</span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="radio" name="faturamento" value="ate_30k"><i></i><span>Até R$ 30 mil</span></label><label class="op"><input type="radio" name="faturamento" value="30k_50k"><i></i><span>R$ 30 a 50 mil</span></label><label class="op"><input type="radio" name="faturamento" value="50k_100k"><i></i><span>R$ 50 a 100 mil</span></label><label class="op"><input type="radio" name="faturamento" value="100k_300k"><i></i><span>R$ 100 a 300 mil</span></label><label class="op"><input type="radio" name="faturamento" value="300k_1mi"><i></i><span>R$ 300 mil a 1 milhão</span></label><label class="op"><input type="radio" name="faturamento" value="1mi_mais"><i></i><span>Acima de R$ 1 milhão</span></label></div></div>
+            <div class="msg">Escolha uma opção.</div>
+          </div>
+          <div class="f acc" data-req="equipe" data-type="radio">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">2. Quantas pessoas trabalham na empresa?</span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="radio" name="equipe" value="1-5"><i></i><span>1 a 5</span></label><label class="op"><input type="radio" name="equipe" value="6-15"><i></i><span>6 a 15</span></label><label class="op"><input type="radio" name="equipe" value="16-50"><i></i><span>16 a 50</span></label><label class="op"><input type="radio" name="equipe" value="50+"><i></i><span>Mais de 50</span></label></div></div>
+            <div class="msg">Escolha uma opção.</div>
+          </div>
+          <div class="f acc" data-req="canais" data-type="checkbox">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">3. De onde vem a maioria dos seus clientes? <span class="opt">(pode marcar mais de uma)</span></span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="checkbox" name="canais" value="Indicação"><i></i><span>Indicação</span></label><label class="op"><input type="checkbox" name="canais" value="Instagram orgânico"><i></i><span>Instagram orgânico</span></label><label class="op"><input type="checkbox" name="canais" value="Anúncios pagos"><i></i><span>Anúncios pagos</span></label><label class="op"><input type="checkbox" name="canais" value="Google"><i></i><span>Google</span></label><label class="op"><input type="checkbox" name="canais" value="WhatsApp / lista de contatos"><i></i><span>WhatsApp / lista de contatos</span></label><label class="op"><input type="checkbox" name="canais" value="Vendedores / prospecção"><i></i><span>Vendedores / prospecção</span></label><label class="op"><input type="checkbox" name="canais" value="Loja física / ponto"><i></i><span>Loja física / ponto</span></label><label class="op"><input type="checkbox" name="canais" value="Marketplace"><i></i><span>Marketplace</span></label></div></div>
+            <div class="msg">Marque pelo menos uma.</div>
+          </div>
+          <div class="f acc" data-req="invest_marketing" data-type="radio">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">4. Quanto investe em marketing por mês?</span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="radio" name="invest_marketing" value="Não invisto hoje"><i></i><span>Não invisto hoje</span></label><label class="op"><input type="radio" name="invest_marketing" value="Até R$ 2 mil"><i></i><span>Até R$ 2 mil</span></label><label class="op"><input type="radio" name="invest_marketing" value="R$ 2 a 5 mil"><i></i><span>R$ 2 a 5 mil</span></label><label class="op"><input type="radio" name="invest_marketing" value="R$ 5 a 15 mil"><i></i><span>R$ 5 a 15 mil</span></label><label class="op"><input type="radio" name="invest_marketing" value="Acima de R$ 15 mil"><i></i><span>Acima de R$ 15 mil</span></label></div></div>
+            <div class="msg">Escolha uma opção.</div>
+          </div>
+        </div>
+
+        <div class="step" data-step="3" data-name="Sua operação">
+          <div class="f acc" data-req="tempo_resposta" data-type="radio">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">5. Quanto tempo leva para responder um novo contato?</span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="radio" name="tempo_resposta" value="Na hora"><i></i><span>Na hora</span></label><label class="op"><input type="radio" name="tempo_resposta" value="Em até 1 hora"><i></i><span>Em até 1 hora</span></label><label class="op"><input type="radio" name="tempo_resposta" value="No mesmo dia"><i></i><span>No mesmo dia</span></label><label class="op"><input type="radio" name="tempo_resposta" value="Mais de 1 dia"><i></i><span>Mais de 1 dia</span></label><label class="op"><input type="radio" name="tempo_resposta" value="Não sei dizer"><i></i><span>Não sei dizer</span></label></div></div>
+            <div class="msg">Escolha uma opção.</div>
+          </div>
+          <div class="f acc" data-req="dores" data-type="checkbox">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">6. Quais são os maiores gargalos hoje? <span class="opt">(pode marcar mais de uma)</span></span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="checkbox" name="dores" value="Poucos clientes chegando"><i></i><span>Poucos clientes chegando</span></label><label class="op"><input type="checkbox" name="dores" value="Contatos que não viram venda"><i></i><span>Contatos que não viram venda</span></label><label class="op"><input type="checkbox" name="dores" value="Demora para responder os contatos"><i></i><span>Demora para responder os contatos</span></label><label class="op"><input type="checkbox" name="dores" value="Muito trabalho manual e repetitivo"><i></i><span>Muito trabalho manual e repetitivo</span></label><label class="op"><input type="checkbox" name="dores" value="Equipe cara ou sobrecarregada"><i></i><span>Equipe cara ou sobrecarregada</span></label><label class="op"><input type="checkbox" name="dores" value="Falta de controle de clientes e vendas"><i></i><span>Falta de controle de clientes e vendas</span></label><label class="op"><input type="checkbox" name="dores" value="Margem baixa"><i></i><span>Margem baixa</span></label><label class="op"><input type="checkbox" name="dores" value="Site ou presença digital fraca"><i></i><span>Site ou presença digital fraca</span></label></div></div>
+            <div class="msg">Marque pelo menos um.</div>
+          </div>
+          <div class="f acc" data-req="prazo" data-type="radio">
+            <button type="button" class="acc-h" aria-expanded="false"><span class="q">7. Quando quer resolver isso?</span><span class="sel" data-ph="Selecione">Selecione</span><svg class="chev" viewBox="0 0 14 9" fill="none" stroke="#B48CFF" stroke-width="2.2" stroke-linecap="round"><path d="M1.5 1.5 7 7l5.5-5.5"/></svg></button>
+            <div class="acc-p"><div class="opts"><label class="op"><input type="radio" name="prazo" value="imediato"><i></i><span>Agora, é prioridade</span></label><label class="op"><input type="radio" name="prazo" value="ate_3_meses"><i></i><span>Nos próximos 3 meses</span></label><label class="op"><input type="radio" name="prazo" value="3_a_6_meses"><i></i><span>Em 3 a 6 meses</span></label><label class="op"><input type="radio" name="prazo" value="sem_previsao"><i></i><span>Só estou pesquisando</span></label></div></div>
+            <div class="msg">Escolha uma opção.</div>
+          </div>
+          <div class="f"><label for="desafio">8. Se pudesse resolver uma coisa na empresa amanhã, qual seria? <span class="opt">(opcional)</span></label>
+            <textarea id="desafio" name="desafio" maxlength="800" placeholder="Conte em poucas palavras. Quanto mais contexto, melhor o diagnóstico."></textarea></div>
+          <label class="lgpd"><input type="checkbox" id="aceite" checked> Aceito receber o diagnóstico e o contato da DemandIA pelo WhatsApp. Meus dados são usados só para isso.</label>
+        </div>
+
+        <div class="formerr" id="formerr" role="alert">Não conseguimos enviar agora. Tente de novo ou fale com a gente no WhatsApp.</div>
+        <div class="fnav">
+          <button type="button" class="btn btn-g" id="back" hidden aria-label="Voltar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5 8 12l7 7"/></svg></button>
+          <button type="button" class="btn btn-wa" id="next">Continuar</button>
+        </div>
+        <div class="secure"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Seus dados ficam protegidos. Nada de spam.</div>
+      </form>
+
+      <div class="done" id="done" aria-live="polite">
+        <div class="ok"><svg viewBox="0 0 24 24" fill="none" stroke="#05230F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg></div>
+        <h2 class="h">Recebemos, <span class="hl" id="doneName">tudo certo</span>!</h2>
+        <p>Seu diagnóstico já está em análise.</p>
+        <div class="next">
+          <div><b>01</b><span>Nossa assistente vai te chamar no WhatsApp em instantes para confirmar alguns detalhes.</span></div>
+          <div><b>02</b><span>Analisamos marketing, vendas, processos, equipe e produto da sua empresa.</span></div>
+          <div><b>03</b><span>Você recebe o resultado em até 24h úteis.</span></div>
+        </div>
+        <a class="btn btn-wa" href="#" data-wa="Olá! Acabei de preencher o diagnóstico gratuito da DemandIA." target="_blank" rel="noopener">
+          <svg viewBox="0 0 24 24" fill="#05230F" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.2-.7-2.7-1.1-4.4-3.8-4.5-4-.1-.2-1.1-1.4-1.1-2.7s.7-1.9.9-2.2c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1.1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg>
+          Falar no WhatsApp agora</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- O QUE ANALISAMOS (fundo claro) -->
+<section class="claro areas" id="areas">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <h2 class="h">5 pontos onde o dinheiro <span class="hl">escapa sem você ver</span></h2>
+      <p>Cada empresa trava num lugar diferente. O diagnóstico olha as 5 áreas, de acordo com a realidade do seu negócio, e mostra qual delas está segurando o seu crescimento.</p>
+    </div>
+    <ol class="lista">
+      <li class="it rv"><span class="num">01</span><div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 20V28H14L30 37V11L14 20Z"/><path d="M36 18a8 8 0 0 1 0 12"/></svg></div><div class="tt"><h3 class="h">Marketing</h3><p>Saiba quanto custa cada cliente que chega.</p></div>
+        <ul><li>De onde vêm os clientes hoje</li><li>Quais canais dão retorno</li><li>Onde investir o próximo real</li></ul></li>
+      <li class="it rv"><span class="num">02</span><div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 38 18 26 26 32 40 14"/><path d="M31 14H40V23"/></svg></div><div class="tt"><h3 class="h">Comercial</h3><p>Pare de perder cliente por demora.</p></div>
+        <ul><li>Tempo de resposta</li><li>Follow-up dos contatos</li><li>Por que as vendas esfriam</li></ul></li>
+      <li class="it rv"><span class="num">03</span><div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="24" cy="24" r="7"/><path d="M24 6v6M24 36v6M6 24h6M36 24h6M11 11l4 4M33 33l4 4M37 11l-4 4M15 33l-4 4"/></svg></div><div class="tt"><h3 class="h">Processos</h3><p>Automatize sem contratar.</p></div>
+        <ul><li>Tarefas que ainda são manuais</li><li>O que a IA pode fazer pela equipe</li><li>Onde o tempo está sendo perdido</li></ul></li>
+      <li class="it rv"><span class="num">04</span><div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><circle cx="17" cy="17" r="6"/><circle cx="33" cy="19" r="5"/><path d="M6 40c0-8 5-12 11-12s11 4 11 12"/><path d="M30 30c6 0 12 3 12 10"/></svg></div><div class="tt"><h3 class="h">Equipe</h3><p>Um time mais enxuto e produtivo.</p></div>
+        <ul><li>Quem faz o quê</li><li>Onde há sobrecarga</li><li>O que dá para reorganizar</li></ul></li>
+      <li class="it rv"><span class="num">05</span><div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16 24 8 40 16V34L24 42 8 34Z"/><path d="M8 16 24 24 40 16M24 24V42"/></svg></div><div class="tt"><h3 class="h">Produto</h3><p>Venda mais do que dá margem.</p></div>
+        <ul><li>Clareza da oferta</li><li>Posicionamento e preço</li><li>O que vender mais e o que rever</li></ul></li>
+    </ol>
+    <div class="sec-cta rv"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico grátis</a><span>Grátis · 3 minutos · Resultado em até 24h úteis</span></div>
+  </div>
+</section>
+
+<!-- 2027 -->
+<section class="y27">
+  <div class="wrap cols">
+    <div class="rv">
+      <div class="h big grad">2027</div>
+      <h2 class="h">já começou para quem <span class="hl">se organizou</span></h2>
+      <p class="lead">As empresas que vão crescer no ano que vem estão planejando agora: cortando custo que não dá retorno e colocando eficiência onde antes tinha improviso.</p>
+      <div class="sec-cta"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico grátis</a></div>
+    </div>
+    <div class="pts">
+      <div class="pt rv"><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Cortar custos que não geram resultado</div>
+      <div class="pt rv d1"><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Planejar os investimentos com clareza</div>
+      <div class="pt rv d2"><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Ganhar tempo com automação e IA</div>
+      <div class="pt rv d3"><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Mais margem, não só mais faturamento</div>
+      <div class="pt rv d4"><svg class="ico-ok" viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Um time menor que entrega mais</div>
+    </div>
+  </div>
+</section>
+
+<!-- SERVIÇOS E DIFERENCIAIS -->
+<section class="serv" id="servicos">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <h2 class="h">Depois do diagnóstico, <span class="hl">a gente resolve</span> com você</h2>
+      <p>Marketing, vendas e tecnologia com IA, sob medida, sem você precisar montar um time.</p>
+    </div>
+    <div class="bento servs">
+      <div class="bx bx-10x rv">
+        <div>
+          <h3 class="h" style="font-size:clamp(30px,7vw,44px)">Um time completo de tecnologia por até</h3>
+          <div class="h x grad">10x menos</div>
+          <p>Desenvolvedor, especialista em IA e designer contratados custam mais de R$ 40 mil por mês com encargos. Com a DemandIA você tem tudo isso sem contratar ninguém.</p>
+        </div>
+        <div>
+          <div class="bars rv">
+            <div class="bar"><span>Time próprio</span><i class="a"><b>+ R$ 40 mil/mês*</b></i></div>
+            <div class="bar"><span>DemandIA</span><i class="b"><b>até 10x menos</b></i></div>
+          </div>
+          <div class="sems">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Sem contratar</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Sem encargos</span>
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="#25D366" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17 19 7"/></svg>Sem dor de cabeça</span>
+          </div>
+          <p class="fonte">*Estimativa: salários médios CLT nível pleno em 2026 (Jobrise) com encargos, FGTS, 13º e férias de 50% a 70% (ValorFinal).</p>
+        </div>
+      </div>
+      <div class="bx rv">
+        <div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12H39V32H22L13 39V32H9Z"/></svg></div>
+        <h3 class="h">IA que responde seus clientes 24h</h3>
+        <p>No WhatsApp, de noite, no fim de semana e no feriado. Nenhum contato fica sem resposta.</p>
+      </div>
+      <div class="bx rv d1">
+        <div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 38 18 26 26 32 40 14"/><path d="M31 14H40V23"/></svg></div>
+        <h3 class="h">Marketing que traz demanda todo mês</h3>
+        <p>Estratégia e anúncios pensados para gerar contato qualificado, não só curtida.</p>
+      </div>
+      <div class="bx bx-s rv">
+        <div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 24H18L22 14L28 34L32 24H40"/></svg></div>
+        <h3 class="h">Automações</h3>
+        <p>Menos tarefa repetitiva, mais tempo para vender.</p>
+      </div>
+      <div class="bx bx-s rv d1">
+        <div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="10" width="34" height="26" rx="5"/><path d="M7 17H41"/><path d="M18 42H30"/></svg></div>
+        <h3 class="h">Sites e landing pages</h3>
+        <p>Páginas feitas para virar contato no WhatsApp.</p>
+      </div>
+      <div class="bx bx-s rv d2">
+        <div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="32" height="32" rx="6"/><path d="M8 18H40M18 18V40"/></svg></div>
+        <h3 class="h">Sistemas e CRM</h3>
+        <p>Nenhum cliente perdido de vista.</p>
+      </div>
+    </div>
+    <div class="sec-cta rv"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico grátis</a><span>Comece pelo diagnóstico gratuito</span></div>
+  </div>
+</section>
+
+<!-- COMO FUNCIONA (fundo claro) -->
+<section class="nevoa" id="como">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <h2 class="h">Do formulário ao plano <span class="hl">em 3 passos</span></h2>
+      <p>Simples, rápido e sem compromisso.</p>
+    </div>
+    <div class="tl">
+      <div class="tli rv"><div class="n">1</div><div><h3 class="h">Preencha em 3 minutos</h3><p>Responda algumas perguntas sobre a sua empresa e a sua operação.</p><span class="tag">Grátis</span></div></div>
+      <div class="tli rv d1"><div class="n">2</div><div><h3 class="h">Receba uma mensagem no WhatsApp</h3><p>Nossa assistente te chama em instantes para entender os detalhes do seu negócio.</p><span class="tag">Na hora</span></div></div>
+      <div class="tli rv d2"><div class="n">3</div><div><h3 class="h">Saiba o que atacar primeiro</h3><p>Você recebe o diagnóstico com os gargalos que mais pesam e o caminho para resolver.</p><span class="tag">Em até 24h úteis</span></div></div>
+    </div>
+    <div class="sec-cta rv"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico grátis</a><span>Leva só 3 minutos</span></div>
+  </div>
+</section>
+
+
+<!-- DÚVIDAS -->
+<section class="faqs" id="duvidas">
+  <div class="wrap">
+    <div class="sec-h rv"><h2 class="h">Ficou alguma <span class="hl">dúvida?</span></h2></div>
+    <div class="faq rv">
+      <details><summary>É gratuito mesmo?</summary><p>Sim. O diagnóstico é 100% gratuito e sem compromisso. Se fizer sentido, apresentamos depois como a DemandIA pode resolver os gargalos encontrados.</p></details>
+      <details><summary>Em quanto tempo recebo o resultado?</summary><p>Em até 24 horas úteis depois de preencher o formulário, direto no seu WhatsApp.</p></details>
+      <details><summary>Para quem é o diagnóstico?</summary><p>Para empresas de qualquer segmento que faturam a partir de R$ 30 mil por mês: clínicas, imobiliárias, restaurantes, lojas, prestadores de serviço e muito mais.</p></details>
+      <details><summary>Preciso entender de tecnologia?</summary><p>Não. Você conta como funciona a empresa hoje e a gente traduz isso em ações práticas, em linguagem simples.</p></details>
+      <details><summary>Atendem a minha cidade?</summary><p>Sim. Atendemos empresas de todo o Brasil, de forma 100% online.</p></details>
+      <details><summary>Meus dados ficam seguros?</summary><p>Sim. Usamos suas respostas só para montar o diagnóstico e falar com você. Nada de spam e nada de repassar seus dados.</p></details>
+    </div>
+    <div class="sec-cta rv"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico grátis</a></div>
+  </div>
+</section>
+
+<!-- CHAMADA FINAL -->
+<section class="final">
+  <div class="wrap">
+    <h2 class="h rv">Descubra o seu gargalo <span class="grad">antes de 2027</span></h2>
+    <p class="rv d1">3 minutos para preencher. Resultado em até 24h úteis no seu WhatsApp. Grátis.</p>
+    <div class="btns rv d2">
+      <a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico grátis</a>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><div class="wrap">
+  <img src="/diagnostico/logo.svg" alt="DemandIA" width="100" height="26" loading="lazy">
+  <span>Sua demanda, resolvida com inteligência. © <span id="yr">2026</span> DemandIA. Atendimento online para todo o Brasil.</span>
+</div></footer>
+
+<div class="mbar" id="mbar"><a href="#form" class="btn btn-wa">Quero meu diagnóstico grátis</a></div>
+
+<script>
+(function(){
+  var WA = "5519988259883";
+  var ENDPOINT = "/api/diagnostico";
+  var PIXEL_ID = ""; // ID do Pixel da Meta. Vazio = Pixel desligado.
+
+  document.querySelectorAll("[data-wa]").forEach(function(a){
+    a.href = "https://wa.me/" + WA + "?text=" + encodeURIComponent(a.getAttribute("data-wa"));
+  });
+  document.getElementById("yr").textContent = new Date().getFullYear();
+
+  // Animação ao aparecer na tela
+  var rv = document.querySelectorAll(".rv,.rv-img,.bars");
+  if("IntersectionObserver" in window){
+    var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } }); }, {threshold:.15, rootMargin:"0px 0px -40px 0px"});
+    rv.forEach(function(el){ io.observe(el) });
+  } else rv.forEach(function(el){ el.classList.add("in") });
+
+  // UTM: guarda a primeira origem (30 dias) e a última
+  var KEYS = ["utm_source","utm_medium","utm_campaign","utm_content","utm_term","utm_id","fbclid","gclid","ttclid"];
+  function store(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
+  function load(k){ try{ return localStorage.getItem(k) }catch(e){ return null } }
+  var qs = new URLSearchParams(location.search), now = {}, any = false;
+  KEYS.forEach(function(k){ var v = qs.get(k); if(v){ now[k]=v.slice(0,300); any=true; } });
+  if(any){
+    store("dmia_last", JSON.stringify(now));
+    var first = load("dmia_first");
+    if(!first || (JSON.parse(first)._t||0) < Date.now()-30*864e5){ now._t = Date.now(); store("dmia_first", JSON.stringify(now)); }
+  }
+  if(!load("dmia_landing")){ store("dmia_landing", location.href.slice(0,500)); store("dmia_ref", (document.referrer||"").slice(0,500)); }
+  function cookie(n){ var m = document.cookie.match(new RegExp("(?:^|; )"+n+"=([^;]*)")); return m ? decodeURIComponent(m[1]) : ""; }
+
+  if(PIXEL_ID){
+    !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+    fbq("init", PIXEL_ID); fbq("track", "PageView");
+  }
+
+  // Máscara do WhatsApp
+  var wa = document.getElementById("whatsapp");
+  wa.addEventListener("input", function(){
+    var d = wa.value.replace(/\D/g,"");
+    if(d.length > 11 && d.indexOf("55") === 0) d = d.slice(2);
+    d = d.slice(0,11);
+    var o = d;
+    if(d.length > 2) o = "(" + d.slice(0,2) + ") " + d.slice(2);
+    if(d.length > 7) o = "(" + d.slice(0,2) + ") " + d.slice(2, d.length-4) + "-" + d.slice(-4);
+    wa.value = o;
+  });
+
+  // Etapas do formulário
+  var form = document.getElementById("diag"), steps = form.querySelectorAll(".step"), cur = 1, sending = false;
+  var bars = form.querySelectorAll(".prog i"), next = document.getElementById("next"), back = document.getElementById("back");
+  function setErr(el, on){ var f = el.closest(".f"); if(f) f.classList.toggle("err", on); }
+  function validStep(n){
+    var ok = true, firstBad = null, s = steps[n-1];
+    s.querySelectorAll("input[required],select[required]").forEach(function(el){
+      var v = el.value.trim(), good = !!v;
+      if(el.id === "whatsapp") good = /^\d{10,11}$/.test(v.replace(/\D/g,""));
+      setErr(el, !good); if(!good){ ok = false; firstBad = firstBad || el; }
+    });
+    var em = s.querySelector("#email");
+    if(em){ var okEm = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em.value.trim()); setErr(em,!okEm); if(!okEm){ ok=false; firstBad = firstBad || em; } }
+    s.querySelectorAll("[data-req]").forEach(function(g){
+      var good = !!g.querySelector("input:checked"); g.closest(".f").classList.toggle("err", !good);
+      if(!good){ ok = false; firstBad = firstBad || g; }
+    });
+    if(firstBad && firstBad.classList && firstBad.classList.contains("acc")) openAcc(firstBad, true);
+    if(firstBad){ firstBad.scrollIntoView({behavior:"smooth", block:"center"}); if(firstBad.focus && firstBad.tagName !== "DIV") firstBad.focus({preventScroll:true}); }
+    return ok;
+  }
+
+  // Sanfonas: abre uma por vez, mostra o que foi escolhido e (escolha única) já abre a próxima
+  var accs = Array.prototype.slice.call(form.querySelectorAll(".acc"));
+  function openAcc(a, on){
+    accs.forEach(function(x){ var o = x === a && on; x.classList.toggle("open", o); x.querySelector(".acc-h").setAttribute("aria-expanded", o); });
+  }
+  function summary(a){
+    var c = Array.prototype.map.call(a.querySelectorAll("input:checked"), function(i){ return i.nextElementSibling.nextElementSibling.textContent; });
+    var sel = a.querySelector(".sel");
+    sel.textContent = !c.length ? sel.getAttribute("data-ph") : c.length <= 2 ? c.join(", ") : c.length + " selecionados";
+    a.classList.toggle("is-set", !!c.length);
+  }
+  accs.forEach(function(a){
+    a.querySelector(".acc-h").addEventListener("click", function(){ openAcc(a, !a.classList.contains("open")); });
+    a.addEventListener("change", function(){
+      summary(a);
+      if(a.getAttribute("data-type") === "radio"){
+        setTimeout(function(){
+          var stepAccs = accs.filter(function(x){ return x.closest(".step") === a.closest(".step"); });
+          var nxt = stepAccs.slice(stepAccs.indexOf(a)+1).filter(function(x){ return !x.classList.contains("is-set"); })[0];
+          openAcc(nxt || a, !!nxt);
+          if(nxt){ var r = nxt.getBoundingClientRect(); if(r.bottom > innerHeight || r.top < 0) nxt.scrollIntoView({behavior:"smooth", block:"center"}); }
+        }, 220);
+      }
+    });
+  });
+  form.addEventListener("change", function(e){ var f = e.target.closest(".f"); if(f) f.classList.remove("err"); });
+  form.addEventListener("input", function(e){ var f = e.target.closest(".f"); if(f) f.classList.remove("err"); });
+  function go(n){
+    cur = n;
+    steps.forEach(function(s,i){ s.classList.toggle("on", i === n-1) });
+    bars.forEach(function(b,i){ b.classList.toggle("on", i < n) });
+    document.getElementById("stepName").textContent = steps[n-1].getAttribute("data-name");
+    document.getElementById("stepNum").textContent = "Etapa " + n + " de 3";
+    back.hidden = n === 1;
+    var firstAcc = steps[n-1].querySelector(".acc:not(.is-set)"); if(firstAcc) openAcc(firstAcc, true);
+    next.textContent = n === 3 ? "Receber meu diagnóstico" : "Continuar";
+    var top = document.getElementById("form").getBoundingClientRect().top;
+    if(top < 70) document.getElementById("form").scrollIntoView({behavior:"smooth"});
+    track("step_" + n);
+  }
+  back.addEventListener("click", function(){ if(cur > 1) go(cur-1) });
+  next.addEventListener("click", function(){
+    if(!validStep(cur)) return;
+    if(cur < 3) return go(cur+1);
+    submit();
+  });
+  form.addEventListener("submit", function(e){ e.preventDefault(); next.click(); });
+  form.addEventListener("keydown", function(e){ if(e.key === "Enter" && e.target.tagName === "INPUT"){ e.preventDefault(); next.click(); } });
+
+  function vals(name){ return Array.prototype.map.call(form.querySelectorAll('input[name="'+name+'"]:checked'), function(i){ return i.value }); }
+  function track(ev){ try{ (window.dataLayer = window.dataLayer || []).push({event: "diag_" + ev}); }catch(e){} }
+
+  var hp = document.createElement("input"); hp.name = "website"; hp.tabIndex = -1; hp.autocomplete = "off"; hp.setAttribute("aria-hidden","true");
+  hp.style.cssText = "position:absolute;left:-9999px;opacity:0;height:0;width:0"; form.appendChild(hp);
+
+  function submit(){
+    if(sending) return; sending = true;
+    var err = document.getElementById("formerr"); err.style.display = "none";
+    next.disabled = true; next.textContent = "Enviando...";
+    var first = JSON.parse(load("dmia_first") || "{}"), last = JSON.parse(load("dmia_last") || "{}");
+    var eventId = "lead_" + Date.now() + "_" + Math.random().toString(36).slice(2,8);
+    var data = {
+      nome: form.nome.value.trim(), whatsapp: form.whatsapp.value.replace(/\D/g,""), email: form.email.value.trim(),
+      empresa: form.empresa.value.trim(), segmento: form.segmento.value, cargo: form.cargo.value,
+      faturamento: vals("faturamento")[0], equipe: vals("equipe")[0], canais: vals("canais"),
+      dores: vals("dores"), tempo_resposta: vals("tempo_resposta")[0], invest_marketing: vals("invest_marketing")[0],
+      prazo: vals("prazo")[0], desafio: form.desafio.value.trim(), aceite: document.getElementById("aceite").checked,
+      utm: last, utm_first: first, landing_url: load("dmia_landing") || location.href, referrer: load("dmia_ref") || document.referrer,
+      page_url: location.href, fbp: cookie("_fbp"), fbc: cookie("_fbc") || (last.fbclid ? "fb.1." + Date.now() + "." + last.fbclid : ""),
+      event_id: eventId, website: hp.value
+    };
+    fetch(ENDPOINT, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(data)})
+      .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(){
+        if(window.fbq) fbq("track", "Lead", {content_name: "Diagnóstico gratuito"}, {eventID: eventId});
+        track("lead");
+        form.style.display = "none";
+        document.getElementById("doneName").textContent = data.nome.split(" ")[0];
+        document.getElementById("done").style.display = "block";
+        document.getElementById("form").scrollIntoView({behavior:"smooth", block:"start"});
+        var mb = document.getElementById("mbar"); if(mb) mb.remove();
+      })
+      .catch(function(){
+        err.style.display = "block"; next.disabled = false; next.textContent = "Tentar de novo"; sending = false;
+      });
+  }
+
+  // Celular: a barra fixa com o botão do formulário aparece só depois que a pessoa passou do formulário.
+  var mbar = document.getElementById("mbar"), fc = document.getElementById("form");
+  function upd(){
+    var r = fc.getBoundingClientRect();
+    if(mbar.isConnected) mbar.classList.toggle("show", r.bottom < 0);
+  }
+  window.addEventListener("scroll", upd, {passive:true}); window.addEventListener("resize", upd); upd();
+})();
+</script>
+</body>
+</html>
