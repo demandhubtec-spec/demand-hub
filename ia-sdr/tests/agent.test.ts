@@ -154,3 +154,15 @@ test("status do WhatsApp no Evolution GO", async () => {
   assert.ok(!isHealthy(parseStatus({ data: { Connected: true, LoggedIn: false } })));
   assert.ok(!isHealthy(parseStatus({ error: "instance not found" })));
 });
+
+test("vigia do WhatsApp: lentidão não é queda e aviso só 1x por dia após reconexão", async () => {
+  const { isConfirmedDown, shouldAlert } = await import("../src/lib/whatsapp-health.ts");
+  assert.ok(!isConfirmedDown({ connected: false, loggedIn: false, unreachable: true, error: "TimeoutError" }));
+  assert.ok(isConfirmedDown({ connected: false, loggedIn: false }));
+  assert.ok(!isConfirmedDown({ connected: true, loggedIn: true }));
+  const now = new Date("2026-10-27T18:00:00Z");
+  assert.ok(!shouldAlert(false, null, now));
+  assert.ok(shouldAlert(true, null, now));
+  assert.ok(!shouldAlert(true, "2026-10-27T10:00:00Z", now));
+  assert.ok(shouldAlert(true, "2026-10-26T17:00:00Z", now));
+});

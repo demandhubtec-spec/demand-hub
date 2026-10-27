@@ -3,9 +3,14 @@
  *
  * Roda junto com o agendador (/api/cron/tick, a cada 10 min). Se a VPS reiniciar ou a
  * instância cair, reconecta sozinha usando a sessão salva (POST /instance/reconnect),
- * como era feito à mão. Quando a conexão volta depois de uma queda, avisa o Kelvin
- * no WhatsApp. Se a sessão foi deslogada (precisa ler o QR de novo), não há como
- * reconectar sozinho: isso fica registrado em sdr_events.
+ * como era feito à mão.
+ *
+ * Para não gerar alarme falso:
+ * - Lentidão ou timeout do servidor NÃO conta como queda (só fica no log).
+ * - Só reconecta depois de confirmar duas vezes, com 10s de intervalo, que está desconectado.
+ * - Só avisa o Kelvin quando houve reconexão de verdade, no máximo 1 aviso a cada 24h.
+ * Se a sessão foi deslogada (precisa ler o QR de novo), não há como reconectar sozinho:
+ * isso fica registrado em sdr_events.
  */
 import { db, logEvent } from "./db.ts";
 import { env } from "./env.ts";
@@ -21,12 +26,13 @@ export interface WaStatus {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const STATE_KEY = "whatsapp_health";
+const AVISO_INTERVALO_MS = 24 * 60 * 60 * 1000;
 
-async function evo(path: string, method: "GET" | "POST"): Promise<Response> {
+async function evo(path: string, method: "GET" | "POST", timeoutMs = 25_000): Promise<Response> {
   return fetch(`${env.evolutionUrl}${path}`, {
     method,
     headers: { apikey: env.evolutionInstanceToken, "Content-Type": "application/json" },
-    signal: AbortSignal.timeout(15_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 }
 
@@ -38,6 +44,8 @@ export function parseStatus(json: unknown): WaStatus {
 export async function getStatus(): Promise<WaStatus> {
   try {
     const res = await evo("/instance/status", "GET");
+    // Erro do servidor (5xx) é instabilidade do Evolution, não desconexão do WhatsApp.
+    if (res.status >= 500) return { connected: false, loggedIn: false, unreachable: true, error: `status ${res.status}` };
     if (!res.ok) return { connected: false, loggedIn: false, error: `status ${res.status}: ${(await res.text()).slice(0, 200)}` };
     return parseStatus(await res.json());
   } catch (e) {
@@ -47,74 +55,94 @@ export async function getStatus(): Promise<WaStatus> {
 
 export const isHealthy = (s: WaStatus) => s.connected && s.loggedIn;
 
+/** Só é "desconectado" quando o servidor respondeu e disse que não está conectado. */
+export const isConfirmedDown = (s: WaStatus) => !s.unreachable && !isHealthy(s);
+
 interface HealthState {
   down_since: string | null;
   last_reconnect_at: string | null;
+  last_alert_at: string | null;
   last_status: WaStatus | null;
 }
 
 async function loadState(): Promise<HealthState> {
   const { data } = await db().from("sdr_integrations").select("value").eq("key", STATE_KEY).maybeSingle();
   const saved = (data?.value ?? {}) as Partial<HealthState>;
-  return { down_since: saved.down_since ?? null, last_reconnect_at: saved.last_reconnect_at ?? null, last_status: saved.last_status ?? null };
+  return {
+    down_since: saved.down_since ?? null,
+    last_reconnect_at: saved.last_reconnect_at ?? null,
+    last_alert_at: saved.last_alert_at ?? null,
+    last_status: saved.last_status ?? null,
+  };
 }
 
 async function saveState(s: HealthState) {
   await db().from("sdr_integrations").upsert({ key: STATE_KEY, value: s, updated_at: new Date().toISOString() });
 }
 
-function minutesSince(iso: string, now: Date) {
-  return Math.max(1, Math.round((now.getTime() - new Date(iso).getTime()) / 60_000));
+/** Decide se manda aviso: só depois de reconexão real e no máximo 1 vez a cada 24h. */
+export function shouldAlert(reconnected: boolean, lastAlertAt: string | null, now: Date): boolean {
+  if (!reconnected) return false;
+  return !lastAlertAt || now.getTime() - new Date(lastAlertAt).getTime() >= AVISO_INTERVALO_MS;
 }
 
 export async function ensureWhatsAppConnected(now = new Date()) {
   const state = await loadState();
   let status = await getStatus();
-  let reconnected = false;
 
-  if (!isHealthy(status) && !status.unreachable) {
-    // Sessão salva + cliente parado (ex.: depois de reiniciar a VPS): o reconnect resolve.
-    try {
-      const r = await evo("/instance/reconnect", "POST");
-      await logEvent(null, "whatsapp_reconnect", { before: status, http: r.status, body: (await r.text()).slice(0, 300) });
-    } catch (e) {
-      await logEvent(null, "whatsapp_reconnect", { before: status, error: String(e) });
-    }
-    state.last_reconnect_at = now.toISOString();
-    for (let i = 0; i < 4 && !isHealthy(status); i++) {
-      await sleep(5_000);
-      status = await getStatus();
-    }
-    reconnected = isHealthy(status);
+  // Servidor lento ou fora: não mexe em nada, só registra (sem aviso).
+  if (status.unreachable) {
+    await logEvent(null, "whatsapp_lento", { error: status.error });
+    await saveState({ ...state, last_status: status });
+    return { ok: false, action: "nenhuma (servidor lento)", status };
   }
 
-  if (isHealthy(status)) {
-    const wasDown = state.down_since;
-    if (wasDown || reconnected) {
-      const desde = wasDown ?? now.toISOString();
-      await logEvent(null, "whatsapp_up", { down_since: desde, reconnected });
-      if (env.ownerPhone) {
-        await sendText(
-          env.ownerPhone,
-          `✅ O WhatsApp da IA tinha desconectado (há ~${minutesSince(desde, now)} min) e já foi reconectado sozinho. A Ana voltou a atender normalmente.`,
-        ).catch(() => {});
-      }
-    }
-    await saveState({ down_since: null, last_reconnect_at: state.last_reconnect_at, last_status: status });
-    return { ok: true, reconnected, status };
+  // Confirma a desconexão antes de agir: uma leitura isolada pode ser momentânea.
+  if (isConfirmedDown(status)) {
+    await sleep(10_000);
+    status = await getStatus();
   }
 
-  // Continua fora: registra só na primeira vez para não lotar o log.
-  if (!state.down_since) {
-    await logEvent(null, "whatsapp_down", {
-      status,
-      motivo: status.unreachable
-        ? "Evolution fora do ar (VPS desligada ou sem rede)"
-        : status.connected && !status.loggedIn
-          ? "Sessão deslogada: precisa ler o QR Code de novo"
-          : "Não reconectou na primeira tentativa; tenta de novo a cada 10 min",
-    });
+  if (isHealthy(status) || !isConfirmedDown(status)) {
+    if (state.down_since) await logEvent(null, "whatsapp_up", { down_since: state.down_since, reconnected: false });
+    await saveState({ ...state, down_since: null, last_status: status });
+    return { ok: isHealthy(status), action: "nenhuma", status };
   }
-  await saveState({ down_since: state.down_since ?? now.toISOString(), last_reconnect_at: state.last_reconnect_at, last_status: status });
-  return { ok: false, reconnected: false, status };
+
+  // Desconectado de verdade (ex.: VPS reiniciou): reconecta com a sessão salva.
+  if (status.connected && !status.loggedIn) {
+    if (!state.down_since) await logEvent(null, "whatsapp_down", { status, motivo: "Sessão deslogada: precisa ler o QR Code de novo" });
+    await saveState({ ...state, down_since: state.down_since ?? now.toISOString(), last_status: status });
+    return { ok: false, action: "precisa de QR Code", status };
+  }
+
+  try {
+    const r = await evo("/instance/reconnect", "POST", 30_000);
+    await logEvent(null, "whatsapp_reconnect", { before: status, http: r.status, body: (await r.text()).slice(0, 300) });
+  } catch (e) {
+    await logEvent(null, "whatsapp_reconnect", { before: status, error: String(e) });
+  }
+  for (let i = 0; i < 4 && !isHealthy(status); i++) {
+    await sleep(5_000);
+    status = await getStatus();
+  }
+  const reconnected = isHealthy(status);
+  const next: HealthState = { ...state, last_reconnect_at: now.toISOString(), last_status: status };
+
+  if (reconnected) {
+    await logEvent(null, "whatsapp_up", { down_since: state.down_since ?? now.toISOString(), reconnected: true });
+    next.down_since = null;
+    if (env.ownerPhone && shouldAlert(true, state.last_alert_at, now)) {
+      const ok = await sendText(
+        env.ownerPhone,
+        "✅ O WhatsApp da IA tinha desconectado e foi reconectado sozinho. A Ana segue atendendo normalmente. (Este aviso aparece no máximo 1 vez por dia.)",
+      ).then(() => true, () => false);
+      if (ok) next.last_alert_at = now.toISOString();
+    }
+  } else {
+    if (!state.down_since) await logEvent(null, "whatsapp_down", { status, motivo: "Não reconectou; tenta de novo a cada 10 min" });
+    next.down_since = state.down_since ?? now.toISOString();
+  }
+  await saveState(next);
+  return { ok: reconnected, action: "reconectou", status };
 }
