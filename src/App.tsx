@@ -9,6 +9,7 @@ import DepartmentAtividades from "@/pages/department/DepartmentAtividades";
 import Crm from "@/pages/comercial/Crm";
 import Sdr from "@/pages/comercial/Sdr";
 import Clientes from "@/pages/comercial/Clientes";
+import InstagramDirect from "@/pages/marketing/InstagramDirect";
 import Financas from "@/pages/administrativo/Financas";
 import Contratos from "@/pages/administrativo/Contratos";
 import Acessos from "@/pages/config/Acessos";
@@ -33,6 +34,8 @@ export default function App() {
           <Route path=":dept/visao" element={<DepartmentVisao />} />
           <Route path=":dept/projetos" element={<DepartmentProjetos />} />
           <Route path=":dept/atividades" element={<DepartmentAtividades />} />
+
+          <Route path="marketing/instagram-direct" element={<InstagramDirect />} />
 
           <Route path="comercial/crm" element={<Crm />} />
           <Route path="comercial/sdr" element={<Sdr />} />

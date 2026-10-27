@@ -36,7 +36,10 @@ export const navGroups: NavGroup[] = [
     label: "Marketing",
     icon: "marketing",
     colaboradorPode: true,
-    children: deptChildren("marketing"),
+    children: [
+      ...deptChildren("marketing"),
+      { label: "Instagram · Direct", path: "/marketing/instagram-direct", colaboradorPode: false },
+    ],
   },
   {
     key: "comercial",

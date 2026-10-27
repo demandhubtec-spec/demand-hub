@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instagram · Direct — Demand Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Tokens do portal Demand Hub (portal.demandhub.com.br) */
+  :root {
+    color-scheme: dark;
+    --bg: #0a0a0e; --surface: #131218; --surface-2: #1b1a22;
+    --border: rgba(255,255,255,.09); --ink: #f2f0f5; --muted: #8b8794;
+    --primary: #7e39a0; --primary-bright: #b26fd6; --primary-tint: rgba(126,57,160,.18);
+    --positive: #37c77e; --positive-tint: rgba(55,199,126,.13);
+    --attention: #e2965a; --attention-tint: rgba(226,150,90,.13);
+    --negative: #e2585a; --negative-tint: rgba(226,88,90,.13);
+    --radius: 9px;
+    /* séries dos gráficos (validadas para o fundo escuro) */
+    --series-1: #b26fd6;  /* comentários */
+    --series-2: #199e70;  /* leads */
+    --grid: rgba(255,255,255,.06);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 Inter, system-ui, sans-serif; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 22px 28px 60px; }
+  header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 4px 0 18px; border-bottom: 1px solid var(--border); margin-bottom: 22px; }
+  header.top h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header.top .data { color: var(--muted); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin-top: 4px; }
+  body.embed header.top { display: none; }
+  .banner { background: var(--attention-tint); color: var(--attention); border: 1px solid rgba(226,150,90,.35); border-radius: var(--radius); padding: 10px 14px; margin-bottom: 18px; font-size: 13px; }
+  .banner a { color: inherit; }
+  .h2 { font-size: 15px; font-weight: 600; margin: 0; }
+  .sub { color: var(--muted); font-size: 12.5px; margin: 2px 0 0; }
+  .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .between { justify-content: space-between; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 18px; }
+  .grid { display: grid; gap: 14px; }
+  .kpis { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin: 16px 0 14px; }
+  .kpi { position: relative; overflow: hidden; }
+  .kpi::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--primary); }
+  .kpi.verde::before { background: var(--positive); } .kpi.laranja::before { background: var(--attention); }
+  .kpi .rot { color: var(--muted); font-size: 12px; }
+  .kpi .val { font-size: 26px; font-weight: 600; margin: 6px 0 4px; font-variant-numeric: tabular-nums; }
+  .kpi .nota { font-size: 11.5px; color: var(--muted); }
+  .kpi .nota.pos { color: var(--positive); } .kpi .nota.neg { color: var(--negative); }
+  .seg { display: inline-flex; background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 2px; }
+  .seg button { background: transparent; color: var(--muted); border: 0; padding: 6px 12px; border-radius: 6px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .seg button[aria-pressed="true"] { background: var(--primary-tint); color: var(--ink); }
+  .btn { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 12.5px; cursor: pointer; }
+  .btn:hover { border-color: rgba(255,255,255,.2); }
+  .btn.prim { background: var(--primary); border-color: var(--primary); }
+  .btn.perigo { color: var(--negative); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; padding: 3px 9px; border-radius: 999px; background: var(--surface-2); color: var(--muted); white-space: nowrap; }
+  .pill.ok { background: var(--positive-tint); color: var(--positive); }
+  .pill.alerta { background: var(--attention-tint); color: var(--attention); }
+  .pill.erro { background: var(--negative-tint); color: var(--negative); }
+  .pill.roxo { background: var(--primary-tint); color: var(--primary-bright); }
+  .status-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .status-grid .it .rot { color: var(--muted); font-size: 12px; margin-bottom: 6px; }
+  .duas { grid-template-columns: 1.6fr 1fr; margin-top: 14px; }
+  @media (max-width: 900px) { .duas { grid-template-columns: 1fr; } .wrap { padding: 16px; } }
+  /* funil */
+  .funil { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .fl { display: grid; grid-template-columns: 130px 1fr 92px; gap: 10px; align-items: center; font-size: 13px; }
+  .fl .barra { height: 22px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .fl .barra i { display: block; height: 100%; background: var(--primary); border-radius: 0 4px 4px 0; min-width: 2px; }
+  .fl .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .fl .n small { color: var(--muted); display: block; font-size: 11px; }
+  /* gráfico */
+  .legenda { display: flex; gap: 14px; font-size: 12px; color: var(--muted); }
+  .legenda span::before { content: ""; display: inline-block; width: 10px; height: 2px; vertical-align: middle; margin-right: 6px; background: var(--c); }
+  .graf { position: relative; margin-top: 10px; }
+  .graf svg { display: block; width: 100%; height: 240px; overflow: visible; }
+  .tip { position: absolute; pointer-events: none; background: #0f0e14; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px; min-width: 150px; box-shadow: 0 6px 20px rgba(0,0,0,.4); display: none; }
+  .tip .t { color: var(--muted); margin-bottom: 4px; }
+  .tip .l { display: flex; justify-content: space-between; gap: 14px; }
+  .tip .l b { font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tip .k { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; background: var(--c); }
+  /* tabelas */
+  .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 22px 0 0; }
+  .tabs button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); padding: 10px 12px; font: inherit; cursor: pointer; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--primary-bright); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--muted); font-weight: 500; font-size: 12px; padding: 10px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 10px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .vazio { color: var(--muted); padding: 24px; text-align: center; }
+  .tabwrap { overflow-x: auto; }
+  input.inv { background: var(--surface-2); color: var(--ink); border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; width: 120px; font: inherit; }
+  .toast { position: fixed; right: 20px; bottom: 20px; background: var(--surface-2); border: 1px solid var(--border); padding: 10px 14px; border-radius: 8px; font-size: 13px; display: none; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  a.link { color: var(--primary-bright); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Marketing — Instagram · Direct</h1>
+      <div class="data mono" id="hoje"></div>
+    </div>
+    <div class="row">
+      <span class="pill" id="atualizado">—</span>
+      <button class="btn" id="recarregar">Atualizar</button>
+    </div>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <div class="row between">
+    <div>
+      <p class="h2">Comente DIAGNÓSTICO → direct → lead</p>
+      <p class="sub">Carrossel "Domingo, 21h47" · do comentário até a reunião com a Ana.</p>
+    </div>
+    <div class="seg" role="group" aria-label="Período" id="periodo">
+      <button data-d="7">7 dias</button><button data-d="14">14 dias</button>
+      <button data-d="30" aria-pressed="true">30 dias</button><button data-d="90">90 dias</button>
+    </div>
+  </div>
+
+  <!-- Status e controles do robô -->
+  <section class="card grid status-grid" style="margin-top:16px" aria-label="Status do robô">
+    <div class="it">
+      <div class="rot">Robô</div>
+      <div class="row"><span class="pill" id="st-robo">—</span><button class="btn" id="bt-robo">—</button></div>
+      <div class="sub mono" id="st-tick"></div>
+    </div>
+    <div class="it">
+      <div class="rot">Modo do direct</div>
+      <div class="seg" role="group" aria-label="Modo do direct" id="fluxo">
+        <button data-f="link">Link do formulário</button><button data-f="conversa">Conversa completa</button>
+      </div>
+      <div class="sub" id="st-fluxo"></div>
+    </div>
+    <div class="it">
+      <div class="rot">Erros nas últimas 24h</div>
+      <span class="pill" id="st-erros">—</span>
+      <div class="sub" id="st-conta"></div>
+    </div>
+    <div class="it">
+      <div class="rot">Investimento no anúncio (R$)</div>
+      <div class="row"><input class="inv mono" id="inv" inputmode="decimal" placeholder="0,00" aria-label="Investimento no anúncio em reais"><button class="btn" id="bt-inv">Salvar</button></div>
+      <div class="sub">Usado para o custo por lead (meta: até R$ 30).</div>
+    </div>
+  </section>
+
+  <!-- Números principais -->
+  <section class="grid kpis" id="kpis" aria-label="Números do período"></section>
+
+  <div class="grid duas">
+    <section class="card" aria-labelledby="t-diario">
+      <div class="row between">
+        <div><p class="h2" id="t-diario">Comentários e leads por dia</p><p class="sub">Leads = cadastros com a UTM do carrossel.</p></div>
+        <div class="row">
+          <div class="legenda"><span style="--c:var(--series-1)">Comentários</span><span style="--c:var(--series-2)">Leads</span></div>
+          <button class="btn" id="bt-tabela" aria-pressed="false">Ver tabela</button>
+        </div>
+      </div>
+      <div class="graf" id="graf"></div>
+      <div class="tabwrap" id="graf-tabela" hidden></div>
+    </section>
+
+    <section class="card" aria-labelledby="t-funil">
+      <p class="h2" id="t-funil">Funil</p>
+      <p class="sub">Cada etapa em relação à anterior.</p>
+      <div class="funil" id="funil"></div>
+    </section>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="leads">Leads do Instagram</button>
+    <button role="tab" aria-selected="false" data-tab="conversas">Comentários e conversas</button>
+    <button role="tab" aria-selected="false" data-tab="abandono">Onde param</button>
+    <button role="tab" aria-selected="false" data-tab="erros">Erros</button>
+  </div>
+  <section class="card" style="border-top-left-radius:0;border-top-right-radius:0;border-top:0" id="aba"></section>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script type="module">
+// ===================== configuração =====================
+const PROJETO = "rqcarttwamgzypumcklf";
+const API = `https://${PROJETO}.supabase.co/functions/v1/bright-respondig-boter`;
+const CHAVE_SESSAO = `sb-${PROJETO}-auth-token`;   // sessão do portal (mesmo domínio)
+const META_CPL = 30;
+
+const qs = new URLSearchParams(location.search);
+if (qs.get("embed") === "1") document.body.classList.add("embed");
+
+const $ = (s) => document.querySelector(s);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = new Intl.NumberFormat("pt-BR");
+const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const dataHora = (d) => d ? new Date(d).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—";
+const pct = (a, b) => (b > 0 ? Math.round((a / b) * 100) + "%" : "—");
+$("#hoje").textContent = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+
+let dias = 30, dados = null, aba = "leads", demo = false;
+
+function token() {
+  try {
+    const s = JSON.parse(localStorage.getItem(CHAVE_SESSAO) || "null");
+    const t = s?.access_token || s?.currentSession?.access_token;
+    return t || null;
+  } catch { return null; }
+}
+
+function toast(msg) {
+  const t = $("#toast"); t.textContent = msg; t.style.display = "block";
+  clearTimeout(toast._t); toast._t = setTimeout(() => (t.style.display = "none"), 3500);
+}
+
+async function chamar(rota, opts = {}) {
+  const tk = token();
+  if (!tk) throw Object.assign(new Error("sem sessão"), { codigo: 401 });
+  const r = await fetch(`${API}?api=${rota}${opts.query ?? ""}`, {
+    method: opts.body ? "POST" : "GET",
+    headers: { authorization: `Bearer ${tk}`, ...(opts.body ? { "content-type": "application/json" } : {}) },
+    body: opts.body ? JSON.stringify(opts.body) : undefined,
+  });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(j.erro || r.statusText), { codigo: r.status });
+  return j;
+}
+
+// ===================== dados de exemplo (modo demonstração) =====================
+function exemplo(n) {
+  const hoje = new Date(); const diario = [];
+  for (let i = n - 1; i >= 0; i--) {
+    const d = new Date(hoje); d.setDate(d.getDate() - i);
+    const base = i < 4 ? 30 : i < 10 ? 14 : 3;
+    const c = Math.max(0, Math.round(base + Math.sin(i * 1.7) * base * 0.35));
+    diario.push({ dia: d.toISOString().slice(0, 10), comentarios: c, leads: Math.round(c * (0.32 + (i % 3) * 0.04)) });
+  }
+  const tot = diario.reduce((a, d) => ({ c: a.c + d.comentarios, l: a.l + d.leads }), { c: 0, l: 0 });
+  const nomes = ["Mariana Lopes", "Rafael Costa", "Juliana Prado", "Carlos Menezes", "Fernanda Reis", "Bruno Tavares"];
+  const empresas = ["Clínica Viva", "Imob Prime", "Sabor & Cia", "Loja Norte", "TechFlow", "Agência Brava"];
+  const fat = ["50k_100k", "100k_300k", "ate_30k", "30k_50k", "300k_1mi", "100k_300k"];
+  return {
+    gerado_em: new Date().toISOString(), dias: n,
+    status: { robo_ativo: true, ultimo_tick: new Date(Date.now() - 9000).toISOString(), fluxo: "link", conta: "demand_ia", erros_24h: 0, investimento: "850" },
+    kpis: { comentarios: tot.c, links: tot.c, responderam: 0, conversas: 0, direct_completo: 0, leads: tot.l, no_perfil: Math.round(tot.l * 0.72), reunioes: Math.round(tot.l * 0.24) },
+    diario,
+    abandono: [],
+    conversas: nomes.map((nm, i) => ({ chave: "x" + i, instagram_username: nm.toLowerCase().replace(" ", "."), estado: "link_enviado", ultima_etapa: "link", etapa_num: 1, nome: null, empresa: null, fora_do_perfil: false, concluiu_fluxo: false, teste: false, comentou_em: new Date(Date.now() - i * 3.6e6).toISOString(), atualizado_em: new Date(Date.now() - i * 3.6e6).toISOString(), do_anuncio: i % 2 === 0 })),
+    leads: nomes.map((nm, i) => ({ created_at: new Date(Date.now() - i * 5.4e6).toISOString(), nome: nm, empresa: empresas[i], segmento: "Prestação de serviços", cargo: i % 3 ? "dono" : "diretor", faturamento_faixa: fat[i], prazo: i % 2 ? "imediato" : "ate_3_meses", origem: "pagina", status_ana: ["qualificado", "agendado", "em_conversa", "novo", "agendado", "desqualificado"][i], bant_score: [72, 85, 54, null, 90, 20][i], reuniao_em: i === 1 || i === 4 ? new Date(Date.now() + (i + 1) * 8.64e7).toISOString() : null })),
+    erros: [],
+  };
+}
+
+// ===================== carregar =====================
+async function carregar() {
+  $("#recarregar").disabled = true;
+  try {
+    if (qs.get("demo") === "1" || !token()) { demo = true; dados = exemplo(dias); }
+    else { demo = false; dados = await chamar("painel", { query: `&dias=${dias}` }); }
+    banner();
+    render();
+  } catch (e) {
+    if (e.codigo === 401) {
+      demo = true; dados = exemplo(dias); banner("sem-permissao"); render();
+    } else {
+      toast("Não consegui carregar: " + e.message);
+    }
+  } finally { $("#recarregar").disabled = false; }
+}
+
+function banner(tipo) {
+  const b = $("#banner");
+  if (!demo) { b.hidden = true; return; }
+  b.hidden = false;
+  b.innerHTML = tipo === "sem-permissao"
+    ? "Seu usuário não tem permissão de gestão (ou a sessão expirou). Mostrando <b>dados de exemplo</b>. Entre de novo no <a href='https://portal.demandhub.com.br/'>portal</a>."
+    : "Mostrando <b>dados de exemplo</b>. Abra esta página dentro do <a href='https://portal.demandhub.com.br/'>portal Demand Hub</a> (logado) para ver os dados reais.";
+}
+
+// ===================== render =====================
+function render() {
+  const d = dados, k = d.kpis, s = d.status;
+  $("#atualizado").textContent = "Atualizado " + new Date(d.gerado_em).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+  // status
+  const atras = s.ultimo_tick ? Math.round((Date.now() - new Date(s.ultimo_tick)) / 1000) : null;
+  const vivo = s.robo_ativo && atras !== null && atras < 120;
+  $("#st-robo").className = "pill " + (s.robo_ativo ? (vivo ? "ok" : "alerta") : "erro");
+  $("#st-robo").textContent = s.robo_ativo ? (vivo ? "● Rodando" : "● Ligado, sem execução recente") : "● Pausado";
+  $("#st-tick").textContent = s.ultimo_tick ? `última leitura há ${atras < 60 ? atras + "s" : Math.round(atras / 60) + " min"}` : "sem leituras na última hora";
+  $("#bt-robo").textContent = s.robo_ativo ? "Pausar" : "Religar";
+  $("#bt-robo").className = "btn" + (s.robo_ativo ? " perigo" : " prim");
+  for (const b of $("#fluxo").children) b.setAttribute("aria-pressed", String(b.dataset.f === s.fluxo));
+  $("#st-fluxo").textContent = s.fluxo === "link"
+    ? "Responde no post e manda 1 mensagem com o botão do formulário."
+    : "Faz as perguntas no direct. Exige a aprovação da Meta (Advanced Access).";
+  $("#st-erros").className = "pill " + (s.erros_24h > 0 ? "erro" : "ok");
+  $("#st-erros").textContent = s.erros_24h > 0 ? `${s.erros_24h} erro(s)` : "Nenhum erro";
+  $("#st-conta").textContent = s.conta ? `Conta @${s.conta}` : "";
+  if (document.activeElement !== $("#inv")) $("#inv").value = s.investimento ? Number(s.investimento).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : "";
+
+  // KPIs
+  const inv = Number(s.investimento || 0);
+  const cpl = inv > 0 && k.leads > 0 ? inv / k.leads : null;
+  const linkMode = s.fluxo === "link";
+  const tiles = [
+    { r: "Comentários com DIAGNÓSTICO", v: nf.format(k.comentarios), n: `no período de ${d.dias} dias` },
+    linkMode
+      ? { r: "Links enviados no direct", v: nf.format(k.links), n: pct(k.links, k.comentarios) + " dos comentários" }
+      : { r: "Começaram no direct", v: nf.format(k.conversas), n: pct(k.conversas, k.comentarios) + " dos comentários" },
+    { r: "Leads (cadastros)", v: nf.format(k.leads), n: pct(k.leads, k.comentarios) + " dos comentários", c: "verde" },
+    { r: "No perfil (≥ R$ 30 mil)", v: nf.format(k.no_perfil), n: pct(k.no_perfil, k.leads) + " dos leads", c: "verde" },
+    { r: "Reuniões com a Ana", v: nf.format(k.reunioes), n: pct(k.reunioes, k.no_perfil) + " dos leads no perfil" },
+    { r: "Custo por lead", v: cpl == null ? "—" : brl.format(cpl), n: cpl == null ? "informe o investimento" : (cpl <= META_CPL ? "dentro da meta de R$ 30" : "acima da meta de R$ 30"), c: "laranja", cls: cpl == null ? "" : (cpl <= META_CPL ? "pos" : "neg") },
+  ];
+  $("#kpis").innerHTML = tiles.map((t) => `<div class="card kpi ${t.c || ""}"><div class="rot">${t.r}</div><div class="val">${t.v}</div><div class="nota ${t.cls || ""}">${t.n}</div></div>`).join("");
+
+  // funil
+  const etapas = [
+    ["Comentários", k.comentarios],
+    [linkMode ? "Links enviados" : "Começaram", linkMode ? k.links : k.conversas],
+    ["Leads", k.leads],
+    ["No perfil", k.no_perfil],
+    ["Reuniões", k.reunioes],
+  ];
+  const topo = Math.max(1, etapas[0][1]);
+  $("#funil").innerHTML = etapas.map(([nome, v], i) => `
+    <div class="fl"><span>${nome}</span>
+      <div class="barra" aria-hidden="true"><i style="width:${Math.max(0.5, (v / topo) * 100)}%"></i></div>
+      <span class="n mono">${nf.format(v)}<small>${i === 0 ? "base" : pct(v, etapas[i - 1][1])}</small></span></div>`).join("");
+
+  grafico(d.diario);
+  renderAba();
+}
+
+// ===================== gráfico diário (2 séries, um eixo) =====================
+function grafico(serie) {
+  const el = $("#graf");
+  const W = Math.max(320, el.clientWidth || 640), H = 240, m = { t: 12, r: 64, b: 26, l: 34 };
+  const iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = Math.max(4, ...serie.map((p) => Math.max(p.comentarios, p.leads)));
+  const passo = Math.pow(10, Math.floor(Math.log10(max))) / (max / Math.pow(10, Math.floor(Math.log10(max))) > 5 ? 1 : 2);
+  const topo = Math.ceil(max / passo) * passo;
+  const x = (i) => m.l + (serie.length <= 1 ? iw / 2 : (i / (serie.length - 1)) * iw);
+  const y = (v) => m.t + ih - (v / topo) * ih;
+  const linha = (key) => serie.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join("");
+  const ticks = []; for (let v = 0; v <= topo + 1e-9; v += passo) ticks.push(v);
+  const fmtDia = (s) => { const [a, mm, dd] = s.split("-"); return `${dd}/${mm}`; };
+  const cada = Math.ceil(serie.length / 7);
+  const ult = serie[serie.length - 1] || { comentarios: 0, leads: 0 };
+  el.innerHTML = `
+  <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Comentários e leads por dia nos últimos ${serie.length} dias">
+    ${ticks.map((v) => `<line x1="${m.l}" x2="${m.l + iw}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>
+      <text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end" fill="var(--muted)" font-size="11" class="mono">${nf.format(v)}</text>`).join("")}
+    ${serie.map((p, i) => i % cada === 0 || i === serie.length - 1 ? `<text x="${x(i)}" y="${H - 6}" text-anchor="middle" fill="var(--muted)" font-size="11" class="mono">${fmtDia(p.dia)}</text>` : "").join("")}
+    <path d="${linha("comentarios")}" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${linha("leads")}" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <text x="${x(serie.length - 1) + 8}" y="${y(ult.comentarios) + 4}" fill="var(--ink)" font-size="11.5">Comentários</text>
+    <text x="${x(serie.length - 1) + 8}" y="${y(ult.leads) + (Math.abs(y(ult.leads) - y(ult.comentarios)) < 14 ? 16 : 4)}" fill="var(--ink)" font-size="11.5">Leads</text>
+    <g id="cruz" style="display:none">
+      <line id="cz-l" y1="${m.t}" y2="${m.t + ih}" stroke="rgba(255,255,255,.25)"/>
+      <circle id="cz-a" r="4.5" fill="var(--series-1)" stroke="var(--surface)" stroke-width="2"/>
+      <circle id="cz-b" r="4.5" fill="var(--series-2)" stroke="var(--surface)" stroke-width="2"/>
+    </g>
+    <rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="alvo"/>
+  </svg><div class="tip" id="tip"></div>`;
+  const alvo = el.querySelector("#alvo"), cruz = el.querySelector("#cruz"), tip = el.querySelector("#tip");
+  const mover = (ev) => {
+    const r = el.querySelector("svg").getBoundingClientRect();
+    const px = ((ev.clientX - r.left) / r.width) * W;
+    const i = Math.max(0, Math.min(serie.length - 1, Math.round(((px - m.l) / iw) * (serie.length - 1))));
+    const p = serie[i];
+    cruz.style.display = "";
+    el.querySelector("#cz-l").setAttribute("x1", x(i)); el.querySelector("#cz-l").setAttribute("x2", x(i));
+    el.querySelector("#cz-a").setAttribute("cx", x(i)); el.querySelector("#cz-a").setAttribute("cy", y(p.comentarios));
+    el.querySelector("#cz-b").setAttribute("cx", x(i)); el.querySelector("#cz-b").setAttribute("cy", y(p.leads));
+    tip.innerHTML = `<div class="t">${new Date(p.dia + "T12:00").toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" })}</div>
+      <div class="l"><span><span class="k" style="--c:var(--series-1)"></span>Comentários</span><b>${nf.format(p.comentarios)}</b></div>
+      <div class="l"><span><span class="k" style="--c:var(--series-2)"></span>Leads</span><b>${nf.format(p.leads)}</b></div>`;
+    tip.style.display = "block";
+    const left = (x(i) / W) * r.width;
+    tip.style.left = Math.min(r.width - 170, Math.max(0, left + 12)) + "px";
+    tip.style.top = "8px";
+  };
+  alvo.addEventListener("mousemove", mover);
+  alvo.addEventListener("mouseleave", () => { cruz.style.display = "none"; tip.style.display = "none"; });
+  // tabela equivalente (acessibilidade)
+  $("#graf-tabela").innerHTML = `<table><thead><tr><th>Dia</th><th class="num">Comentários</th><th class="num">Leads</th></tr></thead><tbody>
+    ${[...serie].reverse().map((p) => `<tr><td class="mono">${fmtDia(p.dia)}</td><td class="num">${nf.format(p.comentarios)}</td><td class="num">${nf.format(p.leads)}</td></tr>`).join("")}</tbody></table>`;
+}
+
+// ===================== abas =====================
+const FAT = { ate_30k: "Até R$ 30 mil", "30k_50k": "R$ 30–50 mil", "50k_100k": "R$ 50–100 mil", "100k_300k": "R$ 100–300 mil", "300k_1mi": "R$ 300 mil–1 mi", "1mi_mais": "Acima de R$ 1 mi" };
+const ESTADO = { link_enviado: ["Link enviado", "roxo"], concluido: ["Concluiu no direct", "ok"], parou: ["Assumida pelo time", "alerta"], validacao_falhou: ["Travou na validação", "erro"], site: ["Foi para o site", "roxo"] };
+const estadoPill = (c) => {
+  const e = ESTADO[c.estado] || [c.estado?.startsWith("p_") ? "Respondendo: " + (c.ultima_etapa || "") : (c.estado || "—"), ""];
+  return `<span class="pill ${e[1]}">${esc(e[0])}</span>`;
+};
+const anaPill = (s) => {
+  if (!s) return `<span class="pill">Aguardando</span>`;
+  const cl = /agend/.test(s) ? "ok" : /desqual|perd/.test(s) ? "erro" : /qualif/.test(s) ? "roxo" : "";
+  return `<span class="pill ${cl}">${esc(s.replace(/_/g, " "))}</span>`;
+};
+
+function renderAba() {
+  const d = dados, box = $("#aba");
+  if (aba === "leads") {
+    box.innerHTML = d.leads.length ? `<div class="tabwrap"><table><thead><tr>
+      <th>Quando</th><th>Nome</th><th>Empresa</th><th>Faturamento</th><th>Cargo</th><th>Prazo</th><th>Ana (SDR)</th><th class="num">BANT</th><th>Reunião</th></tr></thead><tbody>
+      ${d.leads.map((l) => `<tr><td class="mono">${dataHora(l.created_at)}</td><td>${esc(l.nome)}${l.instagram_username ? `<div class="sub">@${esc(l.instagram_username)}</div>` : ""}</td>
+        <td>${esc(l.empresa)}<div class="sub">${esc(l.segmento)}</div></td>
+        <td>${l.faturamento_faixa === "ate_30k" ? `<span class="pill alerta">${FAT.ate_30k}</span>` : esc(FAT[l.faturamento_faixa] || l.faturamento_faixa)}</td>
+        <td>${esc(l.cargo)}</td><td>${esc((l.prazo || "").replace(/_/g, " "))}</td><td>${anaPill(l.status_ana)}</td>
+        <td class="num">${l.bant_score ?? "—"}</td><td class="mono">${l.reuniao_em ? dataHora(l.reuniao_em) : "—"}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="vazio">Nenhum lead do Instagram no período.</div>`;
+  } else if (aba === "conversas") {
+    box.innerHTML = d.conversas.length ? `<div class="tabwrap"><table><thead><tr>
+      <th>Comentou</th><th>Perfil</th><th>Situação</th><th>Origem</th><th>Nome / empresa</th><th>Última atividade</th><th></th></tr></thead><tbody>
+      ${d.conversas.map((c) => `<tr><td class="mono">${dataHora(c.comentou_em)}</td>
+        <td>@${esc(c.instagram_username || "—")}${c.teste ? ` <span class="pill">teste</span>` : ""}</td>
+        <td>${estadoPill(c)}${c.erro ? `<div class="sub" title="${esc(c.erro)}">com erro</div>` : ""}</td>
+        <td>${c.do_anuncio ? `<span class="pill roxo">Anúncio</span>` : `<span class="pill">Post</span>`}</td>
+        <td>${esc(c.nome || "—")}${c.empresa ? `<div class="sub">${esc(c.empresa)}</div>` : ""}</td>
+        <td class="mono">${dataHora(c.atualizado_em)}</td>
+        <td>${String(c.estado || "").startsWith("p_") ? `<button class="btn" data-assumir="${esc(c.chave)}">Assumir</button>` : ""}</td></tr>`).join("")}
+      </tbody></table></div>` : `<div class="vazio">Nenhum comentário no período.</div>`;
+  } else if (aba === "abandono") {
+    const a = d.abandono;
+    const max = Math.max(1, ...a.map((x) => x.pessoas));
+    box.innerHTML = d.status.fluxo === "link"
+      ? `<div class="vazio">No modo "Link do formulário" a conversa não acontece no direct, então não há etapas para medir aqui. O abandono do formulário aparece na página.</div>`
+      : a.length ? `<div class="funil">${a.map((x) => `<div class="fl"><span>${esc(x.etapa)}</span><div class="barra"><i style="width:${(x.pessoas / max) * 100}%;background:var(--attention)"></i></div><span class="n mono">${x.pessoas}</span></div>`).join("")}</div>`
+      : `<div class="vazio">Ninguém parou no meio no período.</div>`;
+  } else {
+    box.innerHTML = d.erros.length ? `<div class="tabwrap"><table><thead><tr><th>Quando</th><th>Erro</th><th>Detalhe</th></tr></thead><tbody>
+      ${d.erros.map((e) => `<tr><td class="mono">${dataHora(e.em)}</td><td>${esc(e.msg)}</td><td class="sub mono" style="max-width:520px;word-break:break-word">${esc(e.detalhe)}</td></tr>`).join("")}</tbody></table></div>`
+      : `<div class="vazio">Nenhum erro registrado. ✅</div>`;
+  }
+}
+
+// ===================== ações =====================
+async function acao(nome, valor, confirmar) {
+  if (confirmar && !confirm(confirmar)) return;
+  if (demo) { toast("Modo demonstração: nada foi alterado."); return; }
+  try { await chamar("acao", { body: { acao: nome, valor } }); toast("Feito ✅"); await carregar(); }
+  catch (e) { toast("Não deu certo: " + e.message); }
+}
+
+$("#periodo").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  dias = Number(b.dataset.d);
+  for (const x of $("#periodo").children) x.setAttribute("aria-pressed", String(x === b));
+  carregar();
+});
+$("#fluxo").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || b.dataset.f === dados?.status.fluxo) return;
+  acao("fluxo", b.dataset.f, b.dataset.f === "conversa"
+    ? "Ligar a conversa completa no direct? Só funciona para o público depois que a Meta aprovar o acesso avançado."
+    : "Voltar para o modo Link do formulário?");
+});
+$("#bt-robo").addEventListener("click", () => {
+  const ativo = dados?.status.robo_ativo;
+  acao(ativo ? "pausar" : "religar", null, ativo ? "Pausar o robô? Comentários novos ficarão sem resposta até religar." : null);
+});
+$("#bt-inv").addEventListener("click", () => {
+  const v = $("#inv").value.trim().replace(/\./g, "").replace(",", ".");
+  if (!/^\d+(\.\d{1,2})?$/.test(v)) { toast("Informe um valor como 850,00"); return; }
+  acao("investimento", v);
+});
+$("#aba").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-assumir]"); if (!b) return;
+  acao("assumir", b.dataset.assumir, "Assumir esta conversa? O robô para de responder essa pessoa.");
+});
+document.querySelector(".tabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  aba = b.dataset.tab;
+  for (const x of document.querySelectorAll(".tabs button")) x.setAttribute("aria-selected", String(x === b));
+  renderAba();
+});
+$("#bt-tabela").addEventListener("click", (e) => {
+  const on = e.currentTarget.getAttribute("aria-pressed") !== "true";
+  e.currentTarget.setAttribute("aria-pressed", String(on));
+  e.currentTarget.textContent = on ? "Ver gráfico" : "Ver tabela";
+  $("#graf").hidden = on; $("#graf-tabela").hidden = !on;
+});
+$("#recarregar").addEventListener("click", carregar);
+window.addEventListener("resize", () => dados && grafico(dados.diario));
+setInterval(() => { if (!document.hidden) carregar(); }, 30000);
+carregar();
+</script>
+</body>
+</html>
