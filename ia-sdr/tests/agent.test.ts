@@ -146,3 +146,11 @@ test("faturamento '50' vira R$ 50.000 e qualifica no budget", async () => {
   assert.ok(evaluateBant({ faturamento_mensal: normalizeFaturamento(50) }).budget);
   assert.ok(!evaluateBant({ faturamento_mensal: normalizeFaturamento(20) }).budget);
 });
+
+test("status do WhatsApp no Evolution GO", async () => {
+  const { parseStatus, isHealthy } = await import("../src/lib/whatsapp-health.ts");
+  assert.ok(isHealthy(parseStatus({ message: "success", data: { Connected: true, LoggedIn: true, Name: "DemandIA" } })));
+  assert.ok(!isHealthy(parseStatus({ message: "success", data: { Connected: false, LoggedIn: false } })));
+  assert.ok(!isHealthy(parseStatus({ data: { Connected: true, LoggedIn: false } })));
+  assert.ok(!isHealthy(parseStatus({ error: "instance not found" })));
+});
