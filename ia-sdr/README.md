@@ -81,7 +81,7 @@ Mande um "oi" de outro número pro WhatsApp conectado na Evolution e acompanhe a
 ## Desenvolvimento
 ```bash
 npm install
-npm test        # 25 testes das regras (agenda, follow-up, BANT, webhook)
+npm test        # 26 testes das regras (agenda, follow-up, BANT, webhook)
 npm run dev
 ```
 Node 22.18 ou superior (os testes rodam TypeScript direto no Node).
