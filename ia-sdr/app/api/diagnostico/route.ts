@@ -10,6 +10,7 @@ import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, db, logEvent, type Lead } from "@/src/lib/db.ts";
 import { aberturaParaIA, avisoKelvin, diagRow, leadPatch, origemTxt, parseForm, phoneVariants, sheetRow } from "@/src/lib/diagnostico.ts";
 import { env } from "@/src/lib/env.ts";
+import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { sendText } from "@/src/lib/evolution.ts";
 
 export const runtime = "nodejs";
@@ -71,7 +72,7 @@ export async function POST(req: Request) {
   await logEvent(lead.id, "diagnostico_lp", { diagnostico_id: saved.data.id, novo_lead: isNew, utm: f.utm, bant: bant.score });
 
   const leadId = lead.id;
-  const aiOff = lead.ai_paused || CLOSED.includes(lead.status);
+  const aiOff = lead.ai_paused || CLOSED.includes(lead.status) || isBlocked(f.whatsapp);
   waitUntil(
     (async () => {
       // Planilha do Google + e-mail de aviso (Apps Script)

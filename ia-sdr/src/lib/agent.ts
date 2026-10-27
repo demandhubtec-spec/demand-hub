@@ -2,6 +2,7 @@
  * O "cérebro" da IA SDR: monta o contexto, chama o modelo (OpenAI) com as ferramentas,
  * executa as ferramentas e envia a resposta pelo WhatsApp.
  */
+import { isBlocked } from "./bloqueio.ts";
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { callLLM, parseArgs, type ChatMessage } from "./llm.ts";
 import { toChat } from "./chat.ts";
@@ -47,7 +48,7 @@ export async function handleInbound(leadId: string, messageId: string) {
 
 async function reply(leadId: string) {
   let lead = await getLead(leadId);
-  if (lead.ai_paused || lead.status === "opt_out") return;
+  if (lead.ai_paused || lead.status === "opt_out" || isBlocked(lead.phone, lead.whatsapp_jid)) return;
 
   const meeting = await activeMeeting(leadId);
   const messages: ChatMessage[] = toChat(await history(leadId));

@@ -7,6 +7,7 @@ import { waitUntil } from "@vercel/functions";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, logEvent, messageExists, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { env } from "@/src/lib/env.ts";
+import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
 
 export const runtime = "nodejs";
@@ -36,6 +37,8 @@ export async function POST(req: Request) {
   }
   // Conversa com o próprio Kelvin (avisos da IA) não é lead
   if (env.ownerPhone && msg.phone === env.ownerPhone) return Response.json({ ignored: "owner" });
+  // Números da lista de bloqueio: a IA não conversa nem registra como lead
+  if (isBlocked(msg.phone, msg.jid, ...msg.altPhones)) return Response.json({ ignored: "bloqueado" });
 
   // Mensagem enviada pelo nosso número: foi a IA ou o Kelvin respondendo na mão?
   if (msg.fromMe) {

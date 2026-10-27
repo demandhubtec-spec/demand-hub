@@ -7,6 +7,7 @@ import { SDR_CONFIG } from "../config/sdr.ts";
 import { toChat } from "./chat.ts";
 import { callLLM } from "./llm.ts";
 import { addMessage, db, getLead, history, logEvent, tryLock, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
+import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
 import { isBusinessTime, nextFollowUpAt } from "./followup.ts";
 import { followUpPrompt } from "./prompt.ts";
@@ -34,6 +35,10 @@ export async function runFollowUps(now = new Date()) {
       const fresh = await getLead(lead.id);
       // Lead respondeu depois do agendamento? O próprio fluxo de conversa reagenda.
       if (!fresh.next_followup_at || new Date(fresh.next_followup_at) > now) continue;
+      if (isBlocked(fresh.phone, fresh.whatsapp_jid)) {
+        await updateLead(lead.id, { next_followup_at: null, ai_paused: true });
+        continue;
+      }
 
       const attempt = fresh.followup_attempts + 1;
       const msgs = toChat(await history(lead.id, 30));
@@ -120,6 +125,7 @@ export async function runMeetingReminders(now = new Date()) {
 }
 
 async function sendAndLog(lead: Lead, text: string, kind: "confirmacao" | "lembrete") {
+  if (isBlocked(lead.phone, lead.whatsapp_jid)) return;
   for (const bubble of text.split("\n\n")) {
     const id = await sendText(destination(lead), bubble);
     await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind, content: bubble, evolution_message_id: id });

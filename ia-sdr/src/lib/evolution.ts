@@ -5,11 +5,17 @@
  * - Webhook: configurado com POST /instance/connect { webhookUrl, subscribe: ["MESSAGE"] }.
  *   Payload: { event: "Message", data: { Info: {...}, Message: {...} }, instanceId, instanceName, instanceToken }
  */
+import { isBlocked } from "./bloqueio.ts";
 import { env } from "./env.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 export async function sendText(number: string, text: string): Promise<string | null> {
+  // Trava final: nunca manda mensagem para número bloqueado (exceto avisos para o Kelvin)
+  if (number !== env.alertPhone && number !== env.ownerPhone && isBlocked(number)) {
+    console.warn("sendText: número bloqueado, envio cancelado", number);
+    return null;
+  }
   const res = await fetch(`${env.evolutionUrl}/send/text`, {
     method: "POST",
     headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
@@ -59,6 +65,8 @@ export interface InboundMessage {
   text: string | null; // null = mídia que não é texto
   messageType: string; // chave do WhatsApp, ex: conversation, audioMessage, imageMessage
   instanceName?: string;
+  /** Outros números reais que o WhatsApp manda junto (quando o chat usa LID). */
+  altPhones: string[];
 }
 
 function extractText(m: any): string | null {
@@ -80,8 +88,24 @@ function messageKind(m: any): string {
   return keys[0] || "unknown";
 }
 
+/** Grupos, comunidades, listas de transmissão, status e canais: a IA nunca responde. */
 function ignoredJid(jid: string): boolean {
-  return jid.endsWith("@g.us") || jid.includes("@broadcast") || jid.endsWith("@newsletter");
+  return (
+    jid.endsWith("@g.us") ||
+    jid.includes("@broadcast") ||
+    jid.endsWith("@newsletter") ||
+    jid.endsWith("@call") ||
+    /^\d+-\d+@/.test(jid) // formato antigo de grupo
+  );
+}
+
+/** Números reais (@s.whatsapp.net) citados em qualquer campo do Info. */
+function altPhonesFrom(info: any): string[] {
+  const out = new Set<string>();
+  for (const v of Object.values(info || {})) {
+    if (typeof v === "string" && v.includes("@s.whatsapp.net")) out.add(v.split("@")[0].split(":")[0].replace(/\D/g, ""));
+  }
+  return [...out].filter(Boolean);
 }
 
 /** Converte o payload do webhook. Retorna null para o que deve ser ignorado. */
@@ -92,7 +116,7 @@ export function parseWebhook(body: any): InboundMessage | null {
   if (body.event === "Message" && body.data?.Info) {
     const info = body.data.Info;
     const jid: string = String(info.Chat || "");
-    if (!info.ID || !jid || info.IsGroup || ignoredJid(jid)) return null;
+    if (!info.ID || !jid || info.IsGroup || info.IsBroadcast || ignoredJid(jid)) return null;
     const m = body.data.Message || {};
     return {
       id: String(info.ID),
@@ -103,6 +127,7 @@ export function parseWebhook(body: any): InboundMessage | null {
       text: extractText(m),
       messageType: messageKind(m),
       instanceName: body.instanceName,
+      altPhones: altPhonesFrom(info),
     };
   }
 
@@ -113,7 +138,7 @@ export function parseWebhook(body: any): InboundMessage | null {
   const key = data?.key;
   if (!key?.remoteJid || !key?.id) return null;
   const jid: string = key.remoteJid;
-  if (ignoredJid(jid)) return null;
+  if (ignoredJid(jid) || (key.participant && !key.fromMe)) return null;
   const m = data.message || {};
   return {
     id: key.id,
@@ -124,5 +149,6 @@ export function parseWebhook(body: any): InboundMessage | null {
     text: extractText(m),
     messageType: data.messageType || messageKind(m),
     instanceName: body.instance,
+    altPhones: [key.remoteJidAlt, key.senderPn].filter(Boolean).map((j: string) => j.split("@")[0].replace(/\D/g, "")),
   };
 }
