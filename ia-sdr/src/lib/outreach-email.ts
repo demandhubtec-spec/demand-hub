@@ -7,6 +7,7 @@ import { db } from "./db.ts";
 import { accessToken } from "./google.ts";
 import { env } from "./env.ts";
 import { sendText } from "./evolution.ts";
+import { SDR_CONFIG } from "../config/sdr.ts";
 
 export const RODAPE_OPTOUT = "Se não quiser mais receber, é só responder 'sair'.";
 
@@ -79,22 +80,25 @@ export function buildMime(to: string, subject: string, body: string, from?: stri
 }
 
 export const REMETENTE_NOME = "Ana da DemandIA";
-export const ASSINATURA = "Ana\nDemandIA";
-/** Foto da assinatura (PNG hospedado no portal; troque o arquivo para mudar a foto). */
-export const FOTO_ASSINATURA = "https://portal.demandhub.com.br/brand/email-avatar.png";
-export const CARGO_ASSINATURA = "Consultora de crescimento";
+/** Foto da assinatura (hospedada no portal; troque o arquivo para mudar a foto). */
+export const FOTO_ASSINATURA = "https://portal.demandhub.com.br/brand/ana-email.jpg";
+export const CARGO_ASSINATURA = SDR_CONFIG.cargoAssistente;
 export const SITE_ASSINATURA = "demandhub.com.br";
+const WA = SDR_CONFIG.whatsapp;
+export const ASSINATURA = `Ana\n${CARGO_ASSINATURA} · DemandIA\nWhatsApp: ${WA.exibicao}\n${SITE_ASSINATURA}`;
+const ehAssinatura = (b: string) => b.trim() === ASSINATURA || /^Ana\s*\n\s*DemandIA$/i.test(b.trim());
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 /** Assinatura em HTML: foto, nome, cargo e site, no padrão de um e-mail profissional. */
 export function assinaturaHtml() {
   return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;border-top:1px solid #E6E3F0;padding-top:14px;font-family:Arial,Helvetica,sans-serif">
-<tr><td style="padding-right:12px;vertical-align:middle"><img src="${FOTO_ASSINATURA}" width="56" height="56" alt="Ana" style="display:block;width:56px;height:56px;border-radius:50%"></td>
+<tr><td style="padding-right:12px;vertical-align:middle"><img src="${FOTO_ASSINATURA}" width="64" height="64" alt="Ana" style="display:block;width:64px;height:64px;border-radius:50%;object-fit:cover"></td>
 <td style="vertical-align:middle;font-size:13px;line-height:18px;color:#3A3550">
 <div style="font-size:15px;font-weight:bold;color:#1B1530">Ana</div>
 <div>${CARGO_ASSINATURA} &middot; <span style="color:#5A28E0;font-weight:bold">DemandIA</span></div>
-<div><a href="https://${SITE_ASSINATURA}" style="color:#5A28E0;text-decoration:none">${SITE_ASSINATURA}</a></div>
+<div style="margin-top:2px">WhatsApp: <a href="https://wa.me/${WA.numero}" style="color:#1B1530;text-decoration:none;font-weight:bold">${WA.exibicao}</a> &middot; <a href="https://${SITE_ASSINATURA}" style="color:#5A28E0;text-decoration:none">${SITE_ASSINATURA}</a></div>
+<div style="margin-top:8px"><a href="https://wa.me/${WA.numero}" style="display:inline-block;background:#1FA855;color:#ffffff;text-decoration:none;font-weight:bold;font-size:12px;padding:6px 12px;border-radius:14px">Chamar no WhatsApp</a></div>
 </td></tr></table>`;
 }
 
@@ -103,7 +107,7 @@ export function emailHtml(texto: string) {
   const blocos = texto.replace(/\r/g, "").split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
   const html = blocos
     .map((b) => {
-      if (/^Ana\s*\n\s*DemandIA$/i.test(b)) return assinaturaHtml();
+      if (ehAssinatura(b)) return assinaturaHtml();
       if (b === RODAPE_OPTOUT) return `<p style="margin:16px 0 0;font-size:11px;color:#9A96A8">${esc(b)}</p>`;
       return `<p style="margin:0 0 12px">${esc(b).replace(/\n/g, "<br>")}</p>`;
     })
@@ -219,7 +223,7 @@ const log = (event: string, detail: Record<string, unknown>, place_id: string | 
 
 /** Assinatura da Ana + rodapé de opt-out (a não ser que o texto já fale em "sair"). */
 export function comRodape(body: string) {
-  const assinado = /\n\s*Ana\s*\n\s*DemandIA\s*$/i.test(body) ? body : `${body.trim()}\n\n${ASSINATURA}`;
+  const assinado = body.includes(ASSINATURA) || /\n\s*Ana\s*\n\s*DemandIA\s*$/i.test(body) ? body : `${body.trim()}\n\n${ASSINATURA}`;
   return /\bsair\b/i.test(body) ? assinado : `${assinado}\n\n${RODAPE_OPTOUT}`;
 }
 

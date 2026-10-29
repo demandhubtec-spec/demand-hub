@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { render, spin, limpaEmpresa } from "../src/lib/outreach-render.ts";
-import { buildMime, comRodape, dentroDaJanela, spNow } from "../src/lib/outreach-email.ts";
+import { ASSINATURA, buildMime, comRodape, dentroDaJanela, spNow } from "../src/lib/outreach-email.ts";
 
 const lead = { empresa: "Clínica Sorriso - Odonto Valinhos", decisor: "ana paula souza", cidade: "Valinhos", nicho: "Odontologia" };
 const noon = new Date("2026-10-28T15:00:00Z"); // 12h em SP → "Boa tarde"
@@ -31,7 +31,8 @@ test("janela de envio em horário de São Paulo", () => {
 });
 
 test("e-mail: assina como Ana e põe o rodapé de opt-out só se o texto ainda não tiver", () => {
-  assert.equal(comRodape("Olá"), "Olá\n\nAna\nDemandIA\n\nSe não quiser mais receber, é só responder 'sair'.");
+  assert.equal(comRodape("Olá"), `Olá\n\n${ASSINATURA}\n\nSe não quiser mais receber, é só responder 'sair'.`);
+  assert.match(ASSINATURA, /Consultora estratégica de negócios · DemandIA\nWhatsApp: \(19\) 98825-9883\ndemandhub\.com\.br/);
   const jaTem = 'Olá\n\nSe não quiser mais receber, é só responder "SAIR".';
   assert.doesNotMatch(comRodape(jaTem), /responder 'sair'/);
   assert.equal(comRodape("Oi\n\nAna\nDemandIA"), "Oi\n\nAna\nDemandIA\n\nSe não quiser mais receber, é só responder 'sair'.");
@@ -228,8 +229,9 @@ test("e-mail: vai em texto e HTML, com assinatura com foto e sem citar nome da e
   assert.match(mime, /text\/plain/);
   assert.match(mime, /text\/html/);
   const html = emailHtml(corpo);
-  assert.match(html, /<img src="https:\/\/portal\.demandhub\.com\.br\/brand\/email-avatar\.png"/);
-  assert.match(html, /Consultora de crescimento/);
+  assert.match(html, /<img src="https:\/\/portal\.demandhub\.com\.br\/brand\/ana-email\.jpg"/);
+  assert.match(html, /Consultora estratégica de negócios/);
+  assert.match(html, /wa\.me\/5519988259883/);
   assert.match(html, /font-size:11px[^>]*>Se não quiser mais receber/);
   assert.doesNotMatch(html, /<p[^>]*>Ana<br>DemandIA/);
 });
