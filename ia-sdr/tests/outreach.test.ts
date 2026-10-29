@@ -281,3 +281,16 @@ test("sequência: toque 1 sem apresentação vira problema", () => {
   const seq = montarSequencia(JSON.stringify({ toques: [1, 2, 3, 4, 5, 6].map((n) => ({ assunto: `A${n}`, texto: `Texto ${n}` })) }));
   assert.ok(problemasDaSequencia(seq).some((p) => p.includes("aqui é a Ana")));
 });
+
+import { pareceRespostaAutomatica } from "../src/lib/prospeccao.ts";
+
+test("resposta automática da empresa não conta como resposta", () => {
+  assert.equal(pareceRespostaAutomatica("Olá! Seja muito bem-vindo (a) à *AS Odontologia* 😷\nSorrir é o primeiro passo\n*Em que Posso te ajudar?*", 5), true);
+  assert.equal(pareceRespostaAutomatica("Bom dia, sou a assistente virtual da *Líbano Imóveis*.\n\nSeu protocolo de atendimento é: *261029461637*.", 9999), true);
+  assert.equal(pareceRespostaAutomatica("Escolha uma opção:\n1 - Financeiro\n2 - Agendamento", null), true);
+  assert.equal(pareceRespostaAutomatica("Nosso horário de atendimento é de segunda a sexta, das 8h às 18h.", 3600), true);
+  // gente de verdade
+  assert.equal(pareceRespostaAutomatica("Oi Ana, pode mandar sim", 300), false);
+  assert.equal(pareceRespostaAutomatica("Bom dia! Como posso ajudar?", 3600), false); // saudação genérica muito depois do envio: é pessoa
+  assert.equal(pareceRespostaAutomatica("Quanto custa?", 20), false);
+});

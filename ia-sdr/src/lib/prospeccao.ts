@@ -96,3 +96,45 @@ ${p.site_preview?.token ? `- Prévia de site grátis: já montamos um rascunho d
 - Se surgir uma pergunta ou objeção que você não sabe responder com segurança, ou se a conversa travar, chame \`encaminhar_humano\`: a equipe é avisada e assume.
 - Se ele disser que não tem interesse ou pedir para sair, agradeça em uma frase, não insista e chame \`encerrar_contato\` com motivo "opt_out".`;
 }
+
+// ---------------------------------------------------------------- Respostas automáticas
+
+const sem = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/** Sinais fortes de robô/atendimento automático: valem a qualquer hora. */
+const AUTO_FORTE = [
+  /assistente virtual/,
+  /\bprotocolo\b/,
+  /(mensagem|resposta|atendimento) automatic/,
+  /\bdigite\b/,
+  /escolha uma (das )?opc/,
+  /selecione uma (das )?opc/,
+  /(horario|hora) de (atendimento|funcionamento)/,
+  /fora do (nosso )?horario/,
+  /no momento (nao )?(estamos|podemos|conseguimos)/,
+  /(retornaremos|responderemos|entraremos em contato) (o mais breve|em breve|assim que)/,
+  /em breve (um|uma|nossa|nosso) (atendente|equipe|consultor)/,
+  /aguarde (um momento|que (ja|logo|em breve))/,
+  /^\s*(1|1\.|1\)|1 -|1-)\s.+\n\s*(2|2\.|2\)|2 -|2-)\s/m,
+];
+
+/** Sinais fracos (saudação genérica): só contam se chegou logo depois da nossa mensagem. */
+const AUTO_FRACO = [
+  /bem[- ]?vind[oa]/,
+  /(em )?que (posso|podemos) (te |lhe |the )?ajudar/,
+  /como (posso|podemos) (te |lhe )?ajudar/,
+  /obrigad[oa] (pelo|por entrar em|por nos contatar|pela mensagem)/,
+  /agradecemos (o|seu|a sua|sua) (contato|mensagem)/,
+];
+
+/**
+ * Mensagem que parece resposta automática (boas-vindas do WhatsApp Business, robô com protocolo,
+ * menu de opções). Não conta como resposta do lead: a cadência segue e a Ana não responde ao robô.
+ */
+export function pareceRespostaAutomatica(texto: string, segundosDesdeEnvio?: number | null): boolean {
+  const t = sem(texto ?? "");
+  if (!t.trim()) return false;
+  if (AUTO_FORTE.some((r) => r.test(t))) return true;
+  const logo = segundosDesdeEnvio !== null && segundosDesdeEnvio !== undefined && segundosDesdeEnvio >= 0 && segundosDesdeEnvio <= 90;
+  return logo && AUTO_FRACO.some((r) => r.test(t));
+}
