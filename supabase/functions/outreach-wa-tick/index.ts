@@ -155,8 +155,14 @@ Deno.serve(async (req) => {
   if (cfg.next_wa_at && new Date(cfg.next_wa_at) > new Date())
     return Response.json({ ...out, skip: "aguardando_intervalo", next: cfg.next_wa_at });
 
-  const { count } = await sb.from("outreach_leads").select("place_id", { count: "exact", head: true })
+  // Modo número de teste: o lead não muda de status, então o teto e a rotação contam pelos envios de teste de hoje
+  const { data: testesHoje } = cfg.test_number
+    ? await sb.from("outreach_log").select("place_id").eq("event", "sent_test").not("place_id", "is", null).gte("created_at", spTodayStartISO())
+    : { data: [] as { place_id: string }[] };
+  const jaTestados = [...new Set((testesHoje ?? []).map((x) => x.place_id))];
+  const { count: enviadosHoje } = await sb.from("outreach_leads").select("place_id", { count: "exact", head: true })
     .gte("wa_sent_at", spTodayStartISO());
+  const count = cfg.test_number ? (testesHoje ?? []).length : enviadosHoje;
   if ((count || 0) >= cfg.wa_daily_cap) return Response.json({ ...out, skip: "teto_diario", count });
 
   if (!cfg.dry_run && !(await instanceOk())) {
@@ -169,6 +175,7 @@ Deno.serve(async (req) => {
   let fila = sb.from("outreach_leads").select("*")
     .eq("wa_status", "pendente").not("whatsapp", "is", null);
   if (cfg.exigir_aprovacao !== false) fila = fila.eq("msg_status", "aprovada");
+  if (jaTestados.length) fila = fila.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
   const { data: leads } = await fila
     .order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(1);
   const lead = leads?.[0];
