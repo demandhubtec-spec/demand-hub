@@ -103,7 +103,7 @@ export function CardLead({ lead, abertoInicial = false }: { lead: OutreachLead; 
     }
   }
 
-  const vazio = seq.some((t) => !t.texto.trim());
+  const vazio = !seq.length || seq.some((t) => !t.texto.trim());
   const aprovar = { msg_status: "aprovada", msg_aprovada_em: new Date().toISOString() } as Partial<OutreachLead>;
 
   return (
@@ -191,7 +191,14 @@ export function CardLead({ lead, abertoInicial = false }: { lead: OutreachLead; 
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        {editando ? (
+        {!seq.length ? (
+          <>
+            <div className="w-full text-[12.5px] text-muted">A Ana ainda não escreveu a sequência desta empresa.</div>
+            <Button size="sm" onClick={refazer} disabled={gerar.isPending}>
+              <Sparkles /> {gerar.isPending ? "Escrevendo..." : "Gerar sequência"}
+            </Button>
+          </>
+        ) : editando ? (
           <>
             <Button size="sm" onClick={() => mudar({ ...salvarPatch(), ...aprovar }, "Sequência editada e aprovada")} disabled={vazio || update.isPending}>
               <Check /> Salvar e aprovar
