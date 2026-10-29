@@ -115,6 +115,12 @@ export function emailHtml(texto: string) {
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#1B1530;max-width:560px">\n${html}\n</div>`;
 }
 
+/** Nos e-mails seguintes ao primeiro, o WhatsApp não foi "hoje cedo": ajusta a referência de tempo. */
+export function ajustarTempo(texto: string, toqueAtual: number): string {
+  if (toqueAtual <= 1) return texto;
+  return texto.replace(/\b(te chamei|te mandei mensagem|falei com voc[eê]s?)( no whats ?app)? hoje cedo\b/gi, (_m, a, b) => `${a}${b ?? ""} esses dias`);
+}
+
 export async function gmailSend(to: string, subject: string, body: string, from?: string | null) {
   const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",
@@ -320,7 +326,7 @@ export async function runEmailTick(now = new Date()) {
   await agendar();
   const subject = toque.assunto || lead.empresa;
   try {
-    const enviado = await gmailSend(lead.email, subject, comRodape(toque.texto), eu);
+    const enviado = await gmailSend(lead.email, subject, comRodape(ajustarTempo(toque.texto, lead.toque_atual)), eu);
     const patch: Record<string, unknown> = {
       email_subject: subject,
       email_threads: [...((lead.email_threads ?? []) as string[]), ...(enviado.threadId ? [enviado.threadId] : [])],

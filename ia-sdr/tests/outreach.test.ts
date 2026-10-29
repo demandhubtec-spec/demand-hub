@@ -324,3 +324,20 @@ test("mídia: pega áudio, imagem e documento que o Evolution GO manda em base64
   assert.equal(msg?.messageType, "imageMessage");
   assert.equal(msg?.media?.tipo, "imagem");
 });
+
+import { separarEmBaloes } from "../src/lib/diagnostico-perfil.ts";
+test("WhatsApp num bloco só vira 3 balões: apresentação, conteúdo e pergunta", () => {
+  const t = "Tudo bem? Aqui é a Ana de novo, da DemandIA 😊 Te chamei esses dias sobre o perfil da Agrofera no Google e fiquei pensando numa coisa. Não encontramos Instagram ligado ao perfil, e isso pode tirar um canal de contato. Como vocês cuidam disso hoje?";
+  assert.equal(
+    separarEmBaloes(t),
+    "Tudo bem? Aqui é a Ana de novo, da DemandIA 😊 Te chamei esses dias sobre o perfil da Agrofera no Google e fiquei pensando numa coisa.\n\nNão encontramos Instagram ligado ao perfil, e isso pode tirar um canal de contato.\n\nComo vocês cuidam disso hoje?",
+  );
+  const pronto = "Tudo bem? Aqui é a Ana.\n\nConteúdo.\n\nPosso?";
+  assert.equal(separarEmBaloes(pronto), pronto);
+});
+
+import { ajustarTempo } from "../src/lib/outreach-email.ts";
+test("e-mails seguintes não dizem que o WhatsApp foi hoje cedo", () => {
+  assert.equal(ajustarTempo("Sou a Ana. Te chamei no WhatsApp hoje cedo.", 3), "Sou a Ana. Te chamei no WhatsApp esses dias.");
+  assert.equal(ajustarTempo("Te chamei no WhatsApp hoje cedo.", 1), "Te chamei no WhatsApp hoje cedo.");
+});
