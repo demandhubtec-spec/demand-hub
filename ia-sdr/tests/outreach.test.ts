@@ -291,6 +291,7 @@ test("resposta automática da empresa não conta como resposta", () => {
   assert.equal(pareceRespostaAutomatica("Nosso horário de atendimento é de segunda a sexta, das 8h às 18h.", 3600), true);
   assert.equal(pareceRespostaAutomatica("Sou a Jenyffer, da equipe da Cangiani Advocacia. Estou acompanhando seu atendimento. Que bom ter você aqui 😊 Se já for nosso cliente, me avise. Qual assunto você quer resolver?", 45), true);
   assert.equal(pareceRespostaAutomatica("👨🏻‍💻 Vou te transferir para o nosso atendente.\n\nSó um momento.", 900), true);
+  assert.equal(pareceRespostaAutomatica("Olá! 👋 Seja bem-vindo(a) ao Filipe Ramasco Advocacia Trabalhista.\n\nPara melhor atendê-lo(a), por favor, informe seu nome e nos conte brevemente sobre o seu caso.", 3), true);
   // gente de verdade
   assert.equal(pareceRespostaAutomatica("Oi Ana, pode mandar sim", 300), false);
   assert.equal(pareceRespostaAutomatica("Bom dia! Como posso ajudar?", 3600), false); // saudação genérica muito depois do envio: é pessoa
