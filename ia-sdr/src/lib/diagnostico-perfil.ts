@@ -135,7 +135,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 0, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Primeira abordagem no WhatsApp. Exatamente 2 balões separados por uma linha em branco. Balão 1 (curto): \"Oi, {nome}, tudo bem?\" (ou \"Oi, tudo bem?\" sem nome) e \"aqui é a Ana, da DemandIA\", dizendo em poucas palavras que ajudamos empresas da região com marketing, vendas, automação e IA. Balão 2: um fato concreto do diagnóstico (de preferência a posição frente aos concorrentes), reconhecendo um ponto forte se houver, UMA oportunidade, e a oferta de um diagnóstico gratuito e mais completo do perfil no Google, terminando com uma pergunta de sim ou não. Máximo de 420 caracteres no total.",
+      "Primeira abordagem no WhatsApp. Exatamente 2 balões separados por uma linha em branco. Balão 1 (curto): \"Oi, {nome}, tudo bem?\" (ou \"Oi, tudo bem?\" sem nome) e \"aqui é a Ana, da DemandIA\", dizendo em poucas palavras que ajudamos empresas da região com marketing, vendas, automação e IA. Balão 2: um fato concreto do diagnóstico (de preferência a posição frente aos concorrentes), reconhecendo um ponto forte se houver, UMA oportunidade, e a oferta de um diagnóstico gratuito e mais completo do perfil no Google, terminando com uma pergunta simples e natural (ex.: \"Posso te mandar?\", \"Faz sentido?\"), nunca \"responde sim ou não\". Não use quebras de linha dentro de um balão. Máximo de 420 caracteres no total.",
   },
   {
     dia: 0, periodo: "tarde", canal: "email",
@@ -145,17 +145,17 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 2, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Follow-up curto no WhatsApp, 1 balão só, até 200 caracteres. Outro ângulo: retome com leveza a mensagem anterior, sem cobrar resposta e sem \"só passando para lembrar\". Termine com uma pergunta simples.",
+      "Follow-up curto no WhatsApp, 1 balão só, no máximo 200 caracteres. Outro ângulo: traga um fato do diagnóstico diferente do toque 1 (ou, se só houver um, o efeito prático dele para quem procura {nicho_plural} em {cidade}). Sem cobrar resposta. Não comece com \"passando\" e não diga \"só para lembrar\". Termine com uma pergunta simples.",
   },
   {
     dia: 4, periodo: "manha", canal: "email",
     objetivo:
-      "Segundo e-mail. Traga UM ponto concreto do diagnóstico que ainda não foi explorado e explique em 2 ou 3 frases o efeito disso para quem procura {nicho_plural} em {cidade} no Google. Feche com o convite para o diagnóstico gratuito. Assunto diferente do primeiro, curto. Entre 60 e 120 palavras. Não assine.",
+      "Segundo e-mail. Traga UM ponto concreto do diagnóstico, dito com todas as letras (nada de \"um detalhe\" ou \"um ponto\" sem dizer qual), e explique em 2 ou 3 frases o efeito disso para quem procura {nicho_plural} em {cidade} no Google. Feche com o convite para o diagnóstico gratuito. Assunto diferente do primeiro, curto. Entre 60 e 120 palavras. Não assine.",
   },
   {
     dia: 7, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Follow-up no WhatsApp com uma dica prática e gratuita que a pessoa consegue aplicar sozinha hoje no perfil do Google, baseada numa oportunidade do diagnóstico. Depois ofereça o diagnóstico completo. 1 ou 2 balões, até 350 caracteres.",
+      "Follow-up no WhatsApp com UMA dica prática, específica e gratuita que a pessoa consegue aplicar sozinha hoje no perfil do Google, ligada a uma oportunidade do diagnóstico (ex.: pedir avaliação ao fim do atendimento com o link direto, responder as avaliações recentes, subir fotos novas, completar a descrição). Nada genérico como \"mantenha o perfil atualizado\". Depois ofereça o diagnóstico completo. 1 ou 2 balões, até 350 caracteres.",
   },
   {
     dia: 10, periodo: "manha", canal: "whatsapp",
@@ -203,7 +203,10 @@ Sobre a posição: se "tipo" for "avaliacoes", é a posição em número de aval
 ${passos}
 
 ${REGRAS_DE_ESTILO}
-- Sempre chame a empresa de "${empresa}". Não cite o nome de concorrentes. Sem links e sem preço.
+- Chame a empresa de "${empresa}" na primeira menção de cada mensagem; depois use "vocês". Não cite o nome de concorrentes. Sem links e sem preço.
+- Nunca seja vago ou misterioso ("tem um ponto que...", "um detalhe que muita gente esquece"): diga o fato.
+- Não trate como ponto forte algo que está em "oportunidades" (ex.: se o número de avaliações está abaixo da média, não diga "já tem X avaliações" como elogio).
+- Os toques precisam ser diferentes entre si: não repita a mesma frase, o mesmo fato com as mesmas palavras ou a mesma abertura.
 - No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
 
 ## Formato da resposta
@@ -220,7 +223,7 @@ export function montarSequencia(resposta: string): Toque[] {
   if (toques.length < CADENCIA.length) throw new Error(`a IA devolveu ${toques.length} toques`);
   return CADENCIA.map((p, n) => {
     const t = toques[n] ?? {};
-    const texto = p.canal === "whatsapp" ? limparMensagem(t.texto ?? "") : humanizar(t.texto ?? "");
+    const texto = p.canal === "whatsapp" ? limparMensagem(t.texto ?? "", n === 0 ? 2 : 3) : humanizar(t.texto ?? "");
     if (!texto) throw new Error(`toque ${n + 1} veio vazio`);
     const toque: Toque = { n, ...p, texto };
     if (p.canal === "email") toque.assunto = humanizar(t.assunto ?? "").replace(/\n/g, " ") || "Perfil no Google";
@@ -234,8 +237,8 @@ export function problemasDaSequencia(seq: Toque[]): string[] {
 }
 
 /** Limpa uma mensagem de WhatsApp: tira cara de IA e garante no máximo 3 balões. */
-export function limparMensagem(texto: string): string {
+export function limparMensagem(texto: string, maxBaloes = 3): string {
   const t = humanizar(texto);
-  const baloes = t.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-  return (baloes.length > 3 ? [...baloes.slice(0, 2), baloes.slice(2).join(" ")] : baloes).join("\n\n");
+  const baloes = t.split(/\n\s*\n/).map((b) => b.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
+  return (baloes.length > maxBaloes ? [...baloes.slice(0, maxBaloes - 1), baloes.slice(maxBaloes - 1).join(" ")] : baloes).join("\n\n");
 }

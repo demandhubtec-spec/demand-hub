@@ -28,6 +28,9 @@ const PROIBIDAS = [
   "sinergia",
   "jornada",
   "excelente oportunidade",
+  "passando de forma rápida",
+  "só passando",
+  "responde sim ou não",
 ];
 
 /** Limpa o que denuncia texto de IA: travessões, markdown, excesso de exclamação. */
@@ -36,7 +39,19 @@ export function humanizar(texto: string): string {
   t = t.replace(/^["“”']+|["“”']+$/g, "");
   // Travessão e meia-risca viram vírgula (ou somem no começo da linha)
   t = t.replace(/^[ \t]*[—–][ \t]*/gm, "");
-  t = t.replace(/[ \t]*[—–][ \t]*/g, ", ");
+  // Travessão no meio da frase: se vem depois de uma ideia completa (4+ palavras) e é o único,
+  // introduz uma explicação e vira dois-pontos; senão é um aparte e vira vírgula.
+  t = t
+    .split(/(?<=[.!?\n])/)
+    .map((frase) => {
+      const n = (frase.match(/[—–]/g) || []).length;
+      return frase.replace(/[ \t]*[—–][ \t]*/g, (_m: string, pos: number) => {
+        const antes = frase.slice(0, pos).trim();
+        if (!antes) return " ";
+        return n === 1 && antes.split(/\s+/).length >= 4 ? ": " : ", ";
+      });
+    })
+    .join("");
   t = t.replace(/,\s*([,.!?:;])/g, "$1");
   // Markdown
   t = t.replace(/\*\*(.+?)\*\*/g, "$1").replace(/__(.+?)__/g, "$1");
