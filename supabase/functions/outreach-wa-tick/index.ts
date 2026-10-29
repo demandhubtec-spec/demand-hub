@@ -59,7 +59,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 /** Quebra o texto em balões nas linhas em branco (no máximo 3), como uma pessoa mandaria no WhatsApp. */
 function baloes(t: string): string[] {
   const parts = t.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
-  return parts.length > 3 ? [...parts.slice(0, 2), parts.slice(2).join("\n\n")] : parts;
+  return parts.length > 4 ? [...parts.slice(0, 3), parts.slice(3).join("\n\n")] : parts;
 }
 /** Envia balão por balão, com "digitando..." e uma pausa natural entre eles. */
 async function enviarBaloes(path: string, to: string, text: string): Promise<{ ok: boolean; status: number; body: string }> {

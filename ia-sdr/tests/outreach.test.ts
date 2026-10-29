@@ -150,23 +150,25 @@ test("cadência padrão: 6 toques em 10 dias, alternando WhatsApp e e-mail", () 
 test("montar sequência: junta a resposta da IA com a cadência e limpa o texto", () => {
   const resp = JSON.stringify({
     toques: [
-      { texto: "Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil — posso te mandar?" },
+      { texto: "Tudo bem? Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil — 3º em avaliações.\n\nPosso te mandar?" },
       { assunto: "Perfil da X no Google", texto: "Diego, mandei mensagem no WhatsApp mais cedo." },
-      { texto: "Conseguiu ver?" },
+      { texto: "Vi que falta o site no perfil.\n\nConseguiu ver?" },
       { assunto: "Uma coisa no perfil", texto: "Texto do segundo e-mail." },
-      { texto: "Uma dica: responda as avaliações." },
-      { texto: "Não vou insistir mais. Posso te procurar mais para frente?" },
+      { texto: "Uma dica: responda as avaliações.\n\nQuer o diagnóstico completo?" },
+      { texto: "Não vou insistir mais.\n\nPosso te procurar mais para frente?" },
     ],
   });
   const seq = montarSequencia("```json\n" + resp + "\n```");
   assert.equal(seq.length, 6);
-  assert.equal(seq[0].texto, "Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil, posso te mandar?");
+  assert.equal(seq[0].texto, "Tudo bem? Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil, 3º em avaliações.\n\nPosso te mandar?");
   assert.equal(seq[1].canal, "email");
   assert.equal(seq[1].assunto, "Perfil da X no Google");
   assert.equal(seq[5].dia, 10);
   assert.deepEqual(problemasDaSequencia(seq), []);
   const comOi = seq.map((t, i) => (i === 0 ? { ...t, texto: "Oi, Diego, tudo bem? Aqui é a Ana." } : t));
-  assert.ok(problemasDaSequencia(comOi).some((p) => p.includes("não cumprimente")));
+  assert.ok(problemasDaSequencia(comOi).some((p) => p.includes("não repita oi")));
+  const semPergunta = seq.map((t, i) => (i === 2 ? { ...t, texto: "Vi que falta o site no perfil. Conseguiu ver?" } : t));
+  assert.ok(problemasDaSequencia(semPergunta).some((p) => p.includes("pergunta tem que ir sozinha")));
   assert.throws(() => montarSequencia('{"toques":[{"texto":"a"}]}'), /1 toques/);
 });
 
