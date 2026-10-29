@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { type OutreachConfig, useOutreachConfig, useOutreachLeads, useOutreachResumo, useUpdateConfig } from "@/hooks/useProspeccao";
+import { type OutreachConfig, conectarGmail, useGmailStatus, useOutreachConfig, useOutreachLeads, useOutreachResumo, useUpdateConfig } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
 import { DIAS } from "./shared";
 
@@ -28,6 +28,7 @@ export function ControlesTab() {
   const { data: cfg, isLoading, error } = useOutreachConfig();
   const { data: resumo } = useOutreachResumo();
   const { data: leads = [] } = useOutreachLeads();
+  const { data: gmail } = useGmailStatus();
   const update = useUpdateConfig();
   const { showToast } = useToast();
   const [confirmarReal, setConfirmarReal] = React.useState(false);
@@ -117,8 +118,31 @@ export function ControlesTab() {
           <Switch checked={cfg.exigir_aprovacao !== false} onCheckedChange={(v) => salvar({ exigir_aprovacao: v }, v ? "Só mensagens aprovadas" : "Usando textos padrão para todos")} />
         </Linha>
 
+        <Linha
+          title="Gmail"
+          sub={
+            gmail?.conectado
+              ? `Conectado: ${gmail.email ?? "conta conectada"}. Os e-mails saem por ele e as respostas são lidas a cada 10 minutos.`
+              : "Não conectado. Conecte o demandhubtec@gmail.com para os e-mails da cadência saírem."
+          }
+        >
+          <Button
+            size="sm"
+            variant={gmail?.conectado ? "ghost" : "primary"}
+            onClick={() => conectarGmail().catch((e) => showToast(`Erro: ${(e as Error).message}`))}
+          >
+            {gmail?.conectado ? "Reconectar" : "Conectar Gmail"}
+          </Button>
+        </Linha>
+
         <Linha title="E-mails" sub={cfg.email_enabled ? "Os toques de e-mail da cadência saem pelo Gmail dentro da janela" : "Desligado: os toques de e-mail são pulados e só o WhatsApp segue"}>
-          <Switch checked={cfg.email_enabled} onCheckedChange={(v) => salvar({ email_enabled: v }, v ? "E-mails ativados" : "E-mails desligados")} />
+          <Switch
+            checked={cfg.email_enabled}
+            onCheckedChange={(v) => {
+              if (v && !gmail?.conectado) return showToast("Conecte o Gmail primeiro");
+              salvar({ email_enabled: v }, v ? "E-mails ativados" : "E-mails desligados");
+            }}
+          />
         </Linha>
 
         <div className="pt-3.5">
