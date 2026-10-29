@@ -17,6 +17,15 @@ function spWeekday(): number {
   const d = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short" }).format(new Date());
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(d);
 }
+/** Feriados nacionais: nada sai nesses dias (o que vencer passa para o próximo dia de envio). */
+const FERIADOS = new Set([
+  "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25",
+  "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27",
+  "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25",
+]);
+function spYmd(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+}
 function spTodayStartISO(): string {
   const p = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   return new Date(`${p}T00:00:00-03:00`).toISOString();
@@ -278,6 +287,10 @@ Deno.serve(async (req) => {
   const h = spHour(), wd = spWeekday();
   if (!cfg.send_days.includes(wd) || h < cfg.send_start_hour || h > cfg.send_end_hour)
     return Response.json({ ...out, skip: "fora_da_janela" });
+  if (FERIADOS.has(spYmd())) return Response.json({ ...out, skip: "feriado" });
+  // Sábado: só de manhã e só follow-up (abordagem nova fica para dia útil)
+  const sabado = wd === 6;
+  if (sabado && h >= 12) return Response.json({ ...out, skip: "sabado_so_de_manha" });
   if (cfg.next_wa_at && new Date(cfg.next_wa_at) > new Date())
     return Response.json({ ...out, skip: "aguardando_intervalo", next: cfg.next_wa_at });
 
@@ -304,6 +317,7 @@ Deno.serve(async (req) => {
   }
 
   // 2) Abordagem nova (1º toque), até o teto diário de abordagens
+  if (sabado) return Response.json({ ...out, skip: "sabado_so_followup" });
   if (tetoNovos) return Response.json({ ...out, skip: "teto_diario", count });
 
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal

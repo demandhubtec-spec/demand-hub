@@ -43,8 +43,17 @@ export function spNow(d = new Date()) {
   return { dow, hour: Number(get("hour")) % 24, ymd: `${get("year")}-${get("month")}-${get("day")}` };
 }
 
+/** Feriados nacionais: nada sai nesses dias (o que vencer passa para o próximo dia de envio). */
+export const FERIADOS = new Set([
+  "2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25",
+  "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27",
+  "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25",
+]);
+
+/** E-mail só em dia útil (sábado fica só para o WhatsApp de manhã) e fora dos feriados. */
 export function dentroDaJanela(cfg: Pick<Config, "send_days" | "send_start_hour" | "send_end_hour">, d = new Date()) {
-  const { dow, hour } = spNow(d);
+  const { dow, hour, ymd } = spNow(d);
+  if (dow === 6 || FERIADOS.has(ymd)) return false;
   return (cfg.send_days ?? []).includes(dow) && hour >= cfg.send_start_hour && hour <= cfg.send_end_hour;
 }
 

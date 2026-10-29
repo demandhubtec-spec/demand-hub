@@ -341,3 +341,10 @@ test("e-mails seguintes não dizem que o WhatsApp foi hoje cedo", () => {
   assert.equal(ajustarTempo("Sou a Ana. Te chamei no WhatsApp hoje cedo.", 3), "Sou a Ana. Te chamei no WhatsApp esses dias.");
   assert.equal(ajustarTempo("Te chamei no WhatsApp hoje cedo.", 1), "Te chamei no WhatsApp hoje cedo.");
 });
+
+test("e-mail não sai no feriado nem no sábado", () => {
+  const cfg = { send_days: [1, 2, 3, 4, 5, 6], send_start_hour: 9, send_end_hour: 18 };
+  assert.equal(dentroDaJanela(cfg, new Date("2026-11-02T13:00:00Z")), false); // Finados
+  assert.equal(dentroDaJanela(cfg, new Date("2026-10-31T13:00:00Z")), false); // sábado
+  assert.equal(dentroDaJanela(cfg, new Date("2026-11-03T13:00:00Z")), true); // terça
+});
