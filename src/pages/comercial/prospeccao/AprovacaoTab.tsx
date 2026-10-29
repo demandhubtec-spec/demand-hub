@@ -288,6 +288,27 @@ export function AprovacaoTab() {
     .filter((l) => prio === "todas" || pontuacao(l).nivel === prio)
     .sort((a, b) => (ordem === "maior" ? 1 : -1) * (pontuacao(b).nota - pontuacao(a).nota));
 
+  const emCadencia = leads.filter((l) => l.cadencia === "ativa" && l.wa_status === "enviado").length;
+  const [reescrevendo, setReescrevendo] = React.useState<string | null>(null);
+  async function reescreverFollowups() {
+    const desde = new Date().toISOString();
+    let total = 0;
+    try {
+      for (let rodada = 0; rodada < 15; rodada++) {
+        setReescrevendo(`Reescrevendo... ${total} prontas`);
+        const r = await gerar.mutateAsync({ modo: "followups", desde });
+        total += r.gerados;
+        if (r.erros.length) showToast(`Alguns falharam: ${r.erros[0]}`);
+        if (r.restantes === 0 || r.gerados === 0) break;
+      }
+      showToast(`Follow-ups reescritos em ${total} empresas (o que já foi enviado não mudou)`);
+    } catch (e) {
+      showToast(`Erro: ${(e as Error).message}`);
+    } finally {
+      setReescrevendo(null);
+    }
+  }
+
   async function gerarTodas() {
     let total = 0;
     try {
@@ -316,9 +337,21 @@ export function AprovacaoTab() {
             {semMsg > 0 ? <b className="text-ink">{semMsg} leads da fila ainda sem sequência.</b> : "Todos os leads da fila já têm sequência."}
           </div>
         </div>
-        <Button onClick={gerarTodas} disabled={gerar.isPending || semMsg === 0}>
-          <Sparkles /> {progresso ?? `Gerar sequências (${semMsg})`}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          {emCadencia > 0 && (
+            <Button
+              variant="outline"
+              onClick={reescreverFollowups}
+              disabled={gerar.isPending}
+              title="Reescreve no formato atual só as mensagens que ainda não saíram, de quem já está em cadência"
+            >
+              <RefreshCw /> {reescrevendo ?? `Reescrever follow-ups (${emCadencia})`}
+            </Button>
+          )}
+          <Button onClick={gerarTodas} disabled={gerar.isPending || semMsg === 0}>
+            <Sparkles /> {progresso ?? `Gerar sequências (${semMsg})`}
+          </Button>
+        </div>
       </Card>
 
       <div className="mb-3 flex gap-2">
