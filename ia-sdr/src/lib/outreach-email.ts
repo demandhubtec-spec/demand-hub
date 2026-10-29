@@ -61,20 +61,55 @@ const enc = (s: string) => `=?UTF-8?B?${Buffer.from(s, "utf8").toString("base64"
 
 export function buildMime(to: string, subject: string, body: string, from?: string | null) {
   const subj = enc(subject);
+  const b = `dh_${Date.now().toString(36)}`;
+  const parte = (tipo: string, conteudo: string) =>
+    [`--${b}`, `Content-Type: ${tipo}; charset=UTF-8`, "Content-Transfer-Encoding: base64", "", Buffer.from(conteudo, "utf8").toString("base64")].join("\r\n");
   return [
     ...(from ? [`From: ${enc(REMETENTE_NOME)} <${from}>`, `List-Unsubscribe: <mailto:${from}?subject=sair>`] : []),
     `To: ${to}`,
     `Subject: ${subj}`,
     "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=UTF-8",
-    "Content-Transfer-Encoding: base64",
+    `Content-Type: multipart/alternative; boundary="${b}"`,
     "",
-    Buffer.from(body, "utf8").toString("base64"),
+    parte("text/plain", body),
+    parte("text/html", emailHtml(body)),
+    `--${b}--`,
+    "",
   ].join("\r\n");
 }
 
 export const REMETENTE_NOME = "Ana da DemandIA";
 export const ASSINATURA = "Ana\nDemandIA";
+/** Foto da assinatura (PNG hospedado no portal; troque o arquivo para mudar a foto). */
+export const FOTO_ASSINATURA = "https://portal.demandhub.com.br/brand/email-avatar.png";
+export const CARGO_ASSINATURA = "Consultora de crescimento";
+export const SITE_ASSINATURA = "demandhub.com.br";
+
+const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/** Assinatura em HTML: foto, nome, cargo e site, no padrão de um e-mail profissional. */
+export function assinaturaHtml() {
+  return `<table cellpadding="0" cellspacing="0" border="0" style="margin-top:18px;border-top:1px solid #E6E3F0;padding-top:14px;font-family:Arial,Helvetica,sans-serif">
+<tr><td style="padding-right:12px;vertical-align:middle"><img src="${FOTO_ASSINATURA}" width="56" height="56" alt="Ana" style="display:block;width:56px;height:56px;border-radius:50%"></td>
+<td style="vertical-align:middle;font-size:13px;line-height:18px;color:#3A3550">
+<div style="font-size:15px;font-weight:bold;color:#1B1530">Ana</div>
+<div>${CARGO_ASSINATURA} &middot; <span style="color:#5A28E0;font-weight:bold">DemandIA</span></div>
+<div><a href="https://${SITE_ASSINATURA}" style="color:#5A28E0;text-decoration:none">${SITE_ASSINATURA}</a></div>
+</td></tr></table>`;
+}
+
+/** Versão HTML do e-mail: parágrafos simples, a assinatura com foto e o aviso de saída discreto. */
+export function emailHtml(texto: string) {
+  const blocos = texto.replace(/\r/g, "").split(/\n{2,}/).map((b) => b.trim()).filter(Boolean);
+  const html = blocos
+    .map((b) => {
+      if (/^Ana\s*\n\s*DemandIA$/i.test(b)) return assinaturaHtml();
+      if (b === RODAPE_OPTOUT) return `<p style="margin:16px 0 0;font-size:11px;color:#9A96A8">${esc(b)}</p>`;
+      return `<p style="margin:0 0 12px">${esc(b).replace(/\n/g, "<br>")}</p>`;
+    })
+    .join("\n");
+  return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;color:#1B1530;max-width:560px">\n${html}\n</div>`;
+}
 
 export async function gmailSend(to: string, subject: string, body: string, from?: string | null) {
   const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {

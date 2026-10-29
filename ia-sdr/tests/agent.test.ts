@@ -77,7 +77,7 @@ test("histórico vira mensagens alternadas para o modelo", () => {
   ]);
   assert.deepEqual(chat.map((m) => m.role), ["user", "assistant", "user", "assistant"]);
   assert.equal(chat[2].content, "oi\nquero mais leads");
-  assert.match(chat[3].content as string, /Kelvin respondeu manualmente/);
+  assert.match(chat[3].content as string, /Equipe respondeu manualmente/);
 });
 
 test("webhook da Evolution: texto, áudio, grupo e mensagem própria", () => {

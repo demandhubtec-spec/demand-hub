@@ -8,6 +8,8 @@
  *   → { gerados, restantes, erros }
  *
  * A sequência fica como "rascunho" até o Kelvin aprovar. O robô só envia as aprovadas.
+ * Junto, escreve o Direct do Instagram (envio manual) e, para quem não tem site próprio,
+ * monta a prévia de site grátis que a Ana pode oferecer.
  */
 import { db } from "@/src/lib/db.ts";
 import { callLLM } from "@/src/lib/llm.ts";
@@ -21,6 +23,7 @@ import {
   type LeadPerfil,
   type Toque,
 } from "@/src/lib/diagnostico-perfil.ts";
+import { gerarDirect, gerarSite, semSiteProprio, type SitePreview } from "@/src/lib/extras.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -37,7 +40,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa";
+  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview";
 const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
@@ -103,10 +106,17 @@ export async function POST(req: Request) {
           .eq("nicho", lead.nicho ?? "")
           .eq("cidade", lead.cidade ?? "");
         const diag = diagnosticar(lead, (conc ?? []) as Concorrente[]);
-        const seq = await escreverSequencia(lead, diag);
+        const l = lead as LeadPerfil & { endereco?: string | null; site_preview?: SitePreview | null };
+        const [seq, dm, site] = await Promise.all([
+          escreverSequencia(lead, diag),
+          lead.instagram ? gerarDirect(lead, diag).catch(() => null) : Promise.resolve(null),
+          semSiteProprio(lead.site) && !l.site_preview ? gerarSite(l).catch(() => null) : Promise.resolve(null),
+        ]);
         await db()
           .from("outreach_leads")
           .update({
+            ...(dm ? { dm_instagram: dm, dm_instagram_enviado_em: null } : {}),
+            ...(site ? { site_preview: site, site_preview_em: site.gerado_em } : {}),
             diagnostico: diag,
             sequencia: seq,
             msg_rascunho: seq[0].texto,

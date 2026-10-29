@@ -43,7 +43,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "ver_horarios",
-    description: "Busca horários livres reais na agenda do Kelvin para a reunião de diagnóstico. Só funciona com lead qualificado.",
+    description: "Busca horários livres reais na agenda do especialista para a reunião de diagnóstico. Só funciona com lead qualificado.",
     input_schema: {
       type: "object",
       properties: {
@@ -84,7 +84,7 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "encaminhar_humano",
-    description: "Pausa a IA nesta conversa e avisa o Kelvin para assumir.",
+    description: "Pausa a IA nesta conversa e avisa a equipe para assumir.",
     input_schema: {
       type: "object",
       properties: { motivo: { type: "string" } },
@@ -250,7 +250,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       } catch (e) {
         await db().from("sdr_meetings").delete().eq("id", ins.data.id);
         console.error(e);
-        return "Não consegui criar o evento na agenda agora. Peça desculpas, diga que o Kelvin vai confirmar o horário em instantes e use encaminhar_humano.";
+        return "Não consegui criar o evento na agenda agora. Peça desculpas, diga que o nosso especialista vai confirmar o horário em instantes e use encaminhar_humano.";
       }
     }
 
@@ -280,7 +280,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
     case "encaminhar_humano": {
       await updateLead(leadId, { ai_paused: true, status: "humano", next_followup_at: null });
       await notifyOwner(`🙋 Lead pediu atendimento humano\n${lead.nome ?? ""} (+${lead.phone})\nMotivo: ${input.motivo}\nwa.me/${lead.phone}`);
-      return "IA pausada nesta conversa. Avise o lead que o Kelvin vai responder pessoalmente em breve.";
+      return "IA pausada nesta conversa. Avise o lead que alguém da nossa equipe vai responder pessoalmente em breve (sem dizer nomes).";
     }
 
     case "encerrar_contato": {

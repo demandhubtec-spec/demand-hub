@@ -154,9 +154,11 @@ export function FunilTab() {
   const [aberto, setAberto] = React.useState<string | null>(null);
   const [arrastando, setArrastando] = React.useState<OutreachLead | null>(null);
   const [sobre, setSobre] = React.useState<Etapa | null>(null);
+  const [prio, setPrio] = React.useState<"todas" | "Alta" | "Média" | "Baixa">("todas");
 
   const porEtapa = new Map<Etapa, OutreachLead[]>();
   for (const l of leads) {
+    if (prio !== "todas" && pontuacao(l).nivel !== prio) continue;
     const e = etapaDoLead(l);
     porEtapa.set(e, [...(porEtapa.get(e) ?? []), l]);
   }
@@ -223,6 +225,16 @@ export function FunilTab() {
         <div className="text-[12px] text-muted">
           Clique num card para abrir a ficha (análise, mensagens e histórico). Arraste para mudar de etapa. O robô também move sozinho quando envia ou quando a pessoa responde.
         </div>
+        <select
+          className="shrink-0 rounded-full border border-border bg-transparent px-3 py-1 text-[12px] font-semibold text-muted"
+          value={prio}
+          onChange={(e) => setPrio(e.target.value as typeof prio)}
+        >
+          <option value="todas">Todas as prioridades</option>
+          <option value="Alta">Só prioridade alta</option>
+          <option value="Média">Só prioridade média</option>
+          <option value="Baixa">Só prioridade baixa</option>
+        </select>
         <button className="shrink-0 text-[12px] font-semibold text-primary-bright" onClick={() => setMostrarFora((v) => !v)}>
           {mostrarFora ? "Esconder sem WhatsApp" : `Mostrar sem WhatsApp (${porEtapa.get("fora")?.length ?? 0})`}
         </button>

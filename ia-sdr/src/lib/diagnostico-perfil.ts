@@ -141,7 +141,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 0, periodo: "tarde", canal: "email",
     objetivo:
-      "E-mail no mesmo dia, para quem prefere e-mail. Diga logo no começo que mandou uma mensagem no WhatsApp mais cedo. Corpo com 3 parágrafos curtos: quem é a Ana e a DemandIA em uma frase; o que viu no perfil (1 ponto forte e até 2 oportunidades do diagnóstico, explicando em palavras simples por que isso pesa na escolha do cliente); o convite para o diagnóstico gratuito de 30 minutos com o Kelvin, sem compromisso, pedindo para responder o e-mail ou chamar no WhatsApp. Assunto curto, sem cara de propaganda, citando a empresa (ex.: \"Perfil da {empresa} no Google\"). Entre 70 e 140 palavras. Não assine: a assinatura entra sozinha.",
+      "E-mail no mesmo dia, para quem prefere e-mail. Diga logo no começo que mandou uma mensagem no WhatsApp mais cedo. Corpo com 3 parágrafos curtos: quem é a Ana e a DemandIA em uma frase; o que viu no perfil (1 ponto forte e até 2 oportunidades do diagnóstico, explicando em palavras simples por que isso pesa na escolha do cliente); o convite para o diagnóstico gratuito de 30 minutos com um dos nossos especialistas, sem compromisso, pedindo para responder o e-mail ou chamar no WhatsApp. Assunto curto, sem cara de propaganda, citando a empresa (ex.: \"Perfil da {empresa} no Google\"). Entre 70 e 140 palavras. Não assine: a assinatura entra sozinha.",
   },
   {
     dia: 2, periodo: "manha", canal: "whatsapp",
@@ -183,13 +183,14 @@ export function promptSequencia(lead: LeadPerfil & { tentativa?: number | null }
   const empresa = nomeCurto(lead.empresa);
   const troca = (t: string) =>
     t.replace(/\{nome\}/g, nome || "").replace(/\{empresa\}/g, empresa).replace(/\{nicho_plural\}/g, nichoPlural(lead.nicho)).replace(/\{cidade\}/g, lead.cidade ?? "sua cidade");
+  const semSite = !lead.site || /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook\.com|instagram\.com|linktr\.ee|wa\.me|negocio\.site|business\.site)/i.test(lead.site);
   const passos = CADENCIA.map(
     (p, i) => `${i + 1}. Dia ${p.dia}, ${p.periodo === "manha" ? "manhã" : "tarde"}, ${p.canal === "email" ? "E-MAIL" : "WHATSAPP"}. Ângulo: ${ANGULOS[i]} Forma: ${troca(p.objetivo)}`,
   ).join("\n");
   return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}, e vai escrever a sequência de prospecção ativa para uma empresa que encontramos no Google Maps. São ${CADENCIA.length} toques; cada toque só sai se a pessoa ainda não respondeu, então cada um precisa fazer sentido sozinho e não repetir o anterior.
 
 ## Quem somos
-${C.empresa.nome}: ajudamos empresas da região de Campinas e Indaiatuba com marketing, vendas, automação e IA. O ${C.empresa.responsavel} é o especialista que faz os diagnósticos. Um dos nossos focos é fazer empresas locais aparecerem melhor no Google e transformarem isso em clientes.
+${C.empresa.nome}: ajudamos empresas da região de Campinas e Indaiatuba com marketing, vendas, automação e IA. Quem faz os diagnósticos é ${C.empresa.especialista}. Nunca cite o nome de ninguém da equipe. Um dos nossos focos é fazer empresas locais aparecerem melhor no Google e transformarem isso em clientes.
 
 ## Empresa
 Nome: ${empresa}${empresa !== lead.empresa ? ` (nome completo da ficha: ${lead.empresa})` : ""}
@@ -211,6 +212,8 @@ ${REGRAS_DE_ESTILO}
 - Não trate como ponto forte algo que está em "oportunidades" (ex.: se o número de avaliações está abaixo da média, não diga "já tem X avaliações" como elogio).
 - Os toques precisam ser diferentes entre si: não repita a mesma frase, o mesmo fato com as mesmas palavras ou a mesma abertura.
 - No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
+- O balão 1 do toque 1 sempre apresenta: "aqui é a Ana, da DemandIA".${semSite ? `
+- A empresa NÃO tem site próprio. No toque 5, depois da dica, ofereça montar de graça uma prévia de como ficaria o site de vocês, sem compromisso (é a isca de reciprocidade). Não prometa prazo nem mande link.` : ""}
 
 ## Formato da resposta
 Responda SOMENTE com um JSON assim, com os ${CADENCIA.length} toques na ordem:
@@ -245,7 +248,9 @@ export function montarSequencia(resposta: string): Toque[] {
 
 /** Problemas de estilo na sequência inteira (para pedir uma nova versão). */
 export function problemasDaSequencia(seq: Toque[]): string[] {
-  return seq.flatMap((t) => problemasDeEstilo(`${t.assunto ?? ""}\n${t.texto}`).map((p) => `toque ${t.n + 1}: ${p}`));
+  const out = seq.flatMap((t) => problemasDeEstilo(`${t.assunto ?? ""}\n${t.texto}`).map((p) => `toque ${t.n + 1}: ${p}`));
+  if (seq[0] && !/\bAna\b/.test(seq[0].texto)) out.push('toque 1: falta se apresentar ("aqui é a Ana, da DemandIA")');
+  return out;
 }
 
 /** Limpa uma mensagem de WhatsApp: tira cara de IA e garante no máximo 3 balões. */

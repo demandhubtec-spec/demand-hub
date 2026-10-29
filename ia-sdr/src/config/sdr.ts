@@ -9,7 +9,9 @@ export type Window = [start: string, end: string]; // "HH:MM"
 export const SDR_CONFIG = {
   empresa: {
     nome: "DemandIA",
-    responsavel: "Kelvin",
+    responsavel: "Kelvin", // uso interno: nunca aparece para o lead
+    /** Como a Ana se refere a quem faz o diagnóstico (nunca pelo nome). */
+    especialista: "um dos nossos especialistas em presença digital",
     pilares: ["Marketing", "Vendas", "Tecnologia"],
   },
 

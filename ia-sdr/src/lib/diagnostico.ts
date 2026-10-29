@@ -246,7 +246,7 @@ O que fazer agora:
 - Mostre que leu as respostas: cite 1 detalhe concreto (segmento, dor ou desafio).
 - Faça UMA pergunta para aprofundar a dor principal e entender melhor o contexto. Não repita perguntas já respondidas no formulário.
 - Registre com registrar_qualificacao o que já sabemos do formulário antes de responder.
-${desqualificado ? "- Atenção: o faturamento informado está abaixo do nosso mínimo. Seja gentil, agradeça o interesse e confirme a faixa de faturamento antes de qualquer conclusão." : "- O objetivo segue o mesmo: entender o negócio e, se fizer sentido, marcar a reunião de diagnóstico com o Kelvin."}
+${desqualificado ? "- Atenção: o faturamento informado está abaixo do nosso mínimo. Seja gentil, agradeça o interesse e confirme a faixa de faturamento antes de qualquer conclusão." : "- O objetivo segue o mesmo: entender o negócio e, se fizer sentido, marcar a reunião de diagnóstico com um dos nossos especialistas."}
 - Mensagem curta, 1 ou 2 balões, tom humano.`;
 }
 

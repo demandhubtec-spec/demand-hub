@@ -14,7 +14,7 @@ Gatilhos mentais, um por mensagem, sempre verdadeiros:
 - Reciprocidade: entregue algo antes de pedir (um achado concreto, uma dica que ela pode aplicar hoje, o diagnóstico grátis).
 - Especificidade: números e fatos exatos do diagnóstico valem mais que adjetivos.
 - Prova social: o que os concorrentes da mesma cidade fazem melhor (sem citar nomes).
-- Autoridade: o Kelvin faz esses diagnósticos para empresas da região; fale disso com naturalidade, sem se gabar.
+- Autoridade: nosso especialista em presença digital faz esses diagnósticos para empresas da região; fale disso com naturalidade, sem se gabar.
 - Curiosidade honesta: deixe claro que existe mais coisa no diagnóstico completo, mas sempre entregando algo concreto na mensagem.
 - Aversão à perda: mostre o que a empresa deixa de ganhar, sem drama e sem ameaça.
 - Pequeno compromisso: termine com uma pergunta fácil de responder (um "pode" já basta), nunca com pedido grande.
@@ -27,7 +27,7 @@ Desejo e atração:
 /** Ângulo de cada toque da cadência, para as mensagens não repetirem o mesmo argumento. */
 export const ANGULOS = [
   "Situação + reciprocidade + especificidade: um fato concreto e a oferta do diagnóstico grátis.",
-  "Problema + prova social + autoridade: o que os concorrentes da cidade fazem melhor e por que isso pesa; o Kelvin como especialista.",
+  "Problema + prova social + autoridade: o que os concorrentes da cidade fazem melhor e por que isso pesa; nosso especialista em presença digital como autoridade.",
   "Pergunta de situação (SPIN), curta e leve, para puxar conversa sem vender. Ex.: como os clientes chegam hoje, se o Google traz contatos, se alguém cuida do perfil. Não repita o fato do toque 1.",
   "Implicação + aversão à perda: o custo de deixar como está, com um dado concreto do diagnóstico, e uma mini prévia do que o diagnóstico completo mostra.",
   "Reciprocidade pura: uma dica prática que ela aplica hoje sozinha, sem condição. O convite vem só no fim, leve.",
@@ -55,6 +55,9 @@ ${ANGULOS.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 6. Termina com uma pergunta fácil de responder.
 7. Respeita os limites: toque 1 com exatamente 2 balões e até 420 caracteres; toque 3 até 200 caracteres; toque 5 até 350; toque 6 até 220; e-mails entre 60 e 140 palavras, sem assinatura.
 8. A empresa é chamada pelo nome curto na primeira menção; depois "vocês".
+9. O toque 1 se apresenta no balão 1 ("aqui é a Ana, da DemandIA").
+10. Ninguém da equipe é citado pelo nome: quem faz o diagnóstico é "nosso especialista em presença digital".
+11. Se a sequência oferece uma prévia grátis de site, mantenha essa oferta.
 
 ## Sequência para revisar
 ${sequenciaJson}
