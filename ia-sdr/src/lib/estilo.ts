@@ -8,7 +8,8 @@ export const REGRAS_DE_ESTILO = `## Como escrever (obrigatório)
 - Escreva como uma pessoa real escreveria: frases curtas, palavras simples, tom próximo e respeitoso.
 - NUNCA use travessão (— ou –). Use vírgula, ponto ou dois-pontos.
 - Nada de markdown: sem negrito, sem listas, sem tópicos, sem títulos.
-- Sem emojis. No máximo um ponto de exclamação na mensagem inteira.
+- No WhatsApp, pode usar no máximo 1 emoji leve (😊 🙂 👍) quando soar natural, como uma pessoa usaria. Em e-mail, nenhum. No máximo um ponto de exclamação na mensagem inteira.
+- Acentuação e pontuação corretas, frases curtas, com pausas naturais. Nada de texto que pareça robô ou atendimento automático.
 - Não use frases prontas de e-mail corporativo, como "Espero que esteja bem", "Espero que este e-mail te encontre bem", "Venho por meio desta", "Fico à disposição", "Não hesite em", "Qualquer dúvida, estou à disposição".
 - Não use palavras de marketing genérico: alavancar, potencializar, impulsionar, otimizar, solução, soluções, jornada, transformar, estratégico, incrível, excelente oportunidade, sinergia, robusto.
 - Não comece com elogio exagerado nem com "Olá!". Não repita a mesma abertura em todas as mensagens.
@@ -71,6 +72,6 @@ export function problemasDeEstilo(texto: string): string[] {
   const out = PROIBIDAS.filter((p) => low.includes(p)).map((p) => `usa "${p}"`);
   if (/[—–]/.test(texto)) out.push("tem travessão");
   if ((texto.match(/!/g) || []).length > 1) out.push("mais de um ponto de exclamação");
-  if (/\p{Extended_Pictographic}/u.test(texto)) out.push("tem emoji");
+  if ((texto.match(/\p{Extended_Pictographic}/gu) || []).length > 1) out.push("mais de um emoji");
   return out;
 }

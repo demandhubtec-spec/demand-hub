@@ -136,7 +136,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 0, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Primeira abordagem no WhatsApp. Exatamente 2 balões separados por uma linha em branco. Balão 1 (curto): \"Oi, {nome}, tudo bem?\" (ou \"Oi, tudo bem?\" sem nome) e \"aqui é a Ana, da DemandIA\", dizendo em poucas palavras que ajudamos empresas da região com marketing, vendas, automação e IA. Balão 2: um fato concreto do diagnóstico (de preferência a posição frente aos concorrentes), reconhecendo um ponto forte se houver, UMA oportunidade, e a oferta de um diagnóstico gratuito e mais completo do perfil no Google, terminando com uma pergunta simples e natural (ex.: \"Posso te mandar?\", \"Faz sentido?\"), nunca \"responde sim ou não\". Não use quebras de linha dentro de um balão. Máximo de 420 caracteres no total.",
+      "Primeira abordagem no WhatsApp. IMPORTANTE: a saudação (\"Oi, {nome}, boa tarde! 🙂\") já vai sozinha antes, então NÃO cumprimente, NÃO diga \"tudo bem?\". Exatamente 2 balões separados por uma linha em branco. Balão 1 (uma ou duas frases): apresentação e motivo do contato, ex.: \"Aqui é a Ana, da DemandIA 🙂 A gente ajuda empresas de {cidade} a atrair mais clientes pelo Google e pelo WhatsApp, e te chamei porque fiz uma análise rápida da presença digital de vocês.\" Balão 2: o contexto da análise, citando com números o que vimos no Google Meu Negócio (posição frente aos concorrentes, avaliações), no site e no Instagram: 1 ponto forte e 1 ou 2 oportunidades concretas, e a oferta de mandar a análise completa, sem custo, terminando com uma pergunta fácil (ex.: \"Posso te mandar por aqui?\"). Não use quebras de linha dentro de um balão. Máximo de 480 caracteres no total.",
   },
   {
     dia: 0, periodo: "tarde", canal: "email",
@@ -212,7 +212,7 @@ ${REGRAS_DE_ESTILO}
 - Não trate como ponto forte algo que está em "oportunidades" (ex.: se o número de avaliações está abaixo da média, não diga "já tem X avaliações" como elogio).
 - Os toques precisam ser diferentes entre si: não repita a mesma frase, o mesmo fato com as mesmas palavras ou a mesma abertura.
 - No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
-- O balão 1 do toque 1 sempre apresenta: "aqui é a Ana, da DemandIA".
+- O toque 1 NÃO cumprimenta (a saudação vai sozinha antes) e o balão 1 sempre começa com a apresentação: "Aqui é a Ana, da DemandIA".
 - E-mails: assunto que dá vontade de abrir (curioso e específico, nunca genérico como "Perfil da empresa no Google"), corpo enxuto e SEMPRE uma chamada para ação clara no fim (responder o e-mail ou chamar no WhatsApp ${C.whatsapp.exibicao}).${semSite ? `
 - A empresa NÃO tem site próprio. No toque 5, depois da dica, ofereça montar de graça uma prévia de como ficaria o site de vocês, sem compromisso (é a isca de reciprocidade). Não prometa prazo nem mande link.` : ""}
 
@@ -251,6 +251,8 @@ export function montarSequencia(resposta: string): Toque[] {
 export function problemasDaSequencia(seq: Toque[]): string[] {
   const out = seq.flatMap((t) => problemasDeEstilo(`${t.assunto ?? ""}\n${t.texto}`).map((p) => `toque ${t.n + 1}: ${p}`));
   if (seq[0] && !/\bAna\b/.test(seq[0].texto)) out.push('toque 1: falta se apresentar ("aqui é a Ana, da DemandIA")');
+  if (seq[0] && /^\s*(oi|olá|ola|bom dia|boa tarde)\b/i.test(seq[0].texto)) out.push("toque 1: não cumprimente, a saudação já vai sozinha antes; comece com \"Aqui é a Ana, da DemandIA\"");
+  for (const t of seq) if (t.canal === "email" && /\p{Extended_Pictographic}/u.test(`${t.assunto ?? ""} ${t.texto}`)) out.push(`toque ${t.n + 1}: e-mail sem emoji`);
   return out;
 }
 

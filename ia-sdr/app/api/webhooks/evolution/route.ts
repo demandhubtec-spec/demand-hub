@@ -76,11 +76,13 @@ export async function POST(req: Request) {
 
   // Prospecção ativa: resposta automática da empresa (boas-vindas, robô, protocolo, menu) não é resposta
   // de verdade. Fica no histórico, mas a cadência segue e a Ana não conversa com o robô.
+  let segDoDisparo: number | null = null;
   if (msg.text || interpretado) {
     const prospeccao = await prospeccaoDoTelefone(msg.phone).catch(() => null);
     if (prospeccao) {
       const ultimo = prospeccao.ultimo_toque_em ?? prospeccao.wa_sent_at;
       const seg = ultimo ? (Date.now() - new Date(ultimo).getTime()) / 1000 : null;
+      segDoDisparo = seg;
       if (pareceRespostaAutomatica(msg.text ?? interpretado ?? "", seg)) {
         const salvo = await addMessage({
           lead_id: lead.id,
@@ -112,6 +114,9 @@ export async function POST(req: Request) {
   });
 
   if (lead.ai_paused || lead.status === "opt_out") return Response.json({ ok: true, ai: "pausada" });
+  // Respondeu enquanto a abordagem ainda está saindo (saudação + apresentação): a apresentação já
+  // termina com uma pergunta, então a Ana espera a próxima mensagem em vez de atropelar.
+  if (segDoDisparo !== null && segDoDisparo >= 0 && segDoDisparo < 45) return Response.json({ ok: true, ai: "aguardando_abordagem" });
 
   waitUntil(handleInbound(lead.id, saved.id));
   return Response.json({ ok: true });
