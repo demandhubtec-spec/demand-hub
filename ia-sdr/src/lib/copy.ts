@@ -51,9 +51,9 @@ ${ANGULOS.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 2. Nenhum toque repete o mesmo fato com as mesmas palavras, nem a mesma abertura.
 3. Nada vago ("um ponto", "um detalhe"): sempre o fato.
 4. Nenhum dado inventado; números iguais aos do diagnóstico.
-5. Soa como uma pessoa real escrevendo no WhatsApp ou num e-mail curto. Sem travessão, sem markdown, sem emoji, sem frases prontas, no máximo um ponto de exclamação.
+5. Soa como uma pessoa real escrevendo no WhatsApp ou num e-mail curto: natural, acentuação correta, pausas certas. Sem travessão, sem markdown, sem frases prontas, no máximo um ponto de exclamação. No WhatsApp, no máximo 1 emoji leve; no e-mail, nenhum.
 6. Termina com uma pergunta fácil de responder.
-7. Respeita os limites: toque 1 com exatamente 2 balões e até 420 caracteres; toque 3 até 200 caracteres; toque 5 até 350; toque 6 até 220; e-mails entre 60 e 140 palavras, sem assinatura.
+7. O toque 1 NÃO cumprimenta (o "Oi, boa tarde!" vai sozinho antes): começa direto com a apresentação da Ana. Respeita os limites: toque 1 com exatamente 2 balões e até 480 caracteres; toque 3 até 200 caracteres; toque 5 até 350; toque 6 até 220; e-mails entre 60 e 140 palavras, sem assinatura.
 8. A empresa é chamada pelo nome curto na primeira menção; depois "vocês".
 9. O toque 1 se apresenta no balão 1 ("aqui é a Ana, da DemandIA").
 10. Ninguém da equipe é citado pelo nome: quem faz o diagnóstico é "nosso especialista em presença digital".

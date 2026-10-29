@@ -53,9 +53,14 @@ export async function runFollowUps(now = new Date()) {
         return acc;
       }, []);
 
-      const res = await callLLM({ system: followUpPrompt(fresh, attempt, MAX, now), messages: merged, maxTokens: 1500 });
-      const text = humanizar(res.message.content ?? "");
-      if (!text) continue;
+      const pedir = async (extra = "") =>
+        humanizar((await callLLM({ system: followUpPrompt(fresh, attempt, MAX, now) + extra, messages: merged, maxTokens: 1500 })).message.content ?? "");
+      // Nunca manda de novo uma frase que a Ana já mandou nessa conversa
+      const jaMandou = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
+      const repetida = (t: string) => t.split(/\n+/).some((l) => jaMandou.has(l.trim().toLowerCase()));
+      let text = await pedir();
+      if (text && repetida(text)) text = await pedir("\n\nATENÇÃO: sua última versão repetia uma mensagem que você já mandou. Escreva algo diferente, com outro ângulo.");
+      if (!text || repetida(text)) continue;
 
       const id = await sendText(destination(fresh), text);
       await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind: "followup", content: text, evolution_message_id: id });

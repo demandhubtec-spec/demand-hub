@@ -77,6 +77,21 @@ async function enviarBaloes(path: string, to: string, text: string): Promise<{ o
   }
   return last;
 }
+/** Saudação curta que vai sozinha antes da abordagem: "Oi, Helton, boa tarde! 😊". */
+function saudacaoCurta(decisor?: string | null) {
+  const h = spHour();
+  const periodo = h < 12 ? "bom dia" : h < 18 ? "boa tarde" : "boa noite";
+  const pn = primeiroNome(decisor);
+  return `${pick(["Oi", "Olá"])}, ${pn ? `${pn}, ` : ""}${periodo}! ${pick(["😊", "🙂", "👋"])}`;
+}
+/** Tira o "Oi, fulano, tudo bem?" do começo da abordagem, porque a saudação já foi antes. */
+function semSaudacao(texto: string) {
+  const partes = texto.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+  if (partes.length > 1 && /^(oi|olá|ola|bom dia|boa tarde)\b[^.!?\n]{0,60}[?!.]\s*$/i.test(partes[0])) partes.shift();
+  partes[0] = partes[0].replace(/^(oi|olá|ola)\b[^.!?\n]{0,40}(tudo bem|td bem|como vai)[^.!?\n]{0,10}[?!.]\s*/i, "");
+  partes[0] = partes[0].charAt(0).toUpperCase() + partes[0].slice(1);
+  return partes.filter(Boolean).join("\n\n");
+}
 // Chamada pelo pg_cron a cada minuto. Envia no máximo 1 WhatsApp por chamada,
 // respeitando janela, teto diário e intervalo aleatório. Também detecta respostas
 // lendo (somente leitura) as tabelas do SDR, que recebe o webhook do Evolution.
@@ -270,7 +285,14 @@ Deno.serve(async (req) => {
 
   // Marca o horário antes de enviar: o webhook do SDR reconhece o disparo e não pausa a IA
   if (!cfg.test_number) await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
-  const r = await enviarBaloes(cfg.evolution_send_path, to, text);
+  // 1º contato em duas etapas: a saudação vai sozinha, a gente espera o robô de boas-vindas da empresa
+  // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
+  const oi = saudacaoCurta(lead.decisor);
+  const r0 = await enviarBaloes(cfg.evolution_send_path, to, oi);
+  if (r0.ok) await sleep(rand(12000, 16000));
+  text = semSaudacao(text);
+  const r = r0.ok ? await enviarBaloes(cfg.evolution_send_path, to, text) : r0;
+  text = `${oi}\n\n${text}`;
   const body = r.body;
   if (r.ok) {
     if (!cfg.test_number) {

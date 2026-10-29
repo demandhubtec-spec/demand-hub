@@ -128,11 +128,12 @@ test("humanizar: tira travessão, markdown e exclamação em excesso", () => {
 
 test("problemas de estilo: pega frases prontas, travessão e emoji", () => {
   assert.deepEqual(problemasDeEstilo("Oi, tudo bem? Posso te mandar?"), []);
-  const p = problemasDeEstilo("Espero que esteja bem — vamos alavancar! Show! 🚀");
+  const p = problemasDeEstilo("Espero que esteja bem — vamos alavancar! Show! 🚀🚀");
+  assert.deepEqual(problemasDeEstilo("Aqui é a Ana, da DemandIA 🙂"), []);
   assert.ok(p.some((x) => x.includes("espero que esteja bem")));
   assert.ok(p.some((x) => x.includes("alavancar")));
   assert.ok(p.includes("tem travessão"));
-  assert.ok(p.includes("tem emoji"));
+  assert.ok(p.includes("mais de um emoji"));
   assert.ok(p.includes("mais de um ponto de exclamação"));
 });
 
@@ -149,7 +150,7 @@ test("cadência padrão: 6 toques em 10 dias, alternando WhatsApp e e-mail", () 
 test("montar sequência: junta a resposta da IA com a cadência e limpa o texto", () => {
   const resp = JSON.stringify({
     toques: [
-      { texto: "Oi, Diego, tudo bem? Aqui é a Ana, da DemandIA.\n\nVi o perfil — posso te mandar?" },
+      { texto: "Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil — posso te mandar?" },
       { assunto: "Perfil da X no Google", texto: "Diego, mandei mensagem no WhatsApp mais cedo." },
       { texto: "Conseguiu ver?" },
       { assunto: "Uma coisa no perfil", texto: "Texto do segundo e-mail." },
@@ -159,11 +160,13 @@ test("montar sequência: junta a resposta da IA com a cadência e limpa o texto"
   });
   const seq = montarSequencia("```json\n" + resp + "\n```");
   assert.equal(seq.length, 6);
-  assert.equal(seq[0].texto, "Oi, Diego, tudo bem? Aqui é a Ana, da DemandIA.\n\nVi o perfil, posso te mandar?");
+  assert.equal(seq[0].texto, "Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil, posso te mandar?");
   assert.equal(seq[1].canal, "email");
   assert.equal(seq[1].assunto, "Perfil da X no Google");
   assert.equal(seq[5].dia, 10);
   assert.deepEqual(problemasDaSequencia(seq), []);
+  const comOi = seq.map((t, i) => (i === 0 ? { ...t, texto: "Oi, Diego, tudo bem? Aqui é a Ana." } : t));
+  assert.ok(problemasDaSequencia(comOi).some((p) => p.includes("não cumprimente")));
   assert.throws(() => montarSequencia('{"toques":[{"texto":"a"}]}'), /1 toques/);
 });
 
