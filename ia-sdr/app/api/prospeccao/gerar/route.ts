@@ -1,16 +1,25 @@
 /**
- * Prospecção ativa · gera a mensagem personalizada de cada lead (diagnóstico do perfil no Google + IA).
+ * Prospecção ativa · gera a sequência de cada lead (diagnóstico do perfil no Google + IA):
+ * os 6 toques da cadência (WhatsApp e e-mail), escritos pela Ana.
  * Chamado pela aba "Aprovação" do portal com o login do usuário (só perfil "dono").
  *
  *   POST { place_ids?: string[], refazer?: boolean }
  *   - sem place_ids: pega os próximos leads da fila que ainda não têm mensagem (lotes de 8)
  *   → { gerados, restantes, erros }
  *
- * A mensagem fica como "rascunho" até o Kelvin aprovar. O robô só envia as aprovadas.
+ * A sequência fica como "rascunho" até o Kelvin aprovar. O robô só envia as aprovadas.
  */
 import { db } from "@/src/lib/db.ts";
 import { callLLM } from "@/src/lib/llm.ts";
-import { diagnosticar, limparMensagem, promptMensagem, type Concorrente, type LeadPerfil } from "@/src/lib/diagnostico-perfil.ts";
+import {
+  diagnosticar,
+  montarSequencia,
+  problemasDaSequencia,
+  promptSequencia,
+  type Concorrente,
+  type LeadPerfil,
+  type Toque,
+} from "@/src/lib/diagnostico-perfil.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -27,8 +36,26 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca";
-const LOTE = 8;
+  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa";
+const LOTE = 6;
+
+/** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
+async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null }, diag: ReturnType<typeof diagnosticar>): Promise<Toque[]> {
+  const system = promptSequencia(lead, diag);
+  const pedir = async (extra = "") => {
+    const res = await callLLM({
+      system,
+      messages: [{ role: "user", content: `Escreva a sequência.${extra}` }],
+      maxTokens: 6000,
+      json: true,
+    });
+    return montarSequencia(res.message.content ?? "");
+  };
+  const seq = await pedir();
+  const problemas = problemasDaSequencia(seq);
+  if (!problemas.length) return seq;
+  return pedir(` Na versão anterior havia estes problemas, corrija: ${problemas.join("; ")}.`).catch(() => seq);
+}
 
 export async function OPTIONS(req: Request) {
   return new Response(null, { status: 204, headers: cors(req) });
@@ -55,7 +82,7 @@ export async function POST(req: Request) {
   let gerados = 0;
   const erros: string[] = [];
   await Promise.all(
-    ((leads ?? []) as LeadPerfil[]).map(async (lead) => {
+    ((leads ?? []) as (LeadPerfil & { tentativa?: number | null })[]).map(async (lead) => {
       try {
         await db().from("outreach_leads").update({ msg_status: "gerando" }).eq("place_id", lead.place_id);
         const { data: conc } = await db()
@@ -64,16 +91,17 @@ export async function POST(req: Request) {
           .eq("nicho", lead.nicho ?? "")
           .eq("cidade", lead.cidade ?? "");
         const diag = diagnosticar(lead, (conc ?? []) as Concorrente[]);
-        const res = await callLLM({
-          system: promptMensagem(lead, diag),
-          messages: [{ role: "user", content: "Escreva a mensagem." }],
-          maxTokens: 1500,
-        });
-        const msg = limparMensagem(res.message.content ?? "");
-        if (!msg) throw new Error("a IA não devolveu texto");
+        const seq = await escreverSequencia(lead, diag);
         await db()
           .from("outreach_leads")
-          .update({ diagnostico: diag, msg_rascunho: msg, msg_status: "rascunho", msg_gerada_em: new Date().toISOString(), msg_aprovada_em: null })
+          .update({
+            diagnostico: diag,
+            sequencia: seq,
+            msg_rascunho: seq[0].texto,
+            msg_status: "rascunho",
+            msg_gerada_em: new Date().toISOString(),
+            msg_aprovada_em: null,
+          })
           .eq("place_id", lead.place_id);
         gerados++;
       } catch (e) {

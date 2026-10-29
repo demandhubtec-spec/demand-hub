@@ -21,6 +21,10 @@ export interface Prospeccao {
   wa_message: string | null;
   wa_sent_at: string | null;
   diagnostico?: unknown;
+  /** Cadência: os toques escritos pela Ana e quantos já foram feitos. */
+  sequencia?: { n: number; canal: string; assunto?: string; texto: string }[] | null;
+  toque_atual?: number | null;
+  ultimo_toque_em?: string | null;
 }
 
 const ultimos8 = (phone: string) => (phone || "").replace(/\D/g, "").slice(-8);
@@ -31,7 +35,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("empresa,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico")
+    .select("empresa,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em")
     .like("whatsapp", `%${tail}`)
     .not("wa_sent_at", "is", null)
     .order("wa_sent_at", { ascending: false })
@@ -46,23 +50,35 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
  * respondendo à mão e pausaria a IA para esse contato.)
  */
 export function ehDisparoDaProspeccao(p: Prospeccao | null, texto: string, agora = new Date()): boolean {
-  if (!p?.wa_sent_at) return false;
-  // O disparo sai em balões: cada balão é um pedaço da mensagem registrada
-  if (p.wa_message && texto.trim() && p.wa_message.includes(texto.trim())) return true;
-  // Rede de segurança: disparo registrado há menos de 3 minutos
-  return agora.getTime() - new Date(p.wa_sent_at).getTime() < 3 * 60_000;
+  if (!p) return false;
+  const t = texto.trim();
+  // O disparo sai em balões: cada balão é um pedaço de uma mensagem da cadência
+  const textos = [p.wa_message, ...(p.sequencia ?? []).filter((x) => x.canal === "whatsapp").map((x) => x.texto)];
+  if (t && textos.some((x) => x && x.includes(t))) return true;
+  // Rede de segurança: toque registrado há menos de 3 minutos
+  const ultimo = [p.wa_sent_at, p.ultimo_toque_em].filter(Boolean).map((x) => new Date(x!).getTime());
+  return ultimo.some((ms) => agora.getTime() - ms < 3 * 60_000);
+}
+
+/** Mensagens da cadência que o contato já recebeu (WhatsApp e e-mail), em ordem. */
+export function toquesRecebidos(p: Prospeccao): string {
+  const feitos = (p.sequencia ?? []).slice(0, Math.max(p.toque_atual ?? 0, 1));
+  if (!feitos.length) return p.wa_message ? `- WhatsApp: "${p.wa_message}"` : "";
+  return feitos
+    .map((x) => (x.canal === "email" ? `- E-mail (assunto "${x.assunto ?? ""}"): "${x.texto}"` : `- WhatsApp: "${x.texto}"`))
+    .join("\n");
 }
 
 /** Bloco que entra no prompt da Ana quando o contato veio da prospecção ativa. */
 export function contextoProspeccao(p: Prospeccao | null): string {
   if (!p) return "";
-  const v = (x: unknown) => (x === null || x === undefined || x === "" ? "—" : String(x));
+  const v = (x: unknown) => (x === null || x === undefined || x === "" ? "não informado" : String(x));
   return `
 
 ## Contexto: este contato veio da PROSPECÇÃO ATIVA
 Não foi o lead que nos procurou: VOCÊ mandou a primeira mensagem para ele em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}, oferecendo um diagnóstico gratuito do perfil da empresa no Google.
-Mensagem que ele recebeu:
-"${v(p.wa_message)}"
+Mensagens que ele já recebeu de você (as que podem não ter sido lidas também contam; não repita o que já disse):
+${toquesRecebidos(p) || `"${v(p.wa_message)}"`}
 
 Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
 ${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}

@@ -78,6 +78,8 @@ export function ControlesTab() {
         send_days: [...(f.send_days ?? [])].sort(),
         send_start_hour: Number(f.send_start_hour),
         send_end_hour: Number(f.send_end_hour),
+        followup_daily_cap: Number(f.followup_daily_cap ?? 40),
+        retomar_dias: Number(f.retomar_dias ?? 60),
         optout_words: (f.optout_txt ?? "").split(/[,\n]/).map((w) => w.trim().toLowerCase()).filter(Boolean),
       },
       "Parâmetros de envio atualizados",
@@ -115,7 +117,7 @@ export function ControlesTab() {
           <Switch checked={cfg.exigir_aprovacao !== false} onCheckedChange={(v) => salvar({ exigir_aprovacao: v }, v ? "Só mensagens aprovadas" : "Usando textos padrão para todos")} />
         </Linha>
 
-        <Linha title="E-mails" sub={cfg.email_enabled ? "Disparando pelo Gmail dentro da janela" : "Desligado"}>
+        <Linha title="E-mails" sub={cfg.email_enabled ? "Os toques de e-mail da cadência saem pelo Gmail dentro da janela" : "Desligado: os toques de e-mail são pulados e só o WhatsApp segue"}>
           <Switch checked={cfg.email_enabled} onCheckedChange={(v) => salvar({ email_enabled: v }, v ? "E-mails ativados" : "E-mails desligados")} />
         </Linha>
 
@@ -154,10 +156,23 @@ export function ControlesTab() {
           <span className="text-[11px] font-semibold uppercase text-muted">Teto/dia</span>
           <span className="text-[11px] font-semibold uppercase text-muted">Mín. (s)</span>
           <span className="text-[11px] font-semibold uppercase text-muted">Máx. (s)</span>
-          <span className="font-semibold">WhatsApp</span>
+          <span className="font-semibold">WhatsApp (1ª mensagem)</span>
           {num("wa_daily_cap")}{num("wa_min_interval_sec")}{num("wa_max_interval_sec")}
-          <span className="font-semibold">E-mail</span>
+          <span className="font-semibold">E-mail (cadência)</span>
           {num("email_daily_cap")}{num("email_min_interval_sec")}{num("email_max_interval_sec")}
+        </div>
+
+        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 text-[12.5px]">
+          <span>
+            <b className="font-semibold">Follow-ups de WhatsApp por dia</b>
+            <span className="block text-[11.5px] text-muted">Separado do teto acima, que vale só para as primeiras mensagens.</span>
+          </span>
+          {num("followup_daily_cap")}
+          <span>
+            <b className="font-semibold">Retomar quem não respondeu depois de (dias)</b>
+            <span className="block text-[11.5px] text-muted">No fim da cadência o lead volta para a aprovação nesse prazo.</span>
+          </span>
+          {num("retomar_dias")}
         </div>
 
         <div className="mt-4">

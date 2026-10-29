@@ -11,6 +11,7 @@ import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
 import { isBusinessTime, nextFollowUpAt } from "./followup.ts";
 import { followUpPrompt } from "./prompt.ts";
+import { humanizar } from "./estilo.ts";
 import { formatBR, toLocal } from "./time.ts";
 
 const MAX = SDR_CONFIG.followUp.maxTentativas;
@@ -53,7 +54,7 @@ export async function runFollowUps(now = new Date()) {
       }, []);
 
       const res = await callLLM({ system: followUpPrompt(fresh, attempt, MAX, now), messages: merged, maxTokens: 1500 });
-      const text = (res.message.content ?? "").trim();
+      const text = humanizar(res.message.content ?? "");
       if (!text) continue;
 
       const id = await sendText(destination(fresh), text);

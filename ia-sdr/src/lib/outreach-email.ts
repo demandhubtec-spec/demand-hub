@@ -1,16 +1,16 @@
 /**
- * Prospecção ativa · canal de e-mail (seção 7 do handoff).
- * Mesma lógica do antigo email_next do outreach-api, agora enviando direto pela Gmail API.
+ * Prospecção ativa · canal de e-mail.
+ * Manda os toques de e-mail da cadência (D0 tarde e D4) pela Gmail API, assinados pela Ana.
  * Roda a cada minuto via pg_cron → /api/prospeccao/email-tick.
  */
 import { db } from "./db.ts";
 import { accessToken } from "./google.ts";
-import { render } from "./outreach-render.ts";
 
 export const RODAPE_OPTOUT = "Se não quiser mais receber, é só responder 'sair'.";
 
 interface Config {
   email_enabled: boolean;
+  exigir_aprovacao?: boolean;
   dry_run: boolean;
   test_number: string | null;
   email_daily_cap: number;
@@ -53,9 +53,12 @@ function b64url(s: string | Uint8Array) {
   return Buffer.from(s).toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-export function buildMime(to: string, subject: string, body: string) {
-  const subj = `=?UTF-8?B?${Buffer.from(subject, "utf8").toString("base64")}?=`;
+const enc = (s: string) => `=?UTF-8?B?${Buffer.from(s, "utf8").toString("base64")}?=`;
+
+export function buildMime(to: string, subject: string, body: string, from?: string | null) {
+  const subj = enc(subject);
   return [
+    ...(from ? [`From: ${enc(REMETENTE_NOME)} <${from}>`] : []),
     `To: ${to}`,
     `Subject: ${subj}`,
     "MIME-Version: 1.0",
@@ -66,11 +69,14 @@ export function buildMime(to: string, subject: string, body: string) {
   ].join("\r\n");
 }
 
-export async function gmailSend(to: string, subject: string, body: string) {
+export const REMETENTE_NOME = "Ana da DemandIA";
+export const ASSINATURA = "Ana\nDemandIA";
+
+export async function gmailSend(to: string, subject: string, body: string, from?: string | null) {
   const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",
     headers: { Authorization: `Bearer ${await accessToken("gmail")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: b64url(buildMime(to, subject, body)) }),
+    body: JSON.stringify({ raw: b64url(buildMime(to, subject, body, from)) }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Gmail ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
@@ -85,9 +91,17 @@ async function gmailRemetente(): Promise<string | null> {
 const log = (event: string, detail: Record<string, unknown>, place_id: string | null = null) =>
   db().from("outreach_log").insert({ channel: "email", event, detail, place_id });
 
-/** Coloca o rodapé de opt-out, a não ser que o template já tenha um. */
+/** Assinatura da Ana + rodapé de opt-out (a não ser que o texto já fale em "sair"). */
 export function comRodape(body: string) {
-  return /\bsair\b/i.test(body) ? body : `${body}\n\n--\n${RODAPE_OPTOUT}`;
+  const assinado = /\n\s*Ana\s*\n\s*DemandIA\s*$/i.test(body) ? body : `${body.trim()}\n\n${ASSINATURA}`;
+  return /\bsair\b/i.test(body) ? assinado : `${assinado}\n\n${RODAPE_OPTOUT}`;
+}
+
+interface ToqueEmail {
+  n: number;
+  canal: string;
+  assunto?: string;
+  texto: string;
 }
 
 export async function runEmailTick(now = new Date()) {
@@ -98,50 +112,50 @@ export async function runEmailTick(now = new Date()) {
   if (!dentroDaJanela(cfg, now)) return { skip: "fora da janela" };
   if (cfg.next_email_at && new Date(cfg.next_email_at) > now) return { skip: "aguardando intervalo" };
 
+  // Teto do dia: conta os e-mails que saíram hoje (reais e de teste)
   const { count: hoje } = await db()
-    .from("outreach_leads")
-    .select("place_id", { count: "exact", head: true })
-    .eq("email_status", "enviado")
-    .gte("email_sent_at", inicioDoDiaSP(now));
+    .from("outreach_log")
+    .select("id", { count: "exact", head: true })
+    .eq("channel", "email")
+    .in("event", ["sent", "sent_test"])
+    .gte("created_at", inicioDoDiaSP(now));
   if ((hoje ?? 0) >= cfg.email_daily_cap) return { skip: "teto diário atingido", hoje };
 
-  // Próximo lead: e-mail pendente, que não respondeu nem pediu para sair no WhatsApp.
-  const { data: fila } = await db()
-    .from("outreach_leads")
-    .select("place_id, empresa, decisor, cidade, nicho, email, prioridade, created_at, wa_status")
-    .eq("email_status", "pendente")
-    .not("email", "is", null)
-    .not("wa_status", "in", "(respondeu,optout)")
-    .order("created_at", { ascending: true })
-    .limit(200);
-  const ordem: Record<string, number> = { Alta: 0, "Média": 1, Media: 1, Baixa: 2 };
-  const lead = (fila ?? []).sort((a, b) => (ordem[a.prioridade ?? ""] ?? 1) - (ordem[b.prioridade ?? ""] ?? 1))[0];
-  if (!lead) return { skip: "fila de e-mail vazia" };
+  const agendar = async () => {
+    const min = cfg.email_min_interval_sec, max = Math.max(cfg.email_max_interval_sec, min);
+    const next = new Date(now.getTime() + (min + Math.random() * (max - min)) * 1000).toISOString();
+    await db().from("outreach_config").update({ next_email_at: next }).eq("id", 1);
+  };
+  const eu = await gmailRemetente();
 
-  const { data: tpls } = await db().from("outreach_templates").select("*").eq("channel", "email").eq("active", true);
-  if (!tpls?.length) return { skip: "nenhum template de e-mail ativo" };
-  const tpl = tpls[Math.floor(Math.random() * tpls.length)];
+  if (cfg.dry_run) return { skip: "modo teste: nada sai" };
 
-  const subject = render(tpl.subject || "{{empresa}}", lead, Math.random, now);
-  const body = comRodape(render(tpl.body, lead, Math.random, now));
-
-  // Agenda o próximo envio antes de enviar (evita dois envios se o cron sobrepor)
-  const min = cfg.email_min_interval_sec, max = Math.max(cfg.email_max_interval_sec, min);
-  const next = new Date(now.getTime() + (min + Math.random() * (max - min)) * 1000).toISOString();
-  await db().from("outreach_config").update({ next_email_at: next }).eq("id", 1);
-
-  if (cfg.dry_run) {
-    await log("dry_run", { to: lead.email, subject, text: body }, lead.place_id);
-    return { dry_run: true, to: lead.email, subject };
-  }
-
-  // Número de teste preenchido = modo ensaio: manda para o próprio Gmail do Kelvin e não mexe no lead.
+  // Número de teste preenchido: manda o 1º e-mail da sequência de um lead aprovado
+  // para o próprio Gmail, sem mexer no lead. Um por lead por dia.
   if (cfg.test_number) {
-    const eu = await gmailRemetente();
-    if (!eu) return { skip: "modo ensaio sem Gmail conectado" };
+    if (!eu) return { skip: "modo teste sem Gmail conectado" };
+    const { data: testados } = await db()
+      .from("outreach_log")
+      .select("place_id")
+      .eq("channel", "email")
+      .eq("event", "sent_test")
+      .gte("created_at", inicioDoDiaSP(now));
+    const ja = new Set((testados ?? []).map((x) => x.place_id));
+    const { data: aprovados } = await db()
+      .from("outreach_leads")
+      .select("place_id, empresa, email, sequencia")
+      .eq("msg_status", "aprovada")
+      .not("sequencia", "is", null)
+      .order("msg_aprovada_em", { ascending: true })
+      .limit(50);
+    const lead = (aprovados ?? []).find((l) => !ja.has(l.place_id));
+    if (!lead) return { skip: "nenhum lead aprovado para testar" };
+    const toque = ((lead.sequencia ?? []) as ToqueEmail[]).find((t) => t.canal === "email");
+    if (!toque) return { skip: "sequência sem e-mail" };
+    await agendar();
     try {
-      await gmailSend(eu, `[TESTE → ${lead.email}] ${subject}`, body);
-      await log("sent_test", { to: eu, subject, msg: `Teste de ${lead.empresa} enviado para ${eu}` }, lead.place_id);
+      await gmailSend(eu, `[TESTE para ${lead.email ?? "lead sem e-mail"}] ${toque.assunto ?? lead.empresa}`, comRodape(toque.texto), eu);
+      await log("sent_test", { to: eu, subject: toque.assunto, msg: `Teste do e-mail de ${lead.empresa} enviado para ${eu}` }, lead.place_id);
       return { test: true, to: eu };
     } catch (e) {
       await log("error", { msg: String(e).slice(0, 300) }, lead.place_id);
@@ -149,17 +163,44 @@ export async function runEmailTick(now = new Date()) {
     }
   }
 
+  // Toque de e-mail devido na cadência
+  const { data: fila } = await db()
+    .from("outreach_leads")
+    .select("place_id, empresa, email, email_status, wa_status, sequencia, toque_atual")
+    .eq("cadencia", "ativa")
+    .eq("proximo_canal", "email")
+    .lte("proximo_toque_em", now.toISOString())
+    .order("proximo_toque_em", { ascending: true })
+    .limit(1);
+  const lead = fila?.[0];
+  if (!lead) return { skip: "nenhum e-mail devido" };
+
+  const toque = ((lead.sequencia ?? []) as ToqueEmail[])[lead.toque_atual];
+  const pular = async (motivo: string) => {
+    await log("pulado", { msg: `${lead.empresa}: e-mail pulado (${motivo})`, toque: lead.toque_atual + 1 }, lead.place_id);
+    await db().rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "pulado" });
+    return { skip: "pulado", motivo };
+  };
+  if (!lead.email || !toque?.texto) return pular("sem e-mail ou sem texto");
+  if (["respondeu", "optout"].includes(lead.wa_status ?? "")) return pular("lead já respondeu");
+
+  await agendar();
+  const subject = toque.assunto || lead.empresa;
   try {
-    await gmailSend(lead.email!, subject, body);
-    await db()
-      .from("outreach_leads")
-      .update({ email_status: "enviado", email_sent_at: now.toISOString(), email_subject: subject })
-      .eq("place_id", lead.place_id);
-    await log("sent", { to: lead.email, subject, msg: `${lead.email} · ${subject}` }, lead.place_id);
+    await gmailSend(lead.email, subject, comRodape(toque.texto), eu);
+    const patch: Record<string, unknown> = { email_subject: subject };
+    if (lead.email_status !== "enviado") {
+      patch.email_status = "enviado";
+      patch.email_sent_at = now.toISOString();
+    }
+    await db().from("outreach_leads").update(patch).eq("place_id", lead.place_id);
+    await log("sent", { to: lead.email, subject, toque: lead.toque_atual + 1, msg: `${lead.email} · ${subject}` }, lead.place_id);
+    await db().rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
     return { sent: true, to: lead.email };
   } catch (e) {
     await db().from("outreach_leads").update({ email_status: "erro", email_error: String(e).slice(0, 300) }).eq("place_id", lead.place_id);
     await log("error", { to: lead.email, msg: String(e).slice(0, 300) }, lead.place_id);
+    await db().rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "pulado" });
     return { error: String(e) };
   }
 }

@@ -52,6 +52,28 @@ export interface OutreachLead {
   msg_status: "sem" | "gerando" | "rascunho" | "aprovada" | "rejeitada";
   msg_gerada_em: string | null;
   msg_aprovada_em: string | null;
+  // Cadência de follow-up
+  sequencia: Toque[] | null;
+  cadencia: "nao_iniciada" | "ativa" | "pausada" | "respondeu" | "concluida" | "parada";
+  toque_atual: number;
+  cadencia_inicio: string | null;
+  proximo_toque_em: string | null;
+  proximo_canal: "whatsapp" | "email" | null;
+  ultimo_toque_em: string | null;
+  respondeu_no_toque: number | null;
+  retomar_em: string | null;
+  tentativa: number;
+}
+
+/** Um toque da cadência escrito pela Ana. */
+export interface Toque {
+  n: number;
+  dia: number;
+  periodo: "manha" | "tarde";
+  canal: "whatsapp" | "email";
+  objetivo?: string;
+  assunto?: string;
+  texto: string;
 }
 
 export interface Diagnostico {
@@ -83,6 +105,8 @@ export interface OutreachConfig {
   next_email_at: string | null;
   optout_words: string[];
   exigir_aprovacao: boolean;
+  followup_daily_cap: number;
+  retomar_dias: number;
 }
 
 export interface OutreachTemplate {

@@ -2,6 +2,7 @@
  * O "cérebro" da IA SDR: monta o contexto, chama o modelo (OpenAI) com as ferramentas,
  * executa as ferramentas e envia a resposta pelo WhatsApp.
  */
+import { humanizar } from "./estilo.ts";
 import { isBlocked } from "./bloqueio.ts";
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { callLLM, parseArgs, type ChatMessage } from "./llm.ts";
@@ -69,7 +70,7 @@ async function reply(leadId: string) {
     messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls });
 
     if (!msg.tool_calls?.length) {
-      finalText = (msg.content ?? "").trim();
+      finalText = humanizar(msg.content ?? "");
       break;
     }
 
