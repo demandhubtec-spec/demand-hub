@@ -118,22 +118,39 @@ export function ControlesTab() {
           <Switch checked={cfg.exigir_aprovacao !== false} onCheckedChange={(v) => salvar({ exigir_aprovacao: v }, v ? "Só mensagens aprovadas" : "Usando textos padrão para todos")} />
         </Linha>
 
-        <Linha
-          title="Gmail"
-          sub={
-            gmail?.conectado
-              ? `Conectado: ${gmail.email ?? "conta conectada"}. Os e-mails saem por ele e as respostas são lidas a cada 10 minutos.`
-              : "Não conectado. Conecte o demandhubtec@gmail.com para os e-mails da cadência saírem."
-          }
-        >
-          <Button
-            size="sm"
-            variant={gmail?.conectado ? "ghost" : "primary"}
-            onClick={() => conectarGmail().catch((e) => showToast(`Erro: ${(e as Error).message}`))}
-          >
-            {gmail?.conectado ? "Reconectar" : "Conectar Gmail"}
-          </Button>
-        </Linha>
+        <div className="flex items-center justify-between gap-4 border-b border-border py-3.5">
+          <div>
+            <div className="flex items-center gap-2 text-[13.5px] font-semibold">
+              Gmail
+              {gmail?.conectado ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-positive-tint px-2 py-[2px] text-[11px] font-semibold text-positive">
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" /> Conectado
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 rounded-full bg-attention-tint px-2 py-[2px] text-[11px] font-semibold text-attention">
+                  <span className="h-1.5 w-1.5 rounded-full bg-current" /> Não conectado
+                </span>
+              )}
+            </div>
+            <div className="mt-0.5 text-[11.5px] text-muted">
+              {gmail?.conectado
+                ? `${gmail.email ?? "Conta conectada"}. Os e-mails saem por ela e as respostas são lidas a cada 10 minutos.`
+                : "Conecte o demandhubtec@gmail.com para os e-mails da cadência saírem."}
+            </div>
+          </div>
+          {gmail?.conectado ? (
+            <button
+              className="shrink-0 text-[12px] text-muted underline-offset-2 hover:text-ink hover:underline"
+              onClick={() => conectarGmail().catch((e) => showToast(`Erro: ${(e as Error).message}`))}
+            >
+              Trocar conta
+            </button>
+          ) : (
+            <Button size="sm" onClick={() => conectarGmail().catch((e) => showToast(`Erro: ${(e as Error).message}`))}>
+              Conectar Gmail
+            </Button>
+          )}
+        </div>
 
         <Linha title="E-mails" sub={cfg.email_enabled ? "Os toques de e-mail da cadência saem pelo Gmail dentro da janela" : "Desligado: os toques de e-mail são pulados e só o WhatsApp segue"}>
           <Switch
