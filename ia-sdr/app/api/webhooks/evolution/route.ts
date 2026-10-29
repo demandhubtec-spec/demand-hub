@@ -10,6 +10,7 @@ import { addMessage, logEvent, messageExists, updateLead, upsertLeadByPhone } fr
 import { env } from "@/src/lib/env.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
+import { interpretarMidia } from "@/src/lib/midia.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -69,21 +70,23 @@ export async function POST(req: Request) {
   }
 
   const lead = await upsertLeadByPhone(msg.phone, msg.jid, msg.pushName);
-  const content = msg.text ?? MEDIA_LABEL[msg.messageType] ?? `[${msg.messageType}]`;
+  // Áudio, imagem ou documento: a Ana entende o conteúdo (transcrição / leitura) em vez de pedir texto
+  const interpretado = !msg.text && msg.media ? await interpretarMidia(msg.media) : null;
+  const content = msg.text ?? interpretado ?? MEDIA_LABEL[msg.messageType] ?? `[${msg.messageType}]`;
 
   // Prospecção ativa: resposta automática da empresa (boas-vindas, robô, protocolo, menu) não é resposta
   // de verdade. Fica no histórico, mas a cadência segue e a Ana não conversa com o robô.
-  if (msg.text) {
+  if (msg.text || interpretado) {
     const prospeccao = await prospeccaoDoTelefone(msg.phone).catch(() => null);
     if (prospeccao) {
       const ultimo = prospeccao.ultimo_toque_em ?? prospeccao.wa_sent_at;
       const seg = ultimo ? (Date.now() - new Date(ultimo).getTime()) / 1000 : null;
-      if (pareceRespostaAutomatica(msg.text, seg)) {
+      if (pareceRespostaAutomatica(msg.text ?? interpretado ?? "", seg)) {
         const salvo = await addMessage({
           lead_id: lead.id,
           direction: "in",
           author: "lead",
-          content: `[resposta automática] ${msg.text}`,
+          content: `[resposta automática] ${content}`,
           evolution_message_id: msg.id,
         });
         if (salvo) await logEvent(lead.id, "resposta_automatica");
