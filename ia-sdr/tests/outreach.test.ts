@@ -64,7 +64,42 @@ test("opção C: a Ana recebe o contexto da abordagem ativa", () => {
   const c = contextoProspeccao(prosp);
   assert.match(c, /PROSPECÇÃO ATIVA/);
   assert.match(c, /Aqui é o Kelvin/);
+  assert.match(c, /encaminhar_humano/);
   assert.match(c, /Odontologia/);
   assert.match(c, /encerrar_contato/);
   assert.equal(contextoProspeccao(null), "");
+});
+
+import { diagnosticar, limparMensagem, nomeComPalavrasChave } from "../src/lib/diagnostico-perfil.ts";
+
+const base = {
+  place_id: "a", empresa: "Mais Odonto Prime | Dentista | Implante Dentário | Indaiatuba - SP", nicho: "Odontologia", cidade: "Indaiatuba",
+  decisor: null, avaliacoes: 300, nota: null, site: null, instagram: "x", fotos: null, tem_descricao: null, tem_horario: null,
+  responde_avaliacoes: null, termo_busca: null, posicao_busca: null, total_busca: null,
+};
+const concs = [
+  { place_id: "b", empresa: "B", avaliacoes: 900, nota: 4.9 },
+  { place_id: "c", empresa: "C", avaliacoes: 500, nota: 4.8 },
+  { place_id: "d", empresa: "D", avaliacoes: 100, nota: 4.7 },
+];
+
+test("diagnóstico: posição entre os concorrentes mapeados (sem dado da busca)", () => {
+  const d = diagnosticar(base, concs);
+  assert.deepEqual(d.posicao && { t: d.posicao.tipo, p: d.posicao.posicao, n: d.posicao.total }, { t: "avaliacoes", p: 3, n: 4 });
+  assert.ok(d.pontos_fortes.some((x) => x.includes("3º em avaliações entre as 4 clínicas odontológicas")));
+  assert.ok(d.oportunidades.some((x) => x.includes("não tem site")));
+  assert.ok(d.oportunidades.some((x) => x.includes("palavras-chave")));
+});
+
+test("diagnóstico: posição real da busca tem prioridade e nada é inventado", () => {
+  const d = diagnosticar({ ...base, site: "s", posicao_busca: 7, total_busca: 20, termo_busca: "dentista Indaiatuba" }, concs);
+  assert.equal(d.posicao?.tipo, "busca");
+  assert.ok(d.oportunidades[0].includes('7º no Google Maps para "dentista Indaiatuba"'));
+  assert.ok(!d.oportunidades.some((x) => x.includes("nota")));
+});
+
+test("nome com palavras-chave e limpeza da mensagem", () => {
+  assert.equal(nomeComPalavrasChave("BBZ Advocacia"), false);
+  assert.equal(nomeComPalavrasChave(base.empresa), true);
+  assert.equal(limparMensagem('"Oi, Ana! — tudo bem?\n\nSegundo **balão**"'), "Oi, Ana!, tudo bem?\n\nSegundo balão");
 });

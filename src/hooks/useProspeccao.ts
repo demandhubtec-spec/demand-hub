@@ -41,6 +41,27 @@ export interface OutreachLead {
   email_sent_at: string | null;
   created_at: string;
   updated_at: string | null;
+  // Diagnóstico do perfil no Google + mensagem personalizada (aba Aprovação)
+  nota: number | null;
+  fotos: number | null;
+  termo_busca: string | null;
+  posicao_busca: number | null;
+  total_busca: number | null;
+  diagnostico: Diagnostico | null;
+  msg_rascunho: string | null;
+  msg_status: "sem" | "gerando" | "rascunho" | "aprovada" | "rejeitada";
+  msg_gerada_em: string | null;
+  msg_aprovada_em: string | null;
+}
+
+export interface Diagnostico {
+  posicao:
+    | { tipo: "busca"; posicao: number; total: number | null; termo: string }
+    | { tipo: "avaliacoes"; posicao: number; total: number; nicho: string; cidade: string; lider: { empresa: string; avaliacoes: number } | null }
+    | null;
+  pontos_fortes: string[];
+  oportunidades: string[];
+  dados: { avaliacoes: number | null; nota: number | null; site: boolean; instagram: boolean; fotos: number | null };
 }
 
 export interface OutreachConfig {
@@ -61,6 +82,7 @@ export interface OutreachConfig {
   next_wa_at: string | null;
   next_email_at: string | null;
   optout_words: string[];
+  exigir_aprovacao: boolean;
 }
 
 export interface OutreachTemplate {
@@ -273,5 +295,29 @@ export function useSendTest() {
       if (error) throw error;
       return data as { ok: boolean; error?: string };
     },
+  });
+}
+
+/** Endereço da IA SDR (gera as mensagens com IA). */
+const SDR_URL = (import.meta.env.VITE_SDR_URL as string | undefined) ?? "https://demandia-sdr.vercel.app";
+
+/** Gera (ou refaz) a mensagem personalizada dos leads. Sem ids: pega os próximos sem mensagem. */
+export function useGerarMensagens() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (placeIds?: string[]) => {
+      const { data } = await supabase.auth.getSession();
+      const token = data.session?.access_token;
+      if (!token) throw new Error("faça login de novo no portal");
+      const r = await fetch(`${SDR_URL}/api/prospeccao/gerar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(placeIds?.length ? { place_ids: placeIds } : {}),
+      });
+      const j = (await r.json().catch(() => ({}))) as { gerados?: number; restantes?: number; erros?: string[]; error?: string };
+      if (!r.ok) throw new Error(j.error ?? `erro ${r.status}`);
+      return { gerados: j.gerados ?? 0, restantes: j.restantes ?? 0, erros: j.erros ?? [] };
+    },
+    onSuccess: invalidate,
   });
 }

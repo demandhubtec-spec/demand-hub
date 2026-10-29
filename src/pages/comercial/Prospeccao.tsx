@@ -17,6 +17,7 @@ import { LeadsTab } from "./prospeccao/LeadsTab";
 import { TemplatesTab } from "./prospeccao/TemplatesTab";
 import { ControlesTab } from "./prospeccao/ControlesTab";
 import { AtividadeTab } from "./prospeccao/AtividadeTab";
+import { AprovacaoTab } from "./prospeccao/AprovacaoTab";
 
 function StatePill({ ok, children, strong = false }: { ok: boolean | null; children: React.ReactNode; strong?: boolean }) {
   return (
@@ -73,6 +74,9 @@ export default function Prospeccao() {
     }).length,
   }));
   const topo = Math.max(1, funil[0]?.n ?? 1);
+  const fila = leads.filter((l) => l.wa_status === "pendente");
+  const aprovadas = fila.filter((l) => l.msg_status === "aprovada").length;
+  const paraRevisar = fila.filter((l) => l.msg_status === "rascunho").length;
 
   return (
     <section>
@@ -96,6 +100,11 @@ export default function Prospeccao() {
         <StatePill ok={null}>{cfg ? janelaTexto(cfg.send_days, cfg.send_start_hour, cfg.send_end_hour) : "Janela…"}</StatePill>
         <StatePill ok={null}>Próximo envio: {proximo}</StatePill>
         {cfg?.test_number && <StatePill ok={false}>Número de teste ativo</StatePill>}
+        {cfg?.exigir_aprovacao !== false && (
+          <StatePill ok={aprovadas > 0}>
+            {aprovadas} aprovadas · {paraRevisar} para revisar
+          </StatePill>
+        )}
       </div>
 
       <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-4">
@@ -148,13 +157,17 @@ export default function Prospeccao() {
         </div>
       </Card>
 
-      <Tabs defaultValue="leads">
+      <Tabs defaultValue="aprovacao">
         <TabsList>
+          <TabsTrigger value="aprovacao">Aprovação{paraRevisar ? ` (${paraRevisar})` : ""}</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="templates">Mensagens</TabsTrigger>
           <TabsTrigger value="controles">Controles</TabsTrigger>
           <TabsTrigger value="atividade">Atividade</TabsTrigger>
         </TabsList>
+        <TabsContent value="aprovacao">
+          <AprovacaoTab />
+        </TabsContent>
         <TabsContent value="leads">
           <LeadsTab />
         </TabsContent>

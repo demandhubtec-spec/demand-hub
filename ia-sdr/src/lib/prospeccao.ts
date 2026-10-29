@@ -20,6 +20,7 @@ export interface Prospeccao {
   observacoes: string | null;
   wa_message: string | null;
   wa_sent_at: string | null;
+  diagnostico?: unknown;
 }
 
 const ultimos8 = (phone: string) => (phone || "").replace(/\D/g, "").slice(-8);
@@ -30,7 +31,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("empresa,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at")
+    .select("empresa,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico")
     .like("whatsapp", `%${tail}`)
     .not("wa_sent_at", "is", null)
     .order("wa_sent_at", { ascending: false })
@@ -59,16 +60,17 @@ export function contextoProspeccao(p: Prospeccao | null): string {
   return `
 
 ## Contexto: este contato veio da PROSPECÇÃO ATIVA
-Não foi o lead que nos procurou: nós mandamos a primeira mensagem, em nome do Kelvin, em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}.
+Não foi o lead que nos procurou: VOCÊ mandou a primeira mensagem para ele em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}, oferecendo um diagnóstico gratuito do perfil da empresa no Google.
 Mensagem que ele recebeu:
 "${v(p.wa_message)}"
 
 Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
-
+${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}
 Como conduzir neste caso:
-- Continue a partir dessa mensagem, como quem está dando sequência a um contato que nós iniciamos. Não pergunte "como posso ajudar?" nem aja como se ele tivesse chegado sozinho.
-- A mensagem foi assinada pelo Kelvin. Na primeira resposta, apresente-se como a assistente da equipe do Kelvin e retome a proposta da mensagem.
-- Se ele aceitou ouvir ("pode mandar", "sim", "qual a ideia?"), explique em 2 ou 3 frases a ideia ligada ao negócio dele (use o nicho e a cidade) e faça UMA pergunta para entender o momento da empresa. Depois siga o fluxo normal de descoberta e qualificação.
+- Continue a partir da sua mensagem, como quem dá sequência a um contato que você mesma iniciou. Não se apresente de novo e não pergunte "como posso ajudar?".
+- Se ele topar o diagnóstico ("pode", "sim", "como funciona?"), explique em 2 ou 3 frases: o Kelvin analisa o perfil no Google e a presença digital da empresa frente aos concorrentes e mostra, numa conversa rápida, o que dá para melhorar para atrair mais clientes. Em seguida faça UMA pergunta para entender o momento da empresa e siga o fluxo normal de descoberta e qualificação até marcar a reunião de diagnóstico.
+- Responda dúvidas e objeções com honestidade e de forma curta (ex.: "quanto custa?" → o diagnóstico é gratuito e o investimento só é discutido se fizer sentido depois; "já tenho agência" → o diagnóstico serve inclusive para comparar e não tem compromisso).
 - Use os dados acima para personalizar, mas confirme com naturalidade em vez de afirmar o que não tem certeza.
+- Se surgir uma pergunta ou objeção que você não sabe responder com segurança, ou se a conversa travar, chame \`encaminhar_humano\`: o Kelvin é avisado e assume.
 - Se ele disser que não tem interesse ou pedir para sair, agradeça em uma frase, não insista e chame \`encerrar_contato\` com motivo "opt_out".`;
 }

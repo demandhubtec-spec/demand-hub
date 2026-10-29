@@ -165,15 +165,23 @@ Deno.serve(async (req) => {
     return Response.json({ ...out, skip: "instancia_desconectada" });
   }
 
-  const { data: leads } = await sb.from("outreach_leads").select("*")
-    .eq("wa_status", "pendente").not("whatsapp", "is", null)
+  // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
+  let fila = sb.from("outreach_leads").select("*")
+    .eq("wa_status", "pendente").not("whatsapp", "is", null);
+  if (cfg.exigir_aprovacao !== false) fila = fila.eq("msg_status", "aprovada");
+  const { data: leads } = await fila
     .order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(1);
   const lead = leads?.[0];
-  if (!lead) return Response.json({ ...out, skip: "fila_vazia" });
+  if (!lead) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });
 
-  const { data: tpls } = await sb.from("outreach_templates").select("body").eq("channel", "whatsapp").eq("active", true);
-  const tpl = tpls![Math.floor(Math.random() * tpls!.length)].body;
-  const text = render(tpl, lead);
+  let text: string;
+  if (lead.msg_status === "aprovada" && lead.msg_rascunho) {
+    text = String(lead.msg_rascunho).trim();
+  } else {
+    const { data: tpls } = await sb.from("outreach_templates").select("body").eq("channel", "whatsapp").eq("active", true);
+    if (!tpls?.length) return Response.json({ ...out, skip: "sem_template" });
+    text = render(tpls[Math.floor(Math.random() * tpls.length)].body, lead);
+  }
   let to = (cfg.test_number || "").replace(/\D/g, "") || lead.whatsapp;
   if (!cfg.dry_run && !cfg.test_number) {
     const chk = await checkNumber(lead.whatsapp);
