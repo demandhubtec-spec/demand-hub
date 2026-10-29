@@ -7,6 +7,7 @@
  */
 import { isBlocked } from "./bloqueio.ts";
 import { env } from "./env.ts";
+import type { MidiaRecebida } from "./midia.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -67,6 +68,8 @@ export interface InboundMessage {
   instanceName?: string;
   /** Outros números reais que o WhatsApp manda junto (quando o chat usa LID). */
   altPhones: string[];
+  /** Mídia recebida (o Evolution GO manda o arquivo em base64 junto com a mensagem). */
+  media?: MidiaRecebida;
 }
 
 function extractText(m: any): string | null {
@@ -84,8 +87,35 @@ function extractText(m: any): string | null {
 }
 
 function messageKind(m: any): string {
-  const keys = Object.keys(m || {}).filter((k) => k !== "messageContextInfo");
+  const keys = Object.keys(m || {}).filter((k) => !["messageContextInfo", "base64", "mediaUrl", "mediaKey"].includes(k));
   return keys[0] || "unknown";
+}
+
+const TIPOS: Record<string, MidiaRecebida["tipo"]> = {
+  audioMessage: "audio",
+  pttMessage: "audio",
+  imageMessage: "imagem",
+  documentMessage: "documento",
+  documentWithCaptionMessage: "documento",
+  videoMessage: "video",
+  stickerMessage: "figurinha",
+};
+
+/** Arquivo que veio junto da mensagem (áudio, imagem, documento), quando o webhook manda o base64. */
+export function extractMedia(m: any): MidiaRecebida | undefined {
+  const kind = messageKind(m);
+  const tipo = TIPOS[kind];
+  const b64 = m?.base64 ?? m?.[kind]?.base64;
+  if (!tipo || typeof b64 !== "string" || !b64) return undefined;
+  const inner = kind === "documentWithCaptionMessage" ? m[kind]?.message?.documentMessage : m[kind];
+  const padrao = { audio: "audio/ogg", imagem: "image/jpeg", documento: "application/pdf", video: "video/mp4", figurinha: "image/webp" }[tipo];
+  return {
+    tipo,
+    base64: b64,
+    mimetype: String(inner?.mimetype || inner?.Mimetype || padrao),
+    nome: inner?.fileName || inner?.FileName || inner?.title || undefined,
+    legenda: inner?.caption || null,
+  };
 }
 
 /** Grupos, comunidades, listas de transmissão, status e canais: a IA nunca responde. */
@@ -128,6 +158,7 @@ export function parseWebhook(body: any): InboundMessage | null {
       messageType: messageKind(m),
       instanceName: body.instanceName,
       altPhones: altPhonesFrom(info),
+      media: extractMedia(m),
     };
   }
 

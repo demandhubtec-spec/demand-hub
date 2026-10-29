@@ -297,3 +297,20 @@ test("resposta automática da empresa não conta como resposta", () => {
   assert.equal(pareceRespostaAutomatica("Bom dia! Como posso ajudar?", 3600), false); // saudação genérica muito depois do envio: é pessoa
   assert.equal(pareceRespostaAutomatica("Quanto custa?", 20), false);
 });
+
+import { extractMedia, parseWebhook } from "../src/lib/evolution.ts";
+
+test("mídia: pega áudio, imagem e documento que o Evolution GO manda em base64", () => {
+  const a = extractMedia({ base64: "T2dnUw==", audioMessage: { mimetype: "audio/ogg; codecs=opus", PTT: true } });
+  assert.equal(a?.tipo, "audio");
+  assert.match(a!.mimetype, /audio\/ogg/);
+  const i = extractMedia({ base64: "abc", imageMessage: { mimetype: "image/jpeg", caption: "meu cartão" } });
+  assert.equal(i?.tipo, "imagem");
+  assert.equal(i?.legenda, "meu cartão");
+  const d = extractMedia({ base64: "abc", documentMessage: { mimetype: "application/pdf", fileName: "proposta.pdf" } });
+  assert.equal(d?.nome, "proposta.pdf");
+  assert.equal(extractMedia({ conversation: "oi" }), undefined);
+  const msg = parseWebhook({ event: "Message", data: { Info: { ID: "1", Chat: "5519988961006@s.whatsapp.net" }, Message: { base64: "abc", imageMessage: { mimetype: "image/png" } } } });
+  assert.equal(msg?.messageType, "imageMessage");
+  assert.equal(msg?.media?.tipo, "imagem");
+});
