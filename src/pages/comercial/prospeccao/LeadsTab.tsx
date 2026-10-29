@@ -174,7 +174,7 @@ function Campo({ label, value, href }: { label: string; value: React.ReactNode; 
           <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary-bright hover:underline">
             {value} <ExternalLink className="h-3 w-3" />
           </a>
-        ) : (value || "—")}
+        ) : (value || "-")}
       </div>
     </div>
   );
@@ -384,7 +384,7 @@ export function LeadsTab() {
                     {[l.nicho, l.cidade, l.decisor].filter(Boolean).join(" · ")}
                   </div>
                 </Td>
-                <Td>{l.prioridade ?? "—"}</Td>
+                <Td>{l.prioridade ?? "-"}</Td>
                 <Td>
                   <Pill status={l.wa_status} />
                   <div className="mt-0.5 font-mono text-[11px] text-muted">{fmtTelefone(l.whatsapp)}</div>

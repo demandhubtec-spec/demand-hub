@@ -30,6 +30,8 @@ export async function callLLM(opts: {
   messages: ChatMessage[];
   tools?: Tool[];
   maxTokens?: number;
+  /** Força a resposta em JSON (response_format json_object). */
+  json?: boolean;
 }): Promise<LLMResponse> {
   const body: Record<string, unknown> = {
     model: env.openaiModel,
@@ -37,6 +39,7 @@ export async function callLLM(opts: {
     max_completion_tokens: opts.maxTokens ?? 2000,
   };
   if (env.openaiReasoningEffort) body.reasoning_effort = env.openaiReasoningEffort;
+  if (opts.json) body.response_format = { type: "json_object" };
   if (opts.tools?.length) {
     body.tools = opts.tools.map((t) => ({
       type: "function",

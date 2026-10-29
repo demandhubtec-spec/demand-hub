@@ -58,7 +58,7 @@ export function Pill({ status, label }: { status: string; label?: string }) {
 }
 
 export function fmtData(iso: string | null | undefined, comHora = true) {
-  if (!iso) return "—";
+  if (!iso) return "-";
   const d = new Date(iso);
   return d.toLocaleString("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -71,7 +71,7 @@ export function fmtData(iso: string | null | undefined, comHora = true) {
 export function fmtTelefone(n: string | null | undefined) {
   const d = (n ?? "").replace(/\D/g, "");
   if (d.length === 13) return `(${d.slice(2, 4)}) ${d.slice(4, 9)}-${d.slice(9)}`;
-  return n ?? "—";
+  return n ?? "-";
 }
 
 export function linkExterno(url: string | null | undefined) {
@@ -84,6 +84,6 @@ export const DIAS = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
 export function janelaTexto(days: number[] = [], start = 9, end = 17) {
   const ord = [...days].sort();
   const seq = ord.length > 1 && ord.every((d, i) => i === 0 || d === ord[i - 1] + 1);
-  const dias = seq ? `${DIAS[ord[0]]}–${DIAS[ord[ord.length - 1]]}` : ord.map((d) => DIAS[d]).join(", ");
-  return `${dias} · ${start}h–${end}h59`;
+  const dias = seq ? `${DIAS[ord[0]]} a ${DIAS[ord[ord.length - 1]]}` : ord.map((d) => DIAS[d]).join(", ");
+  return `${dias} · das ${start}h às ${end}h59`;
 }

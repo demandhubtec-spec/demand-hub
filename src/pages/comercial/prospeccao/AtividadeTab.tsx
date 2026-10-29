@@ -1,4 +1,4 @@
-import { AlertTriangle, Ban, CheckCircle2, FlaskConical, Mail, MessageSquareReply, PhoneOff, RefreshCw, Send, Settings, WifiOff } from "lucide-react";
+import { AlertTriangle, Ban, CheckCircle2, FlaskConical, Mail, Repeat, SkipForward, MessageSquareReply, PhoneOff, RefreshCw, Send, Settings, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { TableWrap, Th, Td } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -6,7 +6,9 @@ import { detalheTexto, useOutreachColetas, useOutreachLeads, useOutreachLog } fr
 import { fmtData } from "./shared";
 
 const icones: Record<string, { icon: typeof Send; cls: string; label: string }> = {
-  sent: { icon: Send, cls: "text-positive", label: "Enviado" },
+  sent: { icon: Send, cls: "text-positive", label: "Abordagem enviada" },
+  followup: { icon: Repeat, cls: "text-positive", label: "Follow-up enviado" },
+  pulado: { icon: SkipForward, cls: "text-muted", label: "Toque pulado" },
   sent_test: { icon: FlaskConical, cls: "text-primary-bright", label: "Teste enviado" },
   dry_run: { icon: FlaskConical, cls: "text-muted", label: "Simulado" },
   error: { icon: AlertTriangle, cls: "text-negative", label: "Erro" },
@@ -69,10 +71,10 @@ export function AtividadeTab() {
               {coletas.map((c) => (
                 <tr key={c.id}>
                   <Td>{fmtData(c.executada_em)}</Td>
-                  <Td wrap>{(c.cidades ?? []).join(", ") || "—"}</Td>
-                  <Td wrap>{(c.nichos ?? []).join(", ") || "—"}</Td>
-                  <Td>{c.lugares_coletados ?? "—"}</Td>
-                  <Td>{c.novos_adicionados ?? "—"}</Td>
+                  <Td wrap>{(c.cidades ?? []).join(", ") || "-"}</Td>
+                  <Td wrap>{(c.nichos ?? []).join(", ") || "-"}</Td>
+                  <Td>{c.lugares_coletados ?? "-"}</Td>
+                  <Td>{c.novos_adicionados ?? "-"}</Td>
                   <Td>US$ {Number(c.custo_usd ?? 0).toFixed(2)}</Td>
                   <Td>US$ {Number(c.acumulado_mes_usd ?? 0).toFixed(2)}</Td>
                 </tr>

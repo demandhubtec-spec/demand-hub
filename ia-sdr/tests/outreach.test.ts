@@ -30,10 +30,16 @@ test("janela de envio em horário de São Paulo", () => {
   assert.equal(spNow(new Date("2026-10-28T02:00:00Z")).dow, 2); // ainda terça em SP
 });
 
-test("rodapé de opt-out: coloca só se o texto ainda não tiver", () => {
-  assert.match(comRodape("Olá"), /responder 'sair'/);
+test("e-mail: assina como Ana e põe o rodapé de opt-out só se o texto ainda não tiver", () => {
+  assert.equal(comRodape("Olá"), "Olá\n\nAna\nDemandIA\n\nSe não quiser mais receber, é só responder 'sair'.");
   const jaTem = 'Olá\n\nSe não quiser mais receber, é só responder "SAIR".';
-  assert.equal(comRodape(jaTem), jaTem);
+  assert.doesNotMatch(comRodape(jaTem), /responder 'sair'/);
+  assert.equal(comRodape("Oi\n\nAna\nDemandIA"), "Oi\n\nAna\nDemandIA\n\nSe não quiser mais receber, é só responder 'sair'.");
+});
+
+test("MIME com remetente Ana da DemandIA", () => {
+  assert.match(buildMime("a@b.com", "Oi", "Corpo", "eu@gmail.com"), /^From: =\?UTF-8\?B\?.+\?= <eu@gmail.com>/);
+  assert.doesNotMatch(buildMime("a@b.com", "Oi", "Corpo"), /^From:/m);
 });
 
 test("MIME com assunto em UTF-8", () => {
@@ -102,4 +108,77 @@ test("nome com palavras-chave e limpeza da mensagem", () => {
   assert.equal(nomeComPalavrasChave("BBZ Advocacia"), false);
   assert.equal(nomeComPalavrasChave(base.empresa), true);
   assert.equal(limparMensagem('"Oi, Ana! — tudo bem?\n\nSegundo **balão**"'), "Oi, Ana!, tudo bem?\n\nSegundo balão");
+});
+
+import { humanizar, problemasDeEstilo } from "../src/lib/estilo.ts";
+import { CADENCIA, montarSequencia, nomeCurto, problemasDaSequencia } from "../src/lib/diagnostico-perfil.ts";
+import { toquesRecebidos } from "../src/lib/prospeccao.ts";
+
+test("humanizar: tira travessão, markdown e exclamação em excesso", () => {
+  assert.equal(humanizar("Oi — tudo bem?"), "Oi, tudo bem?");
+  assert.equal(humanizar("— Começo\nfim –."), "Começo\nfim.");
+  assert.equal(humanizar("**Atenção** aqui!!"), "Atenção aqui!");
+  assert.equal(humanizar("- item um\n- item dois"), "item um\nitem dois");
+  assert.equal(humanizar("Bem-vindo à Clínica Pró-Vida"), "Bem-vindo à Clínica Pró-Vida");
+});
+
+test("problemas de estilo: pega frases prontas, travessão e emoji", () => {
+  assert.deepEqual(problemasDeEstilo("Oi, tudo bem? Posso te mandar?"), []);
+  const p = problemasDeEstilo("Espero que esteja bem — vamos alavancar! Show! 🚀");
+  assert.ok(p.some((x) => x.includes("espero que esteja bem")));
+  assert.ok(p.some((x) => x.includes("alavancar")));
+  assert.ok(p.includes("tem travessão"));
+  assert.ok(p.includes("tem emoji"));
+  assert.ok(p.includes("mais de um ponto de exclamação"));
+});
+
+test("nome curto da ficha", () => {
+  assert.equal(nomeCurto("Mais Odonto Prime | Dentista | Implante Dentário | Indaiatuba - SP"), "Mais Odonto Prime");
+  assert.equal(nomeCurto("Clínica Consultare - Centro Médico Acessível - Unidade Campinas"), "Clínica Consultare");
+  assert.equal(nomeCurto("Oliveira & Carneiro Advogados"), "Oliveira & Carneiro Advogados");
+});
+
+test("cadência padrão: 6 toques em 10 dias, alternando WhatsApp e e-mail", () => {
+  assert.deepEqual(CADENCIA.map((c) => `${c.dia}${c.periodo[0]}${c.canal[0]}`), ["0mw", "0te", "2mw", "4me", "7mw", "10mw"]);
+});
+
+test("montar sequência: junta a resposta da IA com a cadência e limpa o texto", () => {
+  const resp = JSON.stringify({
+    toques: [
+      { texto: "Oi, Diego, tudo bem? Aqui é a Ana, da DemandIA.\n\nVi o perfil — posso te mandar?" },
+      { assunto: "Perfil da X no Google", texto: "Diego, mandei mensagem no WhatsApp mais cedo." },
+      { texto: "Conseguiu ver?" },
+      { assunto: "Uma coisa no perfil", texto: "Texto do segundo e-mail." },
+      { texto: "Uma dica: responda as avaliações." },
+      { texto: "Não vou insistir mais. Posso te procurar mais para frente?" },
+    ],
+  });
+  const seq = montarSequencia("```json\n" + resp + "\n```");
+  assert.equal(seq.length, 6);
+  assert.equal(seq[0].texto, "Oi, Diego, tudo bem? Aqui é a Ana, da DemandIA.\n\nVi o perfil, posso te mandar?");
+  assert.equal(seq[1].canal, "email");
+  assert.equal(seq[1].assunto, "Perfil da X no Google");
+  assert.equal(seq[5].dia, 10);
+  assert.deepEqual(problemasDaSequencia(seq), []);
+  assert.throws(() => montarSequencia('{"toques":[{"texto":"a"}]}'), /1 toques/);
+});
+
+test("follow-up da cadência também não pausa a IA e entra no contexto da Ana", () => {
+  const p = {
+    empresa: "X", nicho: null, cidade: null, decisor: null, cargo_decisor: null, site: null, instagram: null, observacoes: null,
+    wa_message: "Oi, tudo bem?", wa_sent_at: "2026-10-28T12:00:00Z", toque_atual: 3, ultimo_toque_em: "2026-10-30T12:30:00Z",
+    sequencia: [
+      { n: 0, canal: "whatsapp", texto: "Oi, tudo bem?" },
+      { n: 1, canal: "email", assunto: "Perfil", texto: "Corpo do e-mail" },
+      { n: 2, canal: "whatsapp", texto: "Conseguiu ver a mensagem?" },
+      { n: 3, canal: "whatsapp", texto: "Ainda não enviado" },
+    ],
+  };
+  assert.equal(ehDisparoDaProspeccao(p, "Conseguiu ver a mensagem?", new Date("2026-11-05T12:00:00Z")), true);
+  assert.equal(ehDisparoDaProspeccao(p, "texto do Kelvin", new Date("2026-10-30T12:31:00Z")), true);
+  assert.equal(ehDisparoDaProspeccao(p, "texto do Kelvin", new Date("2026-11-05T12:00:00Z")), false);
+  const r = toquesRecebidos(p);
+  assert.match(r, /E-mail \(assunto "Perfil"\)/);
+  assert.match(r, /Conseguiu ver/);
+  assert.doesNotMatch(r, /Ainda não enviado/);
 });

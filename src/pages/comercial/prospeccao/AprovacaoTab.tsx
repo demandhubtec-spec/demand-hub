@@ -1,16 +1,18 @@
 import * as React from "react";
-import { Check, Pencil, RefreshCw, SkipForward, Sparkles, Undo2 } from "lucide-react";
+import { Check, Mail, MessageCircle, Pencil, RefreshCw, SkipForward, Sparkles, Undo2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
-import { type OutreachLead, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
+import { type OutreachLead, type Toque, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
+import { canalLabel, quandoTexto } from "./cadencia";
 import { cn } from "@/lib/utils";
 
 type Filtro = "rascunho" | "aprovada" | "rejeitada";
 
-const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "—" : n.toLocaleString("pt-BR"));
+const fmt = (n: number | null | undefined) => (n === null || n === undefined ? "-" : n.toLocaleString("pt-BR"));
 
 function Chip({ ok, children }: { ok?: boolean | null; children: React.ReactNode }) {
   return (
@@ -34,16 +36,48 @@ function posicaoTexto(l: OutreachLead) {
   return `${p.posicao}º de ${p.total} em avaliações (${l.cidade})`;
 }
 
+/** Balões de WhatsApp (linha em branco = novo balão). */
+function Baloes({ texto }: { texto: string }) {
+  return (
+    <div className="space-y-1.5">
+      {texto.split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
+        <div key={i} className="w-fit max-w-[95%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
+          {b.trim()}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EmailPreview({ assunto, texto }: { assunto?: string; texto: string }) {
+  return (
+    <div className="max-w-[95%] rounded-lg border border-border bg-surface-2 p-3 text-[13px]">
+      <div className="mb-1.5 text-[12px]"><span className="text-muted">Assunto:</span> <b>{assunto}</b></div>
+      <div className="whitespace-pre-wrap">{texto}</div>
+      <div className="mt-2 whitespace-pre-wrap text-muted">{"Ana\nDemandIA"}</div>
+    </div>
+  );
+}
+
+function sequenciaDo(lead: OutreachLead): Toque[] {
+  if (lead.sequencia?.length) return lead.sequencia;
+  if (lead.msg_rascunho) return [{ n: 0, dia: 0, periodo: "manha", canal: "whatsapp", texto: lead.msg_rascunho }];
+  return [];
+}
+
 function CardLead({ lead }: { lead: OutreachLead }) {
   const update = useUpdateLead();
   const gerar = useGerarMensagens();
   const { showToast } = useToast();
   const [editando, setEditando] = React.useState(false);
-  const [texto, setTexto] = React.useState(lead.msg_rascunho ?? "");
-  React.useEffect(() => setTexto(lead.msg_rascunho ?? ""), [lead.msg_rascunho]);
+  const [aberto, setAberto] = React.useState(false);
+  const seqOriginal = sequenciaDo(lead);
+  const [seq, setSeq] = React.useState<Toque[]>(seqOriginal);
+  React.useEffect(() => setSeq(sequenciaDo(lead)), [lead.sequencia, lead.msg_rascunho]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const d = lead.diagnostico;
   const pos = posicaoTexto(lead);
+  const visiveis = aberto || editando ? seq : seq.slice(0, 1);
 
   async function mudar(patch: Partial<OutreachLead>, msg: string) {
     try {
@@ -55,14 +89,22 @@ function CardLead({ lead }: { lead: OutreachLead }) {
     }
   }
 
+  function salvarPatch(): Partial<OutreachLead> {
+    const limpo = seq.map((t) => ({ ...t, texto: t.texto.trim(), assunto: t.assunto?.trim() }));
+    return { sequencia: limpo, msg_rascunho: limpo[0]?.texto ?? null };
+  }
+
   async function refazer() {
     try {
       const r = await gerar.mutateAsync([lead.place_id]);
-      showToast(r.erros.length ? `Falhou: ${r.erros[0]}` : "Nova mensagem gerada");
+      showToast(r.erros.length ? `Falhou: ${r.erros[0]}` : "Nova sequência escrita");
     } catch (e) {
       showToast(`Erro: ${(e as Error).message}`);
     }
   }
+
+  const vazio = seq.some((t) => !t.texto.trim());
+  const aprovar = { msg_status: "aprovada", msg_aprovada_em: new Date().toISOString() } as Partial<OutreachLead>;
 
   return (
     <Card className="p-4">
@@ -70,7 +112,7 @@ function CardLead({ lead }: { lead: OutreachLead }) {
         <div className="min-w-0">
           <div className="font-semibold">{lead.empresa}</div>
           <div className="text-[12px] text-muted">
-            {[lead.nicho, lead.cidade, lead.decisor && `Decisor: ${lead.decisor}`, lead.prioridade && `Prioridade ${lead.prioridade}`]
+            {[lead.nicho, lead.cidade, lead.decisor && `Decisor: ${lead.decisor}`, lead.email ? "tem e-mail" : "sem e-mail", (lead.tentativa ?? 1) > 1 && `${lead.tentativa}ª tentativa`]
               .filter(Boolean)
               .join(" · ")}
           </div>
@@ -102,42 +144,70 @@ function CardLead({ lead }: { lead: OutreachLead }) {
         </div>
       )}
 
-      <div className="mt-3">
-        <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">Mensagem da Ana</div>
-        {editando ? (
-          <>
-            <Textarea rows={7} value={texto} onChange={(e) => setTexto(e.target.value)} />
-            <div className="mt-1 text-[11.5px] text-muted">Linha em branco = novo balão. {texto.length} caracteres.</div>
-          </>
-        ) : (
-          <div className="space-y-1.5">
-            {(lead.msg_rascunho ?? "").split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
-              <div key={i} className="w-fit max-w-[95%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
-                {b.trim()}
+      <div className="mt-3 space-y-3">
+        {visiveis.map((t, i) => (
+          <div key={i}>
+            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              {t.canal === "email" ? <Mail className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
+              Toque {i + 1} · {canalLabel(t.canal)} · {quandoTexto(t)}
+              {t.canal === "email" && !lead.email && <span className="normal-case text-attention">(sem e-mail, será pulado)</span>}
+            </div>
+            {editando ? (
+              <div className="space-y-1.5">
+                {t.canal === "email" && (
+                  <Input
+                    className="h-9 py-1.5"
+                    value={t.assunto ?? ""}
+                    placeholder="Assunto"
+                    onChange={(e) => setSeq((s) => s.map((x, j) => (j === i ? { ...x, assunto: e.target.value } : x)))}
+                  />
+                )}
+                <Textarea
+                  rows={t.canal === "email" ? 7 : 5}
+                  value={t.texto}
+                  onChange={(e) => setSeq((s) => s.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
+                />
+                <div className="text-[11.5px] text-muted">
+                  {t.canal === "whatsapp" ? "Linha em branco = novo balão. " : "A assinatura da Ana entra sozinha. "}
+                  {t.texto.length} caracteres.
+                  {/[—–]/.test(t.texto) && <span className="text-attention"> Tem travessão: troque por vírgula ou ponto.</span>}
+                </div>
               </div>
-            ))}
+            ) : t.canal === "email" ? (
+              <EmailPreview assunto={t.assunto} texto={t.texto} />
+            ) : (
+              <Baloes texto={t.texto} />
+            )}
           </div>
+        ))}
+        {!editando && seq.length > 1 && (
+          <button className="text-[12.5px] font-semibold text-primary-bright" onClick={() => setAberto((a) => !a)}>
+            {aberto ? "Mostrar só a primeira mensagem" : `Ver a sequência inteira (${seq.length} toques)`}
+          </button>
+        )}
+        {seq.length === 1 && !editando && (
+          <div className="text-[12px] text-attention">Esta mensagem é da versão antiga, sem os follow-ups. Clique em "Gerar de novo" para a Ana escrever a sequência inteira.</div>
         )}
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
         {editando ? (
           <>
-            <Button size="sm" onClick={() => mudar({ msg_rascunho: texto.trim(), msg_status: "aprovada", msg_aprovada_em: new Date().toISOString() }, "Mensagem editada e aprovada")} disabled={!texto.trim() || update.isPending}>
+            <Button size="sm" onClick={() => mudar({ ...salvarPatch(), ...aprovar }, "Sequência editada e aprovada")} disabled={vazio || update.isPending}>
               <Check /> Salvar e aprovar
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => mudar({ msg_rascunho: texto.trim() }, "Edição salva")} disabled={!texto.trim()}>
+            <Button size="sm" variant="ghost" onClick={() => mudar(salvarPatch(), "Edição salva")} disabled={vazio}>
               Só salvar
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => { setTexto(lead.msg_rascunho ?? ""); setEditando(false); }}>Cancelar</Button>
+            <Button size="sm" variant="ghost" onClick={() => { setSeq(sequenciaDo(lead)); setEditando(false); }}>Cancelar</Button>
           </>
         ) : lead.msg_status === "rascunho" ? (
           <>
-            <Button size="sm" onClick={() => mudar({ msg_status: "aprovada", msg_aprovada_em: new Date().toISOString() }, "Mensagem aprovada")} disabled={update.isPending}>
-              <Check /> Aprovar
+            <Button size="sm" onClick={() => mudar(aprovar, "Sequência aprovada")} disabled={update.isPending}>
+              <Check /> Aprovar sequência
             </Button>
             <Button size="sm" variant="ghost" onClick={() => setEditando(true)}><Pencil /> Editar</Button>
-            <Button size="sm" variant="ghost" onClick={refazer} disabled={gerar.isPending}><RefreshCw /> {gerar.isPending ? "Gerando…" : "Gerar de novo"}</Button>
+            <Button size="sm" variant="ghost" onClick={refazer} disabled={gerar.isPending}><RefreshCw /> {gerar.isPending ? "Gerando..." : "Gerar de novo"}</Button>
             <Button size="sm" variant="ghost" onClick={() => mudar({ msg_status: "rejeitada" }, "Lead pulado")}><SkipForward /> Pular</Button>
           </>
         ) : (
@@ -169,13 +239,13 @@ export function AprovacaoTab() {
     let total = 0;
     try {
       for (let rodada = 0; rodada < 15; rodada++) {
-        setProgresso(`Gerando… ${total} prontas`);
+        setProgresso(`Gerando... ${total} prontas`);
         const r = await gerar.mutateAsync(undefined);
         total += r.gerados;
         if (r.erros.length) showToast(`Alguns falharam: ${r.erros[0]}`);
         if (r.restantes === 0 || r.gerados === 0) break;
       }
-      showToast(`${total} mensagens geradas para revisão`);
+      showToast(`${total} sequências escritas para revisão`);
     } catch (e) {
       showToast(`Erro: ${(e as Error).message}`);
     } finally {
@@ -187,14 +257,14 @@ export function AprovacaoTab() {
     <div>
       <Card className="mb-4 flex flex-wrap items-center justify-between gap-3 p-4">
         <div className="text-[13px]">
-          <div className="font-semibold">A Ana escreve uma mensagem para cada empresa, a partir do perfil dela no Google.</div>
+          <div className="font-semibold">A Ana escreve a sequência de cada empresa (6 toques em 10 dias, WhatsApp e e-mail), a partir do perfil dela no Google.</div>
           <div className="mt-0.5 text-muted">
-            Você revisa e aprova aqui. O robô só envia as aprovadas.{" "}
-            {semMsg > 0 ? <b className="text-ink">{semMsg} leads da fila ainda sem mensagem.</b> : "Todos os leads da fila já têm mensagem."}
+            Você aprova a sequência uma vez e o robô segue sozinho. Se a pessoa responder, a cadência para e a Ana assume.{" "}
+            {semMsg > 0 ? <b className="text-ink">{semMsg} leads da fila ainda sem sequência.</b> : "Todos os leads da fila já têm sequência."}
           </div>
         </div>
         <Button onClick={gerarTodas} disabled={gerar.isPending || semMsg === 0}>
-          <Sparkles /> {progresso ?? `Gerar mensagens (${semMsg})`}
+          <Sparkles /> {progresso ?? `Gerar sequências (${semMsg})`}
         </Button>
       </Card>
 
@@ -220,10 +290,10 @@ export function AprovacaoTab() {
       </div>
 
       {isLoading ? (
-        <EmptyState>Carregando…</EmptyState>
+        <EmptyState>Carregando...</EmptyState>
       ) : lista.length === 0 ? (
         <EmptyState>
-          {filtro === "rascunho" ? "Nenhuma mensagem para revisar. Clique em “Gerar mensagens”." : "Nada aqui ainda."}
+          {filtro === "rascunho" ? "Nada para revisar. Clique em Gerar sequências." : "Nada aqui ainda."}
         </EmptyState>
       ) : (
         <div className="space-y-3">

@@ -92,7 +92,7 @@ const log = (place_id: string | null, event: string, detail: any = {}) =>
 async function detectReplies(cfg: any) {
   const since = new Date(Date.now() - 30 * 864e5).toISOString();
   const { data: sent } = await sb.from("outreach_leads")
-    .select("place_id, empresa, whatsapp, wa_sent_at, email_status")
+    .select("place_id, empresa, whatsapp, wa_sent_at, email_status, cadencia, toque_atual")
     .eq("wa_status", "enviado").gte("wa_sent_at", since).limit(500);
   let n = 0;
   for (const l of sent || []) {
@@ -111,9 +111,13 @@ async function detectReplies(cfg: any) {
       wa_status: optout ? "optout" : "respondeu",
       replied_at: sl[0].last_inbound_at, reply_text: text.slice(0, 1000),
       email_status: l.email_status === "pendente" ? "ignorado" : l.email_status,
+      // Qualquer resposta para a cadência: a Ana assume a conversa (ou o lead sai, se pediu)
+      cadencia: optout ? "parada" : "respondeu",
+      respondeu_no_toque: l.toque_atual || 1,
+      proximo_toque_em: null, proximo_canal: null,
       updated_at: new Date().toISOString(),
     }).eq("place_id", l.place_id);
-    await log(l.place_id, optout ? "optout" : "reply", { text: text.slice(0, 300) });
+    await log(l.place_id, optout ? "optout" : "reply", { text: text.slice(0, 300), toque: l.toque_atual || 1 });
     n++;
   }
   return n;
@@ -141,12 +145,59 @@ async function instanceOk() {
   } catch { return false; }
 }
 
+/** Manda o próximo toque de WhatsApp da cadência que já venceu. Retorna null se não havia nada. */
+async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
+  const { data: due } = await sb.from("outreach_leads")
+    .select("place_id, empresa, whatsapp, sequencia, toque_atual, wa_status")
+    .eq("cadencia", "ativa").eq("proximo_canal", "whatsapp")
+    .lte("proximo_toque_em", new Date().toISOString())
+    .order("proximo_toque_em", { ascending: true }).limit(1);
+  const lead = due?.[0];
+  if (!lead) return null;
+
+  const { count: hoje } = await sb.from("outreach_log").select("id", { count: "exact", head: true })
+    .eq("channel", "whatsapp").eq("event", "followup").gte("created_at", spTodayStartISO());
+  if ((hoje || 0) >= (cfg.followup_daily_cap ?? 40)) return null;
+
+  const toque = Array.isArray(lead.sequencia) ? lead.sequencia[lead.toque_atual] : null;
+  if (!toque?.texto || !lead.whatsapp || ["respondeu", "optout"].includes(lead.wa_status)) {
+    await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "pulado" });
+    await log(lead.place_id, "pulado", { msg: `${lead.empresa}: toque ${lead.toque_atual + 1} pulado` });
+    return { skip: "toque_pulado", lead: lead.empresa };
+  }
+
+  const nextAt = new Date(Date.now() + rand(cfg.wa_min_interval_sec, cfg.wa_max_interval_sec) * 1000).toISOString();
+  await sb.from("outreach_config").update({ next_wa_at: nextAt }).eq("id", 1);
+  await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
+
+  const chk = await checkNumber(lead.whatsapp);
+  const to = chk?.jid ? chk.jid.split("@")[0] : lead.whatsapp;
+  const r = await enviarBaloes(cfg.evolution_send_path, to, String(toque.texto).trim());
+  if (r.ok) {
+    await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
+    await log(lead.place_id, "followup", { to, toque: lead.toque_atual + 1, msg: `${lead.empresa}: toque ${lead.toque_atual + 1}` });
+    return { followup: lead.empresa, toque: lead.toque_atual + 1, next: nextAt };
+  }
+  const low = r.body.toLowerCase();
+  if (/not on whatsapp|not registered|not exist|invalid|não existe/.test(low)) {
+    await sb.from("outreach_leads").update({ cadencia: "parada", proximo_toque_em: null, proximo_canal: null, wa_error: r.body.slice(0, 300) }).eq("place_id", lead.place_id);
+  } else {
+    // Tenta de novo em 2 horas
+    await sb.from("outreach_leads").update({ proximo_toque_em: new Date(Date.now() + 2 * 3600e3).toISOString() }).eq("place_id", lead.place_id);
+  }
+  await log(lead.place_id, "error", { status: r.status, toque: lead.toque_atual + 1, body: r.body.slice(0, 300) });
+  return { error: r.status, lead: lead.empresa };
+}
+
 Deno.serve(async (req) => {
   if (CRON_SECRET && req.headers.get("x-cron-secret") !== CRON_SECRET)
     return new Response("unauthorized", { status: 401 });
   const out: any = {};
   const { data: cfg } = await sb.from("outreach_config").select("*").eq("id", 1).single();
   out.replies = await detectReplies(cfg);
+  // Quem estava em "Retomar depois" e chegou a data volta para a aprovação
+  const { data: reativados } = await sb.rpc("outreach_reativar");
+  if (reativados) out.reativados = reativados;
 
   if (!cfg.wa_enabled) return Response.json({ ...out, skip: "wa_disabled" });
   const h = spHour(), wd = spWeekday();
@@ -163,13 +214,22 @@ Deno.serve(async (req) => {
   const { count: enviadosHoje } = await sb.from("outreach_leads").select("place_id", { count: "exact", head: true })
     .gte("wa_sent_at", spTodayStartISO());
   const count = cfg.test_number ? (testesHoje ?? []).length : enviadosHoje;
-  if ((count || 0) >= cfg.wa_daily_cap) return Response.json({ ...out, skip: "teto_diario", count });
+  const tetoNovos = (count || 0) >= cfg.wa_daily_cap;
 
   if (!cfg.dry_run && !(await instanceOk())) {
     await log(null, "instance_down");
     await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 10 * 60e3).toISOString() }).eq("id", 1);
     return Response.json({ ...out, skip: "instancia_desconectada" });
   }
+
+  // 1) Follow-up da cadência que já venceu (vem antes das abordagens novas)
+  if (!cfg.dry_run && !cfg.test_number) {
+    const r = await followUp(cfg);
+    if (r) return Response.json({ ...out, ...r });
+  }
+
+  // 2) Abordagem nova (1º toque), até o teto diário de abordagens
+  if (tetoNovos) return Response.json({ ...out, skip: "teto_diario", count });
 
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
   let fila = sb.from("outreach_leads").select("*")
@@ -182,8 +242,9 @@ Deno.serve(async (req) => {
   if (!lead) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });
 
   let text: string;
-  if (lead.msg_status === "aprovada" && lead.msg_rascunho) {
-    text = String(lead.msg_rascunho).trim();
+  const primeiro = Array.isArray(lead.sequencia) ? lead.sequencia[0]?.texto : null;
+  if (lead.msg_status === "aprovada" && (primeiro || lead.msg_rascunho)) {
+    text = String(primeiro || lead.msg_rascunho).trim();
   } else {
     const { data: tpls } = await sb.from("outreach_templates").select("body").eq("channel", "whatsapp").eq("active", true);
     if (!tpls?.length) return Response.json({ ...out, skip: "sem_template" });
@@ -207,6 +268,8 @@ Deno.serve(async (req) => {
     return Response.json({ ...out, dry_run: true, to, text, next: nextAt });
   }
 
+  // Marca o horário antes de enviar: o webhook do SDR reconhece o disparo e não pausa a IA
+  if (!cfg.test_number) await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
   const r = await enviarBaloes(cfg.evolution_send_path, to, text);
   const body = r.body;
   if (r.ok) {
@@ -215,8 +278,10 @@ Deno.serve(async (req) => {
         wa_status: "enviado", wa_sent_at: new Date().toISOString(), wa_message: text,
         updated_at: new Date().toISOString(),
       }).eq("place_id", lead.place_id);
+      // Começa a cadência de follow-up (só para quem tem a sequência aprovada)
+      await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
     }
-    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, resp: body.slice(0, 300) });
+    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, resp: body.slice(0, 300) });
     return Response.json({ ...out, sent: lead.empresa, to, next: nextAt });
   }
   const attempts = lead.wa_attempts + 1;

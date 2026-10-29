@@ -211,15 +211,15 @@ export function diagRow(f: DiagForm, leadId: string | null, ip: string | null, u
 
 /** Resumo legível das respostas (vai para a IA e para o aviso no WhatsApp) */
 export function resumo(f: DiagForm): string {
-  const v = (x: string | null | undefined) => x || "—";
+  const v = (x: string | null | undefined) => x || "não informado";
   return [
     `Nome: ${f.nome} | Cargo: ${v(f.cargo ? CARGOS[f.cargo] ?? f.cargo : null)}`,
     `Empresa: ${f.empresa} | Segmento: ${v(f.segmento)}`,
     `Faturamento: ${FAIXAS[f.faturamento].label}/mês | Equipe: ${v(f.equipe)} pessoas`,
-    `Clientes chegam por: ${f.canais.join(", ") || "—"} | Investe em marketing: ${v(f.investMarketing)}`,
-    `Maiores gargalos: ${f.dores.join(", ") || "—"}`,
+    `Clientes chegam por: ${f.canais.join(", ") || "não informado"} | Investe em marketing: ${v(f.investMarketing)}`,
+    `Maiores gargalos: ${f.dores.join(", ") || "não informado"}`,
     `Tempo para responder um novo contato: ${v(f.tempoResposta)}`,
-    `Quando quer resolver: ${f.prazo ? PRAZOS[f.prazo] : "—"}`,
+    `Quando quer resolver: ${f.prazo ? PRAZOS[f.prazo] : "não informado"}`,
     `Maior desafio: ${v(f.desafio)}`,
   ].join("\n");
 }
@@ -227,7 +227,7 @@ export function resumo(f: DiagForm): string {
 export function origemTxt(f: DiagForm): string {
   const u = f.utm;
   if (!Object.keys(u).length) return "Acesso direto (sem UTM)";
-  return [u.utm_source, u.utm_medium, u.utm_campaign, u.utm_content].filter(Boolean).join(" / ") || (u.fbclid ? "Meta (fbclid)" : u.gclid ? "Google (gclid)" : "—");
+  return [u.utm_source, u.utm_medium, u.utm_campaign, u.utm_content].filter(Boolean).join(" / ") || (u.fbclid ? "Meta (fbclid)" : u.gclid ? "Google (gclid)" : "não informado");
 }
 
 /**

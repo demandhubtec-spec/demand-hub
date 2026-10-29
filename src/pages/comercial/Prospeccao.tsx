@@ -12,12 +12,13 @@ import {
   useOutreachResumo,
 } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
-import { FUNIL, janelaTexto } from "./prospeccao/shared";
+import { janelaTexto } from "./prospeccao/shared";
 import { LeadsTab } from "./prospeccao/LeadsTab";
 import { TemplatesTab } from "./prospeccao/TemplatesTab";
 import { ControlesTab } from "./prospeccao/ControlesTab";
 import { AtividadeTab } from "./prospeccao/AtividadeTab";
 import { AprovacaoTab } from "./prospeccao/AprovacaoTab";
+import { FunilTab } from "./prospeccao/FunilTab";
 
 function StatePill({ ok, children, strong = false }: { ok: boolean | null; children: React.ReactNode; strong?: boolean }) {
   return (
@@ -42,7 +43,7 @@ function useCountdown(iso: string | null | undefined) {
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(t);
   }, []);
-  if (!iso) return "—";
+  if (!iso) return "-";
   const diff = Math.max(0, Math.floor((new Date(iso).getTime() - now) / 1000));
   if (diff === 0) return "agora";
   const h = Math.floor(diff / 3600);
@@ -65,18 +66,10 @@ export default function Prospeccao() {
   const r = resumo;
   const taxa = r && r.wa_enviados > 0 ? Math.round((r.responderam / r.wa_enviados) * 100) : 0;
 
-  const funil = FUNIL.map((f) => ({
-    ...f,
-    n: leads.filter((l) => {
-      const ordem = FUNIL.findIndex((x) => x.key === l.status_comercial);
-      const alvo = FUNIL.findIndex((x) => x.key === f.key);
-      return ordem >= alvo;
-    }).length,
-  }));
-  const topo = Math.max(1, funil[0]?.n ?? 1);
   const fila = leads.filter((l) => l.wa_status === "pendente");
   const aprovadas = fila.filter((l) => l.msg_status === "aprovada").length;
   const paraRevisar = fila.filter((l) => l.msg_status === "rascunho").length;
+  const emCadencia = leads.filter((l) => l.cadencia === "ativa").length;
 
   return (
     <section>
@@ -84,7 +77,7 @@ export default function Prospeccao() {
         <div>
           <div className="text-[21px] font-semibold">Prospecção ativa</div>
           <div className="mt-1 text-[13px] text-muted">
-            Disparos automáticos de WhatsApp e e-mail para leads coletados no Google Maps.
+            Abordagem e follow-up automáticos por WhatsApp e e-mail para leads coletados no Google Maps.
           </div>
         </div>
       </div>
@@ -102,29 +95,29 @@ export default function Prospeccao() {
         {cfg?.test_number && <StatePill ok={false}>Número de teste ativo</StatePill>}
         {cfg?.exigir_aprovacao !== false && (
           <StatePill ok={aprovadas > 0}>
-            {aprovadas} aprovadas · {paraRevisar} para revisar
+            {aprovadas} aprovados · {paraRevisar} para revisar
           </StatePill>
         )}
       </div>
 
       <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-        <KpiCard label="Na fila" value={String(r?.wa_na_fila ?? "—")} index={0} />
+        <KpiCard label="Em cadência" value={String(emCadencia)} delta={`${aprovadas} aprovados na fila`} index={0} />
         <KpiCard
           label="Enviados hoje"
-          value={`${r?.wa_hoje ?? 0} / ${cfg?.wa_daily_cap ?? "—"}`}
+          value={`${r?.wa_hoje ?? 0} / ${cfg?.wa_daily_cap ?? "-"}`}
           index={1}
         />
-        <KpiCard label="Total enviados" value={String(r?.wa_enviados ?? "—")} index={2} />
+        <KpiCard label="Total enviados" value={String(r?.wa_enviados ?? "-")} index={2} />
         <KpiCard
           label="Responderam"
-          value={String(r?.responderam ?? "—")}
+          value={String(r?.responderam ?? "-")}
           delta={`${taxa}% de resposta`}
           accent="positive"
           index={3}
         />
-        <KpiCard label="Opt-out" value={String(r?.optout ?? "—")} accent="attention" index={4} />
-        <KpiCard label="Erros / sem WhatsApp" value={String(r?.wa_erros ?? "—")} accent="attention" index={5} />
-        <KpiCard label="E-mails enviados" value={String(r?.emails_enviados ?? "—")} index={6} />
+        <KpiCard label="Opt-out" value={String(r?.optout ?? "-")} accent="attention" index={4} />
+        <KpiCard label="Erros / sem WhatsApp" value={String(r?.wa_erros ?? "-")} accent="attention" index={5} />
+        <KpiCard label="E-mails enviados" value={String(r?.emails_enviados ?? "-")} index={6} />
         <KpiCard
           label="Gasto Apify no mês"
           value={`US$ ${Number(orc?.gasto_usd ?? 0).toFixed(2)}`}
@@ -134,32 +127,11 @@ export default function Prospeccao() {
         />
       </div>
 
-      <Card className="mb-[22px] p-5 px-[22px]">
-        <div className="text-sm font-semibold">Funil</div>
-        <div className="mb-3 mt-0.5 text-[11.5px] text-muted">
-          Reunião, proposta e ganho são marcados à mão em cada lead.
-        </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-          {funil.map((f, i) => (
-            <div key={f.key}>
-              <div className="flex items-baseline justify-between">
-                <span className="text-[12px] text-muted">{f.label}</span>
-                <span className="font-mono text-[11px] text-muted">
-                  {i > 0 && funil[i - 1].n > 0 ? `${Math.round((f.n / funil[i - 1].n) * 100)}%` : ""}
-                </span>
-              </div>
-              <div className="font-display text-[22px] font-bold">{f.n}</div>
-              <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-2">
-                <div className="h-full rounded-full bg-primary" style={{ width: `${(f.n / topo) * 100}%` }} />
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
 
       <Tabs defaultValue="aprovacao">
         <TabsList>
           <TabsTrigger value="aprovacao">Aprovação{paraRevisar ? ` (${paraRevisar})` : ""}</TabsTrigger>
+          <TabsTrigger value="funil">Funil</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="templates">Mensagens</TabsTrigger>
           <TabsTrigger value="controles">Controles</TabsTrigger>
@@ -167,6 +139,9 @@ export default function Prospeccao() {
         </TabsList>
         <TabsContent value="aprovacao">
           <AprovacaoTab />
+        </TabsContent>
+        <TabsContent value="funil">
+          <FunilTab />
         </TabsContent>
         <TabsContent value="leads">
           <LeadsTab />

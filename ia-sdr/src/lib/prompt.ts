@@ -6,18 +6,18 @@ import { contextoProspeccao, type Prospeccao } from "./prospeccao.ts";
 const C = SDR_CONFIG;
 
 function leadCard(lead: Lead, meeting: Meeting | null): string {
-  const v = (x: unknown) => (x === null || x === undefined || x === "" || (Array.isArray(x) && !x.length) ? "—" : String(x));
+  const v = (x: unknown) => (x === null || x === undefined || x === "" || (Array.isArray(x) && !x.length) ? "não informado" : String(x));
   return [
     `Nome: ${v(lead.nome)}`,
     `Empresa: ${v(lead.empresa)} | Segmento: ${v(lead.segmento)}`,
     `E-mail: ${v(lead.email)}`,
-    `Faturamento mensal (B): ${lead.faturamento_mensal ? `R$ ${lead.faturamento_mensal.toLocaleString("pt-BR")}` : "—"}`,
+    `Faturamento mensal (B): ${lead.faturamento_mensal ? `R$ ${lead.faturamento_mensal.toLocaleString("pt-BR")}` : "não informado"}`,
     `Autoridade (A): ${v(lead.autoridade)}`,
-    `Dores (N): ${v(lead.dores?.join("; "))} ${lead.necessidade_resumo ? `— ${lead.necessidade_resumo}` : ""}`,
+    `Dores (N): ${v(lead.dores?.join("; "))} ${lead.necessidade_resumo ? `(${lead.necessidade_resumo})` : ""}`,
     `Prazo (T): ${v(lead.prazo)}`,
     `BANT: ${lead.bant_score}/4 | Status: ${lead.status}`,
     meeting
-      ? `REUNIÃO JÁ MARCADA: ${formatBR(new Date(meeting.starts_at))} (${meeting.status}) — Meet: ${v(meeting.meet_link)}`
+      ? `REUNIÃO JÁ MARCADA: ${formatBR(new Date(meeting.starts_at))} (${meeting.status}), Meet: ${v(meeting.meet_link)}`
       : "Reunião: nenhuma marcada",
   ].join("\n");
 }
@@ -68,6 +68,7 @@ Pedido explícito para falar com uma pessoa, reclamação, assunto de cliente at
 
 ## Estilo
 - Português do Brasil, tom humano, próximo e profissional. Nada de linguagem robótica ou excesso de emojis (no máximo 1, às vezes).
+- NUNCA use travessão (— ou –): use vírgula, ponto ou dois-pontos. Evite frases prontas ("fico à disposição", "não hesite") e palavras de marketing genérico (alavancar, potencializar, solução, jornada).
 - Mensagens CURTAS, como no WhatsApp. Separe balões com uma linha em branco (normalmente 1 ou 2 balões, no máximo 3).
 - Uma pergunta por mensagem. Use o nome da pessoa quando souber, sem exagerar.
 - Formatação do WhatsApp: NUNCA use markdown (nada de **, ##, listas com -). Se precisar destacar algo, use *uma palavra* entre asteriscos simples, raramente.
@@ -93,7 +94,7 @@ Regras:
 - Retome o ponto exato em que a conversa parou (veja o histórico) e termine com uma pergunta simples.
 - Varie a abordagem conforme a tentativa: lembrar o que ele queria resolver, trazer um benefício concreto (mais leads, processos automatizados, atendimento com IA), uma pergunta direta, e nas últimas tentativas perguntar se ainda faz sentido conversar.
 ${attempt === max ? "- Esta é a ÚLTIMA tentativa: diga que vai encerrar o contato por aqui, sem drama, e que ele pode chamar quando quiser." : ""}
-- Não repita mensagens anteriores. Não use emoji em excesso.
+- Não repita mensagens anteriores. Não use emoji em excesso. Nunca use travessão (— ou –).
 - Responda só com o texto da mensagem.
 
 Agora: ${formatBR(now)}

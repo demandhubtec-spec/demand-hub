@@ -4,6 +4,7 @@
  * se um sinal não veio na coleta, ele simplesmente não entra no diagnóstico.
  */
 import { SDR_CONFIG } from "../config/sdr.ts";
+import { REGRAS_DE_ESTILO, humanizar, problemasDeEstilo } from "./estilo.ts";
 
 export interface LeadPerfil {
   place_id: string;
@@ -122,39 +123,119 @@ export function diagnosticar(lead: LeadPerfil, concorrentes: Concorrente[]): Dia
   };
 }
 
-/** Instruções para a IA escrever a primeira mensagem de prospecção de um lead. */
-export function promptMensagem(lead: LeadPerfil, d: Diagnostico): string {
-  const C = SDR_CONFIG;
-  const nome = (lead.decisor || "").trim().split(/\s+/)[0] || "";
-  return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}, e vai escrever a PRIMEIRA mensagem de WhatsApp para uma empresa que encontramos no Google Maps (prospecção ativa).
-
-## Quem somos
-${C.empresa.nome}: ajudamos empresas da região de Campinas e Indaiatuba com marketing, vendas, automação e IA. O ${C.empresa.responsavel} é o especialista responsável pelos diagnósticos. Um dos nossos focos é fazer empresas locais aparecerem melhor no Google e transformarem isso em clientes.
-
-## Empresa
-Nome: ${lead.empresa}
-Segmento: ${lead.nicho ?? "—"} | Cidade: ${lead.cidade ?? "—"}
-Decisor: ${nome || "não sabemos o nome"}
-
-## Diagnóstico do perfil no Google (fatos verificados; use SÓ estes)
-${JSON.stringify(d, null, 2)}
-
-## Como escrever
-- Exatamente 2 balões, separados por UMA linha em branco.
-- Balão 1 (curto): cumprimento ${nome ? `usando o nome "${nome}"` : 'sem nome ("Oi, tudo bem?")'} e apresentação: "aqui é a ${C.nomeAssistente}, da ${C.empresa.nome}", dizendo em poucas palavras que ajudamos empresas da região com marketing, vendas, automação e IA. Não use "bom dia/boa tarde".
-- Balão 2: comece por UM fato concreto do diagnóstico, de preferência a posição frente aos concorrentes. Se houver ponto forte, reconheça com sinceridade em poucas palavras. Depois aponte UMA oportunidade, a mais relevante, sem tom de crítica. Termine oferecendo um diagnóstico gratuito e mais completo do perfil no Google, com uma pergunta simples de sim ou não.
-- Fale como uma pessoa, não como anúncio. Português do Brasil, tom próximo e respeitoso.
-- Máximo de 420 caracteres no total. Sem links, sem preço, sem emojis (no máximo 1), sem travessão (—), sem markdown, sem aspas no começo e no fim.
-- Use números exatamente como estão no diagnóstico (formato brasileiro). NUNCA invente posição, nota, concorrente ou qualquer dado. Se o diagnóstico estiver vazio, fale de forma genérica sobre ajudar ${nichoPlural(lead.nicho)} da região a aparecer melhor no Google.
-- Não cite o nome de concorrentes.
-
-Responda SOMENTE com o texto da mensagem.`;
+/** Os 6 toques da cadência (D0 = dia da primeira mensagem no WhatsApp). */
+export interface PassoCadencia {
+  dia: number;
+  periodo: "manha" | "tarde";
+  canal: "whatsapp" | "email";
+  objetivo: string;
 }
 
-/** Limpa a resposta da IA: tira aspas, travessões e garante no máximo 3 balões. */
+export const CADENCIA: PassoCadencia[] = [
+  {
+    dia: 0, periodo: "manha", canal: "whatsapp",
+    objetivo:
+      "Primeira abordagem no WhatsApp. Exatamente 2 balões separados por uma linha em branco. Balão 1 (curto): \"Oi, {nome}, tudo bem?\" (ou \"Oi, tudo bem?\" sem nome) e \"aqui é a Ana, da DemandIA\", dizendo em poucas palavras que ajudamos empresas da região com marketing, vendas, automação e IA. Balão 2: um fato concreto do diagnóstico (de preferência a posição frente aos concorrentes), reconhecendo um ponto forte se houver, UMA oportunidade, e a oferta de um diagnóstico gratuito e mais completo do perfil no Google, terminando com uma pergunta de sim ou não. Máximo de 420 caracteres no total.",
+  },
+  {
+    dia: 0, periodo: "tarde", canal: "email",
+    objetivo:
+      "E-mail no mesmo dia, para quem prefere e-mail. Diga logo no começo que mandou uma mensagem no WhatsApp mais cedo. Corpo com 3 parágrafos curtos: quem é a Ana e a DemandIA em uma frase; o que viu no perfil (1 ponto forte e até 2 oportunidades do diagnóstico, explicando em palavras simples por que isso pesa na escolha do cliente); o convite para o diagnóstico gratuito de 30 minutos com o Kelvin, sem compromisso, pedindo para responder o e-mail ou chamar no WhatsApp. Assunto curto, sem cara de propaganda, citando a empresa (ex.: \"Perfil da {empresa} no Google\"). Entre 70 e 140 palavras. Não assine: a assinatura entra sozinha.",
+  },
+  {
+    dia: 2, periodo: "manha", canal: "whatsapp",
+    objetivo:
+      "Follow-up curto no WhatsApp, 1 balão só, até 200 caracteres. Outro ângulo: retome com leveza a mensagem anterior, sem cobrar resposta e sem \"só passando para lembrar\". Termine com uma pergunta simples.",
+  },
+  {
+    dia: 4, periodo: "manha", canal: "email",
+    objetivo:
+      "Segundo e-mail. Traga UM ponto concreto do diagnóstico que ainda não foi explorado e explique em 2 ou 3 frases o efeito disso para quem procura {nicho_plural} em {cidade} no Google. Feche com o convite para o diagnóstico gratuito. Assunto diferente do primeiro, curto. Entre 60 e 120 palavras. Não assine.",
+  },
+  {
+    dia: 7, periodo: "manha", canal: "whatsapp",
+    objetivo:
+      "Follow-up no WhatsApp com uma dica prática e gratuita que a pessoa consegue aplicar sozinha hoje no perfil do Google, baseada numa oportunidade do diagnóstico. Depois ofereça o diagnóstico completo. 1 ou 2 balões, até 350 caracteres.",
+  },
+  {
+    dia: 10, periodo: "manha", canal: "whatsapp",
+    objetivo:
+      "Despedida educada no WhatsApp, 1 balão, até 220 caracteres. Diga que não vai insistir mais, deixe a porta aberta e pergunte se pode procurar mais para frente. Sem drama e sem culpa.",
+  },
+];
+
+export interface Toque extends PassoCadencia {
+  n: number;
+  assunto?: string;
+  texto: string;
+}
+
+/** Nome da ficha sem as palavras-chave ("Clínica X | Dentista | Implante" → "Clínica X"). */
+export function nomeCurto(nome: string): string {
+  return (nome || "").split(/\s+[|\-–•]\s+|\s*\|\s*/)[0].trim() || nome;
+}
+
+/** Instruções para a IA escrever a sequência inteira (os 6 toques) de um lead. */
+export function promptSequencia(lead: LeadPerfil & { tentativa?: number | null }, d: Diagnostico): string {
+  const C = SDR_CONFIG;
+  const nome = (lead.decisor || "").trim().split(/\s+/)[0] || "";
+  const empresa = nomeCurto(lead.empresa);
+  const troca = (t: string) =>
+    t.replace(/\{nome\}/g, nome || "").replace(/\{empresa\}/g, empresa).replace(/\{nicho_plural\}/g, nichoPlural(lead.nicho)).replace(/\{cidade\}/g, lead.cidade ?? "sua cidade");
+  const passos = CADENCIA.map(
+    (p, i) => `${i + 1}. Dia ${p.dia}, ${p.periodo === "manha" ? "manhã" : "tarde"}, ${p.canal === "email" ? "E-MAIL" : "WHATSAPP"}: ${troca(p.objetivo)}`,
+  ).join("\n");
+  return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}, e vai escrever a sequência de prospecção ativa para uma empresa que encontramos no Google Maps. São ${CADENCIA.length} toques; cada toque só sai se a pessoa ainda não respondeu, então cada um precisa fazer sentido sozinho e não repetir o anterior.
+
+## Quem somos
+${C.empresa.nome}: ajudamos empresas da região de Campinas e Indaiatuba com marketing, vendas, automação e IA. O ${C.empresa.responsavel} é o especialista que faz os diagnósticos. Um dos nossos focos é fazer empresas locais aparecerem melhor no Google e transformarem isso em clientes.
+
+## Empresa
+Nome: ${empresa}${empresa !== lead.empresa ? ` (nome completo da ficha: ${lead.empresa})` : ""}
+Segmento: ${lead.nicho ?? "não informado"} | Cidade: ${lead.cidade ?? "não informada"}
+Decisor: ${nome || "não sabemos o nome"}
+${(lead.tentativa ?? 1) > 1 ? `\nATENÇÃO: já falamos com essa empresa há uns meses e ela não respondeu. Esta é uma nova tentativa: não finja que é o primeiro contato, mencione de leve que falamos antes.\n` : ""}
+## Diagnóstico do perfil no Google (fatos verificados; use SÓ estes)
+${JSON.stringify(d, null, 2)}
+Sobre a posição: se "tipo" for "avaliacoes", é a posição em número de avaliações entre as empresas do segmento que mapeamos na cidade. Diga isso com clareza (ex.: "10º em avaliações entre 13 escritórios de Campinas"). Nunca diga que é a posição na busca do Google. Se "tipo" for "busca", aí sim é a posição real no Google Maps para o termo.
+
+## Sequência
+${passos}
+
+${REGRAS_DE_ESTILO}
+- Sempre chame a empresa de "${empresa}". Não cite o nome de concorrentes. Sem links e sem preço.
+- No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
+
+## Formato da resposta
+Responda SOMENTE com um JSON assim, com os ${CADENCIA.length} toques na ordem:
+{"toques": [{"texto": "..."}, {"assunto": "...", "texto": "..."}, {"texto": "..."}, {"assunto": "...", "texto": "..."}, {"texto": "..."}, {"texto": "..."}]}`;
+}
+
+/** Junta a resposta da IA com a cadência, já limpando o texto. */
+export function montarSequencia(resposta: string): Toque[] {
+  const m = resposta.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("a IA não devolveu a sequência");
+  const json = JSON.parse(m[0]) as { toques?: { assunto?: string; texto?: string }[] };
+  const toques = json.toques ?? [];
+  if (toques.length < CADENCIA.length) throw new Error(`a IA devolveu ${toques.length} toques`);
+  return CADENCIA.map((p, n) => {
+    const t = toques[n] ?? {};
+    const texto = p.canal === "whatsapp" ? limparMensagem(t.texto ?? "") : humanizar(t.texto ?? "");
+    if (!texto) throw new Error(`toque ${n + 1} veio vazio`);
+    const toque: Toque = { n, ...p, texto };
+    if (p.canal === "email") toque.assunto = humanizar(t.assunto ?? "").replace(/\n/g, " ") || "Perfil no Google";
+    return toque;
+  });
+}
+
+/** Problemas de estilo na sequência inteira (para pedir uma nova versão). */
+export function problemasDaSequencia(seq: Toque[]): string[] {
+  return seq.flatMap((t) => problemasDeEstilo(`${t.assunto ?? ""}\n${t.texto}`).map((p) => `toque ${t.n + 1}: ${p}`));
+}
+
+/** Limpa uma mensagem de WhatsApp: tira cara de IA e garante no máximo 3 balões. */
 export function limparMensagem(texto: string): string {
-  let t = texto.trim().replace(/^["“”']+|["“”']+$/g, "").replace(/\s*[—–]\s*/g, ", ").replace(/\*\*/g, "");
+  const t = humanizar(texto);
   const baloes = t.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-  t = (baloes.length > 3 ? [...baloes.slice(0, 2), baloes.slice(2).join(" ")] : baloes).join("\n\n");
-  return t;
+  return (baloes.length > 3 ? [...baloes.slice(0, 2), baloes.slice(2).join(" ")] : baloes).join("\n\n");
 }
