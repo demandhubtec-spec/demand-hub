@@ -213,7 +213,17 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
             ) : t.canal === "email" ? (
               <EmailPreview assunto={t.assunto} texto={t.texto} />
             ) : (
-              <Baloes texto={t.texto} />
+              <>
+                {i === 0 && (
+                  <div className="mb-1.5">
+                    <div className="w-fit rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
+                      Oi{lead.decisor ? `, ${lead.decisor.trim().split(/\s+/)[0]}` : ""}, bom dia! 🙂
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted">Saudação automática. A Ana espera uns 15 segundos (o robô de boas-vindas da empresa costuma responder aqui) e só depois manda o resto.</div>
+                  </div>
+                )}
+                <Baloes texto={t.texto} />
+              </>
             )}
           </div>
         ))}
