@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { type OutreachConfig, useOutreachConfig, useOutreachResumo, useUpdateConfig } from "@/hooks/useProspeccao";
+import { type OutreachConfig, useOutreachConfig, useOutreachLeads, useOutreachResumo, useUpdateConfig } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
 import { DIAS } from "./shared";
 
@@ -27,6 +27,7 @@ function Linha({ title, sub, children }: { title: string; sub: string; children:
 export function ControlesTab() {
   const { data: cfg, isLoading, error } = useOutreachConfig();
   const { data: resumo } = useOutreachResumo();
+  const { data: leads = [] } = useOutreachLeads();
   const update = useUpdateConfig();
   const { showToast } = useToast();
   const [confirmarReal, setConfirmarReal] = React.useState(false);
@@ -83,7 +84,8 @@ export function ControlesTab() {
     );
   }
 
-  const fila = resumo?.wa_na_fila ?? 0;
+  const aprovadas = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "aprovada" && l.whatsapp).length;
+  const fila = cfg.exigir_aprovacao !== false ? aprovadas : resumo?.wa_na_fila ?? 0;
 
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -104,6 +106,13 @@ export function ControlesTab() {
           ) : (
             <Button variant="ghost" size="sm" onClick={() => salvar({ dry_run: true }, "Voltou para o modo teste")}>Voltar ao modo teste</Button>
           )}
+        </Linha>
+
+        <Linha
+          title="Só enviar mensagens aprovadas"
+          sub={cfg.exigir_aprovacao !== false ? `Recomendado. Sai só o que você aprovou na aba Aprovação (${aprovadas} aprovadas na fila).` : "Desligado: o robô usa os textos da aba Mensagens para todos os leads."}
+        >
+          <Switch checked={cfg.exigir_aprovacao !== false} onCheckedChange={(v) => salvar({ exigir_aprovacao: v }, v ? "Só mensagens aprovadas" : "Usando textos padrão para todos")} />
         </Linha>
 
         <Linha title="E-mails" sub={cfg.email_enabled ? "Disparando pelo Gmail dentro da janela" : "Desligado"}>
@@ -199,7 +208,7 @@ export function ControlesTab() {
             A partir de agora as mensagens saem de verdade para os leads.
           </DialogDescription>
           <div className="rounded-md bg-surface-2 p-3 text-[13px]">
-            <b>{fila}</b> leads na fila, até <b>{cfg.wa_daily_cap}</b> por dia
+            <b>{fila}</b> {cfg.exigir_aprovacao !== false ? "mensagens aprovadas" : "leads"} na fila, até <b>{cfg.wa_daily_cap}</b> por dia
             {fila > 0 && cfg.wa_daily_cap > 0 && <> (cerca de {Math.ceil(fila / cfg.wa_daily_cap)} dias úteis)</>}.
             {cfg.test_number && (
               <div className="mt-2 text-attention">Atenção: o número de teste está preenchido, então tudo ainda vai para {cfg.test_number}.</div>
