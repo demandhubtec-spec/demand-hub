@@ -33,3 +33,34 @@ export function LogoMark({ size = 36 }: { size?: number }) {
     </div>
   );
 }
+
+const SITE = "https://demandhub.com.br/diagnostico";
+
+/** Símbolo da nova identidade (o "D" com a estrela). */
+export function BrandMark({ size = 34 }: { size?: number }) {
+  return (
+    <img
+      src="/brand/demandia-simbolo.svg"
+      onError={(e) => {
+        const img = e.currentTarget;
+        if (!img.src.startsWith(SITE)) img.src = `${SITE}/simbolo.svg`;
+      }}
+      alt="DemandIA"
+      width={size}
+      height={size}
+      className="shrink-0 drop-shadow-[0_0_10px_rgba(123,75,255,.45)] transition-transform duration-300 group-hover:scale-105"
+    />
+  );
+}
+
+/** Logo horizontal da nova identidade (símbolo + nome). */
+export function BrandLogo({ height = 30 }: { height?: number }) {
+  return (
+    <img
+      src={`${SITE}/logo.svg`}
+      alt="DemandIA"
+      style={{ height }}
+      className="w-auto shrink-0"
+    />
+  );
+}

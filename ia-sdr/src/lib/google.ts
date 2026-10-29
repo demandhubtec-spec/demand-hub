@@ -21,7 +21,8 @@ export type GoogleKind = "google" | "gmail";
 
 const SCOPES_BY_KIND: Record<GoogleKind, string[]> = {
   google: SCOPES,
-  gmail: ["https://www.googleapis.com/auth/gmail.send"],
+  // send: enviar os e-mails da cadência · readonly: ver quem respondeu (e quem voltou por endereço inválido)
+  gmail: ["https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/gmail.readonly"],
 };
 
 function sign(payload: string) {

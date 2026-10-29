@@ -5,10 +5,14 @@
  */
 import { db } from "./db.ts";
 import { accessToken } from "./google.ts";
+import { env } from "./env.ts";
+import { sendText } from "./evolution.ts";
 
 export const RODAPE_OPTOUT = "Se não quiser mais receber, é só responder 'sair'.";
 
 interface Config {
+  email_check_at?: string | null;
+  optout_words?: string[];
   email_enabled: boolean;
   exigir_aprovacao?: boolean;
   dry_run: boolean;
@@ -58,7 +62,7 @@ const enc = (s: string) => `=?UTF-8?B?${Buffer.from(s, "utf8").toString("base64"
 export function buildMime(to: string, subject: string, body: string, from?: string | null) {
   const subj = enc(subject);
   return [
-    ...(from ? [`From: ${enc(REMETENTE_NOME)} <${from}>`] : []),
+    ...(from ? [`From: ${enc(REMETENTE_NOME)} <${from}>`, `List-Unsubscribe: <mailto:${from}?subject=sair>`] : []),
     `To: ${to}`,
     `Subject: ${subj}`,
     "MIME-Version: 1.0",
@@ -80,7 +84,94 @@ export async function gmailSend(to: string, subject: string, body: string, from?
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Gmail ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
-  return (json as { id?: string }).id ?? null;
+  const r = json as { id?: string; threadId?: string };
+  return { id: r.id ?? null, threadId: r.threadId ?? null };
+}
+
+interface GmailMsg {
+  id: string;
+  labelIds?: string[];
+  snippet?: string;
+  internalDate?: string;
+  payload?: { headers?: { name: string; value: string }[] };
+}
+
+const BOUNCE = /mailer-daemon|postmaster|mail delivery|delivery status/i;
+
+/** Uma mensagem de outra pessoa na conversa: resposta, ou aviso de que o e-mail voltou. */
+export function classificarThread(msgs: GmailMsg[], optoutWords: string[] = []) {
+  const deles = msgs.filter((m) => !(m.labelIds ?? []).includes("SENT"));
+  if (!deles.length) return null;
+  const m = deles[0];
+  const from = m.payload?.headers?.find((h) => h.name.toLowerCase() === "from")?.value ?? "";
+  const subject = m.payload?.headers?.find((h) => h.name.toLowerCase() === "subject")?.value ?? "";
+  if (BOUNCE.test(from) || BOUNCE.test(subject)) return { tipo: "bounce" as const, texto: m.snippet ?? "", de: from };
+  const texto = (m.snippet ?? "").replace(/&#39;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&");
+  const low = texto.toLowerCase();
+  const optout = /\bsair\b/.test(low) || optoutWords.some((w) => w && low.includes(w.toLowerCase()));
+  return { tipo: optout ? ("optout" as const) : ("resposta" as const), texto, de: from, em: m.internalDate ? new Date(Number(m.internalDate)).toISOString() : null };
+}
+
+/**
+ * Olha as conversas dos e-mails enviados (a cada 10 minutos) e marca quem respondeu,
+ * quem pediu para sair e quem teve o e-mail devolvido. Avisa o Kelvin no WhatsApp quando alguém responde.
+ */
+export async function checarRespostasEmail(cfg: { email_check_at?: string | null; optout_words?: string[] }, now = new Date()) {
+  if (cfg.email_check_at && new Date(cfg.email_check_at) > now) return { email_check: "aguardando" };
+  await db().from("outreach_config").update({ email_check_at: new Date(now.getTime() + 10 * 60_000).toISOString() }).eq("id", 1);
+  let token: string;
+  try {
+    token = await accessToken("gmail");
+  } catch {
+    return { email_check: "gmail não conectado" };
+  }
+  const { data: leads } = await db()
+    .from("outreach_leads")
+    .select("place_id, empresa, email, email_threads, toque_atual, cadencia, wa_status")
+    .eq("email_status", "enviado")
+    .not("email_threads", "is", null)
+    .order("email_sent_at", { ascending: false })
+    .limit(60);
+  let respostas = 0;
+  for (const l of leads ?? []) {
+    for (const threadId of (l.email_threads ?? []) as string[]) {
+      const r = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/threads/${threadId}?format=metadata&metadataHeaders=From&metadataHeaders=Subject`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (!r.ok) continue;
+      const t = (await r.json()) as { messages?: GmailMsg[] };
+      const c = classificarThread(t.messages ?? [], cfg.optout_words);
+      if (!c) continue;
+      if (c.tipo === "bounce") {
+        await db().from("outreach_leads").update({ email_status: "erro", email_error: "o e-mail voltou: endereço inválido" }).eq("place_id", l.place_id);
+        await log("bounce", { msg: `${l.empresa}: o e-mail voltou (${l.email})` }, l.place_id);
+        break;
+      }
+      const parar = !["respondeu", "parada"].includes(l.cadencia ?? "");
+      await db()
+        .from("outreach_leads")
+        .update({
+          email_status: c.tipo === "optout" ? "optout" : "respondeu",
+          replied_at: c.em ?? now.toISOString(),
+          reply_text: c.texto.slice(0, 1000),
+          ...(parar
+            ? { cadencia: c.tipo === "optout" ? "parada" : "respondeu", respondeu_no_toque: l.toque_atual || 1, proximo_toque_em: null, proximo_canal: null }
+            : {}),
+        })
+        .eq("place_id", l.place_id);
+      await log(c.tipo === "optout" ? "optout" : "reply", { text: c.texto.slice(0, 300), toque: l.toque_atual, msg: `${l.empresa} respondeu o e-mail` }, l.place_id);
+      if (c.tipo === "resposta" && env.ownerPhone) {
+        await sendText(
+          env.ownerPhone,
+          `*${l.empresa}* respondeu o e-mail da prospecção:\n"${c.texto.slice(0, 300)}"\n\nResponda pelo Gmail da DemandIA. A cadência dessa empresa foi parada.`,
+        ).catch(() => null);
+      }
+      respostas++;
+      break;
+    }
+  }
+  return { email_check: "ok", respostas };
 }
 
 async function gmailRemetente(): Promise<string | null> {
@@ -108,7 +199,10 @@ export async function runEmailTick(now = new Date()) {
   const { data: cfg, error } = await db().from("outreach_config").select("*").eq("id", 1).single<Config>();
   if (error || !cfg) return { skip: "config não encontrada", error: error?.message };
 
-  if (!cfg.email_enabled) return { skip: "e-mail desligado" };
+  // Respostas e devoluções de e-mail (roda mesmo com o envio desligado)
+  const check = await checarRespostasEmail(cfg, now).catch((e) => ({ email_check: String(e).slice(0, 200) }));
+
+  if (!cfg.email_enabled) return { ...check, skip: "e-mail desligado" };
   if (!dentroDaJanela(cfg, now)) return { skip: "fora da janela" };
   if (cfg.next_email_at && new Date(cfg.next_email_at) > now) return { skip: "aguardando intervalo" };
 
@@ -166,7 +260,7 @@ export async function runEmailTick(now = new Date()) {
   // Toque de e-mail devido na cadência
   const { data: fila } = await db()
     .from("outreach_leads")
-    .select("place_id, empresa, email, email_status, wa_status, sequencia, toque_atual")
+    .select("place_id, empresa, email, email_status, email_threads, wa_status, sequencia, toque_atual")
     .eq("cadencia", "ativa")
     .eq("proximo_canal", "email")
     .lte("proximo_toque_em", now.toISOString())
@@ -187,8 +281,11 @@ export async function runEmailTick(now = new Date()) {
   await agendar();
   const subject = toque.assunto || lead.empresa;
   try {
-    await gmailSend(lead.email, subject, comRodape(toque.texto), eu);
-    const patch: Record<string, unknown> = { email_subject: subject };
+    const enviado = await gmailSend(lead.email, subject, comRodape(toque.texto), eu);
+    const patch: Record<string, unknown> = {
+      email_subject: subject,
+      email_threads: [...((lead.email_threads ?? []) as string[]), ...(enviado.threadId ? [enviado.threadId] : [])],
+    };
     if (lead.email_status !== "enviado") {
       patch.email_status = "enviado";
       patch.email_sent_at = now.toISOString();

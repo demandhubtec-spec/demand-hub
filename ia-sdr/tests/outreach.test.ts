@@ -182,3 +182,21 @@ test("follow-up da cadência também não pausa a IA e entra no contexto da Ana"
   assert.match(r, /Conseguiu ver/);
   assert.doesNotMatch(r, /Ainda não enviado/);
 });
+
+import { classificarThread } from "../src/lib/outreach-email.ts";
+
+test("e-mail: reconhece resposta, pedido para sair e e-mail devolvido", () => {
+  const nosso = { id: "1", labelIds: ["SENT"], snippet: "Oi Diego" };
+  const h = (from: string, subject = "Re: Perfil") => ({ headers: [{ name: "From", value: from }, { name: "Subject", value: subject }] });
+  assert.equal(classificarThread([nosso]), null);
+  const r = classificarThread([nosso, { id: "2", labelIds: ["INBOX"], snippet: "Pode me ligar amanh&#39;ã", internalDate: "1700000000000", payload: h("Diego <d@x.com>") }]);
+  assert.equal(r?.tipo, "resposta");
+  assert.equal(r?.texto, "Pode me ligar amanh'ã");
+  assert.equal(classificarThread([nosso, { id: "3", snippet: "Por favor, SAIR da lista", payload: h("d@x.com") }])?.tipo, "optout");
+  assert.equal(classificarThread([nosso, { id: "4", snippet: "não tenho interesse", payload: h("d@x.com") }], ["não tenho interesse"])?.tipo, "optout");
+  assert.equal(classificarThread([nosso, { id: "5", snippet: "Address not found", payload: h("Mail Delivery Subsystem <mailer-daemon@googlemail.com>") }])?.tipo, "bounce");
+});
+
+test("MIME com List-Unsubscribe quando tem remetente", () => {
+  assert.match(buildMime("a@b.com", "Oi", "Corpo", "eu@gmail.com"), /List-Unsubscribe: <mailto:eu@gmail.com\?subject=sair>/);
+});

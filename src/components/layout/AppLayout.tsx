@@ -26,7 +26,21 @@ const titleMap = buildTitleMap();
 
 export function AppLayout() {
   const location = useLocation();
-  const [collapsed, setCollapsed] = React.useState(false);
+  // Menu recolhido fica lembrado neste navegador
+  const [collapsed, setCollapsed] = React.useState(() => {
+    try {
+      return localStorage.getItem("dh.menuRecolhido") === "1";
+    } catch {
+      return false;
+    }
+  });
+  React.useEffect(() => {
+    try {
+      localStorage.setItem("dh.menuRecolhido", collapsed ? "1" : "0");
+    } catch {
+      /* sem armazenamento: só não lembra */
+    }
+  }, [collapsed]);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [theme, setTheme] = React.useState<"dark" | "light">(() => {
     if (typeof document !== "undefined") {
@@ -55,7 +69,7 @@ export function AppLayout() {
       <div
         className={cn(
           "flex min-w-0 flex-1 flex-col transition-[margin-left] duration-250 ease-in-out",
-          collapsed ? "md:ml-[76px]" : "md:ml-[258px]",
+          collapsed ? "md:ml-[64px]" : "md:ml-[258px]",
         )}
       >
         <Topbar
