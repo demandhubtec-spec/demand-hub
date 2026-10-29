@@ -15,6 +15,7 @@ import {
   diagnosticar,
   montarSequencia,
   problemasDaSequencia,
+  promptRevisaoSequencia,
   promptSequencia,
   type Concorrente,
   type LeadPerfil,
@@ -37,7 +38,7 @@ function cors(req: Request): Record<string, string> {
 
 const CAMPOS =
   "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa";
-const LOTE = 6;
+const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
 async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null }, diag: ReturnType<typeof diagnosticar>): Promise<Toque[]> {
@@ -51,10 +52,21 @@ async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null 
     });
     return montarSequencia(res.message.content ?? "");
   };
-  const seq = await pedir();
-  const problemas = problemasDaSequencia(seq);
-  if (!problemas.length) return seq;
-  return pedir(` Na versão anterior havia estes problemas, corrija: ${problemas.join("; ")}.`).catch(() => seq);
+  const rascunho = await pedir();
+
+  // 2ª etapa: revisor de copy (SPIN, gatilhos, sem repetição, sem cara de IA)
+  const revisada = await callLLM({
+    system: promptRevisaoSequencia(lead, diag, rascunho),
+    messages: [{ role: "user", content: "Revise e devolva a versão final." }],
+    maxTokens: 6000,
+    json: true,
+  })
+    .then((r) => montarSequencia(r.message.content ?? ""))
+    .catch(() => rascunho);
+
+  const problemas = problemasDaSequencia(revisada);
+  if (!problemas.length) return revisada;
+  return pedir(` Na versão anterior havia estes problemas, corrija: ${problemas.join("; ")}.`).catch(() => revisada);
 }
 
 export async function OPTIONS(req: Request) {

@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
 import { type OutreachLead, type Toque, enviarEmailTeste, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
-import { canalLabel, quandoTexto } from "./cadencia";
+import { canalLabel, pontuacao, quandoTexto } from "./cadencia";
 import { cn } from "@/lib/utils";
 
 type Filtro = "rascunho" | "aprovada" | "rejeitada";
@@ -77,6 +77,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
 
   const d = lead.diagnostico;
   const pos = posicaoTexto(lead);
+  const prio = pontuacao(lead);
   const visiveis = aberto || editando ? seq : seq.slice(0, 1);
 
   async function mudar(patch: Partial<OutreachLead>, msg: string) {
@@ -124,7 +125,19 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <div className="font-semibold">{lead.empresa}</div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-semibold">{lead.empresa}</span>
+            <span
+              className={cn(
+                "rounded-full px-2 py-[2px] text-[11px] font-semibold",
+                prio.nivel === "Alta" ? "bg-positive-tint text-positive" : prio.nivel === "Média" ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
+              )}
+              title={prio.motivos.join(" · ")}
+            >
+              Prioridade {prio.nivel.toLowerCase()} · {prio.nota}
+            </span>
+          </div>
+          {prio.motivos.length > 0 && <div className="text-[11.5px] text-muted">Por quê: {prio.motivos.join(", ")}</div>}
           <div className="text-[12px] text-muted">
             {[lead.nicho, lead.cidade, lead.decisor && `Decisor: ${lead.decisor}`, lead.email ? "tem e-mail" : "sem e-mail", (lead.tentativa ?? 1) > 1 && `${lead.tentativa}ª tentativa`]
               .filter(Boolean)
@@ -263,7 +276,8 @@ export function AprovacaoTab() {
   const naFila = leads.filter((l) => l.wa_status === "pendente");
   const semMsg = naFila.filter((l) => l.msg_status === "sem" || l.msg_status === "gerando").length;
   const cont = (s: Filtro) => naFila.filter((l) => l.msg_status === s).length;
-  const lista = naFila.filter((l) => l.msg_status === filtro);
+  // As empresas com mais oportunidade aparecem primeiro
+  const lista = naFila.filter((l) => l.msg_status === filtro).sort((a, b) => pontuacao(b).nota - pontuacao(a).nota);
 
   async function gerarTodas() {
     let total = 0;

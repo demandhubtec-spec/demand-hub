@@ -5,6 +5,7 @@
  */
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { REGRAS_DE_ESTILO, humanizar, problemasDeEstilo } from "./estilo.ts";
+import { ANGULOS, GUIA_COPY, promptRevisao } from "./copy.ts";
 
 export interface LeadPerfil {
   place_id: string;
@@ -183,7 +184,7 @@ export function promptSequencia(lead: LeadPerfil & { tentativa?: number | null }
   const troca = (t: string) =>
     t.replace(/\{nome\}/g, nome || "").replace(/\{empresa\}/g, empresa).replace(/\{nicho_plural\}/g, nichoPlural(lead.nicho)).replace(/\{cidade\}/g, lead.cidade ?? "sua cidade");
   const passos = CADENCIA.map(
-    (p, i) => `${i + 1}. Dia ${p.dia}, ${p.periodo === "manha" ? "manhã" : "tarde"}, ${p.canal === "email" ? "E-MAIL" : "WHATSAPP"}: ${troca(p.objetivo)}`,
+    (p, i) => `${i + 1}. Dia ${p.dia}, ${p.periodo === "manha" ? "manhã" : "tarde"}, ${p.canal === "email" ? "E-MAIL" : "WHATSAPP"}. Ângulo: ${ANGULOS[i]} Forma: ${troca(p.objetivo)}`,
   ).join("\n");
   return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}, e vai escrever a sequência de prospecção ativa para uma empresa que encontramos no Google Maps. São ${CADENCIA.length} toques; cada toque só sai se a pessoa ainda não respondeu, então cada um precisa fazer sentido sozinho e não repetir o anterior.
 
@@ -202,6 +203,8 @@ Sobre a posição: se "tipo" for "avaliacoes", é a posição em número de aval
 ## Sequência
 ${passos}
 
+${GUIA_COPY}
+
 ${REGRAS_DE_ESTILO}
 - Chame a empresa de "${empresa}" na primeira menção de cada mensagem; depois use "vocês". Não cite o nome de concorrentes. Sem links e sem preço.
 - Nunca seja vago ou misterioso ("tem um ponto que...", "um detalhe que muita gente esquece"): diga o fato.
@@ -212,6 +215,15 @@ ${REGRAS_DE_ESTILO}
 ## Formato da resposta
 Responda SOMENTE com um JSON assim, com os ${CADENCIA.length} toques na ordem:
 {"toques": [{"texto": "..."}, {"assunto": "...", "texto": "..."}, {"texto": "..."}, {"assunto": "...", "texto": "..."}, {"texto": "..."}, {"texto": "..."}]}`;
+}
+
+/** Prompt da segunda etapa (revisor de copy), com o contexto do lead. */
+export function promptRevisaoSequencia(lead: LeadPerfil & { tentativa?: number | null }, d: Diagnostico, seq: Toque[]): string {
+  const nome = (lead.decisor || "").trim().split(/\s+/)[0] || "";
+  const contexto = `Empresa: ${nomeCurto(lead.empresa)} | Segmento: ${lead.nicho ?? "não informado"} | Cidade: ${lead.cidade ?? "não informada"} | Decisor: ${nome || "não sabemos o nome"}${(lead.tentativa ?? 1) > 1 ? " | Segunda tentativa: já falamos antes e não houve resposta" : ""}
+Diagnóstico: ${JSON.stringify(d)}`;
+  const json = JSON.stringify({ toques: seq.map((t) => (t.canal === "email" ? { assunto: t.assunto, texto: t.texto } : { texto: t.texto })) }, null, 2);
+  return promptRevisao(contexto, json);
 }
 
 /** Junta a resposta da IA com a cadência, já limpando o texto. */
