@@ -203,3 +203,18 @@ test("e-mail: reconhece resposta, pedido para sair e e-mail devolvido", () => {
 test("MIME com List-Unsubscribe quando tem remetente", () => {
   assert.match(buildMime("a@b.com", "Oi", "Corpo", "eu@gmail.com"), /List-Unsubscribe: <mailto:eu@gmail.com\?subject=sair>/);
 });
+
+import { promptRevisaoSequencia, promptSequencia } from "../src/lib/diagnostico-perfil.ts";
+
+test("copy: a Ana escreve com SPIN e um ângulo por toque, e o revisor confere tudo", () => {
+  const d = diagnosticar(base, concs);
+  const p = promptSequencia(base, d);
+  assert.match(p, /SPIN/);
+  assert.match(p, /Reciprocidade/);
+  assert.match(p, /Ângulo: Despedida/);
+  const seq = montarSequencia(JSON.stringify({ toques: [1, 2, 3, 4, 5, 6].map((n) => ({ assunto: `A${n}`, texto: `Texto ${n}` })) }));
+  const r = promptRevisaoSequencia(base, d, seq);
+  assert.match(r, /Checklist da revisão/);
+  assert.match(r, /Mais Odonto Prime/);
+  assert.doesNotMatch(r, /Implante Dentário \|/);
+});

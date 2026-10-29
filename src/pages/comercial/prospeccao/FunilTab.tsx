@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { type OutreachLead, useOutreachLeads, useOutreachLog, useUpdateLead } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
-import { CADENCIA_PADRAO, ETAPAS, type Etapa, etapaDoLead, funil, patchParaEtapa, respostasPorToque, resumoCadencia } from "./cadencia";
+import { CADENCIA_PADRAO, ETAPAS, type Etapa, etapaDoLead, funil, patchParaEtapa, pontuacao, respostasPorToque, resumoCadencia } from "./cadencia";
 import { FichaLead } from "./FichaLead";
 
 const label = (e: Etapa) => ETAPAS.find((x) => x.key === e)?.label ?? e;
@@ -98,6 +98,20 @@ function CardKanban({ lead, etapa, onAbrir, onArrastar }: { lead: OutreachLead; 
           <div className="font-semibold leading-tight">{lead.empresa}</div>
           <div className="mt-0.5 text-[11.5px] text-muted">{[lead.nicho, lead.cidade].filter(Boolean).join(" · ")}</div>
         </div>
+        {(() => {
+          const p = pontuacao(lead);
+          return (
+            <span
+              title={`Prioridade ${p.nivel.toLowerCase()}: ${p.motivos.join(", ")}`}
+              className={cn(
+                "shrink-0 rounded-full px-1.5 text-[10.5px] font-semibold",
+                p.nivel === "Alta" ? "bg-positive-tint text-positive" : p.nivel === "Média" ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
+              )}
+            >
+              {p.nota}
+            </span>
+          );
+        })()}
       </div>
       {etapa === "aprovar" && (
         <div className="mt-1.5 text-[11.5px] text-muted">{lead.sequencia?.length ? "Sequência pronta para revisar" : "A Ana ainda não escreveu"}</div>
@@ -146,7 +160,8 @@ export function FunilTab() {
     const e = etapaDoLead(l);
     porEtapa.set(e, [...(porEtapa.get(e) ?? []), l]);
   }
-  for (const [, arr] of porEtapa) arr.sort((a, b) => (a.proximo_toque_em ?? "9").localeCompare(b.proximo_toque_em ?? "9"));
+  for (const [, arr] of porEtapa)
+    arr.sort((a, b) => (a.proximo_toque_em ?? "9").localeCompare(b.proximo_toque_em ?? "9") || pontuacao(b).nota - pontuacao(a).nota);
 
   const porToque = respostasPorToque(leads, CADENCIA_PADRAO);
   const maxToque = Math.max(1, ...porToque.map((t) => t.n));

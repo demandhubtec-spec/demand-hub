@@ -125,3 +125,30 @@ export const CADENCIA_PADRAO: Pick<Toque, "dia" | "periodo" | "canal">[] = [
   { dia: 7, periodo: "manha", canal: "whatsapp" },
   { dia: 10, periodo: "manha", canal: "whatsapp" },
 ];
+
+/**
+ * Nota de oportunidade (0 a 100): quanto a empresa precisa do que a DemandIA faz e quanto vale abordar.
+ * Quem não tem site, não tem Instagram ou está atrás dos concorrentes no Google ganha mais pontos;
+ * empresa com muitas avaliações (mais movimento, mais verba) também sobe.
+ */
+export function pontuacao(l: OutreachLead): { nota: number; nivel: "Alta" | "Média" | "Baixa"; motivos: string[] } {
+  const motivos: string[] = [];
+  let n = 0;
+  const soma = (pts: number, motivo: string) => {
+    n += pts;
+    motivos.push(motivo);
+  };
+  if (!l.site) soma(30, "sem site");
+  if (!l.instagram) soma(15, "sem Instagram");
+  const p = l.diagnostico?.posicao;
+  if (p?.tipo === "busca" && p.posicao > 3) soma(15, `${p.posicao}º na busca do Google`);
+  if (p?.tipo === "avaliacoes" && p.posicao > Math.ceil(p.total / 2)) soma(15, `${p.posicao}º de ${p.total} em avaliações`);
+  if ((l.diagnostico?.oportunidades ?? []).some((o) => o.includes("abaixo da média"))) soma(10, "avaliações abaixo da média");
+  if (l.nota !== null && l.nota < 4.5) soma(10, `nota ${String(l.nota).replace(".", ",")}`);
+  if (l.fotos !== null && l.fotos < 20) soma(5, "poucas fotos");
+  if ((l.diagnostico?.oportunidades ?? []).some((o) => o.includes("palavras-chave"))) soma(5, "nome da ficha com palavras-chave");
+  if ((l.avaliacoes ?? 0) >= 300) soma(10, "empresa com bastante movimento");
+  else if ((l.avaliacoes ?? 0) >= 100) soma(5, "empresa com movimento");
+  const nota = Math.min(100, n);
+  return { nota, nivel: nota >= 45 ? "Alta" : nota >= 25 ? "Média" : "Baixa", motivos };
+}
