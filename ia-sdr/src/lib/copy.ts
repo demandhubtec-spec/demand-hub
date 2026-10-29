@@ -53,7 +53,7 @@ ${ANGULOS.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 4. Nenhum dado inventado; números iguais aos do diagnóstico.
 5. Soa como uma pessoa real escrevendo no WhatsApp ou num e-mail curto: natural, acentuação correta, pausas certas. Sem travessão, sem markdown, sem frases prontas, no máximo um ponto de exclamação. No WhatsApp, no máximo 1 emoji leve; no e-mail, nenhum.
 6. Termina com uma pergunta fácil de responder.
-7. O toque 1 NÃO repete "oi"/"boa tarde" (a saudação vai sozinha antes): começa com "Tudo bem? Aqui é a Ana, da DemandIA". No WhatsApp, a pergunta vai SEMPRE sozinha no último balão. Respeita os limites: toque 1 com exatamente 3 balões (apresentação e motivo, pré-análise, pergunta) e até 480 caracteres; toque 3 com 2 balões e até 220 caracteres; toque 5 até 350; toque 6 até 220; e-mails entre 60 e 140 palavras, sem assinatura.
+7. Nenhum toque de WhatsApp repete "oi"/"bom dia" (a saudação vai sozinha antes de cada um): todos começam com "Tudo bem?" e a Ana se apresentando com o motivo do contato, nunca direto ao assunto. Sem nome de pessoa no texto do WhatsApp. No WhatsApp, a pergunta vai SEMPRE sozinha no último balão. Respeita os limites: toque 1 com exatamente 3 balões (apresentação e motivo, pré-análise, pergunta) e até 480 caracteres; toques 3, 5 e 6 também com exatamente 3 balões (a Ana se apresenta com contexto, o conteúdo, a pergunta), até 340, 440 e 300 caracteres; e-mails entre 60 e 140 palavras, sem assinatura.
 8. A empresa é chamada pelo nome curto na primeira menção; depois "vocês".
 9. O toque 1 se apresenta no balão 1 ("Tudo bem? Aqui é a Ana, da DemandIA"), de forma simpática e enxuta.
 10. Ninguém da equipe é citado pelo nome: quem faz o diagnóstico é "nosso especialista em presença digital".

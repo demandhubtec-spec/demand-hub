@@ -146,7 +146,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 2, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Follow-up curto no WhatsApp, 2 balões: o primeiro com um fato do diagnóstico diferente do toque 1 (ou o efeito prático dele para quem procura {nicho_plural} em {cidade}), em uma frase; o segundo SÓ com uma pergunta simples. No máximo 220 caracteres no total. Sem cobrar resposta. Não comece com \"passando\" e não diga \"só para lembrar\".",
+      "Follow-up no WhatsApp, com jogo de cintura. A saudação (\"Oi, boa tarde! 🙂\") já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões. Balão 1: \"Tudo bem? Aqui é a Ana de novo, da DemandIA 😊\" e uma frase leve que retoma o contato, sem cobrar (ex.: \"Te chamei esses dias sobre o perfil de vocês no Google e fiquei pensando numa coisa.\"). Balão 2: um fato do diagnóstico diferente do toque 1, ou o efeito prático dele para quem procura {nicho_plural} em {cidade}, em uma ou duas frases. Balão 3: SÓ uma pergunta simples. Até 340 caracteres no total. Não diga \"só para lembrar\" nem \"não tive retorno\".",
   },
   {
     dia: 4, periodo: "manha", canal: "email",
@@ -156,12 +156,12 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 7, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Follow-up no WhatsApp com UMA dica prática, específica e gratuita que a pessoa consegue aplicar sozinha hoje no perfil do Google, ligada a uma oportunidade do diagnóstico (ex.: pedir avaliação ao fim do atendimento com o link direto, responder as avaliações recentes, subir fotos novas, completar a descrição). Nada genérico como \"mantenha o perfil atualizado\". 2 balões: a dica no primeiro; no segundo, SÓ a pergunta oferecendo o diagnóstico completo. Até 350 caracteres.",
+      "Follow-up no WhatsApp com UMA dica de presente. A saudação já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões. Balão 1: \"Tudo bem? Aqui é a Ana, da DemandIA\" e que está passando para deixar uma dica rápida para o perfil de vocês no Google, de presente (ex.: \"Tudo bem? Aqui é a Ana, da DemandIA. Olhando o perfil de vocês de novo, separei uma dica rápida que dá pra aplicar hoje 😊\"). Balão 2: a dica prática, específica e gratuita, ligada a uma oportunidade do diagnóstico (ex.: pedir avaliação ao fim do atendimento com o link direto, responder as avaliações recentes, subir fotos novas, completar a descrição). Nada genérico como \"mantenha o perfil atualizado\". Balão 3: SÓ a pergunta oferecendo o diagnóstico completo. Até 440 caracteres.",
   },
   {
     dia: 10, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Despedida educada no WhatsApp, 2 balões curtos: no primeiro, diga que não vai insistir mais e deixe a porta aberta; no segundo, SÓ a pergunta se pode procurar mais para frente. Até 220 caracteres. Sem drama e sem culpa.",
+      "Despedida educada no WhatsApp. A saudação já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões curtos. Balão 1: \"Tudo bem? É a Ana, da DemandIA, de novo\" e uma frase gentil que entende a correria (ex.: \"Imagino que a rotina aí esteja corrida.\"). Balão 2: diga que não vai mais insistir e deixe a porta aberta para o diagnóstico quando fizer sentido. Balão 3: SÓ a pergunta se pode procurar mais para frente. Até 300 caracteres. Sem drama e sem culpa.",
   },
 ];
 
@@ -212,7 +212,8 @@ ${REGRAS_DE_ESTILO}
 - Não trate como ponto forte algo que está em "oportunidades" (ex.: se o número de avaliações está abaixo da média, não diga "já tem X avaliações" como elogio).
 - Os toques precisam ser diferentes entre si: não repita a mesma frase, o mesmo fato com as mesmas palavras ou a mesma abertura.
 - No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
-- O toque 1 NÃO repete "oi"/"boa tarde" (a saudação vai sozinha antes): o balão 1 começa com "Tudo bem? Aqui é a Ana, da DemandIA".
+- Em TODO toque de WhatsApp a saudação ("Oi, boa tarde! 🙂") vai sozinha antes, então nenhum deles começa com oi, olá, bom dia ou boa tarde: o balão 1 começa com "Tudo bem?" e a Ana se apresenta ("Aqui é a Ana, da DemandIA", ou "a Ana de novo" nos seguintes), com o motivo do contato. Nunca vá direto ao assunto sem esse contexto.
+- Não use o nome de pessoa nos textos de WhatsApp: a saudação já cuida disso, e muitas vezes quem lê é a recepção.
 - No WhatsApp, a pergunta (chamada para ação) vai SEMPRE sozinha no último balão, curta.
 - E-mails: assunto que dá vontade de abrir (curioso e específico, nunca genérico como "Perfil da empresa no Google"), corpo enxuto e SEMPRE uma chamada para ação clara no fim (responder o e-mail ou chamar no WhatsApp ${C.whatsapp.exibicao}).${semSite ? `
 - A empresa NÃO tem site próprio. No toque 5, depois da dica, ofereça montar de graça uma prévia de como ficaria o site de vocês, sem compromisso (é a isca de reciprocidade). Não prometa prazo nem mande link.` : ""}
@@ -251,15 +252,15 @@ export function montarSequencia(resposta: string): Toque[] {
 /** Problemas de estilo na sequência inteira (para pedir uma nova versão). */
 export function problemasDaSequencia(seq: Toque[]): string[] {
   const out = seq.flatMap((t) => problemasDeEstilo(`${t.assunto ?? ""}\n${t.texto}`).map((p) => `toque ${t.n + 1}: ${p}`));
-  if (seq[0] && !/\bAna\b/.test(seq[0].texto)) out.push('toque 1: falta se apresentar ("aqui é a Ana, da DemandIA")');
-  if (seq[0] && /^\s*(oi|olá|ola|bom dia|boa tarde)\b/i.test(seq[0].texto)) out.push("toque 1: não repita oi/boa tarde, a saudação já vai sozinha antes; comece com \"Tudo bem? Aqui é a Ana, da DemandIA\"");
   for (const t of seq) {
     if (t.canal !== "whatsapp") continue;
     const b = t.texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
     const ultimo = b[b.length - 1] ?? "";
     if (b.length < 2 || !ultimo.includes("?") || ultimo.length > 140) out.push(`toque ${t.n + 1}: a pergunta tem que ir sozinha no último balão, curta`);
+    if (b.length !== 3) out.push(`toque ${t.n + 1}: precisa de exatamente 3 balões (apresentação e contexto, conteúdo, pergunta)`);
+    if (/^\s*(oi|olá|ola|bom dia|boa tarde|boa noite)\b/i.test(t.texto)) out.push(`toque ${t.n + 1}: não repita oi/bom dia, a saudação já vai sozinha antes; comece com "Tudo bem?"`);
+    if (!/\bAna\b/.test(b[0] ?? "")) out.push(`toque ${t.n + 1}: o primeiro balão precisa ter a Ana se apresentando ("Aqui é a Ana, da DemandIA")`);
   }
-  if (seq[0] && seq[0].texto.split(/\n\s*\n/).filter((x) => x.trim()).length !== 3) out.push("toque 1: precisa de exatamente 3 balões (apresentação, análise, pergunta)");
   for (const t of seq) if (t.canal === "email" && /\p{Extended_Pictographic}/u.test(`${t.assunto ?? ""} ${t.texto}`)) out.push(`toque ${t.n + 1}: e-mail sem emoji`);
   return out;
 }

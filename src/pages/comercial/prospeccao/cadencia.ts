@@ -159,3 +159,20 @@ const NAO_E_SITE = /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook
 export const semSiteProprio = (site: string | null | undefined) => !(site ?? "").trim() || NAO_E_SITE.test(site ?? "");
 
 export type FiltroPrioridade = "todas" | "Alta" | "Média" | "Baixa";
+
+const semAcento = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+/**
+ * Prévia da saudação que vai sozinha antes de cada toque no WhatsApp. Igual ao envio: só usa o nome do
+ * decisor quando ele aparece no nome da empresa; na hora de enviar, o nome do perfil do WhatsApp também conta.
+ */
+export function saudacaoPrevia(lead: { decisor?: string | null; empresa?: string | null }): string {
+  const pn = (lead.decisor || "").trim().split(/\s+/)[0] || "";
+  const nome = pn.charAt(0).toUpperCase() + pn.slice(1).toLowerCase();
+  let chamar = "";
+  if (nome.length >= 3 && new RegExp(`\\b${semAcento(nome)}\\b`).test(semAcento(lead.empresa || ""))) {
+    const dr = (lead.empresa || "").match(new RegExp(`\\b(dra?)\\.?\\s+${nome}`, "i"));
+    chamar = dr ? `${/a/i.test(dr[1]) ? "Dra." : "Dr."} ${nome}` : nome;
+  }
+  return `Oi, ${chamar ? `${chamar}, ` : ""}bom dia! 🙂`;
+}
