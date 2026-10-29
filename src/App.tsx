@@ -8,6 +8,7 @@ import DepartmentProjetos from "@/pages/department/DepartmentProjetos";
 import DepartmentAtividades from "@/pages/department/DepartmentAtividades";
 import Crm from "@/pages/comercial/Crm";
 import Sdr from "@/pages/comercial/Sdr";
+import Prospeccao from "@/pages/comercial/Prospeccao";
 import Clientes from "@/pages/comercial/Clientes";
 import InstagramDirect from "@/pages/marketing/InstagramDirect";
 import Financas from "@/pages/administrativo/Financas";
@@ -39,6 +40,8 @@ export default function App() {
 
           <Route path="comercial/crm" element={<Crm />} />
           <Route path="comercial/sdr" element={<Sdr />} />
+          <Route path="comercial/prospeccao" element={<Prospeccao />} />
+          <Route path="prospeccao" element={<Navigate to="/comercial/prospeccao" replace />} />
           <Route path="comercial/clientes" element={<Clientes />} />
 
           <Route path="administrativo/financas" element={<Financas />} />

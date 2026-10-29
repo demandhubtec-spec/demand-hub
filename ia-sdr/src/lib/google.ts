@@ -16,27 +16,42 @@ export function redirectUri() {
   return `${env.appUrl}/api/google/callback`;
 }
 
-/** state assinado (anti-CSRF) válido por 15 min */
-export function oauthState(): string {
+/** Qual conta Google: "google" = Agenda da IA SDR · "gmail" = envio de e-mails da prospecção */
+export type GoogleKind = "google" | "gmail";
+
+const SCOPES_BY_KIND: Record<GoogleKind, string[]> = {
+  google: SCOPES,
+  gmail: ["https://www.googleapis.com/auth/gmail.send"],
+};
+
+function sign(payload: string) {
+  return createHmac("sha256", env.adminSecret).update(payload).digest("hex").slice(0, 32);
+}
+
+/** state assinado (anti-CSRF) válido por 15 min. Formato: "<kind>.<ts>.<sig>" */
+export function oauthState(kind: GoogleKind = "google"): string {
   const ts = Date.now().toString();
-  const sig = createHmac("sha256", env.adminSecret).update(ts).digest("hex").slice(0, 32);
-  return `${ts}.${sig}`;
+  return `${kind}.${ts}.${sign(kind === "google" ? ts : `${kind}:${ts}`)}`;
 }
 
-export function validOauthState(state: string | null): boolean {
-  if (!state) return false;
-  const [ts, sig] = state.split(".");
-  if (!ts || !sig || Date.now() - Number(ts) > 15 * 60_000) return false;
-  const expected = createHmac("sha256", env.adminSecret).update(ts).digest("hex").slice(0, 32);
-  return expected.length === sig.length && timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+/** Devolve qual integração o state autoriza, ou null se for inválido/expirado. */
+export function validOauthState(state: string | null): GoogleKind | null {
+  if (!state) return null;
+  const parts = state.split(".");
+  const [kind, ts, sig] = parts.length === 3 ? parts : ["google", parts[0], parts[1]];
+  if (kind !== "google" && kind !== "gmail") return null;
+  if (!ts || !sig || Date.now() - Number(ts) > 15 * 60_000) return null;
+  const expected = sign(kind === "google" ? ts : `${kind}:${ts}`);
+  if (expected.length !== sig.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
+  return kind;
 }
 
-export function authUrl(state: string): string {
+export function authUrl(state: string, kind: GoogleKind = "google"): string {
   const p = new URLSearchParams({
     client_id: env.googleClientId,
     redirect_uri: redirectUri(),
     response_type: "code",
-    scope: SCOPES.join(" "),
+    scope: SCOPES_BY_KIND[kind].join(" "),
     access_type: "offline",
     prompt: "consent",
     state,
@@ -59,26 +74,43 @@ async function tokenRequest(params: Record<string, string>) {
   return json as { access_token: string; expires_in: number; refresh_token?: string };
 }
 
-export async function exchangeCode(code: string) {
+export async function exchangeCode(code: string, kind: GoogleKind = "google") {
   const t = await tokenRequest({ code, grant_type: "authorization_code", redirect_uri: redirectUri() });
   if (!t.refresh_token) throw new Error("O Google não devolveu refresh_token. Remova o acesso do app na conta Google e conecte de novo.");
+  let email: string | null = null;
+  if (kind === "gmail") {
+    // Descobre qual Gmail foi conectado (será o remetente dos e-mails)
+    const r = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile", {
+      headers: { Authorization: `Bearer ${t.access_token}` },
+    }).catch(() => null);
+    email = r?.ok ? ((await r.json()) as { emailAddress?: string }).emailAddress ?? null : null;
+  }
   await db().from("sdr_integrations").upsert({
-    key: "google",
-    value: { refresh_token: t.refresh_token, connected_at: new Date().toISOString() },
+    key: kind,
+    value: { refresh_token: t.refresh_token, connected_at: new Date().toISOString(), ...(email ? { email } : {}) },
     updated_at: new Date().toISOString(),
   });
+  cache.delete(kind);
+  return { email };
 }
 
-let cache: { token: string; exp: number } | null = null;
+const cache = new Map<GoogleKind, { token: string; exp: number }>();
 
-async function accessToken(): Promise<string> {
-  if (cache && cache.exp > Date.now() + 60_000) return cache.token;
-  const row = await db().from("sdr_integrations").select("value").eq("key", "google").maybeSingle();
+export async function accessToken(kind: GoogleKind = "google"): Promise<string> {
+  const hit = cache.get(kind);
+  if (hit && hit.exp > Date.now() + 60_000) return hit.token;
+  const row = await db().from("sdr_integrations").select("value").eq("key", kind).maybeSingle();
   const refresh = (row.data?.value as { refresh_token?: string } | undefined)?.refresh_token;
-  if (!refresh) throw new Error("Google Agenda não conectado. Acesse /api/google/connect?secret=ADMIN_SECRET");
+  if (!refresh) {
+    throw new Error(
+      kind === "gmail"
+        ? "Gmail não conectado. Acesse /api/google/connect?secret=ADMIN_SECRET&tipo=gmail"
+        : "Google Agenda não conectado. Acesse /api/google/connect?secret=ADMIN_SECRET",
+    );
+  }
   const t = await tokenRequest({ refresh_token: refresh, grant_type: "refresh_token" });
-  cache = { token: t.access_token, exp: Date.now() + t.expires_in * 1000 };
-  return cache.token;
+  cache.set(kind, { token: t.access_token, exp: Date.now() + t.expires_in * 1000 });
+  return t.access_token;
 }
 
 async function gfetch(path: string, init: RequestInit = {}) {

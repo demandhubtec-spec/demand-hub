@@ -50,6 +50,7 @@ export const navGroups: NavGroup[] = [
       ...deptChildren("comercial"),
       { label: "CRM", path: "/comercial/crm", colaboradorPode: false },
       { label: "SDR IA", path: "/comercial/sdr", colaboradorPode: false },
+      { label: "Prospecção ativa", path: "/comercial/prospeccao", colaboradorPode: false },
       { label: "Clientes", path: "/comercial/clientes", colaboradorPode: false },
     ],
   },
