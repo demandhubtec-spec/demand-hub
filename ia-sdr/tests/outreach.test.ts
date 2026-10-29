@@ -107,7 +107,8 @@ test("diagnóstico: posição real da busca tem prioridade e nada é inventado",
 test("nome com palavras-chave e limpeza da mensagem", () => {
   assert.equal(nomeComPalavrasChave("BBZ Advocacia"), false);
   assert.equal(nomeComPalavrasChave(base.empresa), true);
-  assert.equal(limparMensagem('"Oi, Ana! — tudo bem?\n\nSegundo **balão**"'), "Oi, Ana!, tudo bem?\n\nSegundo balão");
+  assert.equal(limparMensagem('"Oi, Ana! — tudo bem?\n\nSegundo **balão**"'), "Oi, Ana! tudo bem?\n\nSegundo balão");
+  assert.equal(limparMensagem("Oi, Diego.\n\nSegundo\ncom quebra\n\nTerceiro", 2), "Oi, Diego.\n\nSegundo com quebra Terceiro");
 });
 
 import { humanizar, problemasDeEstilo } from "../src/lib/estilo.ts";
@@ -116,6 +117,8 @@ import { toquesRecebidos } from "../src/lib/prospeccao.ts";
 
 test("humanizar: tira travessão, markdown e exclamação em excesso", () => {
   assert.equal(humanizar("Oi — tudo bem?"), "Oi, tudo bem?");
+  assert.equal(humanizar("Uma dica simples para o perfil — responda as avaliações."), "Uma dica simples para o perfil: responda as avaliações.");
+  assert.equal(humanizar("O perfil — que é bom — precisa de fotos."), "O perfil, que é bom, precisa de fotos.");
   assert.equal(humanizar("— Começo\nfim –."), "Começo\nfim.");
   assert.equal(humanizar("**Atenção** aqui!!"), "Atenção aqui!");
   assert.equal(humanizar("- item um\n- item dois"), "item um\nitem dois");
