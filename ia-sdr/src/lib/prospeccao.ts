@@ -46,7 +46,8 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
  */
 export function ehDisparoDaProspeccao(p: Prospeccao | null, texto: string, agora = new Date()): boolean {
   if (!p?.wa_sent_at) return false;
-  if (p.wa_message && p.wa_message.trim() === texto.trim()) return true;
+  // O disparo sai em balões: cada balão é um pedaço da mensagem registrada
+  if (p.wa_message && texto.trim() && p.wa_message.includes(texto.trim())) return true;
   // Rede de segurança: disparo registrado há menos de 3 minutos
   return agora.getTime() - new Date(p.wa_sent_at).getTime() < 3 * 60_000;
 }

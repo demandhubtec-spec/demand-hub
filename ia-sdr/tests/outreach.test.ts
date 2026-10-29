@@ -55,6 +55,9 @@ test("opção C: reconhece o disparo da prospecção (não é o Kelvin responden
   assert.equal(ehDisparoDaProspeccao(prosp, "outra coisa", new Date("2026-10-28T15:01:00Z")), true); // até 3 min
   assert.equal(ehDisparoDaProspeccao(prosp, "Oi, aqui é o Kelvin de novo", new Date("2026-10-29T10:00:00Z")), false);
   assert.equal(ehDisparoDaProspeccao(null, "qualquer"), false);
+  // cada balão do disparo também é reconhecido
+  const emBaloes = { ...prosp, wa_message: "Boa tarde, Ana! Tudo bem?\n\nAqui é o Kelvin, de Indaiatuba." };
+  assert.equal(ehDisparoDaProspeccao(emBaloes, "Aqui é o Kelvin, de Indaiatuba.", new Date("2026-10-30T10:00:00Z")), true);
 });
 
 test("opção C: a Ana recebe o contexto da abordagem ativa", () => {

@@ -58,8 +58,16 @@ Deno.serve(async (req) => {
     if (!/^55\d{10,11}$/.test(number) || !text) return json({ ok: false, error: "número ou texto inválido" }, 400);
     try {
       const { data: cfg } = await admin.from("outreach_config").select("evolution_send_path").eq("id", 1).single();
-      const r = await evo(cfg?.evolution_send_path || "/send/text", "POST", { number, text });
-      if (!r.ok) throw new Error(`Evolution ${r.status}: ${(await r.text()).slice(0, 200)}`);
+      // Mesmo jeito do motor: um balão por parágrafo, com "digitando..." e pausa entre eles
+      const parts = text.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+      const baloes = parts.length > 3 ? [...parts.slice(0, 2), parts.slice(2).join("\n\n")] : parts;
+      for (let i = 0; i < baloes.length; i++) {
+        const r = await evo(cfg?.evolution_send_path || "/send/text", "POST", {
+          number, text: baloes[i], delay: Math.min(1200 + baloes[i].length * 25, 4000),
+        });
+        if (!r.ok) throw new Error(`Evolution ${r.status}: ${(await r.text()).slice(0, 200)}`);
+        if (i < baloes.length - 1) await new Promise((res) => setTimeout(res, 2500 + Math.random() * 2500));
+      }
       await admin.from("outreach_log").insert({ channel: "whatsapp", event: "sent_test", detail: { to: number, text, origem: "portal" } });
       return json({ ok: true });
     } catch (e) {

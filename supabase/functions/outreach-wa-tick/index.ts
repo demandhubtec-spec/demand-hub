@@ -55,6 +55,28 @@ function render(text: string, lead: any) {
   return spin(text).trim();
 }
 const rand = (a: number, b: number) => a + Math.floor(Math.random() * (b - a + 1));
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/** Quebra o texto em balões nas linhas em branco (no máximo 3), como uma pessoa mandaria no WhatsApp. */
+function baloes(t: string): string[] {
+  const parts = t.split(/\n\s*\n/).map((s) => s.trim()).filter(Boolean);
+  return parts.length > 3 ? [...parts.slice(0, 2), parts.slice(2).join("\n\n")] : parts;
+}
+/** Envia balão por balão, com "digitando..." e uma pausa natural entre eles. */
+async function enviarBaloes(path: string, to: string, text: string): Promise<{ ok: boolean; status: number; body: string }> {
+  const parts = baloes(text);
+  let last = { ok: true, status: 200, body: "" };
+  for (let i = 0; i < parts.length; i++) {
+    const r = await fetch(`${EVO_URL}${path}`, {
+      method: "POST",
+      headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({ number: to, text: parts[i], delay: Math.min(1200 + parts[i].length * 25, 4000) }),
+    });
+    last = { ok: r.ok, status: r.status, body: await r.text() };
+    if (!r.ok) return last;
+    if (i < parts.length - 1) await sleep(rand(2500, 5000));
+  }
+  return last;
+}
 // Chamada pelo pg_cron a cada minuto. Envia no máximo 1 WhatsApp por chamada,
 // respeitando janela, teto diário e intervalo aleatório. Também detecta respostas
 // lendo (somente leitura) as tabelas do SDR, que recebe o webhook do Evolution.
@@ -170,12 +192,8 @@ Deno.serve(async (req) => {
     return Response.json({ ...out, dry_run: true, to, text, next: nextAt });
   }
 
-  const r = await fetch(`${EVO_URL}${cfg.evolution_send_path}`, {
-    method: "POST",
-    headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
-    body: JSON.stringify({ number: to, text }),
-  });
-  const body = await r.text();
+  const r = await enviarBaloes(cfg.evolution_send_path, to, text);
+  const body = r.body;
   if (r.ok) {
     if (!cfg.test_number) {
       await sb.from("outreach_leads").update({

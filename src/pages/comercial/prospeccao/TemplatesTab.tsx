@@ -172,7 +172,9 @@ export function TemplatesTab() {
                 <Label>Texto</Label>
                 <Textarea rows={8} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
                 <div className="mt-1.5 text-[11.5px] text-muted">
-                  Variações: escreva <code className="font-mono">{"{oi|olá|e aí}"}</code> e o motor sorteia uma. Clique numa variável para inserir:
+                  Variações: escreva <code className="font-mono">{"{oi|olá|e aí}"}</code> e o motor sorteia uma.
+                  {draft.channel === "whatsapp" && <> Deixe uma <b>linha em branco</b> para quebrar em balões separados (com pausa entre eles).</>}
+                  {" "}Clique numa variável para inserir:
                 </div>
                 <div className="mt-1.5 flex flex-wrap gap-1.5">
                   {VARIAVEIS.map((v) => (
@@ -211,11 +213,25 @@ export function TemplatesTab() {
                 <Button variant="ghost" size="sm" onClick={() => setSeed((s) => s + 1)}><RefreshCw /> Gerar outra variação</Button>
               </div>
               {!lead ? <div className="text-[12.5px] text-muted">Importe um lead para ver a prévia.</div> : (
-                <div className={cn("whitespace-pre-wrap rounded-lg p-3.5 text-[13.5px]", draft.channel === "whatsapp" ? "bg-[#DCF8C6] text-[#111]" : "bg-surface-2")}>
-                  {draft.channel === "email" && <div className="mb-2 font-semibold">{previewSubject}</div>}
-                  {previewBody || <span className="opacity-60">Escreva o texto para ver a prévia.</span>}
-                  {draft.channel === "email" && previewBody && <div className="mt-3 text-[12px] opacity-70">{RODAPE_EMAIL}</div>}
-                </div>
+                draft.channel === "whatsapp" ? (
+                  <div className="space-y-1.5">
+                    {previewBody ? (
+                      previewBody.split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
+                        <div key={i} className="w-fit max-w-[90%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
+                          {b.trim()}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg bg-[#DCF8C6] p-3.5 text-[13.5px] text-[#111] opacity-60">Escreva o texto para ver a prévia.</div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap rounded-lg bg-surface-2 p-3.5 text-[13.5px]">
+                    <div className="mb-2 font-semibold">{previewSubject}</div>
+                    {previewBody || <span className="opacity-60">Escreva o texto para ver a prévia.</span>}
+                    {previewBody && <div className="mt-3 text-[12px] opacity-70">{RODAPE_EMAIL}</div>}
+                  </div>
+                )
               )}
               {draft.channel === "whatsapp" && (
                 <div className="mt-3 flex flex-wrap items-center gap-2">
