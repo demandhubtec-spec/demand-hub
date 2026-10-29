@@ -152,10 +152,10 @@ test("montar sequência: junta a resposta da IA com a cadência e limpa o texto"
     toques: [
       { texto: "Tudo bem? Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil — 3º em avaliações.\n\nPosso te mandar?" },
       { assunto: "Perfil da X no Google", texto: "Diego, mandei mensagem no WhatsApp mais cedo." },
-      { texto: "Vi que falta o site no perfil.\n\nConseguiu ver?" },
+      { texto: "Tudo bem? Aqui é a Ana de novo, da DemandIA.\n\nVi que falta o site no perfil.\n\nConseguiu ver?" },
       { assunto: "Uma coisa no perfil", texto: "Texto do segundo e-mail." },
-      { texto: "Uma dica: responda as avaliações.\n\nQuer o diagnóstico completo?" },
-      { texto: "Não vou insistir mais.\n\nPosso te procurar mais para frente?" },
+      { texto: "Tudo bem? Aqui é a Ana, da DemandIA. Separei uma dica rápida.\n\nResponda as avaliações.\n\nQuer o diagnóstico completo?" },
+      { texto: "Tudo bem? É a Ana, da DemandIA, de novo.\n\nNão vou insistir mais.\n\nPosso te procurar mais para frente?" },
     ],
   });
   const seq = montarSequencia("```json\n" + resp + "\n```");
@@ -169,6 +169,10 @@ test("montar sequência: junta a resposta da IA com a cadência e limpa o texto"
   assert.ok(problemasDaSequencia(comOi).some((p) => p.includes("não repita oi")));
   const semPergunta = seq.map((t, i) => (i === 2 ? { ...t, texto: "Vi que falta o site no perfil. Conseguiu ver?" } : t));
   assert.ok(problemasDaSequencia(semPergunta).some((p) => p.includes("pergunta tem que ir sozinha")));
+  const diretoAoPonto = seq.map((t, i) => (i === 4 ? { ...t, texto: "Uma dica: responda as avaliações.\n\nQuer o diagnóstico completo?" } : t));
+  const probs = problemasDaSequencia(diretoAoPonto);
+  assert.ok(probs.some((p) => p.includes("toque 5: precisa de exatamente 3 balões")));
+  assert.ok(probs.some((p) => p.includes("toque 5: o primeiro balão precisa ter a Ana")));
   assert.throws(() => montarSequencia('{"toques":[{"texto":"a"}]}'), /1 toques/);
 });
 
@@ -284,7 +288,7 @@ test("extras: Direct apresenta a Ana e não cita o Kelvin", () => {
 
 test("sequência: toque 1 sem apresentação vira problema", () => {
   const seq = montarSequencia(JSON.stringify({ toques: [1, 2, 3, 4, 5, 6].map((n) => ({ assunto: `A${n}`, texto: `Texto ${n}` })) }));
-  assert.ok(problemasDaSequencia(seq).some((p) => p.includes("aqui é a Ana")));
+  assert.ok(problemasDaSequencia(seq).some((p) => p.includes("toque 1: o primeiro balão precisa ter a Ana")));
 });
 
 import { pareceRespostaAutomatica } from "../src/lib/prospeccao.ts";

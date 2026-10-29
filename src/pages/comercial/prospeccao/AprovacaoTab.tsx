@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
 import { type OutreachLead, type Toque, enviarEmailTeste, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
-import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto } from "./cadencia";
+import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto, saudacaoPrevia } from "./cadencia";
 import { ExtrasLead } from "./ExtrasLead";
 import { cn } from "@/lib/utils";
 
@@ -214,14 +214,12 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
               <EmailPreview assunto={t.assunto} texto={t.texto} />
             ) : (
               <>
-                {i === 0 && (
-                  <div className="mb-1.5">
-                    <div className="w-fit rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
-                      Oi{lead.decisor ? `, ${lead.decisor.trim().split(/\s+/)[0]}` : ""}, bom dia! 🙂
-                    </div>
-                    <div className="mt-1 text-[11px] text-muted">Saudação automática. A Ana espera uns 15 segundos (o robô de boas-vindas da empresa costuma responder aqui) e só depois manda o resto.</div>
+                <div className="mb-1.5">
+                  <div className="w-fit rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">{saudacaoPrevia(lead)}</div>
+                  <div className="mt-1 text-[11px] text-muted">
+                    Saudação automática, com bom dia ou boa tarde conforme o horário. O nome só entra se bater com o perfil do WhatsApp ou com o nome da empresa. A Ana espera uns 15 segundos e só depois manda o resto.
                   </div>
-                )}
+                </div>
                 <Baloes texto={t.texto} />
               </>
             )}

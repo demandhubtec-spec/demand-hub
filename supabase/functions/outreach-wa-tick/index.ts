@@ -77,12 +77,56 @@ async function enviarBaloes(path: string, to: string, text: string): Promise<{ o
   }
   return last;
 }
-/** Saudação curta que vai sozinha antes da abordagem: "Oi, Helton, boa tarde! 😊". */
-function saudacaoCurta(decisor?: string | null) {
+const semAcento = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+const PALAVRA_EMPRESA = /(cl[ií]nica|odonto|dent|advog|advoc|jur[ií]dic|im[oó]v|imobili|consult|centro|instituto|n[uú]cleo|studio|est[uú]dio|\bpet\b|vet|ltda|\bme\b|eireli|grupo|escrit[oó]rio|sa[uú]de|m[eé]dic|\bmed\b|lab|diagn|contab|loja|atendimento|recep|oficial|unidade|agro|com[eé]rcio|servi[cç]o|&|\d)/i;
+/** Nome que o WhatsApp mostra para o número (perfil comercial verificado), se vier na checagem. */
+function nomeDoWhats(v: unknown): string {
+  if (!v) return "";
+  if (typeof v === "string") return v.trim();
+  const o = v as Record<string, any>;
+  return String(o?.Details?.verifiedName ?? o?.details?.verifiedName ?? o?.VerifiedName ?? o?.verifiedName ?? o?.name ?? "").trim();
+}
+/** Primeiro nome de um texto que parece nome de pessoa ("Dra. Joyce Martins" → "Dra. Joyce"); vazio se parece nome de empresa. */
+function nomeDePessoa(t: string): string {
+  const s = (t || "").replace(/[|•–-].*$/, "").trim();
+  if (!s || PALAVRA_EMPRESA.test(s) || s.split(/\s+/).length > 4) return "";
+  const m = s.match(/^(dr\.?a?|dra\.?)\s+(\p{L}+)/iu);
+  if (m) return `${/a/i.test(m[1]) ? "Dra." : "Dr."} ${primeiroNome(m[2])}`;
+  const p = s.split(/\s+/)[0];
+  return /^\p{L}{3,}$/u.test(p) ? primeiroNome(p) : "";
+}
+/**
+ * Como chamar a pessoa na saudação. O decisor vem do CNPJ e quase sempre o número é da recepção,
+ * então só usamos um nome quando ele bate com o que aparece no WhatsApp ou no nome da empresa.
+ * Na dúvida, sem nome ("Oi, boa tarde!") soa melhor do que chamar alguém pelo nome errado.
+ */
+function nomeParaSaudar(lead: { decisor?: string | null; empresa?: string | null }, whats?: string): string {
+  const pn = primeiroNome(lead.decisor);
+  const w = whats || "";
+  if (pn && pn.length >= 3) {
+    const alvo = semAcento(pn);
+    for (const fonte of [w, lead.empresa || ""]) {
+      if (!new RegExp(`\\b${alvo}\\b`).test(semAcento(fonte))) continue;
+      const dr = fonte.match(new RegExp(`\\b(dra?)\\.?\\s+${pn}`, "i"));
+      return dr ? `${/a/i.test(dr[1]) ? "Dra." : "Dr."} ${pn}` : pn;
+    }
+  }
+  return nomeDePessoa(w);
+}
+/** Saudação curta que vai sozinha antes de cada mensagem no WhatsApp: "Oi, Helton, boa tarde! 😊". */
+function saudacaoCurta(nome?: string) {
   const h = spHour();
   const periodo = h < 12 ? "bom dia" : h < 18 ? "boa tarde" : "boa noite";
-  const pn = primeiroNome(decisor);
-  return `${pick(["Oi", "Olá"])}, ${pn ? `${pn}, ` : ""}${periodo}! ${pick(["😊", "🙂", "👋"])}`;
+  return `${pick(["Oi", "Olá"])}, ${nome ? `${nome}, ` : ""}${periodo}! ${pick(["😊", "🙂", "👋"])}`;
+}
+/** Manda a saudação sozinha, espera o robô de boas-vindas da empresa e depois manda a mensagem. */
+async function enviarComSaudacao(path: string, to: string, nome: string, texto: string) {
+  const oi = saudacaoCurta(nome);
+  const r0 = await enviarBaloes(path, to, oi);
+  if (!r0.ok) return { r: r0, enviado: oi };
+  await sleep(rand(12000, 16000));
+  const resto = semSaudacao(texto);
+  return { r: await enviarBaloes(path, to, resto), enviado: `${oi}\n\n${resto}` };
 }
 /** Tira o "Oi, fulano, tudo bem?" do começo da abordagem, porque a saudação já foi antes. */
 function semSaudacao(texto: string) {
@@ -146,7 +190,7 @@ async function checkNumber(num: string): Promise<{ ok: boolean; jid?: string; na
     });
     const u = (await r.json())?.data?.Users?.[0];
     if (!u) return null;
-    return { ok: !!u.IsInWhatsapp, jid: u.JID, name: u.VerifiedName };
+    return { ok: !!u.IsInWhatsapp, jid: u.JID, name: nomeDoWhats(u.VerifiedName ?? u.verifiedName) };
   } catch { return null; }
 }
 
@@ -163,7 +207,7 @@ async function instanceOk() {
 /** Manda o próximo toque de WhatsApp da cadência que já venceu. Retorna null se não havia nada. */
 async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
   const { data: due } = await sb.from("outreach_leads")
-    .select("place_id, empresa, whatsapp, sequencia, toque_atual, wa_status")
+    .select("place_id, empresa, decisor, whatsapp, sequencia, toque_atual, wa_status")
     .eq("cadencia", "ativa").eq("proximo_canal", "whatsapp")
     .lte("proximo_toque_em", new Date().toISOString())
     .order("proximo_toque_em", { ascending: true }).limit(1);
@@ -187,10 +231,12 @@ async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
 
   const chk = await checkNumber(lead.whatsapp);
   const to = chk?.jid ? chk.jid.split("@")[0] : lead.whatsapp;
-  const r = await enviarBaloes(cfg.evolution_send_path, to, String(toque.texto).trim());
+  // Igual ao 1º toque: a saudação vai sozinha, espera uns segundos e depois vem a mensagem com o contexto
+  const nome = nomeParaSaudar(lead, chk?.name);
+  const { r } = await enviarComSaudacao(cfg.evolution_send_path, to, nome, String(toque.texto).trim());
   if (r.ok) {
     await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
-    await log(lead.place_id, "followup", { to, toque: lead.toque_atual + 1, msg: `${lead.empresa}: toque ${lead.toque_atual + 1}` });
+    await log(lead.place_id, "followup", { to, toque: lead.toque_atual + 1, nome_whats: chk?.name || null, saudou: nome || null, msg: `${lead.empresa}: toque ${lead.toque_atual + 1}` });
     return { followup: lead.empresa, toque: lead.toque_atual + 1, next: nextAt };
   }
   const low = r.body.toLowerCase();
@@ -266,8 +312,10 @@ Deno.serve(async (req) => {
     text = render(tpls[Math.floor(Math.random() * tpls.length)].body, lead);
   }
   let to = (cfg.test_number || "").replace(/\D/g, "") || lead.whatsapp;
+  let nomeWhats = "";
   if (!cfg.dry_run && !cfg.test_number) {
     const chk = await checkNumber(lead.whatsapp);
+    nomeWhats = chk?.name || "";
     if (chk && !chk.ok) {
       await sb.from("outreach_leads").update({ wa_status: "sem_whatsapp", wa_error: "número sem WhatsApp", updated_at: new Date().toISOString() }).eq("place_id", lead.place_id);
       await log(lead.place_id, "sem_whatsapp", { num: lead.whatsapp });
@@ -287,12 +335,10 @@ Deno.serve(async (req) => {
   if (!cfg.test_number) await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
   // 1º contato em duas etapas: a saudação vai sozinha, a gente espera o robô de boas-vindas da empresa
   // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
-  const oi = saudacaoCurta(lead.decisor);
-  const r0 = await enviarBaloes(cfg.evolution_send_path, to, oi);
-  if (r0.ok) await sleep(rand(12000, 16000));
-  text = semSaudacao(text);
-  const r = r0.ok ? await enviarBaloes(cfg.evolution_send_path, to, text) : r0;
-  text = `${oi}\n\n${text}`;
+  const nome = nomeParaSaudar(lead, nomeWhats);
+  const env = await enviarComSaudacao(cfg.evolution_send_path, to, nome, text);
+  const r = env.r;
+  text = env.enviado;
   const body = r.body;
   if (r.ok) {
     if (!cfg.test_number) {
@@ -303,7 +349,7 @@ Deno.serve(async (req) => {
       // Começa a cadência de follow-up (só para quem tem a sequência aprovada)
       await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
     }
-    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, resp: body.slice(0, 300) });
+    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
     return Response.json({ ...out, sent: lead.empresa, to, next: nextAt });
   }
   const attempts = lead.wa_attempts + 1;
