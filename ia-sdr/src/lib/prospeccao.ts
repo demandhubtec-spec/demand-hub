@@ -118,6 +118,9 @@ const AUTO_FORTE = [
   /acompanhando (o )?seu atendimento/,
   /se (voce )?ja (e|for) (nosso|nossa) client/,
   /qual (o )?assunto (voce )?(quer|deseja|gostaria)/,
+  /(vou|vamos) (te |lhe )?transferir/,
+  /transferindo (voce|seu atendimento|para)/,
+  /(nosso|um) atendente (ja |logo |em breve )?(vai|ira)/,
   /^\s*(1|1\.|1\)|1 -|1-)\s.+\n\s*(2|2\.|2\)|2 -|2-)\s/m,
 ];
 
@@ -130,6 +133,7 @@ const AUTO_FRACO = [
   /agradecemos (o|seu|a sua|sua) (contato|mensagem)/,
   /que bom ter voce/,
   /se precisar de algo,? (e so|pode) chamar/,
+  /^\W*(so|aguarde) um (momento|instante)/,
 ];
 
 /**
