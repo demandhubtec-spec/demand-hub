@@ -40,8 +40,10 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
     .from("outreach_leads")
     .select("empresa,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview")
     .like("whatsapp", `%${tail}`)
-    .not("wa_sent_at", "is", null)
-    .order("wa_sent_at", { ascending: false })
+    // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
+    // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
+    .or("wa_sent_at.not.is.null,ultimo_toque_em.not.is.null")
+    .order("ultimo_toque_em", { ascending: false, nullsFirst: false })
     .limit(1)
     .maybeSingle();
   return (r.data as Prospeccao | null) ?? null;
