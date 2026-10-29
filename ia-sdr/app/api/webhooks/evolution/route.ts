@@ -4,6 +4,7 @@
  *   Evento: MESSAGE
  */
 import { waitUntil } from "@vercel/functions";
+import { ehDisparoDaProspeccao, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, logEvent, messageExists, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { env } from "@/src/lib/env.ts";
@@ -50,6 +51,13 @@ export async function POST(req: Request) {
         await new Promise((r) => setTimeout(r, 5000)); // dá tempo da IA registrar o envio dela
         if (await messageExists(msg.id)) return; // foi a IA
         const lead = await upsertLeadByPhone(msg.phone, msg.jid);
+        // Disparo da prospecção ativa (mesma instância): registra no histórico sem pausar a IA
+        const prospeccao = await prospeccaoDoTelefone(msg.phone).catch(() => null);
+        if (ehDisparoDaProspeccao(prospeccao, msg.text!)) {
+          await addMessage({ lead_id: lead.id, direction: "out", author: "sistema", content: msg.text!, evolution_message_id: msg.id });
+          await logEvent(lead.id, "prospeccao_enviada");
+          return;
+        }
         await addMessage({ lead_id: lead.id, direction: "out", author: "humano", content: msg.text!, evolution_message_id: msg.id });
         if (!lead.ai_paused) {
           await updateLead(lead.id, { ai_paused: true, next_followup_at: null });
