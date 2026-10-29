@@ -40,7 +40,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview";
+  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em";
 const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
@@ -87,9 +87,14 @@ export async function POST(req: Request) {
   const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
   if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
 
-  const body = (await req.json().catch(() => ({}))) as { place_ids?: string[] };
+  const body = (await req.json().catch(() => ({}))) as { place_ids?: string[]; modo?: string; desde?: string };
+  // modo "followups": reescreve só os toques que ainda não saíram de quem já está em cadência
+  // (o que já foi enviado continua igual e a aprovação é mantida)
+  const followups = body.modo === "followups";
+  const desde = body.desde && !Number.isNaN(Date.parse(body.desde)) ? body.desde : new Date().toISOString();
   let q = db().from("outreach_leads").select(CAMPOS);
-  if (body.place_ids?.length) q = q.in("place_id", body.place_ids.slice(0, LOTE));
+  if (followups) q = q.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`).order("proximo_toque_em").limit(LOTE);
+  else if (body.place_ids?.length) q = q.in("place_id", body.place_ids.slice(0, LOTE));
   else q = q.eq("wa_status", "pendente").eq("msg_status", "sem").order("prioridade").order("created_at").limit(LOTE);
   const { data: leads, error } = await q;
   if (error) return json({ error: error.message }, 500);
@@ -99,19 +104,43 @@ export async function POST(req: Request) {
   await Promise.all(
     ((leads ?? []) as (LeadPerfil & { tentativa?: number | null })[]).map(async (lead) => {
       try {
-        await db().from("outreach_leads").update({ msg_status: "gerando" }).eq("place_id", lead.place_id);
+        if (!followups) await db().from("outreach_leads").update({ msg_status: "gerando" }).eq("place_id", lead.place_id);
         const { data: conc } = await db()
           .from("outreach_leads")
           .select("place_id,empresa,avaliacoes,nota")
           .eq("nicho", lead.nicho ?? "")
           .eq("cidade", lead.cidade ?? "");
         const diag = diagnosticar(lead, (conc ?? []) as Concorrente[]);
-        const l = lead as LeadPerfil & { endereco?: string | null; site_preview?: SitePreview | null };
+        const l = lead as LeadPerfil & {
+          endereco?: string | null;
+          site_preview?: SitePreview | null;
+          toque_atual?: number | null;
+          sequencia?: Toque[] | null;
+          dm_instagram_enviado_em?: string | null;
+        };
         const [seq, dm, site] = await Promise.all([
           escreverSequencia(lead, diag),
-          lead.instagram ? gerarDirect(lead, diag).catch(() => null) : Promise.resolve(null),
+          lead.instagram && !l.dm_instagram_enviado_em ? gerarDirect(lead, diag).catch(() => null) : Promise.resolve(null),
           semSiteProprio(lead.site) && !l.site_preview ? gerarSite(l).catch(() => null) : Promise.resolve(null),
         ]);
+        if (followups) {
+          // Mantém o que já saiu; troca só os próximos toques
+          const feitos = l.toque_atual ?? 0;
+          const antiga = Array.isArray(l.sequencia) ? l.sequencia : [];
+          const nova = seq.map((t, i) => (i < feitos && antiga[i] ? antiga[i] : t));
+          await db()
+            .from("outreach_leads")
+            .update({
+              ...(dm ? { dm_instagram: dm } : {}),
+              ...(site ? { site_preview: site, site_preview_em: site.gerado_em } : {}),
+              diagnostico: diag,
+              sequencia: nova,
+              msg_gerada_em: new Date().toISOString(),
+            })
+            .eq("place_id", lead.place_id);
+          gerados++;
+          return;
+        }
         await db()
           .from("outreach_leads")
           .update({
@@ -128,15 +157,14 @@ export async function POST(req: Request) {
         gerados++;
       } catch (e) {
         erros.push(`${lead.empresa}: ${String(e).slice(0, 200)}`);
-        await db().from("outreach_leads").update({ msg_status: "sem" }).eq("place_id", lead.place_id);
+        if (!followups) await db().from("outreach_leads").update({ msg_status: "sem" }).eq("place_id", lead.place_id);
       }
     }),
   );
 
-  const { count } = await db()
-    .from("outreach_leads")
-    .select("place_id", { count: "exact", head: true })
-    .eq("wa_status", "pendente")
-    .eq("msg_status", "sem");
+  const resto = db().from("outreach_leads").select("place_id", { count: "exact", head: true });
+  const { count } = followups
+    ? await resto.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`)
+    : await resto.eq("wa_status", "pendente").eq("msg_status", "sem");
   return json({ gerados, restantes: count ?? 0, erros });
 }

@@ -343,14 +343,14 @@ const SDR_URL = (import.meta.env.VITE_SDR_URL as string | undefined) ?? "https:/
 export function useGerarMensagens() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: async (placeIds?: string[]) => {
+    mutationFn: async (alvo?: string[] | { modo: "followups"; desde: string }) => {
       const { data } = await supabase.auth.getSession();
       const token = data.session?.access_token;
       if (!token) throw new Error("faça login de novo no portal");
       const r = await fetch(`${SDR_URL}/api/prospeccao/gerar`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(placeIds?.length ? { place_ids: placeIds } : {}),
+        body: JSON.stringify(Array.isArray(alvo) ? (alvo.length ? { place_ids: alvo } : {}) : alvo ?? {}),
       });
       const j = (await r.json().catch(() => ({}))) as { gerados?: number; restantes?: number; erros?: string[]; error?: string };
       if (!r.ok) throw new Error(j.error ?? `erro ${r.status}`);
