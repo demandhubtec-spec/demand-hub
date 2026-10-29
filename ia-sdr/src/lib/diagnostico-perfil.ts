@@ -141,7 +141,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 0, periodo: "tarde", canal: "email",
     objetivo:
-      "E-mail no mesmo dia, para quem prefere e-mail. Diga logo no começo que mandou uma mensagem no WhatsApp mais cedo. Corpo com 3 parágrafos curtos: quem é a Ana e a DemandIA em uma frase; o que viu no perfil (1 ponto forte e até 2 oportunidades do diagnóstico, explicando em palavras simples por que isso pesa na escolha do cliente); o convite para o diagnóstico gratuito de 30 minutos com um dos nossos especialistas, sem compromisso, pedindo para responder o e-mail ou chamar no WhatsApp. Assunto curto, sem cara de propaganda, citando a empresa (ex.: \"Perfil da {empresa} no Google\"). Entre 70 e 140 palavras. Não assine: a assinatura entra sozinha.",
+      "Primeiro e-mail, no mesmo dia do WhatsApp. Bem enxuto e direto ao ponto: 1 frase de apresentação (\"Sou a Ana, da DemandIA. Te chamei no WhatsApp hoje cedo.\"), depois o achado mais forte do diagnóstico com o número exato e o que ele causa na prática (clientes escolhendo o concorrente no Google), depois a oferta: diagnóstico gratuito de 30 minutos com um dos nossos especialistas, sem compromisso. Termine com UMA chamada para ação clara e fácil, por exemplo: \"Quer que eu reserve um horário? É só responder este e-mail com um sim ou me chamar no WhatsApp {whatsapp}.\" Entre 50 e 100 palavras, parágrafos de no máximo 2 linhas. ASSUNTO: chama atenção pela curiosidade e pela especificidade, com 3 a 7 palavras, com o nome curto da empresa ou um número real do diagnóstico (ex.: \"{empresa} x concorrentes no Google\", \"O que separa a {empresa} do 1º lugar\"). Sem cara de propaganda, sem ponto de exclamação, sem as palavras grátis, promoção ou oferta no assunto. Não assine: a assinatura entra sozinha.",
   },
   {
     dia: 2, periodo: "manha", canal: "whatsapp",
@@ -151,7 +151,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 4, periodo: "manha", canal: "email",
     objetivo:
-      "Segundo e-mail. Traga UM ponto concreto do diagnóstico, dito com todas as letras (nada de \"um detalhe\" ou \"um ponto\" sem dizer qual), e explique em 2 ou 3 frases o efeito disso para quem procura {nicho_plural} em {cidade} no Google. Feche com o convite para o diagnóstico gratuito. Assunto diferente do primeiro, curto. Entre 60 e 120 palavras. Não assine.",
+      "Segundo e-mail, com outro ângulo. Traga UM ponto concreto do diagnóstico diferente do primeiro e-mail, dito com todas as letras, e explique em 2 frases o custo de deixar como está para quem procura {nicho_plural} em {cidade} no Google. Depois uma mini prévia do que o diagnóstico mostra (o que olhamos e o que a empresa leva de presente: um plano simples do que ajustar primeiro). Feche com UMA chamada para ação clara: responder este e-mail ou chamar no WhatsApp {whatsapp}. ASSUNTO diferente do primeiro, 3 a 7 palavras, curioso e específico. Entre 60 e 110 palavras. Não assine.",
   },
   {
     dia: 7, periodo: "manha", canal: "whatsapp",
@@ -182,7 +182,7 @@ export function promptSequencia(lead: LeadPerfil & { tentativa?: number | null }
   const nome = (lead.decisor || "").trim().split(/\s+/)[0] || "";
   const empresa = nomeCurto(lead.empresa);
   const troca = (t: string) =>
-    t.replace(/\{nome\}/g, nome || "").replace(/\{empresa\}/g, empresa).replace(/\{nicho_plural\}/g, nichoPlural(lead.nicho)).replace(/\{cidade\}/g, lead.cidade ?? "sua cidade");
+    t.replace(/\{nome\}/g, nome || "").replace(/\{empresa\}/g, empresa).replace(/\{nicho_plural\}/g, nichoPlural(lead.nicho)).replace(/\{cidade\}/g, lead.cidade ?? "sua cidade").replace(/\{whatsapp\}/g, C.whatsapp.exibicao);
   const semSite = !lead.site || /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook\.com|instagram\.com|linktr\.ee|wa\.me|negocio\.site|business\.site)/i.test(lead.site);
   const passos = CADENCIA.map(
     (p, i) => `${i + 1}. Dia ${p.dia}, ${p.periodo === "manha" ? "manhã" : "tarde"}, ${p.canal === "email" ? "E-MAIL" : "WHATSAPP"}. Ângulo: ${ANGULOS[i]} Forma: ${troca(p.objetivo)}`,
@@ -212,7 +212,8 @@ ${REGRAS_DE_ESTILO}
 - Não trate como ponto forte algo que está em "oportunidades" (ex.: se o número de avaliações está abaixo da média, não diga "já tem X avaliações" como elogio).
 - Os toques precisam ser diferentes entre si: não repita a mesma frase, o mesmo fato com as mesmas palavras ou a mesma abertura.
 - No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
-- O balão 1 do toque 1 sempre apresenta: "aqui é a Ana, da DemandIA".${semSite ? `
+- O balão 1 do toque 1 sempre apresenta: "aqui é a Ana, da DemandIA".
+- E-mails: assunto que dá vontade de abrir (curioso e específico, nunca genérico como "Perfil da empresa no Google"), corpo enxuto e SEMPRE uma chamada para ação clara no fim (responder o e-mail ou chamar no WhatsApp ${C.whatsapp.exibicao}).${semSite ? `
 - A empresa NÃO tem site próprio. No toque 5, depois da dica, ofereça montar de graça uma prévia de como ficaria o site de vocês, sem compromisso (é a isca de reciprocidade). Não prometa prazo nem mande link.` : ""}
 
 ## Formato da resposta

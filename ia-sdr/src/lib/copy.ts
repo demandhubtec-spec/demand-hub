@@ -58,6 +58,7 @@ ${ANGULOS.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 9. O toque 1 se apresenta no balão 1 ("aqui é a Ana, da DemandIA").
 10. Ninguém da equipe é citado pelo nome: quem faz o diagnóstico é "nosso especialista em presença digital".
 11. Se a sequência oferece uma prévia grátis de site, mantenha essa oferta.
+12. E-mails: assunto de 3 a 7 palavras que desperta curiosidade com algo específico (nome da empresa ou número real), sem cara de propaganda; corpo enxuto; termina com UMA chamada para ação clara (responder o e-mail ou chamar no WhatsApp). Se faltar CTA, escreva.
 
 ## Sequência para revisar
 ${sequenciaJson}
