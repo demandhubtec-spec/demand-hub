@@ -345,3 +345,40 @@ export function useGerarMensagens() {
     onSuccess: invalidate,
   });
 }
+
+async function chamarSdr<T>(rota: string, body: unknown): Promise<T> {
+  const { data } = await supabase.auth.getSession();
+  const token = data.session?.access_token;
+  if (!token) throw new Error("faça login de novo no portal");
+  const r = await fetch(`${SDR_URL}${rota}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+    body: JSON.stringify(body),
+  });
+  const j = (await r.json().catch(() => ({}))) as T & { error?: string };
+  if (!r.ok) throw new Error(j.error ?? `erro ${r.status}`);
+  return j;
+}
+
+/** Se o Gmail que envia os e-mails da prospecção está conectado. */
+export function useGmailStatus() {
+  return useQuery({
+    queryKey: ["outreach", "gmail"],
+    refetchInterval: 30_000,
+    queryFn: () => chamarSdr<{ conectado: boolean; email: string | null }>("/api/prospeccao/gmail", { acao: "status" }),
+  });
+}
+
+/** Abre a tela do Google para conectar o Gmail (sem precisar de senha de administrador). */
+export async function conectarGmail() {
+  // Abre a aba já no clique (senão o navegador bloqueia como pop-up) e depois manda para o Google
+  const aba = window.open("about:blank", "_blank");
+  try {
+    const { url } = await chamarSdr<{ url: string }>("/api/prospeccao/gmail", { acao: "conectar" });
+    if (aba) aba.location.href = url;
+    else window.location.href = url;
+  } catch (e) {
+    aba?.close();
+    throw e;
+  }
+}
