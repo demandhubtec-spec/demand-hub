@@ -1,12 +1,12 @@
 import * as React from "react";
-import { Check, Mail, MessageCircle, Pencil, RefreshCw, SkipForward, Sparkles, Undo2 } from "lucide-react";
+import { Check, Mail, MessageCircle, Pencil, RefreshCw, Send, SkipForward, Sparkles, Undo2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
-import { type OutreachLead, type Toque, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
+import { type OutreachLead, type Toque, enviarEmailTeste, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
 import { canalLabel, quandoTexto } from "./cadencia";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +65,7 @@ function sequenciaDo(lead: OutreachLead): Toque[] {
   return [];
 }
 
-export function CardLead({ lead, abertoInicial = false }: { lead: OutreachLead; abertoInicial?: boolean }) {
+export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; abertoInicial?: boolean }) {
   const update = useUpdateLead();
   const gerar = useGerarMensagens();
   const { showToast } = useToast();
@@ -100,6 +100,20 @@ export function CardLead({ lead, abertoInicial = false }: { lead: OutreachLead; 
       showToast(r.erros.length ? `Falhou: ${r.erros[0]}` : "Nova sequência escrita");
     } catch (e) {
       showToast(`Erro: ${(e as Error).message}`);
+    }
+  }
+
+  const [testando, setTestando] = React.useState<number | null>(null);
+  async function testarEmail(i: number) {
+    setTestando(i);
+    try {
+      const t = seq[i];
+      const r = await enviarEmailTeste(lead.place_id, i, editando ? { assunto: t.assunto, texto: t.texto } : undefined);
+      showToast(`E-mail de teste enviado para ${r.para}. Confira a caixa de entrada.`);
+    } catch (e) {
+      showToast(`Erro: ${(e as Error).message}`);
+    } finally {
+      setTestando(null);
     }
   }
 
@@ -151,6 +165,15 @@ export function CardLead({ lead, abertoInicial = false }: { lead: OutreachLead; 
               {t.canal === "email" ? <Mail className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
               Toque {i + 1} · {canalLabel(t.canal)} · {quandoTexto(t)}
               {t.canal === "email" && !lead.email && <span className="normal-case text-attention">(sem e-mail, será pulado)</span>}
+              {t.canal === "email" && (
+                <button
+                  className="ml-auto inline-flex items-center gap-1 normal-case text-primary-bright hover:underline disabled:opacity-50"
+                  onClick={() => testarEmail(i)}
+                  disabled={testando !== null || !t.texto.trim()}
+                >
+                  <Send className="h-3 w-3" /> {testando === i ? "Enviando..." : "Enviar teste para meu e-mail"}
+                </button>
+              )}
             </div>
             {editando ? (
               <div className="space-y-1.5">

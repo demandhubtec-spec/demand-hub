@@ -382,3 +382,8 @@ export async function conectarGmail() {
     throw e;
   }
 }
+
+/** Manda um e-mail da sequência para a própria caixa do Gmail conectado, para ver como chega. */
+export async function enviarEmailTeste(placeId: string, n: number, editado?: { assunto?: string; texto: string }) {
+  return chamarSdr<{ ok: boolean; para: string }>("/api/prospeccao/email-teste", { place_id: placeId, n, ...(editado ?? {}) });
+}
