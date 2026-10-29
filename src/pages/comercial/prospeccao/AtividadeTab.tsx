@@ -5,10 +5,11 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { detalheTexto, useOutreachColetas, useOutreachLeads, useOutreachLog } from "@/hooks/useProspeccao";
 import { fmtData } from "./shared";
 
-const icones: Record<string, { icon: typeof Send; cls: string; label: string }> = {
+export const icones: Record<string, { icon: typeof Send; cls: string; label: string }> = {
   sent: { icon: Send, cls: "text-positive", label: "Abordagem enviada" },
   followup: { icon: Repeat, cls: "text-positive", label: "Follow-up enviado" },
   pulado: { icon: SkipForward, cls: "text-muted", label: "Toque pulado" },
+  bounce: { icon: AlertTriangle, cls: "text-attention", label: "E-mail devolvido" },
   sent_test: { icon: FlaskConical, cls: "text-primary-bright", label: "Teste enviado" },
   dry_run: { icon: FlaskConical, cls: "text-muted", label: "Simulado" },
   error: { icon: AlertTriangle, cls: "text-negative", label: "Erro" },

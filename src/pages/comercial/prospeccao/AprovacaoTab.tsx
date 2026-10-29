@@ -65,12 +65,12 @@ function sequenciaDo(lead: OutreachLead): Toque[] {
   return [];
 }
 
-function CardLead({ lead }: { lead: OutreachLead }) {
+export function CardLead({ lead, abertoInicial = false }: { lead: OutreachLead; abertoInicial?: boolean }) {
   const update = useUpdateLead();
   const gerar = useGerarMensagens();
   const { showToast } = useToast();
   const [editando, setEditando] = React.useState(false);
-  const [aberto, setAberto] = React.useState(false);
+  const [aberto, setAberto] = React.useState(abertoInicial);
   const seqOriginal = sequenciaDo(lead);
   const [seq, setSeq] = React.useState<Toque[]>(seqOriginal);
   React.useEffect(() => setSeq(sequenciaDo(lead)), [lead.sequencia, lead.msg_rascunho]); // eslint-disable-line react-hooks/exhaustive-deps

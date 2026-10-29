@@ -9,14 +9,15 @@ import {
   Briefcase,
   Settings,
   ChevronDown,
-  ChevronLeft,
+  PanelLeftClose,
+  PanelLeftOpen,
   HelpCircle,
   GitBranch,
   LifeBuoy,
   RefreshCw,
   LogOut,
 } from "lucide-react";
-import { LogoMark } from "./Logo";
+import { BrandLogo, BrandMark } from "./Logo";
 import { navGroups } from "./nav-config";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -88,18 +89,23 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
       <aside
         className={cn(
           "fixed bottom-0 left-0 top-0 z-40 flex flex-col overflow-x-hidden border-r border-sidebar-border bg-sidebar-bg text-sidebar-text transition-[width,transform] duration-250 ease-in-out",
-          collapsed ? "w-[76px]" : "w-[258px]",
+          collapsed ? "w-[64px]" : "w-[258px]",
           "max-md:w-[258px]",
           mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
         )}
       >
-        <div className="group flex items-center gap-[11px] px-5 py-[22px]">
-          <LogoMark />
-          {!collapsed && (
-            <div className="whitespace-nowrap font-display text-[17px] font-bold text-white transition-shadow group-hover:[text-shadow:0_0_16px_rgba(178,111,214,.8)]">
-              Demand Hub
-            </div>
-          )}
+        <div className={cn("group flex items-center py-[18px]", collapsed ? "flex-col gap-3 px-2" : "justify-between gap-2 px-4")}>
+          <NavLink to="/" onClick={onCloseMobile} className="flex min-w-0 items-center" title="Início">
+            {collapsed ? <BrandMark size={32} /> : <BrandLogo height={30} />}
+          </NavLink>
+          <button
+            className="hidden h-[28px] w-[28px] shrink-0 items-center justify-center rounded-md text-[#847E90] hover:bg-white/[.07] hover:text-white md:flex"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Abrir menu" : "Recolher menu"}
+            title={collapsed ? "Abrir menu" : "Recolher menu"}
+          >
+            {collapsed ? <PanelLeftOpen className="h-[17px] w-[17px]" /> : <PanelLeftClose className="h-[17px] w-[17px]" />}
+          </button>
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-1.5 pt-2.5">
@@ -117,7 +123,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               )
             }
           >
-            <LayoutGrid className="h-[17px] w-[17px] shrink-0" />
+            <LayoutGrid className="h-[17px] w-[17px] shrink-0" aria-label="Dashboard geral" />
             {!collapsed && <span>Dashboard geral</span>}
           </NavLink>
 
@@ -154,6 +160,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                       collapsed && "justify-center",
                     )}
                     onClick={() => toggleGroup(group.key)}
+                    title={collapsed ? group.label : undefined}
                   >
                     <Icon className="h-[17px] w-[17px] shrink-0" />
                     {!collapsed && (
@@ -284,17 +291,11 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               </button>
             </div>
           )}
-          <div className="flex items-center gap-2.5">
-            <button
-              className="hidden h-[26px] w-[26px] shrink-0 items-center justify-center rounded-md text-[#847E90] hover:bg-white/[.07] hover:text-white md:flex"
-              onClick={onToggleCollapse}
-              aria-label="Recolher menu"
-            >
-              <ChevronLeft className={cn("h-[15px] w-[15px] transition-transform", collapsed && "rotate-180")} />
-            </button>
+          <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
             <button
               ref={triggerRef}
-              className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1 hover:bg-white/[.06]"
+              className={cn("flex min-w-0 items-center gap-2.5 rounded-lg p-1 hover:bg-white/[.06]", !collapsed && "flex-1")}
+              title={collapsed ? userName : undefined}
               onClick={() => setPopoverOpen((v) => !v)}
             >
               <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-primary-tint font-display text-[12.5px] font-bold text-primary-bright">

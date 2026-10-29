@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { LogoMark } from "@/components/layout/Logo";
+import { BrandMark } from "@/components/layout/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ export default function Login() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-[380px] rounded-xl border border-border bg-surface p-8 shadow-2xl">
         <div className="mb-6 flex flex-col items-center gap-3 text-center">
-          <LogoMark size={44} />
+          <BrandMark size={52} />
           <div>
             <h1 className="font-display text-xl font-bold">Demand Hub</h1>
             <p className="mt-1 text-[12.5px] text-muted">Entre com sua conta para continuar.</p>
