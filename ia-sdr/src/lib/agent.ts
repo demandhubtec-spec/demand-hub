@@ -20,6 +20,7 @@ import {
 import { destination, sendBubbles } from "./evolution.ts";
 import { nextFollowUpAt } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
+import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { runTool, TOOLS } from "./tools.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -51,6 +52,8 @@ async function reply(leadId: string) {
   if (lead.ai_paused || lead.status === "opt_out" || isBlocked(lead.phone, lead.whatsapp_jid)) return;
 
   const meeting = await activeMeeting(leadId);
+  // Opção C: se o contato veio da prospecção ativa, a Ana continua sabendo disso
+  const prospeccao = await prospeccaoDoTelefone(lead.phone).catch(() => null);
   const messages: ChatMessage[] = toChat(await history(leadId));
   if (!messages.length || messages[messages.length - 1].role !== "user") return;
 
@@ -58,7 +61,7 @@ async function reply(leadId: string) {
   for (let step = 0; step < 6; step++) {
     lead = await getLead(leadId);
     const res = await callLLM({
-      system: systemPrompt(lead, meeting, new Date()),
+      system: systemPrompt(lead, meeting, new Date(), prospeccao),
       messages,
       tools: TOOLS,
     });
