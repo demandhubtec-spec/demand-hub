@@ -108,7 +108,7 @@ export async function runMeetingReminders(now = new Date()) {
     const quando = formatBR(new Date(m.starts_at));
     const hoje = toLocal(new Date(m.starts_at)).d === toLocal(now).d;
     const nome = lead.nome ? `, ${lead.nome.split(" ")[0]}` : "";
-    const text = `Oi${nome}! Passando para confirmar nossa reunião de diagnóstico ${hoje ? "hoje" : "amanhã"} (${quando}) com o ${SDR_CONFIG.empresa.responsavel}.\n\nConsegue confirmar sua presença?`;
+    const text = `Oi${nome}! Passando para confirmar nossa reunião de diagnóstico ${hoje ? "hoje" : "amanhã"} (${quando}) com o nosso especialista.\n\nConsegue confirmar sua presença?`;
     await sendAndLog(lead, text, "confirmacao");
     await sb.from("sdr_meetings").update({ confirm_sent_at: iso }).eq("id", m.id);
     confirmations++;

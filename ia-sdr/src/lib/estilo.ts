@@ -12,7 +12,8 @@ export const REGRAS_DE_ESTILO = `## Como escrever (obrigatório)
 - Não use frases prontas de e-mail corporativo, como "Espero que esteja bem", "Espero que este e-mail te encontre bem", "Venho por meio desta", "Fico à disposição", "Não hesite em", "Qualquer dúvida, estou à disposição".
 - Não use palavras de marketing genérico: alavancar, potencializar, impulsionar, otimizar, solução, soluções, jornada, transformar, estratégico, incrível, excelente oportunidade, sinergia, robusto.
 - Não comece com elogio exagerado nem com "Olá!". Não repita a mesma abertura em todas as mensagens.
-- Não invente dados. Use só o que está no diagnóstico.`;
+- Não invente dados. Use só o que está no diagnóstico.
+- Nunca cite o nome de ninguém da equipe. Quem faz o diagnóstico é "nosso especialista em presença digital" (ou "um dos nossos especialistas").`;
 
 const PROIBIDAS = [
   "espero que esteja bem",
@@ -31,6 +32,7 @@ const PROIBIDAS = [
   "passando de forma rápida",
   "só passando",
   "responde sim ou não",
+  "kelvin",
 ];
 
 /** Limpa o que denuncia texto de IA: travessões, markdown, excesso de exclamação. */

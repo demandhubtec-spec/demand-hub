@@ -7,7 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
 import { type OutreachLead, type Toque, enviarEmailTeste, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
-import { canalLabel, pontuacao, quandoTexto } from "./cadencia";
+import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto } from "./cadencia";
+import { ExtrasLead } from "./ExtrasLead";
 import { cn } from "@/lib/utils";
 
 type Filtro = "rascunho" | "aprovada" | "rejeitada";
@@ -226,6 +227,8 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
         )}
       </div>
 
+      {seq.length > 0 && <ExtrasLead lead={lead} />}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {!seq.length ? (
           <>
@@ -272,12 +275,18 @@ export function AprovacaoTab() {
   const { showToast } = useToast();
   const [filtro, setFiltro] = React.useState<Filtro>("rascunho");
   const [progresso, setProgresso] = React.useState<string | null>(null);
+  const [prio, setPrio] = React.useState<FiltroPrioridade>("todas");
+  const [ordem, setOrdem] = React.useState<"maior" | "menor">("maior");
 
   const naFila = leads.filter((l) => l.wa_status === "pendente");
   const semMsg = naFila.filter((l) => l.msg_status === "sem" || l.msg_status === "gerando").length;
   const cont = (s: Filtro) => naFila.filter((l) => l.msg_status === s).length;
   // As empresas com mais oportunidade aparecem primeiro
-  const lista = naFila.filter((l) => l.msg_status === filtro).sort((a, b) => pontuacao(b).nota - pontuacao(a).nota);
+  const doFiltro = naFila.filter((l) => l.msg_status === filtro);
+  const contPrio = (n: FiltroPrioridade) => (n === "todas" ? doFiltro.length : doFiltro.filter((l) => pontuacao(l).nivel === n).length);
+  const lista = doFiltro
+    .filter((l) => prio === "todas" || pontuacao(l).nivel === prio)
+    .sort((a, b) => (ordem === "maior" ? 1 : -1) * (pontuacao(b).nota - pontuacao(a).nota));
 
   async function gerarTodas() {
     let total = 0;
@@ -333,11 +342,45 @@ export function AprovacaoTab() {
         ))}
       </div>
 
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
+        <span className="font-semibold text-muted">Prioridade:</span>
+        {(["todas", "Alta", "Média", "Baixa"] as FiltroPrioridade[]).map((n) => (
+          <button
+            key={n}
+            onClick={() => setPrio(n)}
+            className={cn(
+              "rounded-full border px-3 py-1 font-semibold",
+              prio === n
+                ? n === "Alta"
+                  ? "border-positive bg-positive-tint text-positive"
+                  : n === "Baixa"
+                    ? "border-border bg-surface-2 text-ink"
+                    : "border-primary bg-primary-tint text-primary-bright"
+                : "border-border text-muted",
+            )}
+          >
+            {n === "todas" ? "Todas" : n} ({contPrio(n)})
+          </button>
+        ))}
+        <select
+          className="ml-auto rounded-full border border-border bg-transparent px-3 py-1 font-semibold text-muted"
+          value={ordem}
+          onChange={(e) => setOrdem(e.target.value as "maior" | "menor")}
+        >
+          <option value="maior">Maior prioridade primeiro</option>
+          <option value="menor">Menor prioridade primeiro</option>
+        </select>
+      </div>
+
       {isLoading ? (
         <EmptyState>Carregando...</EmptyState>
       ) : lista.length === 0 ? (
         <EmptyState>
-          {filtro === "rascunho" ? "Nada para revisar. Clique em Gerar sequências." : "Nada aqui ainda."}
+          {prio !== "todas" && doFiltro.length > 0
+            ? `Nenhuma empresa de prioridade ${prio.toLowerCase()} aqui.`
+            : filtro === "rascunho"
+              ? "Nada para revisar. Clique em Gerar sequências."
+              : "Nada aqui ainda."}
         </EmptyState>
       ) : (
         <div className="space-y-3">

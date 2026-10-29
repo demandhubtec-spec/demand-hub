@@ -218,3 +218,64 @@ test("copy: a Ana escreve com SPIN e um ângulo por toque, e o revisor confere t
   assert.match(r, /Mais Odonto Prime/);
   assert.doesNotMatch(r, /Implante Dentário \|/);
 });
+
+import { emailHtml } from "../src/lib/outreach-email.ts";
+
+test("e-mail: vai em texto e HTML, com assinatura com foto e sem citar nome da equipe", () => {
+  const corpo = comRodape("Oi, tudo bem?\n\nVi o perfil de vocês.");
+  const mime = buildMime("a@b.com", "Oi", corpo, "eu@gmail.com");
+  assert.match(mime, /multipart\/alternative/);
+  assert.match(mime, /text\/plain/);
+  assert.match(mime, /text\/html/);
+  const html = emailHtml(corpo);
+  assert.match(html, /<img src="https:\/\/portal\.demandhub\.com\.br\/brand\/email-avatar\.png"/);
+  assert.match(html, /Consultora de crescimento/);
+  assert.match(html, /font-size:11px[^>]*>Se não quiser mais receber/);
+  assert.doesNotMatch(html, /<p[^>]*>Ana<br>DemandIA/);
+});
+
+test("estilo: nunca cita o nome do Kelvin para o lead", () => {
+  assert.ok(problemasDeEstilo("O Kelvin faz o diagnóstico").some((p) => p.includes("kelvin")));
+});
+
+import { handleInstagram, linkPrevia, montarSite, promptDirect, semSiteProprio } from "../src/lib/extras.ts";
+
+test("extras: site de diretório conta como sem site próprio", () => {
+  assert.equal(semSiteProprio(null), true);
+  assert.equal(semSiteProprio("https://mechameaqui.com.br/shopping-dos-animais"), true);
+  assert.equal(semSiteProprio("https://www.instagram.com/x/"), true);
+  assert.equal(semSiteProprio("https://bbzadvocacia.com.br/"), false);
+  assert.equal(handleInstagram("https://www.instagram.com/bbzadv/"), "bbzadv");
+  assert.equal(handleInstagram("@clinica.sorriso"), "clinica.sorriso");
+});
+
+test("extras: prévia de site monta com dados reais e sem travessão", () => {
+  const raw = JSON.stringify({
+    titulo: "Seu sorriso — cuidado de perto",
+    subtitulo: "Atendimento próximo em Indaiatuba.",
+    cta: "Agendar consulta",
+    sobre: "Atendemos com calma.",
+    servicos: [{ titulo: "Limpeza", texto: "Rotina." }, { titulo: "Clareamento", texto: "Seguro." }, { titulo: "Implante", texto: "Planejado." }],
+    diferenciais: ["Perto do centro"],
+    paleta: "verde",
+  });
+  const s = montarSite(base, raw, "abc12345");
+  assert.equal(s.token, "abc12345");
+  assert.equal(s.paleta, "verde");
+  assert.equal(s.servicos.length, 3);
+  assert.doesNotMatch(s.titulo, /[—–]/);
+  assert.equal(s.nota, base.nota);
+  assert.throws(() => montarSite(base, "{}"));
+  assert.match(linkPrevia("abc12345", "https://x.app/"), /^https:\/\/x\.app\/previa\/abc12345$/);
+});
+
+test("extras: Direct apresenta a Ana e não cita o Kelvin", () => {
+  const p = promptDirect(base, diagnosticar(base, concs));
+  assert.match(p, /aqui é a Ana, da DemandIA/);
+  assert.doesNotMatch(p, /Kelvin/);
+});
+
+test("sequência: toque 1 sem apresentação vira problema", () => {
+  const seq = montarSequencia(JSON.stringify({ toques: [1, 2, 3, 4, 5, 6].map((n) => ({ assunto: `A${n}`, texto: `Texto ${n}` })) }));
+  assert.ok(problemasDaSequencia(seq).some((p) => p.includes("aqui é a Ana")));
+});

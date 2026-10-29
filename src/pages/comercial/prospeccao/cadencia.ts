@@ -139,6 +139,7 @@ export function pontuacao(l: OutreachLead): { nota: number; nivel: "Alta" | "Mé
     motivos.push(motivo);
   };
   if (!l.site) soma(30, "sem site");
+  else if (semSiteProprio(l.site)) soma(25, "sem site próprio (só página de diretório)");
   if (!l.instagram) soma(15, "sem Instagram");
   const p = l.diagnostico?.posicao;
   if (p?.tipo === "busca" && p.posicao > 3) soma(15, `${p.posicao}º na busca do Google`);
@@ -152,3 +153,9 @@ export function pontuacao(l: OutreachLead): { nota: number; nivel: "Alta" | "Mé
   const nota = Math.min(100, n);
   return { nota, nivel: nota >= 45 ? "Alta" : nota >= 25 ? "Média" : "Baixa", motivos };
 }
+
+/** Diretórios, redes e link na bio não contam como site da empresa. */
+const NAO_E_SITE = /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook\.com|instagram\.com|linktr\.ee|wa\.me|whatsapp\.com|negocio\.site|business\.site|google\.com|goo\.gl|ifood|doctoralia|booksy)/i;
+export const semSiteProprio = (site: string | null | undefined) => !(site ?? "").trim() || NAO_E_SITE.test(site ?? "");
+
+export type FiltroPrioridade = "todas" | "Alta" | "Média" | "Baixa";

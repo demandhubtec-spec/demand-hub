@@ -1,4 +1,4 @@
-import { AlertTriangle, Ban, CheckCircle2, FlaskConical, Mail, Repeat, SkipForward, MessageSquareReply, PhoneOff, RefreshCw, Send, Settings, WifiOff } from "lucide-react";
+import { AlertTriangle, AtSign, Ban, CheckCircle2, FlaskConical, Mail, Repeat, SkipForward, MessageSquareReply, PhoneOff, RefreshCw, Send, Settings, WifiOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { TableWrap, Th, Td } from "@/components/shared/DataTable";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -7,6 +7,7 @@ import { fmtData } from "./shared";
 
 export const icones: Record<string, { icon: typeof Send; cls: string; label: string }> = {
   sent: { icon: Send, cls: "text-positive", label: "Abordagem enviada" },
+  instagram_dm: { icon: AtSign, cls: "text-positive", label: "Direct enviado" },
   followup: { icon: Repeat, cls: "text-positive", label: "Follow-up enviado" },
   pulado: { icon: SkipForward, cls: "text-muted", label: "Toque pulado" },
   bounce: { icon: AlertTriangle, cls: "text-attention", label: "E-mail devolvido" },

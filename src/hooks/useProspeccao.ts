@@ -63,6 +63,20 @@ export interface OutreachLead {
   respondeu_no_toque: number | null;
   retomar_em: string | null;
   tentativa: number;
+  /** Direct do Instagram pronto para copiar e colar (envio manual). */
+  dm_instagram: string | null;
+  dm_instagram_enviado_em: string | null;
+  /** Prévia de site grátis (isca para quem não tem site próprio). */
+  site_preview: SitePreview | null;
+  site_preview_em: string | null;
+}
+
+export interface SitePreview {
+  token: string;
+  titulo: string;
+  subtitulo: string;
+  paleta: string;
+  gerado_em: string;
 }
 
 /** Um toque da cadência escrito pela Ana. */
@@ -384,6 +398,31 @@ export async function conectarGmail() {
 }
 
 /** Manda um e-mail da sequência para a própria caixa do Gmail conectado, para ver como chega. */
+/** Pede à IA o Direct do Instagram ou a prévia de site de um lead. */
+export function useGerarExtra() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: ({ placeId, tipo }: { placeId: string; tipo: "direct" | "site" }) =>
+      chamarSdr<{ ok: boolean; dm_instagram?: string; link?: string }>("/api/prospeccao/extras", { place_id: placeId, tipo }),
+    onSuccess: invalidate,
+  });
+}
+
+/** Marca o Direct do Instagram como enviado (ou desfaz) e registra na atividade. */
+export function useMarcarDirect() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async ({ lead, enviado }: { lead: OutreachLead; enviado: boolean }) => {
+      await q(supabase.from("outreach_leads").update({ dm_instagram_enviado_em: enviado ? new Date().toISOString() : null }).eq("place_id", lead.place_id));
+      if (enviado) await log("instagram_dm", `Direct do Instagram enviado: ${lead.empresa}`, lead.place_id);
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/** Link público da prévia de site. */
+export const linkPrevia = (token: string) => `${SDR_URL}/previa/${token}`;
+
 export async function enviarEmailTeste(placeId: string, n: number, editado?: { assunto?: string; texto: string }) {
   return chamarSdr<{ ok: boolean; para: string }>("/api/prospeccao/email-teste", { place_id: placeId, n, ...(editado ?? {}) });
 }
