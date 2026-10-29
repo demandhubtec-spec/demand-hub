@@ -176,3 +176,17 @@ export function saudacaoPrevia(lead: { decisor?: string | null; empresa?: string
   }
   return `Oi, ${chamar ? `${chamar}, ` : ""}bom dia! 🙂`;
 }
+
+const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
+/** Mesma separação em balões que o envio faz (mensagem num bloco só vira apresentação, conteúdo e pergunta). */
+export function separarEmBaloes(texto: string): string {
+  const atuais = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  if (atuais.length >= 3) return texto;
+  const frases = atuais.join(" ").match(/[^.!?\p{Extended_Pictographic}]+(?:[.!?]+|\s*\p{Extended_Pictographic}+)\s*|[^.!?]+$/gu)?.map((f) => f.trim()).filter(Boolean) ?? [];
+  if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
+  const pergunta = frases.pop() as string;
+  let i = frases.findIndex((f) => /\bAna\b/.test(f));
+  if (i < 0) i = 0;
+  while (i + 1 < frases.length - 1 && CONTEXTO.test(frases[i + 1])) i++;
+  return [frases.slice(0, i + 1).join(" "), frases.slice(i + 1).join(" "), pergunta].filter(Boolean).join("\n\n");
+}

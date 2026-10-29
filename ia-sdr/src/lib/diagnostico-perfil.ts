@@ -151,7 +151,7 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 4, periodo: "manha", canal: "email",
     objetivo:
-      "Segundo e-mail, com outro ângulo. Traga UM ponto concreto do diagnóstico diferente do primeiro e-mail, dito com todas as letras, e explique em 2 frases o custo de deixar como está para quem procura {nicho_plural} em {cidade} no Google. Depois uma mini prévia do que o diagnóstico mostra (o que olhamos e o que a empresa leva de presente: um plano simples do que ajustar primeiro). Feche com UMA chamada para ação clara: responder este e-mail ou chamar no WhatsApp {whatsapp}. ASSUNTO diferente do primeiro, 3 a 7 palavras, curioso e específico. Entre 60 e 110 palavras. Não assine.",
+      "Segundo e-mail, com outro ângulo. Traga UM ponto concreto do diagnóstico diferente do primeiro e-mail, dito com todas as letras, e explique em 2 frases o custo de deixar como está para quem procura {nicho_plural} em {cidade} no Google. Depois uma mini prévia do que o diagnóstico mostra (o que olhamos e o que a empresa leva de presente: um plano simples do que ajustar primeiro). Se citar o WhatsApp, diga \"te chamei no WhatsApp esses dias\" (nunca \"hoje cedo\": já se passaram 4 dias). Feche com UMA chamada para ação clara: responder este e-mail ou chamar no WhatsApp {whatsapp}. ASSUNTO diferente do primeiro, 3 a 7 palavras, curioso e específico. Entre 60 e 110 palavras. Não assine.",
   },
   {
     dia: 7, periodo: "manha", canal: "whatsapp",
@@ -241,7 +241,7 @@ export function montarSequencia(resposta: string): Toque[] {
   if (toques.length < CADENCIA.length) throw new Error(`a IA devolveu ${toques.length} toques`);
   return CADENCIA.map((p, n) => {
     const t = toques[n] ?? {};
-    const texto = p.canal === "whatsapp" ? limparMensagem(t.texto ?? "", 3) : humanizar(t.texto ?? "");
+    const texto = p.canal === "whatsapp" ? separarEmBaloes(limparMensagem(t.texto ?? "", 3)) : humanizar(t.texto ?? "");
     if (!texto) throw new Error(`toque ${n + 1} veio vazio`);
     const toque: Toque = { n, ...p, texto };
     if (p.canal === "email") toque.assunto = humanizar(t.assunto ?? "").replace(/\n/g, " ") || "Perfil no Google";
@@ -263,6 +263,26 @@ export function problemasDaSequencia(seq: Toque[]): string[] {
   }
   for (const t of seq) if (t.canal === "email" && /\p{Extended_Pictographic}/u.test(`${t.assunto ?? ""} ${t.texto}`)) out.push(`toque ${t.n + 1}: e-mail sem emoji`);
   return out;
+}
+
+const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
+
+/**
+ * Quando a IA escreve o WhatsApp num bloco só, separa em 3 balões: a Ana se apresentando (com o contexto),
+ * o conteúdo e a pergunta final sozinha.
+ */
+export function separarEmBaloes(texto: string): string {
+  const atuais = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  if (atuais.length >= 3) return texto;
+  const frases = atuais.join(" ").match(/[^.!?\p{Extended_Pictographic}]+(?:[.!?]+|\s*\p{Extended_Pictographic}+)\s*|[^.!?]+$/gu)?.map((f) => f.trim()).filter(Boolean) ?? [];
+  if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
+  const pergunta = frases.pop() as string;
+  let i = frases.findIndex((f) => /\bAna\b/.test(f));
+  if (i < 0) i = 0;
+  while (i + 1 < frases.length - 1 && CONTEXTO.test(frases[i + 1])) i++;
+  const b1 = frases.slice(0, i + 1).join(" ");
+  const b2 = frases.slice(i + 1).join(" ");
+  return [b1, b2, pergunta].filter(Boolean).join("\n\n");
 }
 
 /** Limpa uma mensagem de WhatsApp: tira cara de IA e garante no máximo 3 balões. */

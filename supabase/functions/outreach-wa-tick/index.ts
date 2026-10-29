@@ -119,13 +119,27 @@ function saudacaoCurta(nome?: string) {
   const periodo = h < 12 ? "bom dia" : h < 18 ? "boa tarde" : "boa noite";
   return `${pick(["Oi", "Olá"])}, ${nome ? `${nome}, ` : ""}${periodo}! ${pick(["😊", "🙂", "👋"])}`;
 }
+const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
+/** Se a mensagem veio num bloco só, separa em 3 balões: Ana com o contexto, o conteúdo e a pergunta sozinha.
+ *  Mantenha igual a separarEmBaloes em ia-sdr/src/lib/diagnostico-perfil.ts. */
+function separarEmBaloes(texto: string): string {
+  const atuais = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
+  if (atuais.length >= 3) return texto;
+  const frases = atuais.join(" ").match(/[^.!?\p{Extended_Pictographic}]+(?:[.!?]+|\s*\p{Extended_Pictographic}+)\s*|[^.!?]+$/gu)?.map((f) => f.trim()).filter(Boolean) ?? [];
+  if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
+  const pergunta = frases.pop() as string;
+  let i = frases.findIndex((f) => /\bAna\b/.test(f));
+  if (i < 0) i = 0;
+  while (i + 1 < frases.length - 1 && CONTEXTO.test(frases[i + 1])) i++;
+  return [frases.slice(0, i + 1).join(" "), frases.slice(i + 1).join(" "), pergunta].filter(Boolean).join("\n\n");
+}
 /** Manda a saudação sozinha, espera o robô de boas-vindas da empresa e depois manda a mensagem. */
 async function enviarComSaudacao(path: string, to: string, nome: string, texto: string) {
   const oi = saudacaoCurta(nome);
   const r0 = await enviarBaloes(path, to, oi);
   if (!r0.ok) return { r: r0, enviado: oi };
   await sleep(rand(12000, 16000));
-  const resto = semSaudacao(texto);
+  const resto = separarEmBaloes(semSaudacao(texto));
   return { r: await enviarBaloes(path, to, resto), enviado: `${oi}\n\n${resto}` };
 }
 /** Tira o "Oi, fulano, tudo bem?" do começo da abordagem, porque a saudação já foi antes. */

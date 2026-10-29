@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
 import { type OutreachLead, type Toque, enviarEmailTeste, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
-import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto, saudacaoPrevia } from "./cadencia";
+import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto, saudacaoPrevia, separarEmBaloes } from "./cadencia";
 import { ExtrasLead } from "./ExtrasLead";
 import { cn } from "@/lib/utils";
 
@@ -41,7 +41,7 @@ function posicaoTexto(l: OutreachLead) {
 function Baloes({ texto }: { texto: string }) {
   return (
     <div className="space-y-1.5">
-      {texto.split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
+      {separarEmBaloes(texto).split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
         <div key={i} className="w-fit max-w-[95%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
           {b.trim()}
         </div>
