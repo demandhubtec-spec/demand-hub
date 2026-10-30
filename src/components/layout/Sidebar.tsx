@@ -201,17 +201,15 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             {!collapsed && <span>Resumo</span>}
           </NavLink>
 
-          {!isColaborador && (
-            <NavLink
-              to="/projetos"
-              onClick={onCloseMobile}
-              title={collapsed ? "Projetos" : undefined}
-              className={({ isActive }) => topItemClass(isActive, collapsed)}
-            >
-              <Folder className="h-[17px] w-[17px] shrink-0" />
-              {!collapsed && <span>Projetos</span>}
-            </NavLink>
-          )}
+          <NavLink
+            to="/projetos"
+            onClick={onCloseMobile}
+            title={collapsed ? "Projetos" : undefined}
+            className={({ isActive }) => topItemClass(isActive, collapsed)}
+          >
+            <Folder className="h-[17px] w-[17px] shrink-0" />
+            {!collapsed && <span>Projetos</span>}
+          </NavLink>
 
           <SectionLabel collapsed={collapsed}>Departamentos</SectionLabel>
           {navGroups
@@ -219,38 +217,37 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             .filter((g) => !isColaborador || g.colaboradorPode)
             .map(renderGroup)}
 
+          <SectionLabel collapsed={collapsed}>Ajuda</SectionLabel>
+          <NavLink
+            to="/faq"
+            onClick={onCloseMobile}
+            className={({ isActive }) => topItemClass(isActive, collapsed)}
+          >
+            <HelpCircle className="h-[17px] w-[17px] shrink-0" />
+            {!collapsed && <span>FAQ</span>}
+          </NavLink>
+          <NavLink
+            to="/processos"
+            onClick={onCloseMobile}
+            className={({ isActive }) => topItemClass(isActive, collapsed)}
+          >
+            <GitBranch className="h-[17px] w-[17px] shrink-0" />
+            {!collapsed && <span>Processos DemandIA</span>}
+          </NavLink>
+          <NavLink
+            to="/ajuda"
+            onClick={onCloseMobile}
+            className={({ isActive }) => topItemClass(isActive, collapsed)}
+          >
+            <LifeBuoy className="h-[17px] w-[17px] shrink-0" />
+            {!collapsed && <span>Central de ajuda</span>}
+          </NavLink>
+
           {!isColaborador && (
             <>
-              <SectionLabel collapsed={collapsed}>Ajuda</SectionLabel>
-              <NavLink
-                to="/faq"
-                onClick={onCloseMobile}
-                className={({ isActive }) => topItemClass(isActive, collapsed)}
-              >
-                <HelpCircle className="h-[17px] w-[17px] shrink-0" />
-                {!collapsed && <span>FAQ</span>}
-              </NavLink>
-              <NavLink
-                to="/processos"
-                onClick={onCloseMobile}
-                className={({ isActive }) => topItemClass(isActive, collapsed)}
-              >
-                <GitBranch className="h-[17px] w-[17px] shrink-0" />
-                {!collapsed && <span>Processos DemandIA</span>}
-              </NavLink>
-              <NavLink
-                to="/ajuda"
-                onClick={onCloseMobile}
-                className={({ isActive }) => topItemClass(isActive, collapsed)}
-              >
-                <LifeBuoy className="h-[17px] w-[17px] shrink-0" />
-                {!collapsed && <span>Central de ajuda</span>}
-              </NavLink>
-
               <SectionLabel collapsed={collapsed}>Administração</SectionLabel>
               {navGroups
                 .filter((g) => ["administrativo", "config"].includes(g.key))
-                .filter((g) => !isColaborador || g.colaboradorPode)
                 .map(renderGroup)}
             </>
           )}

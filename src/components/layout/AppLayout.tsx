@@ -1,9 +1,10 @@
 import * as React from "react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { cn } from "@/lib/utils";
-import { navGroups } from "./nav-config";
+import { navGroups, rotaSoDono } from "./nav-config";
+import { useAuth } from "@/hooks/useAuth";
 import { useClientes } from "@/hooks/useClientes";
 
 function buildTitleMap(): Record<string, string> {
@@ -26,6 +27,7 @@ const titleMap = buildTitleMap();
 
 export function AppLayout() {
   const location = useLocation();
+  const { isColaborador } = useAuth();
   // Menu recolhido fica lembrado neste navegador
   const [collapsed, setCollapsed] = React.useState(() => {
     try {
@@ -79,7 +81,7 @@ export function AppLayout() {
           onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
         />
         <main className="max-w-[1180px] px-[26px] pb-[60px] pt-6 max-md:px-4 max-md:pb-[50px] max-md:pt-[18px]">
-          <Outlet />
+          {isColaborador && rotaSoDono(location.pathname) ? <Navigate to="/" replace /> : <Outlet />}
         </main>
       </div>
     </div>

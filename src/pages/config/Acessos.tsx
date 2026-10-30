@@ -36,8 +36,10 @@ export default function Acessos() {
       </TableWrap>
       <div className="mt-3.5">
         <EmptyState>
-          Sentiari Music e K19 Barbearia são negócios pessoais do Kelvin — por isso ficam de fora do acesso de
-          Matheus e Fabrício. Fabrício também não vê Financeiro, Contratos, CRM, SDR IA nem a lista de Clientes.
+          Sentiari Music e K19 Barbearia são negócios pessoais do Kelvin, por isso ficam de fora do acesso de Matheus e
+          Fabrício. Colaborador (Fabrício) vê só Resumo, Projetos, Tecnologia, Marketing e a Ajuda (FAQ, Processos e
+          Central de ajuda). Não vê nada do Comercial (CRM, prospecção, conversas da Ana, clientes), nem Administrativo
+          (finanças, contratos) e Configurações.
         </EmptyState>
       </div>
     </section>

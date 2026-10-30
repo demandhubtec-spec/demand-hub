@@ -10,6 +10,8 @@ import { useCreateAtividade } from "@/hooks/useAtividades";
 import { useProjetosAll } from "@/hooks/useProjetos";
 import { usePerfis } from "@/hooks/usePerfis";
 import { departamentoOptions } from "@/data/departamentos";
+import { useAuth } from "@/hooks/useAuth";
+import { DEPTS_COLABORADOR } from "@/components/layout/nav-config";
 import type { AtividadePrioridade, Departamento } from "@/lib/types";
 
 const prioridadeOptions: { value: AtividadePrioridade; label: string }[] = [
@@ -32,6 +34,7 @@ export function NovaAtividadeModal({ open, onOpenChange, departamentoFixo }: Nov
   const { data: projetos = [] } = useProjetosAll();
   const { data: perfis = [] } = usePerfis();
 
+  const { isColaborador } = useAuth();
   const [departamento, setDepartamento] = React.useState<Departamento>(departamentoFixo ?? "tecnologia");
   const [projetoId, setProjetoId] = React.useState<string>("");
   const [titulo, setTitulo] = React.useState("");
@@ -95,7 +98,7 @@ export function NovaAtividadeModal({ open, onOpenChange, departamentoFixo }: Nov
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {departamentoOptions.map((d) => (
+                  {departamentoOptions.filter((d) => !isColaborador || (DEPTS_COLABORADOR as readonly string[]).includes(d.value)).map((d) => (
                     <SelectItem key={d.value} value={d.value}>
                       {d.label}
                     </SelectItem>
