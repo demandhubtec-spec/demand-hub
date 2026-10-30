@@ -9,7 +9,7 @@ const Switch = React.forwardRef<
   <SwitchPrimitive.Root
     ref={ref}
     className={cn(
-      "relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full border border-border bg-surface-2 transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:shadow-[0_0_8px_rgba(178,111,214,.5)]",
+      "relative inline-flex h-[22px] w-[38px] shrink-0 items-center rounded-full border border-border bg-surface-2 transition-colors data-[state=checked]:border-primary data-[state=checked]:bg-primary data-[state=checked]:shadow-[0_0_8px_rgba(164,123,255,.5)]",
       className,
     )}
     {...props}
