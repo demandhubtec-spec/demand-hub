@@ -348,3 +348,31 @@ test("e-mail não sai no feriado nem no sábado", () => {
   assert.equal(dentroDaJanela(cfg, new Date("2026-10-31T13:00:00Z")), false); // sábado
   assert.equal(dentroDaJanela(cfg, new Date("2026-11-03T13:00:00Z")), true); // terça
 });
+
+test("robôs vistos em 30/10 contam como resposta automática", () => {
+  for (const m of [
+    "Desculpe, “Perfeito” não está entre as opções.",
+    "Essa resposta é inválida, por favor, siga as orientações da mensagem anterior.",
+    "Olá, podemos continuar seu atendimento?",
+    "Não posso ajudar com esse assunto específico. Aqui atendemos apenas questões relacionadas aos nossos serviços.",
+    "Vou encerrar seu atendimento por aqui para não te atrapalhar.",
+    "Ultima tentativa, caso não responda, sua conversa será encerrada.",
+    "De 0 a 10, qual sua nota para o atendimento que você recebeu hoje?",
+    "Para agilizar o atendimento, informe seu nome completo e CPF, por favor.",
+  ]) assert.ok(pareceRespostaAutomatica(m, 600), m);
+  for (const m of [
+    "Bom dia, tudo bem? Sou a Joyce, vou dar continuidade em seu atendimento. Poderia encaminhar um e-mail para contato@x.com.br",
+    "Bom dia! Vamos encaminhar para os responsáveis",
+    "Pode enviar aqui que eu reforço com o setor.",
+  ]) assert.ok(!pareceRespostaAutomatica(m, 600), m);
+});
+
+test("balões: pergunta sozinha no fim, no máximo 3, e número com ponto não quebra", () => {
+  assert.equal(
+    separarEmBaloes("Tudo bem? Aqui é a Ana 😊\n\nA gente ajuda empresas de Indaiatuba.\n\nVocês estão em 4º, com 514 avaliações. Posso te mandar a análise?"),
+    "Tudo bem? Aqui é a Ana 😊 A gente ajuda empresas de Indaiatuba.\n\nVocês estão em 4º, com 514 avaliações.\n\nPosso te mandar a análise?",
+  );
+  const r = separarEmBaloes("Tudo bem? Aqui é a Ana, da DemandIA 😊 Fiz uma análise rápida da Consultare. Vocês são 1º com 2.795 avaliações. Posso te mandar?");
+  assert.ok(r.includes("2.795"), r);
+  assert.equal(r.split("\n\n").length, 3);
+});

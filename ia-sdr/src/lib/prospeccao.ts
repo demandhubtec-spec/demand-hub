@@ -12,6 +12,7 @@ import { linkPrevia } from "./extras.ts";
 
 export interface Prospeccao {
   empresa: string | null;
+  cadencia?: string | null;
   nicho: string | null;
   cidade: string | null;
   decisor: string | null;
@@ -38,7 +39,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("empresa,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview")
+    .select("empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -93,7 +94,13 @@ Como conduzir neste caso:
 - Reciprocidade: quando ele mostrar interesse, ANTES de pedir qualquer coisa, entregue uma prévia do diagnóstico em 1 ou 2 mensagens curtas: 2 ou 3 achados concretos do perfil (use o diagnóstico acima, com os números) e o que cada um causa na prática. Depois diga que no diagnóstico completo com o nosso especialista ele vê o resto e um plano, e siga para a qualificação.
 - Conduza com SPIN, uma pergunta por vez: situação (como os clientes chegam hoje), problema (o que não está funcionando), implicação (o que isso custa) e necessidade (o que mudaria se resolvesse). Use as respostas dele para mostrar valor no diagnóstico.
 ${p.site_preview?.token ? `- Prévia de site grátis: já montamos um rascunho de como ficaria o site da empresa: ${linkPrevia(p.site_preview.token)} . Se ele demonstrar interesse em site, ou aceitar a prévia oferecida, mande esse link (é presente, sem compromisso) e diga que o site completo é feito sob medida, com orçamento à parte, que o nosso especialista apresenta no diagnóstico.
-` : ""}- Responda dúvidas e objeções com honestidade e de forma curta (ex.: "quanto custa?" → o diagnóstico é gratuito e o investimento só é discutido se fizer sentido depois; "já tenho agência" → o diagnóstico serve inclusive para comparar e não tem compromisso).
+` : ""}- Muitas vezes quem responde é a recepção, não o dono. Você é quem procurou a empresa, então NUNCA diga "vou encaminhar para a nossa equipe" ou "alguém responde por aqui em breve".
+  - Se pedirem para mandar por e-mail ou passarem um e-mail: agradeça, diga que manda a análise para esse e-mail ainda hoje e chame \`encaminhar_humano\` com o e-mail e o nome de quem pediu no motivo (a equipe envia).
+  - Se disserem que vão passar para os responsáveis: agradeça e peça, numa frase só, o nome ou o e-mail do responsável para mandar a análise direto. Se não passarem, agradeça e encerre com leveza.
+  - Se pedirem para mandar a análise por aqui mesmo: mande 2 ou 3 achados curtos e termine perguntando se o responsável topa uma conversa de 30 minutos com o nosso especialista.
+- Nesta conversa NÃO pergunte faturamento, receita nem número de funcionários: quem lê pode ser a recepção. O objetivo é marcar o diagnóstico de 30 minutos com o responsável.
+- Mensagens curtas, uma ideia por balão, sem listas com quebra de linha.
+- Responda dúvidas e objeções com honestidade e de forma curta (ex.: "quanto custa?" → o diagnóstico é gratuito e o investimento só é discutido se fizer sentido depois; "já tenho agência" → o diagnóstico serve inclusive para comparar e não tem compromisso).
 - Use os dados acima para personalizar, mas confirme com naturalidade em vez de afirmar o que não tem certeza.
 - Se surgir uma pergunta ou objeção que você não sabe responder com segurança, ou se a conversa travar, chame \`encaminhar_humano\`: a equipe é avisada e assume.
 - Se ele disser que não tem interesse ou pedir para sair, agradeça em uma frase, não insista e chame \`encerrar_contato\` com motivo "opt_out".`;
@@ -124,6 +131,20 @@ const AUTO_FORTE = [
   /transferindo (voce|seu atendimento|para)/,
   /(nosso|um) atendente (ja |logo |em breve )?(vai|ira)/,
   /nao atendemos (convenio|plano)/,
+  /nao esta entre as opc/,
+  /(resposta|opcao) (e |esta )?invalida/,
+  /(podemos|posso|vamos) continuar (o |seu |com o seu )?atendimento/,
+  /nao posso ajudar com esse assunto/,
+  /(vou|vamos) encerrar (o |seu |a |sua )?(atendimento|conversa)/,
+  /(conversa|atendimento) sera encerrad/,
+  /ultima tentativa/,
+  /de 0 a 10/,
+  /(nos )?avali(e|ar|ar nos) no google/,
+  /nome completo,? (e )?(o )?cpf|informe (seu |o seu )?(nome completo|cpf)/,
+  /(estamos com )?alto volume (de atendimentos|de mensagens)?/,
+  /nunca solicita pagamento|nao caia em golpe/,
+  /contato e exclusivo para mensagens/,
+  /para (comecarmos|iniciarmos|agilizar (o |seu )?atendimento)/,
   /^\s*(1|1\.|1\)|1 -|1-)\s.+\n\s*(2|2\.|2\)|2 -|2-)\s/m,
 ];
 

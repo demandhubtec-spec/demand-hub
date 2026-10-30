@@ -77,6 +77,16 @@ export async function POST(req: Request) {
   // Prospecção ativa: resposta automática da empresa (boas-vindas, robô, protocolo, menu) não é resposta
   // de verdade. Fica no histórico, mas a cadência segue e a Ana não conversa com o robô.
   let segDoDisparo: number | null = null;
+  // Menu de lista ou botões só vem de robô: nunca é a pessoa respondendo
+  const MENU = ["listMessage", "buttonsMessage", "templateMessage", "interactiveMessage", "listResponseMessage"];
+  if (!msg.text && MENU.includes(msg.messageType)) {
+    const prospeccao = await prospeccaoDoTelefone(msg.phone).catch(() => null);
+    if (prospeccao) {
+      const salvo = await addMessage({ lead_id: lead.id, direction: "in", author: "lead", content: `[resposta automática] [menu do robô]`, evolution_message_id: msg.id });
+      if (salvo) await logEvent(lead.id, "resposta_automatica");
+      return Response.json({ ok: true, ignorado: "menu_robo" });
+    }
+  }
   if (msg.text || interpretado) {
     const prospeccao = await prospeccaoDoTelefone(msg.phone).catch(() => null);
     if (prospeccao) {

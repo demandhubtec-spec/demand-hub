@@ -80,8 +80,10 @@ async function enviarBaloes(path: string, to: string, text: string): Promise<{ o
       headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
       body: JSON.stringify({ number: to, text: parts[i], delay: Math.min(1200 + parts[i].length * 25, 4000) }),
     });
-    last = { ok: r.ok, status: r.status, body: await r.text() };
-    if (!r.ok) return last;
+    // 504: o servidor do WhatsApp demorou para responder, mas a mensagem sai mesmo assim
+    // (visto em 30/10: o robô da empresa respondeu e o reenvio duplicou). Trata como enviado.
+    last = { ok: r.ok || r.status === 504, status: r.status, body: await r.text() };
+    if (!last.ok) return last;
     if (i < parts.length - 1) await sleep(rand(2500, 5000));
   }
   return last;
@@ -95,14 +97,13 @@ function nomeDoWhats(v: unknown): string {
   const o = v as Record<string, any>;
   return String(o?.Details?.verifiedName ?? o?.details?.verifiedName ?? o?.VerifiedName ?? o?.verifiedName ?? o?.name ?? "").trim();
 }
-/** Primeiro nome de um texto que parece nome de pessoa ("Dra. Joyce Martins" → "Dra. Joyce"); vazio se parece nome de empresa. */
+/** "Dra. Joyce Martins" → "Dra. Joyce". Só com Dr./Dra.: nome de perfil comercial sem isso costuma ser
+ *  sobrenome de escritório ("Almeida Alves" virou "Oi, Almeida" em 30/10). */
 function nomeDePessoa(t: string): string {
   const s = (t || "").replace(/[|•–-].*$/, "").trim();
   if (!s || PALAVRA_EMPRESA.test(s) || s.split(/\s+/).length > 4) return "";
   const m = s.match(/^(dr\.?a?|dra\.?)\s+(\p{L}+)/iu);
-  if (m) return `${/a/i.test(m[1]) ? "Dra." : "Dr."} ${primeiroNome(m[2])}`;
-  const p = s.split(/\s+/)[0];
-  return /^\p{L}{3,}$/u.test(p) ? primeiroNome(p) : "";
+  return m ? `${/a/i.test(m[1]) ? "Dra." : "Dr."} ${primeiroNome(m[2])}` : "";
 }
 /**
  * Como chamar a pessoa na saudação. O decisor vem do CNPJ e quase sempre o número é da recepção,
@@ -132,9 +133,17 @@ const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando
 /** Se a mensagem veio num bloco só, separa em 3 balões: Ana com o contexto, o conteúdo e a pergunta sozinha.
  *  Mantenha igual a separarEmBaloes em ia-sdr/src/lib/diagnostico-perfil.ts. */
 function separarEmBaloes(texto: string): string {
-  const atuais = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-  if (atuais.length >= 3) return texto;
-  const frases = atuais.join(" ").match(/[^.!?\p{Extended_Pictographic}]+(?:[.!?]+|\s*\p{Extended_Pictographic}+)\s*|[^.!?]+$/gu)?.map((f) => f.trim()).filter(Boolean) ?? [];
+  const frasesDe = (t: string) => t.split(/(?<=[.!?…]|\p{Extended_Pictographic})\s+/u).map((f) => f.trim()).filter(Boolean);
+  let b = texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  if (b.length >= 3) {
+    // A pergunta final vai sempre sozinha no último balão
+    const fim = frasesDe(b[b.length - 1]);
+    if (fim.length > 1 && fim[fim.length - 1].includes("?")) b = [...b.slice(0, -1), fim.slice(0, -1).join(" "), fim[fim.length - 1]];
+    // Mais de 3 balões: junta a apresentação com o motivo (os primeiros)
+    while (b.length > 3) b = [`${b[0]} ${b[1]}`, ...b.slice(2)];
+    return b.join("\n\n");
+  }
+  const frases = frasesDe(b.join(" "));
   if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
   const pergunta = frases.pop() as string;
   let i = frases.findIndex((f) => /\bAna\b/.test(f));

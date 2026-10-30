@@ -13,6 +13,7 @@ import { isBusinessTime, nextFollowUpAt } from "./followup.ts";
 import { followUpPrompt } from "./prompt.ts";
 import { humanizar } from "./estilo.ts";
 import { formatBR, toLocal } from "./time.ts";
+import { prospeccaoDoTelefone } from "./prospeccao.ts";
 
 const MAX = SDR_CONFIG.followUp.maxTentativas;
 
@@ -38,6 +39,13 @@ export async function runFollowUps(now = new Date()) {
       if (!fresh.next_followup_at || new Date(fresh.next_followup_at) > now) continue;
       if (isBlocked(fresh.phone, fresh.whatsapp_jid)) {
         await updateLead(lead.id, { next_followup_at: null, ai_paused: true });
+        continue;
+      }
+      // Contato da prospecção com a cadência rodando: quem faz o follow-up é a cadência
+      // (em 30/10 o AS Odontologia recebeu um "Passando pra retomar" do SDR por cima da cadência).
+      const prosp = await prospeccaoDoTelefone(fresh.phone).catch(() => null);
+      if (prosp && prosp.cadencia === "ativa") {
+        await updateLead(lead.id, { next_followup_at: null });
         continue;
       }
 
