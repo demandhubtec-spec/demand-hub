@@ -17,7 +17,10 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
   const { contatos } = useContatos();
   const [sobre, setSobre] = React.useState<string>("");
   const fim = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => fim.current?.scrollIntoView({ block: "end" }), [msgs.length]);
+  // Em navegadores novos o scrollIntoView devolve uma Promise: o efeito não pode retornar isso
+  React.useEffect(() => {
+    fim.current?.scrollIntoView({ block: "end" });
+  }, [msgs.length]);
 
   const nome = (id: string | null) => (id ? contatos.find((c) => c.id === id)?.nomeExibicao ?? "contato" : null);
   const pendentes = msgs.filter((m) => m.status === "pendente");
