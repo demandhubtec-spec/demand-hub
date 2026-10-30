@@ -55,7 +55,7 @@ export default function DepartmentAtividades() {
                   <span
                     className={cn(
                       "relative mt-0.5 h-[19px] w-[19px] shrink-0 rounded-[6px] border-[1.5px] border-border transition-all",
-                      done && "border-primary bg-primary shadow-[0_0_10px_rgba(178,111,214,.6)]",
+                      done && "border-primary bg-primary shadow-[0_0_10px_rgba(164,123,255,.6)]",
                     )}
                   >
                     {done && (
