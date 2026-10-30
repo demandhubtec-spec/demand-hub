@@ -143,12 +143,12 @@ export default function Dashboard() {
             <Plus className="h-4 w-4" />
             Nova atividade
           </Button>
+          <QuickLink to="/projetos" icon={Folder}>
+            Projetos
+          </QuickLink>
           {!isColaborador && (
             <>
-              <QuickLink to="/projetos" icon={Folder}>
-                Projetos
-              </QuickLink>
-              <QuickLink to="/comercial/prospeccao" icon={Sparkles}>
+              <QuickLink to="/comercial/crm?aba=prospeccao" icon={Sparkles}>
                 Prospecção ativa
               </QuickLink>
               <QuickLink to="/comercial/clientes" icon={Contact}>
@@ -164,13 +164,9 @@ export default function Dashboard() {
         <KpiCard label="Atrasadas" value={String(atrasadas.length)} accent="negative" icon={AlertTriangle} index={0} />
         <KpiCard label="Vencem hoje" value={String(vencemHoje.length)} accent="attention" icon={AlarmClock} index={1} />
         <KpiCard label="Esta semana" value={String(estaSemana.length)} accent="primary" icon={CalendarDays} index={2} />
-        <KpiCard
-          label="Clientes ativos"
-          value={String(clientesAtivos)}
-          accent="positive"
-          icon={Users}
-          index={3}
-        />
+        {!isColaborador && (
+          <KpiCard label="Clientes ativos" value={String(clientesAtivos)} accent="positive" icon={Users} index={3} />
+        )}
         <KpiCard
           label="Projetos em andamento"
           value={String(projetosAndamento)}
@@ -200,9 +196,10 @@ export default function Dashboard() {
       {/* Números da operação */}
       <div className="mb-3 mt-7 flex items-baseline gap-2">
         <div className="eyebrow text-[11px] text-ink">Operação</div>
-        <div className="text-[11.5px] text-muted">faturamento e distribuição de projetos</div>
+        <div className="text-[11.5px] text-muted">{isColaborador ? "distribuição de projetos" : "faturamento e distribuição de projetos"}</div>
       </div>
-      <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[1.3fr_1fr]">
+      <div className={isColaborador ? "grid grid-cols-1 gap-3.5" : "grid grid-cols-1 gap-3.5 lg:grid-cols-[1.3fr_1fr]"}>
+        {!isColaborador && (
         <Card className="p-5 px-[22px]">
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -220,6 +217,7 @@ export default function Dashboard() {
             <BarChart data={faturamentoPorMes} formatTooltip={(v) => `R$ ${v.toLocaleString("pt-BR")}`} />
           </div>
         </Card>
+        )}
         <Card className="p-5 px-[22px]">
           <div className="text-sm font-semibold">Projetos por departamento</div>
           <div className="mb-[18px] mt-0.5 text-[11.5px] text-muted">{totalProjetos} projetos no total</div>

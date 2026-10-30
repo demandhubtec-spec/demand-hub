@@ -6,13 +6,51 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { useClientes } from "@/hooks/useClientes";
 import { useProjetosAll } from "@/hooks/useProjetos";
 import { useAuth } from "@/hooks/useAuth";
+import { departamentoInfo } from "@/data/departamentos";
+import { DEPTS_COLABORADOR } from "@/components/layout/nav-config";
 
 /** Aba "Projetos": um card por cliente; clicar abre a ficha com os projetos dele. */
 export default function ProjetosHome() {
   const navigate = useNavigate();
   const { data: clientes = [], isLoading } = useClientes();
   const { data: projetos = [] } = useProjetosAll();
-  const { hasPrivateAccess } = useAuth();
+  const { hasPrivateAccess, isColaborador } = useAuth();
+
+  // Colaborador não vê a lista de clientes: os projetos aparecem por departamento
+  if (isColaborador) {
+    return (
+      <section>
+        <div className="mb-[22px]">
+          <div className="text-[21px] font-semibold">Projetos</div>
+          <div className="mt-1 text-[13px] text-muted">Escolha o departamento para ver os projetos.</div>
+        </div>
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-3.5">
+          {DEPTS_COLABORADOR.map((d) => {
+            const qtd = projetos.filter((p) => p.departamento === d).length;
+            return (
+              <Card
+                key={d}
+                role="button"
+                tabIndex={0}
+                onClick={() => navigate(`/${d}/projetos`)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(`/${d}/projetos`);
+                  }
+                }}
+                className="cursor-pointer p-[18px] transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-primary-bright"
+              >
+                <div className="mb-1 text-[14.5px] font-semibold">{departamentoInfo[d].nome}</div>
+                <div className="mb-3 text-xs text-muted">{departamentoInfo[d].resumo}</div>
+                <div className="text-[11.5px] text-muted">{qtd ? `${qtd} projeto(s)` : "Sem projetos ainda"}</div>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+    );
+  }
 
   // Ordem de cadastro, como no protótipo (mais antigos primeiro).
   const visiveis = clientes
