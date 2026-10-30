@@ -2,6 +2,7 @@ import { CheckCircle2, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { detalheTexto, type OutreachLead, useOutreachLog } from "@/hooks/useProspeccao";
 import { CardLead } from "./AprovacaoTab";
+import { EnvioAvulso } from "./EnvioAvulso";
 import { icones } from "./AtividadeTab";
 import { ETAPAS, etapaDoLead, resumoCadencia } from "./cadencia";
 import { fmtData, fmtTelefone, linkExterno } from "./shared";
@@ -49,6 +50,8 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
             )}
           </div>
         )}
+
+        <EnvioAvulso lead={lead} />
 
         <CardLead lead={lead} abertoInicial />
 
