@@ -96,7 +96,10 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
 function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
   const { data: msgs = [], isLoading } = useConversa(c.id);
   const fim = React.useRef<HTMLDivElement>(null);
-  React.useEffect(() => fim.current?.scrollIntoView({ block: "end" }), [msgs.length, c.id]);
+  // Em navegadores novos o scrollIntoView devolve uma Promise: o efeito não pode retornar isso
+  React.useEffect(() => {
+    fim.current?.scrollIntoView({ block: "end" });
+  }, [msgs.length, c.id]);
 
   let diaAnterior = "";
   return (
