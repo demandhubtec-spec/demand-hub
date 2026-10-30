@@ -6,11 +6,12 @@
 import { waitUntil } from "@vercel/functions";
 import { ehDisparoDaProspeccao, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
-import { addMessage, logEvent, messageExists, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
+import { addMessage, history, logEvent, messageExists, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { env } from "@/src/lib/env.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
 import { interpretarMidia } from "@/src/lib/midia.ts";
+import { emailsNoTexto, rascunhoDoEmailPassado } from "@/src/lib/rascunho-email.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -122,6 +123,19 @@ export async function POST(req: Request) {
     next_followup_at: null,
     ...(lead.status === "sem_resposta" ? { status: "em_qualificacao" } : {}),
   });
+
+  // Prospecção: passaram um e-mail na conversa → salva no cadastro e deixa o e-mail da análise pronto para revisão
+  const emails = msg.text ? emailsNoTexto(msg.text) : [];
+  if (emails.length) {
+    waitUntil(
+      (async () => {
+        const p = await prospeccaoDoTelefone(msg.phone).catch(() => null);
+        if (!p?.place_id) return;
+        const conversa = (await history(lead.id, 12)).map((m) => `${m.direction === "in" ? "Empresa" : "Ana"}: ${m.content}`).join("\n");
+        await rascunhoDoEmailPassado(p as typeof p & { place_id: string }, emails, conversa);
+      })().catch((e) => console.error("rascunho de e-mail falhou", e)),
+    );
+  }
 
   if (lead.ai_paused || lead.status === "opt_out") return Response.json({ ok: true, ai: "pausada" });
   // Respondeu enquanto a abordagem ainda está saindo (saudação + apresentação): a apresentação já

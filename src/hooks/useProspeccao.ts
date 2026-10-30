@@ -430,6 +430,15 @@ export function useEnviarAvulso() {
   });
 }
 
+/** Procura e-mail e Instagram no site das empresas que ainda não têm. */
+export function useEnriquecerSites() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: () => chamarSdr<{ ok: boolean; verificados: number; emails: number; instagrams: number }>("/api/prospeccao/enriquecer", {}),
+    onSuccess: invalidate,
+  });
+}
+
 /** Link público da prévia de site. */
 export const linkPrevia = (token: string) => `${SDR_URL}/previa/${token}`;
 

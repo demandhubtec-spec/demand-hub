@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
-import { type OutreachLead, type Toque, enviarEmailTeste, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
+import { type OutreachLead, type Toque, enviarEmailTeste, useEnriquecerSites, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
 import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto, saudacaoPrevia, separarEmBaloes } from "./cadencia";
 import { ExtrasLead } from "./ExtrasLead";
 import { cn } from "@/lib/utils";
@@ -297,6 +297,16 @@ export function AprovacaoTab() {
     .sort((a, b) => (ordem === "maior" ? 1 : -1) * (pontuacao(b).nota - pontuacao(a).nota));
 
   const emCadencia = leads.filter((l) => l.cadencia === "ativa" && l.wa_status === "enviado").length;
+  const enriquecer = useEnriquecerSites();
+  const semEmail = leads.filter((l) => !l.email && l.site && ["pendente", "enviado", "respondeu"].includes(l.wa_status ?? "")).length;
+  async function buscarNosSites() {
+    try {
+      const r = await enriquecer.mutateAsync();
+      showToast(`${r.verificados} sites lidos: ${r.emails} e-mails e ${r.instagrams} Instagram encontrados`);
+    } catch (e) {
+      showToast(`Erro: ${(e as Error).message}`);
+    }
+  }
   const [reescrevendo, setReescrevendo] = React.useState<string | null>(null);
   async function reescreverFollowups() {
     const desde = new Date().toISOString();
@@ -346,6 +356,11 @@ export function AprovacaoTab() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
+          {semEmail > 0 && (
+            <Button variant="outline" onClick={buscarNosSites} disabled={enriquecer.isPending} title="Lê o site de cada empresa sem e-mail e completa o e-mail e o Instagram">
+              <Mail /> {enriquecer.isPending ? "Lendo os sites..." : `Buscar e-mails nos sites (${semEmail})`}
+            </Button>
+          )}
           {emCadencia > 0 && (
             <Button
               variant="outline"
