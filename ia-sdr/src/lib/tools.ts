@@ -12,6 +12,7 @@ import { sendText } from "./evolution.ts";
 import { busyIntervals, cancelMeeting, createMeeting } from "./google.ts";
 import { freeSlots, isValidSlot, pickOptions, reminderTimes } from "./schedule.ts";
 import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
+import { pedirOrientacao } from "./canal.ts";
 
 export const TOOLS: Tool[] = [
   {
@@ -80,6 +81,19 @@ export const TOOLS: Tool[] = [
       type: "object",
       properties: { motivo: { type: "string" } },
       required: ["motivo"],
+    },
+  },
+  {
+    name: "pedir_orientacao",
+    description:
+      "Pede orientação ao seu gestor sobre este lead (objeção difícil, pergunta que você não sabe responder, próximo passo incerto). Ele responde pelo canal interno e você aplica depois.",
+    input_schema: {
+      type: "object",
+      properties: {
+        pergunta: { type: "string", description: "O que o lead disse e qual a sua dúvida, em 1 a 3 frases." },
+        opcoes: { type: "array", items: { type: "string" }, description: "1 a 3 respostas que você pensou em mandar." },
+      },
+      required: ["pergunta"],
     },
   },
   {
@@ -276,6 +290,9 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       await notifyOwner(`❌ Reunião cancelada pelo lead ${lead.nome ?? lead.phone} (${formatBR(new Date(m.starts_at))}). Motivo: ${input.motivo}`);
       return "Reunião cancelada. Se o lead quiser remarcar, use ver_horarios.";
     }
+
+    case "pedir_orientacao":
+      return pedirOrientacao(leadId, String(input.pergunta ?? ""), Array.isArray(input.opcoes) ? input.opcoes.map(String).slice(0, 3) : []);
 
     case "encaminhar_humano": {
       await updateLead(leadId, { ai_paused: true, status: "humano", next_followup_at: null });

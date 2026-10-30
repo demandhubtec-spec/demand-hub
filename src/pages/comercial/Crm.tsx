@@ -2,13 +2,14 @@ import { Navigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { KpiCard } from "@/components/shared/KpiCard";
 import { useAuth } from "@/hooks/useAuth";
-import { useContatos } from "@/hooks/useCrm";
+import { useCanal, useContatos } from "@/hooks/useCrm";
 import { ProspeccaoPainel } from "./Prospeccao";
 import { InboundTab } from "./crm/InboundTab";
 import { ConversasTab } from "./crm/ConversasTab";
 import { OportunidadesTab } from "./crm/OportunidadesTab";
+import { CanalTab } from "./crm/CanalTab";
 
-const ABAS = ["oportunidades", "prospeccao", "inbound", "conversas"] as const;
+const ABAS = ["oportunidades", "prospeccao", "inbound", "conversas", "ana"] as const;
 type Aba = (typeof ABAS)[number];
 
 /**
@@ -20,6 +21,8 @@ export default function Crm() {
   const { perfil, isColaborador } = useAuth();
   const [params, setParams] = useSearchParams();
   const { contatos } = useContatos();
+  const { data: canal = [] } = useCanal();
+  const esperando = canal.filter((m) => m.status === "pendente").length;
   if (isColaborador || (perfil && perfil.papel !== "dono")) return <Navigate to="/" replace />;
 
   const aba: Aba = (ABAS as readonly string[]).includes(params.get("aba") ?? "") ? (params.get("aba") as Aba) : "oportunidades";
@@ -56,6 +59,7 @@ export default function Crm() {
           <TabsTrigger value="prospeccao">Prospecção ativa (IA)</TabsTrigger>
           <TabsTrigger value="inbound">Inbound</TabsTrigger>
           <TabsTrigger value="conversas">Conversas</TabsTrigger>
+          <TabsTrigger value="ana">Você e a Ana{esperando ? ` (${esperando})` : ""}</TabsTrigger>
         </TabsList>
         <TabsContent value="oportunidades">
           <OportunidadesTab abrirConversa={(id) => irPara("conversas", { lead: id })} />
@@ -68,6 +72,9 @@ export default function Crm() {
         </TabsContent>
         <TabsContent value="conversas">
           <ConversasTab leadId={params.get("lead")} escolher={(id) => irPara("conversas", { lead: id })} />
+        </TabsContent>
+        <TabsContent value="ana">
+          <CanalTab abrirConversa={(id) => irPara("conversas", { lead: id })} />
         </TabsContent>
       </Tabs>
     </section>
