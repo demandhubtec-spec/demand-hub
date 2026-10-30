@@ -19,7 +19,7 @@ export function BarChart({ data, formatTooltip }: BarChartProps) {
                 height: `${heightPct}%`,
                 animationDelay: `${0.03 + i * 0.05}s`,
                 background: isLast ? "var(--primary)" : "var(--primary-tint)",
-                boxShadow: isLast ? "0 0 14px rgba(178,111,214,.5)" : undefined,
+                boxShadow: isLast ? "0 0 14px rgba(164,123,255,.5)" : undefined,
               }}
               title={formatTooltip ? formatTooltip(d.value) : String(d.value)}
             />

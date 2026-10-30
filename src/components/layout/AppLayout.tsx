@@ -8,15 +8,15 @@ import { useClientes } from "@/hooks/useClientes";
 
 function buildTitleMap(): Record<string, string> {
   const map: Record<string, string> = {
-    "/": "Dashboard geral",
+    "/": "Resumo",
     "/faq": "FAQ",
-    "/processos": "Processos Demand Hub",
+    "/processos": "Processos DemandIA",
     "/ajuda": "Central de ajuda",
     "/projetos": "Projetos",
   };
   navGroups.forEach((group) => {
     group.children.forEach((child) => {
-      map[child.path] = `${group.label} — ${child.label}`;
+      map[child.path] = `${group.label} · ${child.label}`;
     });
   });
   return map;
@@ -56,7 +56,7 @@ export function AppLayout() {
   const { data: clientes = [] } = useClientes();
   const fichaMatch = location.pathname.match(/^\/projetos\/([^/]+)/);
   const clienteFicha = fichaMatch ? clientes.find((c) => c.id === fichaMatch[1]) : undefined;
-  const title = clienteFicha ? `${clienteFicha.nome} — Projetos` : (titleMap[location.pathname] ?? "Demand Hub");
+  const title = clienteFicha ? `${clienteFicha.nome} · Projetos` : (titleMap[location.pathname] ?? "DemandIA");
 
   return (
     <div className="flex min-h-screen">

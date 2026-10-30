@@ -239,7 +239,7 @@ function Chat({ titulo, alvo, perfis }: { titulo: string; alvo: ChatAlvo; perfis
           onClick={handleEnviar}
           disabled={enviar.isPending || !texto.trim()}
           aria-label="Enviar mensagem"
-          className="flex w-[38px] shrink-0 items-center justify-center rounded-[7px] bg-primary text-white hover:bg-[#642F81] disabled:opacity-50"
+          className="flex w-[38px] shrink-0 items-center justify-center rounded-[7px] bg-primary text-white hover:brightness-110 disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
         </button>

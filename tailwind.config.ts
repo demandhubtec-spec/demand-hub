@@ -6,9 +6,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ["'Space Grotesk'", "sans-serif"],
-        body: ["'Inter'", "sans-serif"],
-        mono: ["'JetBrains Mono'", "monospace"],
+        display: ["'Archivo'", "'Arial Black'", "sans-serif"],
+        body: ["'Geist'", "Arial", "sans-serif"],
+        mono: ["'Geist Mono'", "ui-monospace", "monospace"],
       },
       colors: {
         bg: "var(--bg)",
@@ -43,7 +43,7 @@ export default {
         },
       },
       borderRadius: {
-        DEFAULT: "9px",
+        DEFAULT: "12px",
       },
       keyframes: {
         gridshift: {
@@ -66,8 +66,8 @@ export default {
           to: { transform: "scaleY(1)" },
         },
         pulseGlow: {
-          "0%, 100%": { boxShadow: "0 0 0 0 rgba(226,88,90,.55)" },
-          "50%": { boxShadow: "0 0 0 5px rgba(226,88,90,0)" },
+          "0%, 100%": { boxShadow: "0 0 0 0 rgba(255,107,129,.55)" },
+          "50%": { boxShadow: "0 0 0 5px rgba(255,107,129,0)" },
         },
       },
       animation: {

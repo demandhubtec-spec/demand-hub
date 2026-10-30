@@ -18,6 +18,10 @@ import {
   LogOut,
 } from "lucide-react";
 import { BrandLogo, BrandMark } from "./Logo";
+import { Sparkle } from "@/components/brand/HoloSymbol";
+
+/** A estrela aparece só onde há IA (regra do manual de marca). */
+const IA_PATHS = new Set(["/comercial/sdr", "/comercial/prospeccao"]);
 import { navGroups } from "./nav-config";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
@@ -36,6 +40,24 @@ interface SidebarProps {
   onToggleCollapse: () => void;
   mobileOpen: boolean;
   onCloseMobile: () => void;
+}
+
+/** Item principal do menu: fundo roxo suave + barra lateral quando ativo (padrão Tonabê OS). */
+function topItemClass(isActive: boolean, collapsed: boolean) {
+  return cn(
+    "nav-sweep relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+    collapsed && "justify-center",
+    isActive
+      ? "bg-[rgba(110,58,255,.16)] text-white shadow-[inset_0_0_0_1px_rgba(164,123,255,.22)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-[#A47BFF]"
+      : "hover:bg-white/[.05] hover:text-white",
+  );
+}
+
+function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed: boolean }) {
+  if (collapsed) return <div className="mx-auto my-2.5 h-px w-6 bg-sidebar-border" />;
+  return (
+    <div className="eyebrow px-3 pb-1.5 pt-4 text-[10px] text-[#6E61A0]">{children}</div>
+  );
 }
 
 export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile }: SidebarProps) {
@@ -81,74 +103,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
   const userRole = isColaborador ? "Colaborador" : "Dono";
   const initial = userName.charAt(0).toUpperCase();
 
-  return (
-    <>
-      {mobileOpen && (
-        <div className="fixed inset-0 z-[35] bg-[rgba(5,5,8,.6)] md:hidden" onClick={onCloseMobile} />
-      )}
-      <aside
-        className={cn(
-          "fixed bottom-0 left-0 top-0 z-40 flex flex-col overflow-x-hidden border-r border-sidebar-border bg-sidebar-bg text-sidebar-text transition-[width,transform] duration-250 ease-in-out",
-          collapsed ? "w-[64px]" : "w-[258px]",
-          "max-md:w-[258px]",
-          mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
-        )}
-      >
-        <div className={cn("group flex items-center py-[18px]", collapsed ? "flex-col gap-3 px-2" : "justify-between gap-2 px-4")}>
-          <NavLink to="/" onClick={onCloseMobile} className="flex min-w-0 items-center" title="Início">
-            {collapsed ? <BrandMark size={32} /> : <BrandLogo height={30} />}
-          </NavLink>
-          <button
-            className="hidden h-[28px] w-[28px] shrink-0 items-center justify-center rounded-md text-[#847E90] hover:bg-white/[.07] hover:text-white md:flex"
-            onClick={onToggleCollapse}
-            aria-label={collapsed ? "Abrir menu" : "Recolher menu"}
-            title={collapsed ? "Abrir menu" : "Recolher menu"}
-          >
-            {collapsed ? <PanelLeftOpen className="h-[17px] w-[17px]" /> : <PanelLeftClose className="h-[17px] w-[17px]" />}
-          </button>
-        </div>
-
-        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-1.5 pt-2.5">
-          <NavLink
-            to="/"
-            end
-            onClick={onCloseMobile}
-            className={({ isActive }) =>
-              cn(
-                "nav-sweep flex items-center gap-3 rounded-[7px] px-3 py-2.5 text-[13.5px] font-medium",
-                collapsed && "justify-center",
-                isActive
-                  ? "bg-primary text-white shadow-[0_0_18px_rgba(178,111,214,.4)]"
-                  : "hover:bg-white/[.06] hover:text-white",
-              )
-            }
-          >
-            <LayoutGrid className="h-[17px] w-[17px] shrink-0" aria-label="Dashboard geral" />
-            {!collapsed && <span>Dashboard geral</span>}
-          </NavLink>
-
-          {!isColaborador && (
-            <NavLink
-              to="/projetos"
-              onClick={onCloseMobile}
-              className={({ isActive }) =>
-                cn(
-                  "nav-sweep flex items-center gap-3 rounded-[7px] px-3 py-2.5 text-[13.5px] font-medium",
-                  collapsed && "justify-center",
-                  isActive
-                    ? "bg-primary text-white shadow-[0_0_18px_rgba(178,111,214,.4)]"
-                    : "hover:bg-white/[.06] hover:text-white",
-                )
-              }
-            >
-              <Folder className="h-[17px] w-[17px] shrink-0" />
-              {!collapsed && <span>Projetos</span>}
-            </NavLink>
-          )}
-
-          {navGroups
-            .filter((g) => !isColaborador || g.colaboradorPode)
-            .map((group) => {
+  function renderGroup(group: (typeof navGroups)[number]) {
               const Icon = groupIcons[group.icon];
               const visibleChildren = group.children.filter((c) => !isColaborador || c.colaboradorPode);
               const isOpen = collapsed ? false : openGroups[group.key];
@@ -156,8 +111,9 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                 <div key={group.key}>
                   <button
                     className={cn(
-                      "nav-sweep flex w-full items-center gap-3 rounded-[7px] px-3 py-2.5 text-left text-[13.5px] font-medium hover:bg-white/[.06] hover:text-white",
+                      "nav-sweep flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors hover:bg-white/[.05] hover:text-white",
                       collapsed && "justify-center",
+                      group.children.some((c) => location.pathname.startsWith(c.path)) && "text-white",
                     )}
                     onClick={() => toggleGroup(group.key)}
                     title={collapsed ? group.label : undefined}
@@ -185,14 +141,17 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                             onClick={onCloseMobile}
                             className={({ isActive }) =>
                               cn(
-                                "nav-sweep flex items-center gap-2 rounded-[7px] border-l py-2 pl-5 pr-3 text-[12.5px] font-medium",
+                                "nav-sweep flex items-center gap-2 rounded-r-[8px] border-l-2 py-2 pl-5 pr-3 text-[12.5px] font-medium transition-colors",
                                 isActive
-                                  ? "border-l-primary-bright font-semibold text-primary-bright"
-                                  : "border-l-sidebar-border text-[#9C97A6] hover:bg-white/5 hover:text-white",
+                                  ? "border-l-[#A47BFF] bg-[rgba(110,58,255,.12)] font-semibold text-white"
+                                  : "border-l-sidebar-border text-[#9A8DCC] hover:bg-white/[.04] hover:text-white",
                               )
                             }
                           >
-                            {child.label}
+                            <span className="flex-1">{child.label}</span>
+                            {IA_PATHS.has(child.path) && (
+                              <Sparkle size={9} className="shrink-0 text-[#A47BFF]" />
+                            )}
                           </NavLink>
                         ))}
                       </div>
@@ -200,23 +159,73 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                   )}
                 </div>
               );
-            })}
+            }
+
+  return (
+    <>
+      {mobileOpen && (
+        <div className="fixed inset-0 z-[35] bg-[rgba(5,5,8,.6)] md:hidden" onClick={onCloseMobile} />
+      )}
+      <aside
+        className={cn(
+          "fixed bottom-0 left-0 top-0 z-40 flex flex-col overflow-x-hidden border-r border-sidebar-border bg-sidebar-bg text-sidebar-text transition-[width,transform] duration-250 ease-in-out",
+          collapsed ? "w-[64px]" : "w-[258px]",
+          "max-md:w-[258px]",
+          mobileOpen ? "max-md:translate-x-0" : "max-md:-translate-x-full",
+        )}
+      >
+        <div className={cn("group flex items-center py-[18px]", collapsed ? "flex-col gap-3 px-2" : "justify-between gap-2 px-4")}>
+          <NavLink to="/" onClick={onCloseMobile} className="flex min-w-0 items-center" title="Início">
+            {collapsed ? <BrandMark size={32} /> : <BrandLogo height={30} />}
+          </NavLink>
+          <button
+            className="hidden h-[28px] w-[28px] shrink-0 items-center justify-center rounded-md text-[#847E90] hover:bg-white/[.07] hover:text-white md:flex"
+            onClick={onToggleCollapse}
+            aria-label={collapsed ? "Abrir menu" : "Recolher menu"}
+            title={collapsed ? "Abrir menu" : "Recolher menu"}
+          >
+            {collapsed ? <PanelLeftOpen className="h-[17px] w-[17px]" /> : <PanelLeftClose className="h-[17px] w-[17px]" />}
+          </button>
+        </div>
+
+        <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-1.5 pt-2.5 [&>*]:shrink-0">
+          <SectionLabel collapsed={collapsed}>Meu dia</SectionLabel>
+          <NavLink
+            to="/"
+            end
+            onClick={onCloseMobile}
+            title={collapsed ? "Resumo" : undefined}
+            className={({ isActive }) => topItemClass(isActive, collapsed)}
+          >
+            <LayoutGrid className="h-[17px] w-[17px] shrink-0" aria-label="Resumo" />
+            {!collapsed && <span>Resumo</span>}
+          </NavLink>
+
+          {!isColaborador && (
+            <NavLink
+              to="/projetos"
+              onClick={onCloseMobile}
+              title={collapsed ? "Projetos" : undefined}
+              className={({ isActive }) => topItemClass(isActive, collapsed)}
+            >
+              <Folder className="h-[17px] w-[17px] shrink-0" />
+              {!collapsed && <span>Projetos</span>}
+            </NavLink>
+          )}
+
+          <SectionLabel collapsed={collapsed}>Departamentos</SectionLabel>
+          {navGroups
+            .filter((g) => ["tecnologia", "marketing", "comercial"].includes(g.key))
+            .filter((g) => !isColaborador || g.colaboradorPode)
+            .map(renderGroup)}
 
           {!isColaborador && (
             <>
-              <div className={cn("px-3 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-wider text-[#5F5A6B]", collapsed && "hidden")}>
-                Ajuda
-              </div>
+              <SectionLabel collapsed={collapsed}>Ajuda</SectionLabel>
               <NavLink
                 to="/faq"
                 onClick={onCloseMobile}
-                className={({ isActive }) =>
-                  cn(
-                    "nav-sweep flex items-center gap-3 rounded-[7px] px-3 py-2.5 text-[13.5px] font-medium",
-                    collapsed && "justify-center",
-                    isActive ? "bg-primary text-white" : "hover:bg-white/[.06] hover:text-white",
-                  )
-                }
+                className={({ isActive }) => topItemClass(isActive, collapsed)}
               >
                 <HelpCircle className="h-[17px] w-[17px] shrink-0" />
                 {!collapsed && <span>FAQ</span>}
@@ -224,31 +233,25 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               <NavLink
                 to="/processos"
                 onClick={onCloseMobile}
-                className={({ isActive }) =>
-                  cn(
-                    "nav-sweep flex items-center gap-3 rounded-[7px] px-3 py-2.5 text-[13.5px] font-medium",
-                    collapsed && "justify-center",
-                    isActive ? "bg-primary text-white" : "hover:bg-white/[.06] hover:text-white",
-                  )
-                }
+                className={({ isActive }) => topItemClass(isActive, collapsed)}
               >
                 <GitBranch className="h-[17px] w-[17px] shrink-0" />
-                {!collapsed && <span>Processos Demand Hub</span>}
+                {!collapsed && <span>Processos DemandIA</span>}
               </NavLink>
               <NavLink
                 to="/ajuda"
                 onClick={onCloseMobile}
-                className={({ isActive }) =>
-                  cn(
-                    "nav-sweep flex items-center gap-3 rounded-[7px] px-3 py-2.5 text-[13.5px] font-medium",
-                    collapsed && "justify-center",
-                    isActive ? "bg-primary text-white" : "hover:bg-white/[.06] hover:text-white",
-                  )
-                }
+                className={({ isActive }) => topItemClass(isActive, collapsed)}
               >
                 <LifeBuoy className="h-[17px] w-[17px] shrink-0" />
                 {!collapsed && <span>Central de ajuda</span>}
               </NavLink>
+
+              <SectionLabel collapsed={collapsed}>Administração</SectionLabel>
+              {navGroups
+                .filter((g) => ["administrativo", "config"].includes(g.key))
+                .filter((g) => !isColaborador || g.colaboradorPode)
+                .map(renderGroup)}
             </>
           )}
         </nav>
@@ -257,7 +260,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
           {popoverOpen && (
             <div
               ref={popoverRef}
-              className="absolute bottom-16 left-4 right-4 flex flex-col gap-0.5 rounded-[9px] border border-sidebar-border bg-sidebar-bg2 p-2 shadow-2xl"
+              className="absolute bottom-[68px] left-4 right-4 flex flex-col gap-0.5 rounded-[9px] border border-sidebar-border bg-sidebar-bg2 p-2 shadow-2xl"
             >
               <button
                 className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[12.5px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-white"
@@ -291,6 +294,13 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               </button>
             </div>
           )}
+          {!collapsed && (
+            <div className="mb-2.5 px-1 font-mono text-[10px] leading-relaxed text-[#6E61A0]">
+              DemandIA · Portal
+              <br />
+              Todos os direitos reservados
+            </div>
+          )}
           <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>
             <button
               ref={triggerRef}
@@ -298,13 +308,13 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               title={collapsed ? userName : undefined}
               onClick={() => setPopoverOpen((v) => !v)}
             >
-              <div className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full bg-primary-tint font-display text-[12.5px] font-bold text-primary-bright">
+              <div className="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-full bg-[#6E3AFF] font-display text-[13px] font-extrabold text-white shadow-[0_0_0_2px_rgba(164,123,255,.25)]">
                 {initial}
               </div>
               {!collapsed && (
                 <div className="min-w-0 text-left leading-tight">
                   <div className="truncate text-[12.5px] font-semibold text-white">{userName}</div>
-                  <div className="whitespace-nowrap text-[11px] text-[#8B8794]">{userRole}</div>
+                  <div className="whitespace-nowrap text-[11px] text-[#8E7FC4]">{userRole}</div>
                 </div>
               )}
             </button>

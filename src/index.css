@@ -2,48 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design system DemandIA · segue o Manual de Marca v1.0
+ * Paleta: Noite #0B0420 (base, ~45%) · Índigo #1C0A4A · Roxo #6E3AFF (principal)
+ *         Violeta #A47BFF · Névoa #E9E1FF · Gelo #F6F4FB
+ * Degradê #2A0C8F → #5A28E0 → #8B5BFF → #C9B0FF → #F3EDFF só no símbolo e em destaques.
+ * Tipografia: Archivo 800 · largura 75% · caixa alta (títulos e números),
+ *             Geist (texto e interface), Geist Mono (rótulos, dados, numeração).
+ * Elementos gráficos: Aura + Grade de pontos com brilhos (no máximo dois por tela).
+ */
 :root {
-  --bg: #0a0a0e;
-  --surface: #131218;
-  --surface-2: #1b1a22;
-  --border: rgba(255, 255, 255, 0.09);
-  --ink: #f2f0f5;
-  --muted: #8b8794;
-  --primary: #7e39a0;
-  --primary-bright: #b26fd6;
-  --primary-tint: rgba(126, 57, 160, 0.18);
-  --positive: #37c77e;
-  --positive-tint: rgba(55, 199, 126, 0.13);
-  --attention: #e2965a;
-  --attention-tint: rgba(226, 150, 90, 0.13);
-  --negative: #e2585a;
-  --negative-tint: rgba(226, 88, 90, 0.13);
-  --radius: 9px;
+  --noite: #0b0420;
+  --indigo: #1c0a4a;
+  --roxo: #6e3aff;
+  --violeta: #a47bff;
+  --nevoa: #e9e1ff;
+  --gelo: #f6f4fb;
+
+  --bg: #0b0420;
+  --surface: #120735;
+  --surface-2: #1c0a4a;
+  --border: rgba(164, 123, 255, 0.17);
+  --ink: #f6f4fb;
+  --muted: #a297cf;
+  --primary: #6e3aff;
+  --primary-bright: #a47bff;
+  --primary-tint: rgba(110, 58, 255, 0.2);
+  --positive: #2fd27f;
+  --positive-tint: rgba(47, 210, 127, 0.13);
+  --attention: #ffb35c;
+  --attention-tint: rgba(255, 179, 92, 0.13);
+  --negative: #ff6b81;
+  --negative-tint: rgba(255, 107, 129, 0.14);
+  --radius: 16px;
   --sidebar-w: 258px;
   --sidebar-w-collapsed: 76px;
-  --sb-bg: #0a0a0e;
-  --sb-bg-2: #141319;
-  --sb-text: #c7c2cf;
+  --sb-bg: #0b0420;
+  --sb-bg-2: #1c0a4a;
+  --sb-text: #c9beea;
   --sb-text-active: #fff;
-  --sb-border: rgba(255, 255, 255, 0.08);
+  --sb-border: rgba(164, 123, 255, 0.14);
+  --aura: rgba(110, 58, 255, 0.34);
+  --aura-2: rgba(164, 123, 255, 0.12);
+  --dot: rgba(164, 123, 255, 0.13);
 }
 
 [data-theme="light"] {
-  --bg: #f7f5fa;
+  --bg: #f6f4fb;
   --surface: #ffffff;
-  --surface-2: #f1eef5;
-  --border: #e4e1e8;
-  --ink: #171716;
-  --muted: #6e6a74;
-  --primary: #7e39a0;
-  --primary-bright: #7e39a0;
-  --primary-tint: #f1ebf6;
-  --positive: #2f8f5b;
-  --positive-tint: #e7f5ee;
-  --attention: #c2703a;
-  --attention-tint: #fbeee4;
-  --negative: #b23b3b;
-  --negative-tint: #fbeaea;
+  --surface-2: #e9e1ff;
+  --border: rgba(110, 58, 255, 0.16);
+  --ink: #0b0420;
+  --muted: #5d5288;
+  --primary: #6e3aff;
+  --primary-bright: #6e3aff;
+  --primary-tint: #e9e1ff;
+  --positive: #1e8f55;
+  --positive-tint: #e4f6ec;
+  --attention: #b8620f;
+  --attention-tint: #fdf0e1;
+  --negative: #c9304a;
+  --negative-tint: #fde8ec;
+  --aura: rgba(110, 58, 255, 0.12);
+  --aura-2: rgba(164, 123, 255, 0.1);
+  --dot: rgba(110, 58, 255, 0.12);
 }
 
 * {
@@ -59,31 +81,35 @@ body,
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Geist", Arial, sans-serif;
   color: var(--ink);
   background-color: var(--bg);
-  background-image: linear-gradient(rgba(178, 111, 214, 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(178, 111, 214, 0.06) 1px, transparent 1px);
-  background-size: 44px 44px;
+  /* Aura (luz roxa desfocada sobre a Noite) + grade de pontos de 28px */
+  background-image: radial-gradient(1000px 700px at 8% -12%, var(--aura), transparent 62%),
+    radial-gradient(800px 600px at 105% 8%, var(--aura-2), transparent 60%),
+    radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 1.3px);
+  background-size: auto, auto, 28px 28px;
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   transition: background-color 0.3s ease;
 }
 
-body[data-theme="dark"] {
-  animation: gridshift 40s linear infinite;
+/* Ícones: traço mais firme e pontas arredondadas, como pede o manual */
+svg.lucide {
+  stroke-width: 2.25;
 }
 
-[data-theme="light"] body,
-body[data-theme="light"] {
-  background-image: none;
-  animation: none;
+h1 {
+  font-family: "Archivo", "Arial Black", sans-serif;
+  font-weight: 800;
+  font-stretch: 75%;
+  text-transform: uppercase;
+  margin: 0;
 }
-
-h1,
 h2,
 h3 {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: "Geist", Arial, sans-serif;
+  font-weight: 600;
   margin: 0;
   letter-spacing: -0.01em;
 }
@@ -114,11 +140,11 @@ a {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(178, 111, 214, 0.35);
+  background: rgba(164, 123, 255, 0.35);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(178, 111, 214, 0.6);
+  background: rgba(164, 123, 255, 0.6);
 }
 
 @keyframes gridshift {
@@ -128,6 +154,281 @@ a {
   to {
     background-position: 130px 130px, 130px 130px;
   }
+}
+
+/* H1 da marca: Archivo ExtraBold 800 · largura 75% · caixa alta */
+.brand-h {
+  font-family: "Archivo", "Arial Black", sans-serif;
+  font-weight: 800;
+  font-stretch: 75%;
+  text-transform: uppercase;
+  line-height: 0.9;
+  letter-spacing: 0;
+}
+/* Números grandes também em Archivo 800 / 75% */
+.brand-num {
+  font-family: "Archivo", "Arial Black", sans-serif;
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 1;
+}
+/* Destaque em Violeta (um por tela) */
+.brand-hl {
+  color: var(--violeta);
+}
+[data-theme="light"] .brand-hl {
+  color: var(--roxo);
+}
+/* Degradê da marca: só em destaques pontuais */
+.brand-grad {
+  background: linear-gradient(90deg, #8b5bff 0%, #c9b0ff 60%, #f3edff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Rótulo: Geist Mono 500, pequeno, espaçamento aberto (+12%) */
+.eyebrow {
+  font-family: "Geist Mono", ui-monospace, monospace;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+}
+
+/* Superfície "vidro" escura com fio de luz no topo */
+.glass {
+  background: linear-gradient(180deg, rgba(28, 10, 74, 0.72), rgba(18, 7, 53, 0.72));
+  border: 1px solid var(--border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+[data-theme="light"] .glass {
+  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ===== Holograma do símbolo (tela de login) ===== */
+.holo-draw,
+.holo-draw-glow {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: holoDraw 1.6s cubic-bezier(0.65, 0, 0.35, 1) 0.25s forwards;
+}
+.holo-draw-glow {
+  animation-delay: 0.45s;
+}
+.holo-core {
+  opacity: 0;
+  animation: holoFade 0.8s ease 1.5s forwards, holoBreath 4s ease-in-out 2.4s infinite;
+}
+.holo-star {
+  opacity: 0;
+  transform: scale(0.2) rotate(-45deg);
+  animation: holoStar 0.9s cubic-bezier(0.2, 1.4, 0.4, 1) 1.55s forwards, holoTwinkle 3.2s ease-in-out 2.6s infinite;
+}
+.holo-flash {
+  opacity: 0;
+  animation: holoFlash 1.1s ease-out 1.5s forwards;
+}
+.holo-lines {
+  opacity: 0;
+  animation: holoFade 0.6s ease 1.8s forwards;
+}
+.holo-sweep {
+  animation: holoSweep 3.4s linear 2s infinite;
+}
+.holo-base {
+  opacity: 0;
+  animation: holoFade 1.2s ease 0.1s forwards;
+}
+.holo-body {
+  animation: holoFloat 6s ease-in-out 2.4s infinite, holoFlicker 7s steps(1) 3s infinite;
+}
+.holo-spin {
+  animation: holoSpin 26s linear infinite;
+}
+.holo-spin-rev {
+  animation: holoSpin 38s linear infinite reverse;
+}
+.holo-spin-slow {
+  animation: holoSpin 50s linear infinite;
+}
+@keyframes holoDraw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes holoFade {
+  to {
+    opacity: 1;
+  }
+}
+@keyframes holoStar {
+  to {
+    opacity: 1;
+    transform: scale(1) rotate(0);
+  }
+}
+@keyframes holoTwinkle {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+@keyframes holoBreath {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+@keyframes holoFlash {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  30% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+@keyframes holoSweep {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(150px);
+  }
+}
+@keyframes holoFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes holoFlicker {
+  0%,
+  96%,
+  100% {
+    opacity: 1;
+  }
+  97% {
+    opacity: 0.82;
+  }
+  98% {
+    opacity: 1;
+  }
+  99% {
+    opacity: 0.9;
+  }
+}
+@keyframes holoSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.holo-flash {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+/* Brilhos soltos da grade piscando */
+.twinkle {
+  animation: twinkle 3.6s ease-in-out infinite;
+}
+@keyframes twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 0.9;
+    transform: scale(1);
+  }
+}
+
+/* Entrada dos elementos da tela de login */
+.rise {
+  opacity: 0;
+  transform: translateY(18px);
+  animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
+}
+@keyframes rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Transição ao entrar: a estrela acende e toma a tela */
+.enter-burst {
+  animation: burst 0.75s cubic-bezier(0.7, 0, 0.3, 1) forwards;
+}
+@keyframes burst {
+  0% {
+    clip-path: circle(0% at 50% 50%);
+  }
+  100% {
+    clip-path: circle(150% at 50% 50%);
+  }
+}
+
+/* Borda de luz que corre em volta do cartão de login */
+.beam-border {
+  position: relative;
+  isolation: isolate;
+}
+.beam-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--beam-a, 0deg), transparent 0deg, #a47bff 50deg, #f3edff 70deg, transparent 120deg, transparent 360deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: beam 6s linear infinite;
+  z-index: -1;
+}
+@property --beam-a {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes beam {
+  to {
+    --beam-a: 360deg;
+  }
+}
+
+/* Reflexo que atravessa o cartão no hover (interface "viva") */
+.sheen {
+  position: relative;
+  overflow: hidden;
+}
+.sheen::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 35%, rgba(201, 176, 255, 0.09) 50%, transparent 65%);
+  transform: translateX(-100%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
+}
+.sheen:hover::after {
+  transform: translateX(100%);
 }
 
 /* Sweep-of-light hover effect used on nav items */
@@ -142,7 +443,7 @@ a {
   left: -60%;
   width: 45%;
   height: 100%;
-  background: linear-gradient(120deg, transparent, rgba(178, 111, 214, 0.4), transparent);
+  background: linear-gradient(120deg, transparent, rgba(164, 123, 255, 0.28), transparent);
   transform: skewX(-20deg);
   transition: left 0.55s ease;
   pointer-events: none;
@@ -180,6 +481,25 @@ table tr:last-child td {
     animation: none !important;
     transition: none !important;
   }
+  /* Sem animação: mostra direto o estado final do símbolo e da tela */
+  .holo-draw,
+  .holo-draw-glow {
+    stroke-dashoffset: 0;
+  }
+  .holo-core,
+  .holo-lines,
+  .holo-base,
+  .rise {
+    opacity: 1;
+    transform: none;
+  }
+  .holo-star {
+    opacity: 1;
+    transform: none;
+  }
+  .holo-flash {
+    opacity: 0;
+  }
 }
 
 /* Ficha do cliente em PDF (Projetos → cliente → "Exportar ficha em PDF") */
@@ -203,20 +523,20 @@ table tr:last-child td {
     padding: 0;
     background: #fff;
     color: #171716;
-    font-family: "Inter", sans-serif;
+    font-family: "Geist", sans-serif;
   }
   .print-header {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 24px 32px 16px;
-    border-bottom: 3px solid #7e39a0;
+    border-bottom: 3px solid #6e3aff;
   }
   .print-mark {
     width: 44px;
     height: 44px;
     border-radius: 10px;
-    background: #7e39a0;
+    background: #6e3aff;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -229,7 +549,7 @@ table tr:last-child td {
     height: 60%;
   }
   .print-brand {
-    font-family: "Space Grotesk", sans-serif;
+    font-family: "Archivo", sans-serif;
     font-weight: 700;
     font-size: 16px;
     color: #171716;
@@ -238,7 +558,7 @@ table tr:last-child td {
     padding: 16px 32px 0;
   }
   .print-meta h2 {
-    font-family: "Space Grotesk", sans-serif;
+    font-family: "Archivo", sans-serif;
     font-size: 20px;
     margin-bottom: 2px;
     color: #171716;
@@ -254,7 +574,7 @@ table tr:last-child td {
   .print-section h3 {
     font-size: 13px;
     font-weight: 700;
-    color: #7e39a0;
+    color: #6e3aff;
     text-transform: uppercase;
     letter-spacing: 0.04em;
     margin-bottom: 8px;
