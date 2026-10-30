@@ -226,15 +226,47 @@ async function checkNumber(num: string): Promise<{ ok: boolean; jid?: string; na
   } catch { return null; }
 }
 
-async function instanceOk() {
+/** Status da instância. "lento" = o servidor (dividido com outras instâncias) não respondeu a tempo. */
+async function statusInstancia(): Promise<"ok" | "caiu" | "lento"> {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const r = await fetch(`${EVO_URL}/instance/status`, { headers: { apikey: EVO_TOKEN } });
+    const r = await fetch(`${EVO_URL}/instance/status`, { headers: { apikey: EVO_TOKEN }, signal: ctrl.signal });
+    if (!r.ok) return r.status >= 500 ? "lento" : "caiu";
     const j = await r.json();
     const d = j?.data ?? j;
     const c = d?.Connected ?? d?.connected, l = d?.LoggedIn ?? d?.loggedIn;
-    return c !== false && l !== false;
-  } catch { return false; }
+    return c === false || l === false ? "caiu" : "ok";
+  } catch { return "lento"; } finally { clearTimeout(t); }
 }
+/**
+ * Só considera a instância caída quando ela diz que está desconectada, duas vezes seguidas.
+ * Demora para responder não é queda (em 29/10 foram 26 alertas falsos com o WhatsApp funcionando).
+ */
+async function instanceOk(): Promise<boolean | "lento"> {
+  const a = await statusInstancia();
+  if (a === "ok") return true;
+  await sleep(4000);
+  const b = await statusInstancia();
+  if (b === "ok") return true;
+  return a === "caiu" && b === "caiu" ? false : "lento";
+}
+
+/** A empresa só respondeu com robô (boas-vindas, menu) e nenhuma pessoa? */
+async function soRespondeuRobo(whatsapp: string): Promise<boolean> {
+  const tail = String(whatsapp).replace(/\D/g, "").slice(-8);
+  const { data: lds } = await sb.from("sdr_leads").select("id").like("phone", `%${tail}`).limit(1);
+  const id = lds?.[0]?.id;
+  if (!id) return false;
+  const { data: msgs } = await sb.from("sdr_messages").select("content").eq("lead_id", id).eq("direction", "in").limit(50);
+  const ins = (msgs ?? []).map((m) => String(m.content ?? ""));
+  return ins.length > 0 && ins.every((c) => c.startsWith("[resposta automática]"));
+}
+/** Para quem só teve robô: o próximo WhatsApp vai direto ao ponto, pedindo o contato de quem decide. */
+const TEXTO_ROBO = [
+  "Tudo bem? Aqui é a Ana, da DemandIA, de novo 😊\n\nVi que por aqui cai no atendimento automático, então vou direto ao ponto: fiz uma análise rápida do perfil de vocês no Google e queria mandar pra quem cuida do marketing.\n\nConsegue me passar o e-mail ou o WhatsApp dessa pessoa?",
+  "Tudo bem? É a Ana, da DemandIA 😊\n\nComo aqui cai no atendimento automático, vou ser rápida: tenho uma análise do perfil de vocês no Google, com os pontos que dá pra melhorar, e queria entregar pra quem decide sobre o marketing.\n\nQual o melhor e-mail ou contato pra eu mandar?",
+];
 
 /** Manda o próximo toque de WhatsApp da cadência que já venceu. Retorna null se não havia nada. */
 async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
@@ -265,10 +297,18 @@ async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
   const to = chk?.jid ? chk.jid.split("@")[0] : lead.whatsapp;
   // Igual ao 1º toque: a saudação vai sozinha, espera uns segundos e depois vem a mensagem com o contexto
   const nome = nomeParaSaudar(lead, chk?.name);
-  const { r } = await enviarComSaudacao(cfg.evolution_send_path, to, nome, String(toque.texto).trim());
+  // Só teve robô até agora e ainda não pedimos o contato direto: esse toque vai direto ao ponto (uma vez só)
+  let texto = String(toque.texto).trim();
+  let robo = false;
+  if (await soRespondeuRobo(lead.whatsapp).catch(() => false)) {
+    const { count: jaPediu } = await sb.from("outreach_log").select("id", { count: "exact", head: true })
+      .eq("place_id", lead.place_id).eq("event", "followup").contains("detail", { robo: true });
+    if (!jaPediu) { texto = pick(TEXTO_ROBO); robo = true; }
+  }
+  const { r } = await enviarComSaudacao(cfg.evolution_send_path, to, nome, texto);
   if (r.ok) {
     await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
-    await log(lead.place_id, "followup", { to, toque: lead.toque_atual + 1, nome_whats: chk?.name || null, saudou: nome || null, msg: `${lead.empresa}: toque ${lead.toque_atual + 1}` });
+    await log(lead.place_id, "followup", { to, toque: lead.toque_atual + 1, robo, nome_whats: chk?.name || null, saudou: nome || null, msg: `${lead.empresa}: toque ${lead.toque_atual + 1}` });
     return { followup: lead.empresa, toque: lead.toque_atual + 1, next: nextAt };
   }
   const low = r.body.toLowerCase();
@@ -313,7 +353,13 @@ Deno.serve(async (req) => {
   const count = cfg.test_number ? (testesHoje ?? []).length : enviadosHoje;
   const tetoNovos = (count || 0) >= cfg.wa_daily_cap;
 
-  if (!cfg.dry_run && !(await instanceOk())) {
+  const inst = cfg.dry_run ? true : await instanceOk();
+  if (inst === "lento") {
+    // Servidor lento: não é queda, tenta de novo daqui a 3 minutos sem gerar alerta
+    await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 3 * 60e3).toISOString() }).eq("id", 1);
+    return Response.json({ ...out, skip: "servidor_lento" });
+  }
+  if (!inst) {
     await log(null, "instance_down");
     await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 10 * 60e3).toISOString() }).eq("id", 1);
     return Response.json({ ...out, skip: "instancia_desconectada" });

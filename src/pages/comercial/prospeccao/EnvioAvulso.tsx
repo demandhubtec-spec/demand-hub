@@ -4,14 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/toast";
-import { type OutreachLead, useEnviarAvulso } from "@/hooks/useProspeccao";
+import { type OutreachLead, type OutreachLogItem, useEnviarAvulso } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
 
 /**
  * Mensagem avulsa para o lead: o follow-up feito à mão ou a análise para o e-mail que a recepção passou.
  * Sai do WhatsApp ou do e-mail da Ana (com a assinatura dela), só depois que você revisa e clica em enviar.
  */
-export function EnvioAvulso({ lead }: { lead: OutreachLead }) {
+export interface Rascunho {
+  id: string;
+  para: string[];
+  assunto: string;
+  texto: string;
+}
+
+/** O rascunho mais recente que a Ana deixou (quando passaram um e-mail na conversa), se ainda não foi enviado. */
+export function rascunhoDoLog(log: OutreachLogItem[]): Rascunho | undefined {
+  const r = log.find((e) => e.event === "email_rascunho");
+  if (!r || typeof r.detail !== "object" || !r.detail) return undefined;
+  const enviadoDepois = log.some((e) => e.channel === "email" && e.event === "sent" && e.created_at > r.created_at);
+  if (enviadoDepois) return undefined;
+  const d = r.detail as { para?: string[]; assunto?: string; texto?: string };
+  return d.texto ? { id: String(r.id), para: d.para ?? [], assunto: d.assunto ?? "", texto: d.texto } : undefined;
+}
+
+export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?: Rascunho }) {
   const enviar = useEnviarAvulso();
   const { showToast } = useToast();
   const [canal, setCanal] = React.useState<"whatsapp" | "email">(lead.whatsapp ? "whatsapp" : "email");
@@ -19,6 +36,14 @@ export function EnvioAvulso({ lead }: { lead: OutreachLead }) {
   const [assunto, setAssunto] = React.useState("");
   const [texto, setTexto] = React.useState("");
   const [confirmar, setConfirmar] = React.useState(false);
+  // Rascunho da Ana: abre já no e-mail, preenchido, para revisar
+  React.useEffect(() => {
+    if (!rascunho) return;
+    setCanal("email");
+    setPara(rascunho.para.join(", "));
+    setAssunto(rascunho.assunto);
+    setTexto(rascunho.texto);
+  }, [rascunho?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const baloes = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
   const emails = para.split(/[,;\s]+/).map((x) => x.trim()).filter(Boolean);
@@ -56,6 +81,11 @@ export function EnvioAvulso({ lead }: { lead: OutreachLead }) {
         </div>
       </div>
 
+      {rascunho && canal === "email" && (
+        <div className="mb-2 rounded-md bg-positive-tint p-2 text-[12px]">
+          Passaram o e-mail na conversa e a Ana deixou este e-mail da análise pronto. Revise, ajuste o que quiser e envie.
+        </div>
+      )}
       {canal === "email" && (
         <div className="mb-2 grid gap-2">
           <Input className="h-9 py-1.5" placeholder="Para (separe vários e-mails por vírgula)" value={para} onChange={(e) => setPara(e.target.value)} />

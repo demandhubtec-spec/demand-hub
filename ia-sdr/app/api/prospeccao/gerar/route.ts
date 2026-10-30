@@ -24,6 +24,7 @@ import {
   type Toque,
 } from "@/src/lib/diagnostico-perfil.ts";
 import { gerarDirect, gerarSite, semSiteProprio, type SitePreview } from "@/src/lib/extras.ts";
+import { contatosDoSite } from "@/src/lib/enriquecer.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -40,7 +41,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em";
+  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em";
 const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
@@ -105,6 +106,15 @@ export async function POST(req: Request) {
     ((leads ?? []) as (LeadPerfil & { tentativa?: number | null })[]).map(async (lead) => {
       try {
         if (!followups) await db().from("outreach_leads").update({ msg_status: "gerando" }).eq("place_id", lead.place_id);
+        // Sem e-mail ou Instagram na ficha do Google: procura no site da empresa antes de escrever
+        const sem = lead as LeadPerfil & { email?: string | null };
+        if (!sem.email || !lead.instagram) {
+          const c = await contatosDoSite(lead.site).catch(() => ({ email: null, instagram: null }));
+          const patch: Record<string, string> = {};
+          if (!sem.email && c.email) patch.email = sem.email = c.email;
+          if (!lead.instagram && c.instagram) patch.instagram = lead.instagram = c.instagram;
+          if (Object.keys(patch).length) await db().from("outreach_leads").update(patch).eq("place_id", lead.place_id);
+        }
         const { data: conc } = await db()
           .from("outreach_leads")
           .select("place_id,empresa,avaliacoes,nota")

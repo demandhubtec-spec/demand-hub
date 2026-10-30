@@ -376,3 +376,21 @@ test("balões: pergunta sozinha no fim, no máximo 3, e número com ponto não q
   assert.ok(r.includes("2.795"), r);
   assert.equal(r.split("\n\n").length, 3);
 });
+
+import { extrairContatos } from "../src/lib/enriquecer.ts";
+import { emailsNoTexto } from "../src/lib/rascunho-email.ts";
+test("site: acha o e-mail do próprio domínio e o Instagram", () => {
+  const html = `<a href="mailto:joao@gmail.com">x</a> contato@clinicax.com.br <img src="logo@2x.png"> <a href="https://www.instagram.com/clinicax/">ig</a> <a href="https://instagram.com/p/abc">post</a>`;
+  const c = extrairContatos(html, "https://www.clinicax.com.br/");
+  assert.equal(c.emails[0], "contato@clinicax.com.br");
+  assert.ok(!c.emails.includes("logo@2x.png"));
+  assert.equal(c.instagram, "https://www.instagram.com/clinicax/");
+});
+
+test("conversa: pega o e-mail que a recepção passou", () => {
+  assert.deepEqual(
+    emailsNoTexto("Pode enviar nesse e-mail: luanna.lima@bbzadvocacia.com.br / marjorie.camilo@bbzadvocacia.com.br."),
+    ["luanna.lima@bbzadvocacia.com.br", "marjorie.camilo@bbzadvocacia.com.br"],
+  );
+  assert.deepEqual(emailsNoTexto("Bom dia, tudo bem?"), []);
+});

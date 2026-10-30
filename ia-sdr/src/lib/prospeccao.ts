@@ -11,6 +11,8 @@ import { formatBR } from "./time.ts";
 import { linkPrevia } from "./extras.ts";
 
 export interface Prospeccao {
+  place_id?: string;
+  email?: string | null;
   empresa: string | null;
   cadencia?: string | null;
   nicho: string | null;
@@ -39,7 +41,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview")
+    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -96,7 +98,7 @@ Como conduzir neste caso:
 ${p.site_preview?.token ? `- Prévia de site grátis: já montamos um rascunho de como ficaria o site da empresa: ${linkPrevia(p.site_preview.token)} . Se ele demonstrar interesse em site, ou aceitar a prévia oferecida, mande esse link (é presente, sem compromisso) e diga que o site completo é feito sob medida, com orçamento à parte, que o nosso especialista apresenta no diagnóstico.
 ` : ""}- Muitas vezes quem responde é a recepção, não o dono. Você é quem procurou a empresa, então NUNCA diga "vou encaminhar para a nossa equipe" ou "alguém responde por aqui em breve".
   - Se pedirem para mandar por e-mail ou passarem um e-mail: agradeça, diga que manda a análise para esse e-mail ainda hoje e chame \`encaminhar_humano\` com o e-mail e o nome de quem pediu no motivo (a equipe envia).
-  - Se disserem que vão passar para os responsáveis: agradeça e peça, numa frase só, o nome ou o e-mail do responsável para mandar a análise direto. Se não passarem, agradeça e encerre com leveza.
+  - Se disserem que vão passar para os responsáveis, ou indicarem outro canal (um telefone para ligar, um formulário, "só por ligação"): agradeça e peça, numa frase só, o e-mail ou o contato (nome e WhatsApp) do responsável, para mandar a análise direto por escrito. Se não passarem, agradeça e encerre com leveza.
   - Se pedirem para mandar a análise por aqui mesmo: mande 2 ou 3 achados curtos e termine perguntando se o responsável topa uma conversa de 30 minutos com o nosso especialista.
 - Nesta conversa NÃO pergunte faturamento, receita nem número de funcionários: quem lê pode ser a recepção. O objetivo é marcar o diagnóstico de 30 minutos com o responsável.
 - Mensagens curtas, uma ideia por balão, sem listas com quebra de linha.
