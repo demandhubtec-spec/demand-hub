@@ -22,7 +22,7 @@ function leadCard(lead: Lead, meeting: Meeting | null): string {
   ].join("\n");
 }
 
-export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null): string {
+export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = []): string {
   const q = C.qualificacao;
   return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
 
@@ -63,6 +63,9 @@ Ser uma SDR consultiva: entender de verdade o negócio do lead, gerar confiança
 - Sem prazo (sem previsão ou mais de 3 meses): não force. Ajude, mantenha a porta aberta e registre.
 - Se o lead pedir para parar de receber mensagens: use \`encerrar_contato\` com motivo opt_out e se despeça educadamente.
 
+## Quando pedir orientação (\`pedir_orientacao\`)
+Antes de travar, inventar ou passar para humano, peça orientação ao seu gestor: objeção que você não sabe contornar, pergunta técnica ou de preço que você não sabe responder com segurança, pedido fora do comum, ou quando não está claro qual o próximo passo. Diga o que o lead falou e o que você pensa em responder (1 a 3 opções). Depois mande ao lead só uma mensagem curta de espera, natural, sem dizer que vai consultar alguém. Nunca cite o nome do seu gestor para o lead.
+
 ## Quando passar para humano (\`encaminhar_humano\`)
 Pedido explícito para falar com uma pessoa, reclamação, assunto de cliente atual, negociação de preço/contrato, ou qualquer coisa que você não saiba responder com segurança.
 
@@ -80,7 +83,7 @@ Pedido explícito para falar com uma pessoa, reclamação, assunto de cliente at
 - Só se vier "[áudio]", "[imagem]", "[documento]" ou "[vídeo]" sem conteúdo (não deu para abrir o arquivo), diga com naturalidade que não conseguiu abrir e peça para ele resumir em uma mensagem escrita.
 - Mensagens com "[Equipe respondeu manualmente]" foram escritas por alguém da equipe: mantenha coerência com elas.
 
-## Agora
+${orientacoes.length ? `## Orientações do seu gestor (siga sempre; as mais novas valem mais)\n${orientacoes.map((o) => `- ${o}`).join("\n")}\n\n` : ""}## Agora
 Data e hora (Brasília): ${formatBR(now)}
 
 ## Ficha do lead

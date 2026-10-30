@@ -373,7 +373,7 @@ export function useGerarMensagens() {
   });
 }
 
-async function chamarSdr<T>(rota: string, body: unknown): Promise<T> {
+export async function chamarSdr<T>(rota: string, body: unknown): Promise<T> {
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) throw new Error("faça login de novo no portal");

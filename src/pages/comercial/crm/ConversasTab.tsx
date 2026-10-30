@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { ORIGEM_TEXTO, useContatos, useConversa, type Contato } from "@/hooks/useCrm";
 import { fmtData } from "../prospeccao/shared";
 import { STATUS_ANA } from "./InboundTab";
+import { Compositor } from "./Compositor";
 
 type Filtro = "todas" | "prospeccao" | "inbound";
 
@@ -16,7 +17,7 @@ function horaCurta(iso: string) {
   return d.toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", ...(hoje ? { hour: "2-digit", minute: "2-digit" } : { day: "2-digit", month: "2-digit" }) });
 }
 
-/** Espelho do WhatsApp da Ana: todas as conversas, atualizando sozinhas. Só leitura por enquanto. */
+/** Espelho do WhatsApp da Ana: todas as conversas, atualizando sozinhas, com um campo para orientar a Ana. */
 export function ConversasTab({ leadId, escolher }: { leadId: string | null; escolher: (id: string) => void }) {
   const { contatos, isLoading, isError } = useContatos();
   const [filtro, setFiltro] = React.useState<Filtro>("todas");
@@ -154,9 +155,10 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         })}
         <div ref={fim} />
       </div>
-      <div className="border-t border-border px-3 py-2 text-[11.5px] text-muted">
-        Só leitura por enquanto. Para mandar uma mensagem, use o bloco "Mensagem avulsa" na ficha do lead.
+      <div className="border-t border-border px-3 pt-2 text-[11px] text-muted">
+        Fale com a Ana sobre esta conversa: ela aplica a sua orientação com o lead e te conta o que mandou na aba Você e a Ana.
       </div>
+      <Compositor leadId={c.id} placeholder="Ex.: Ana, não é assim. Pede desculpa e oferece terça às 10h" compacto />
     </>
   );
 }

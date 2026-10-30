@@ -20,7 +20,7 @@ function limpo(b64: string) {
 
 async function transcrever(m: MidiaRecebida): Promise<string | null> {
   const buf = Buffer.from(limpo(m.base64), "base64");
-  const ext = m.mimetype.includes("mpeg") ? "mp3" : m.mimetype.includes("mp4") ? "m4a" : "ogg";
+  const ext = m.mimetype.includes("mpeg") ? "mp3" : m.mimetype.includes("mp4") ? "m4a" : m.mimetype.includes("webm") ? "webm" : "ogg"; // webm: áudio gravado no portal
   const form = new FormData();
   form.append("file", new Blob([buf], { type: m.mimetype.split(";")[0] || "audio/ogg" }), `audio.${ext}`);
   form.append("model", process.env.OPENAI_TRANSCRIBE_MODEL || "gpt-4o-mini-transcribe");

@@ -12,6 +12,7 @@ import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
 import { interpretarMidia } from "@/src/lib/midia.ts";
 import { emailsNoTexto, rascunhoDoEmailPassado } from "@/src/lib/rascunho-email.ts";
+import { processarOrientacao, registrar } from "@/src/lib/canal.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -38,7 +39,21 @@ export async function POST(req: Request) {
   if (env.evolutionInstance && msg.instanceName && msg.instanceName !== env.evolutionInstance) {
     return Response.json({ ignored: "outra instância" });
   }
-  // Conversa com o próprio Kelvin (avisos da IA) não é lead
+  // Conversa com o próprio Kelvin não é lead: o que ele escreve para a Ana vira orientação no canal interno
+  const doKelvin = (env.ownerPhone && msg.phone === env.ownerPhone) || (env.alertPhone && msg.phone === env.alertPhone);
+  if (doKelvin && !msg.fromMe) {
+    waitUntil(
+      (async () => {
+        const interp = !msg.text && msg.media ? await interpretarMidia(msg.media) : null;
+        const conteudo = msg.text ?? interp;
+        if (!conteudo) return;
+        const tipo = msg.media?.tipo === "audio" ? "audio" : msg.media?.tipo === "imagem" ? "imagem" : "texto";
+        await registrar({ autor: "kelvin", tipo, conteudo, origem: "whatsapp" });
+        await processarOrientacao({ leadId: null, conteudo, origem: "whatsapp" });
+      })().catch((e) => console.error("canal da Ana (WhatsApp) falhou", e)),
+    );
+    return Response.json({ ok: true, canal: true });
+  }
   if (env.ownerPhone && msg.phone === env.ownerPhone) return Response.json({ ignored: "owner" });
   // Números da lista de bloqueio: a IA não conversa nem registra como lead
   if (isBlocked(msg.phone, msg.jid, ...msg.altPhones)) return Response.json({ ignored: "bloqueado" });

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import { useOutreachLeads, type OutreachLead } from "@/hooks/useProspeccao";
+import { chamarSdr, useOutreachLeads, type OutreachLead } from "@/hooks/useProspeccao";
 
 /** Etapas do funil de oportunidades (as mesmas para prospecção ativa e inbound). */
 export const ETAPAS_OPORTUNIDADE = [
@@ -63,7 +63,8 @@ function useAoVivo(nome: string, tabela: string, chaves: unknown[][]) {
   const qc = useQueryClient();
   React.useEffect(() => {
     const ch = supabase
-      .channel(`crm-${nome}`)
+      // nome único por tela: o mesmo hook roda em mais de um lugar ao mesmo tempo
+      .channel(`crm-${nome}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabela }, () => chaves.forEach((k) => qc.invalidateQueries({ queryKey: k })))
       .subscribe();
     return () => {
@@ -111,7 +112,7 @@ export function useConversa(leadId: string | null) {
   React.useEffect(() => {
     if (!leadId) return;
     const ch = supabase
-      .channel(`crm-conversa-${leadId}`)
+      .channel(`crm-conversa-${leadId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sdr_messages", filter: `lead_id=eq.${leadId}` }, () =>
         qc.invalidateQueries({ queryKey: ["crm", "conversa", leadId] }),
       )
@@ -146,5 +147,45 @@ export function useEtapaInbound() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm"] }),
+  });
+}
+
+/* ---------- Canal "Você e a Ana" ---------- */
+
+export interface MsgCanal {
+  id: string;
+  lead_id: string | null;
+  autor: "kelvin" | "ana";
+  tipo: "texto" | "audio" | "imagem";
+  conteudo: string;
+  origem: "portal" | "whatsapp" | "sistema";
+  status: "pendente" | "respondido" | null;
+  created_at: string;
+}
+
+export function useCanal() {
+  useAoVivo("canal", "ana_canal", [["crm", "canal"]]);
+  return useQuery({
+    queryKey: ["crm", "canal"],
+    refetchInterval: 30_000,
+    queryFn: async (): Promise<MsgCanal[]> => {
+      const { data, error } = await supabase.from("ana_canal").select("*").order("created_at", { ascending: false }).limit(200);
+      if (error) throw error;
+      return ((data ?? []) as MsgCanal[]).reverse();
+    },
+  });
+}
+
+export interface EnvioCanal {
+  lead_id?: string | null;
+  texto?: string;
+  midia?: { tipo: "audio" | "imagem"; base64: string; mimetype: string };
+}
+
+export function useEnviarCanal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (b: EnvioCanal) => chamarSdr<{ ok: boolean; conteudo: string }>("/api/ana/canal", b),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm", "canal"] }),
   });
 }

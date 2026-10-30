@@ -23,6 +23,7 @@ import { nextFollowUpAt } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { runTool, TOOLS } from "./tools.ts";
+import { orientacoesPara } from "./canal.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const OPEN_STATUSES = ["novo", "em_qualificacao", "qualificado"];
@@ -55,6 +56,7 @@ async function reply(leadId: string) {
   const meeting = await activeMeeting(leadId);
   // Opção C: se o contato veio da prospecção ativa, a Ana continua sabendo disso
   const prospeccao = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+  const orientacoes = await orientacoesPara(leadId).catch(() => [] as string[]);
   const messages: ChatMessage[] = toChat(await history(leadId));
   if (!messages.length || messages[messages.length - 1].role !== "user") return;
 
@@ -62,7 +64,7 @@ async function reply(leadId: string) {
   for (let step = 0; step < 6; step++) {
     lead = await getLead(leadId);
     const res = await callLLM({
-      system: systemPrompt(lead, meeting, new Date(), prospeccao),
+      system: systemPrompt(lead, meeting, new Date(), prospeccao, orientacoes),
       messages,
       tools: TOOLS,
     });
