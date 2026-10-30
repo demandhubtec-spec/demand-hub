@@ -81,7 +81,8 @@ export async function POST(req: Request) {
         throw e;
       });
       // Registrado como mensagem da Ana: o webhook reconhece e não pausa a IA como se fosse resposta manual
-      await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "avulsa", content: baloes[i], evolution_message_id: id });
+      // (se o registro falhar, a mensagem já saiu: segue para o próximo balão em vez de parar no meio)
+      await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "followup", content: baloes[i], evolution_message_id: id }).catch(() => null);
       if (i < baloes.length - 1) await sleep(2500 + Math.floor(Math.random() * 2500));
     }
     await log("whatsapp", "avulso", { to: phone, msg: `${lead.empresa}: mensagem avulsa (${baloes.length} balões)` });
