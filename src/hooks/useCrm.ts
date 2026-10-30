@@ -63,7 +63,8 @@ function useAoVivo(nome: string, tabela: string, chaves: unknown[][]) {
   const qc = useQueryClient();
   React.useEffect(() => {
     const ch = supabase
-      .channel(`crm-${nome}`)
+      // nome único por tela: o mesmo hook roda em mais de um lugar ao mesmo tempo
+      .channel(`crm-${nome}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: tabela }, () => chaves.forEach((k) => qc.invalidateQueries({ queryKey: k })))
       .subscribe();
     return () => {
@@ -111,7 +112,7 @@ export function useConversa(leadId: string | null) {
   React.useEffect(() => {
     if (!leadId) return;
     const ch = supabase
-      .channel(`crm-conversa-${leadId}`)
+      .channel(`crm-conversa-${leadId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "sdr_messages", filter: `lead_id=eq.${leadId}` }, () =>
         qc.invalidateQueries({ queryKey: ["crm", "conversa", leadId] }),
       )
