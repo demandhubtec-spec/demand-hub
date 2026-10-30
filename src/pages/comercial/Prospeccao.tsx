@@ -19,6 +19,7 @@ import { ControlesTab } from "./prospeccao/ControlesTab";
 import { AtividadeTab } from "./prospeccao/AtividadeTab";
 import { AprovacaoTab } from "./prospeccao/AprovacaoTab";
 import { FunilTab } from "./prospeccao/FunilTab";
+import { AutomaticoTab } from "./prospeccao/AutomaticoTab";
 
 function StatePill({ ok, children, strong = false }: { ok: boolean | null; children: React.ReactNode; strong?: boolean }) {
   return (
@@ -134,6 +135,7 @@ export default function Prospeccao() {
           <TabsTrigger value="funil">Funil</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="templates">Mensagens</TabsTrigger>
+          <TabsTrigger value="automatico">Automático</TabsTrigger>
           <TabsTrigger value="controles">Controles</TabsTrigger>
           <TabsTrigger value="atividade">Atividade</TabsTrigger>
         </TabsList>
@@ -148,6 +150,9 @@ export default function Prospeccao() {
         </TabsContent>
         <TabsContent value="templates">
           <TemplatesTab />
+        </TabsContent>
+        <TabsContent value="automatico">
+          <AutomaticoTab />
         </TabsContent>
         <TabsContent value="controles">
           <ControlesTab />

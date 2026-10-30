@@ -394,3 +394,39 @@ test("conversa: pega o e-mail que a recepção passou", () => {
   );
   assert.deepEqual(emailsNoTexto("Bom dia, tudo bem?"), []);
 });
+
+import { leadsDosItens, nichoDoTermo, proximasBuscas } from "../src/lib/auto.ts";
+test("automática: buscas em rodízio por cidade e termo, dando a volta", () => {
+  const nichos = [{ nicho: "Odontologia", termos: ["dentista"] }, { nicho: "Advocacia", termos: ["advogado"] }];
+  const a = proximasBuscas(["Itu", "Salto"], nichos, 0, 3);
+  assert.deepEqual(a.buscas.map((b) => b.termo), ["dentista Itu", "advogado Itu", "dentista Salto"]);
+  const b = proximasBuscas(["Itu", "Salto"], nichos, a.cursor, 3);
+  assert.deepEqual(b.buscas.map((x) => x.termo), ["advogado Salto", "dentista Itu", "advogado Itu"]);
+});
+
+test("automática: item do Google Maps vira lead com nicho, posição e total da busca", () => {
+  assert.equal(nichoDoTermo("clínica odontológica Campinas", []), "Odontologia");
+  const leads = leadsDosItens(
+    [
+      { placeId: "a", title: "Clínica A", city: "Itu", phone: "+55 11 99999-0000", searchString: "dentista Itu", rank: 1, reviewsCount: 50, reviews: [{ responseFromOwnerText: "obrigado" }, {}] },
+      { placeId: "b", title: "Clínica B", searchString: "dentista Itu", rank: 2, permanentlyClosed: true },
+    ],
+    [{ nicho: "Odontologia", termos: ["dentista"] }],
+  );
+  assert.equal(leads.length, 1);
+  assert.equal(leads[0].nicho, "Odontologia");
+  assert.equal(leads[0].total_busca, 2);
+  assert.equal(leads[0].responde_avaliacoes, 50);
+});
+
+import { passaNosFiltros } from "../src/lib/auto.ts";
+test("automática: estado entra na busca e filtros de site, nota e avaliações", () => {
+  const a = proximasBuscas(["Itu"], [{ nicho: "Odontologia", termos: ["dentista"] }], 0, 1, "SP");
+  assert.equal(a.buscas[0].termo, "dentista Itu SP");
+  const l = { site: null, nota: 4.2, avaliacoes: 40 };
+  assert.equal(passaNosFiltros(l, null), true);
+  assert.equal(passaNosFiltros(l, { so_com_site: true }), false);
+  assert.equal(passaNosFiltros(l, { nota_min: 4.5 }), false);
+  assert.equal(passaNosFiltros(l, { avaliacoes_min: 10, avaliacoes_max: 300 }), true);
+  assert.equal(passaNosFiltros(l, { avaliacoes_max: 30 }), false);
+});

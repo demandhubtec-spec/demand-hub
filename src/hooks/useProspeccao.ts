@@ -121,6 +121,19 @@ export interface OutreachConfig {
   exigir_aprovacao: boolean;
   followup_daily_cap: number;
   retomar_dias: number;
+  // Prospecção automática
+  auto_ativo?: boolean | null;
+  auto_uf?: string | null;
+  auto_cidades?: string[] | null;
+  auto_publico?: string | null;
+  auto_filtros?: { so_com_site?: boolean; so_com_instagram?: boolean; nota_min?: number; avaliacoes_min?: number; avaliacoes_max?: number } | null;
+  auto_nichos?: { nicho: string; termos: string[] }[] | null;
+  auto_meta_dia?: number | null;
+  auto_lugares_por_busca?: number | null;
+  auto_cursor?: number | null;
+  auto_run_id?: string | null;
+  auto_ultima_coleta?: string | null;
+  auto_datasets_pendentes?: string[] | null;
 }
 
 export interface OutreachTemplate {
@@ -435,6 +448,34 @@ export function useEnriquecerSites() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: () => chamarSdr<{ ok: boolean; verificados: number; emails: number; instagrams: number }>("/api/prospeccao/enriquecer", {}),
+    onSuccess: invalidate,
+  });
+}
+
+/** Prospecção automática: roda agora (coleta se faltar estoque, escreve as sequências). */
+export function useRodarAuto() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: () => chamarSdr<Record<string, unknown>>("/api/prospeccao/auto", { forcar: true }),
+    onSuccess: invalidate,
+  });
+}
+
+/** Aprova de uma vez as sequências da lista (só as que estão em "Para revisar"). */
+export function useAprovarEmBloco() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: async (placeIds: string[]) => {
+      if (!placeIds.length) return;
+      await q(
+        supabase
+          .from("outreach_leads")
+          .update({ msg_status: "aprovada", msg_aprovada_em: new Date().toISOString() })
+          .in("place_id", placeIds)
+          .eq("msg_status", "rascunho"),
+      );
+      await log("config", `${placeIds.length} sequências aprovadas em bloco`);
+    },
     onSuccess: invalidate,
   });
 }

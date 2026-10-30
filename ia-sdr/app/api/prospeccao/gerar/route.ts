@@ -25,6 +25,7 @@ import {
 } from "@/src/lib/diagnostico-perfil.ts";
 import { gerarDirect, gerarSite, semSiteProprio, type SitePreview } from "@/src/lib/extras.ts";
 import { contatosDoSite } from "@/src/lib/enriquecer.ts";
+import { env } from "@/src/lib/env.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -81,12 +82,14 @@ export async function POST(req: Request) {
   const h = cors(req);
   const json = (b: unknown, status = 200) => Response.json(b, { status, headers: h });
 
-  // Só perfil "dono" do portal
+  // Só perfil "dono" do portal, ou a prospecção automática (CRON_SECRET)
   const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
-  const { data: u } = await db().auth.getUser(token);
-  if (!u?.user) return json({ error: "unauthorized" }, 401);
-  const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
-  if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
+  if (token !== env.cronSecret) {
+    const { data: u } = await db().auth.getUser(token);
+    if (!u?.user) return json({ error: "unauthorized" }, 401);
+    const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
+    if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
+  }
 
   const body = (await req.json().catch(() => ({}))) as { place_ids?: string[]; modo?: string; desde?: string };
   // modo "followups": reescreve só os toques que ainda não saíram de quem já está em cadência
@@ -100,7 +103,13 @@ export async function POST(req: Request) {
   const { data: leads, error } = await q;
   if (error) return json({ error: error.message }, 500);
 
+  // Público-alvo e filtro "só com Instagram" da prospecção automática (valem para a fila, não para pedidos avulsos)
+  const { data: cfgAuto } = await db().from("outreach_config").select("auto_publico,auto_filtros").eq("id", 1).maybeSingle();
+  const publico = ((cfgAuto as { auto_publico?: string | null } | null)?.auto_publico ?? "").trim();
+  const soComInstagram = !followups && !body.place_ids?.length && !!(cfgAuto as { auto_filtros?: { so_com_instagram?: boolean } | null } | null)?.auto_filtros?.so_com_instagram;
+
   let gerados = 0;
+  let descartados = 0;
   const erros: string[] = [];
   await Promise.all(
     ((leads ?? []) as (LeadPerfil & { tentativa?: number | null })[]).map(async (lead) => {
@@ -115,6 +124,12 @@ export async function POST(req: Request) {
           if (!lead.instagram && c.instagram) patch.instagram = lead.instagram = c.instagram;
           if (Object.keys(patch).length) await db().from("outreach_leads").update(patch).eq("place_id", lead.place_id);
         }
+        if (soComInstagram && !lead.instagram) {
+          await db().from("outreach_leads").update({ msg_status: "rejeitada" }).eq("place_id", lead.place_id);
+          descartados++;
+          return;
+        }
+        if (publico) (lead as LeadPerfil & { publico?: string }).publico = publico;
         const { data: conc } = await db()
           .from("outreach_leads")
           .select("place_id,empresa,avaliacoes,nota")
@@ -176,5 +191,5 @@ export async function POST(req: Request) {
   const { count } = followups
     ? await resto.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`)
     : await resto.eq("wa_status", "pendente").eq("msg_status", "sem");
-  return json({ gerados, restantes: count ?? 0, erros });
+  return json({ gerados, descartados, restantes: count ?? 0, erros });
 }

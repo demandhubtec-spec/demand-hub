@@ -50,6 +50,17 @@ const NICHO_PLURAL: Record<string, string> = {
   "Imobiliária": "imobiliárias",
   "Pet shop / Veterinária": "pet shops e clínicas veterinárias",
   "Endocrinologia": "consultórios de endocrinologia",
+  "Estética": "clínicas de estética",
+  "Odontologia estética": "clínicas odontológicas",
+  "Climatização": "empresas de ar-condicionado",
+  "Buffet e eventos": "buffets e espaços de festa",
+  "Salão de beleza": "salões e barbearias",
+  "Hotel para pets": "hotéis e creches para pets",
+  "Escola e cursos": "escolas e cursos",
+  "Academia": "academias",
+  "Casa de verão": "empresas de serviços para casa",
+  "Eventos": "empresas de eventos",
+  "Pousadas e viagem": "pousadas e hotéis",
 };
 
 export function nichoPlural(nicho: string | null): string {
@@ -177,7 +188,7 @@ export function nomeCurto(nome: string): string {
 }
 
 /** Instruções para a IA escrever a sequência inteira (os 6 toques) de um lead. */
-export function promptSequencia(lead: LeadPerfil & { tentativa?: number | null }, d: Diagnostico): string {
+export function promptSequencia(lead: LeadPerfil & { tentativa?: number | null; publico?: string | null }, d: Diagnostico): string {
   const C = SDR_CONFIG;
   const nome = (lead.decisor || "").trim().split(/\s+/)[0] || "";
   const empresa = nomeCurto(lead.empresa);
@@ -195,7 +206,7 @@ ${C.empresa.nome}: ajudamos empresas da região de Campinas e Indaiatuba com mar
 ## Empresa
 Nome: ${empresa}${empresa !== lead.empresa ? ` (nome completo da ficha: ${lead.empresa})` : ""}
 Segmento: ${lead.nicho ?? "não informado"} | Cidade: ${lead.cidade ?? "não informada"}
-Decisor: ${nome || "não sabemos o nome"}
+Decisor: ${nome || "não sabemos o nome"}${lead.publico ? `\nPúblico-alvo desta campanha (use para escolher exemplos e dores; não cite o termo): ${lead.publico}` : ""}
 ${(lead.tentativa ?? 1) > 1 ? `\nATENÇÃO: já falamos com essa empresa há uns meses e ela não respondeu. Esta é uma nova tentativa: não finja que é o primeiro contato, mencione de leve que falamos antes.\n` : ""}
 ## Diagnóstico do perfil no Google (fatos verificados; use SÓ estes)
 ${JSON.stringify(d, null, 2)}
