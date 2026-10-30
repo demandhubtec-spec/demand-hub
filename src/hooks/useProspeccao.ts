@@ -420,6 +420,16 @@ export function useMarcarDirect() {
   });
 }
 
+/** Mensagem avulsa para um lead (e-mail ou WhatsApp da Ana), depois de revisada no portal. */
+export function useEnviarAvulso() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: (b: { placeId: string; canal: "email" | "whatsapp"; para?: string[]; assunto?: string; texto: string }) =>
+      chamarSdr<{ ok: boolean; enviados: number }>("/api/prospeccao/avulso", { place_id: b.placeId, canal: b.canal, para: b.para, assunto: b.assunto, texto: b.texto }),
+    onSuccess: invalidate,
+  });
+}
+
 /** Link público da prévia de site. */
 export const linkPrevia = (token: string) => `${SDR_URL}/previa/${token}`;
 

@@ -228,7 +228,7 @@ export async function checarRespostasEmail(cfg: { email_check_at?: string | null
   return { email_check: "ok", respostas };
 }
 
-async function gmailRemetente(): Promise<string | null> {
+export async function gmailRemetente(): Promise<string | null> {
   const row = await db().from("sdr_integrations").select("value").eq("key", "gmail").maybeSingle();
   return (row.data?.value as { email?: string } | undefined)?.email ?? null;
 }
