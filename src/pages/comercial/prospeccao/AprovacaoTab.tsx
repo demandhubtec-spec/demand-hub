@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { useToast } from "@/components/ui/toast";
-import { type OutreachLead, type Toque, enviarEmailTeste, useEnriquecerSites, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
+import { type OutreachLead, type Toque, enviarEmailTeste, useAprovarEmBloco, useEnriquecerSites, useGerarMensagens, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
 import { type FiltroPrioridade, canalLabel, pontuacao, quandoTexto, saudacaoPrevia, separarEmBaloes } from "./cadencia";
 import { ExtrasLead } from "./ExtrasLead";
 import { cn } from "@/lib/utils";
@@ -297,6 +297,18 @@ export function AprovacaoTab() {
     .sort((a, b) => (ordem === "maior" ? 1 : -1) * (pontuacao(b).nota - pontuacao(a).nota));
 
   const emCadencia = leads.filter((l) => l.cadencia === "ativa" && l.wa_status === "enviado").length;
+  const emBloco = useAprovarEmBloco();
+  const [confirmarBloco, setConfirmarBloco] = React.useState(false);
+  async function aprovarTodas() {
+    try {
+      await emBloco.mutateAsync(lista.map((l) => l.place_id));
+      showToast(`${lista.length} sequências aprovadas. O robô começa no próximo dia de envio.`);
+    } catch (e) {
+      showToast(`Erro: ${(e as Error).message}`);
+    } finally {
+      setConfirmarBloco(false);
+    }
+  }
   const enriquecer = useEnriquecerSites();
   const semEmail = leads.filter((l) => !l.email && l.site && ["pendente", "enviado", "respondeu"].includes(l.wa_status ?? "")).length;
   async function buscarNosSites() {
@@ -397,6 +409,27 @@ export function AprovacaoTab() {
           </button>
         ))}
       </div>
+
+      {filtro === "rascunho" && lista.length > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-[12.5px]">
+          <span className="text-muted">Revisou por amostragem? Aprove a lista da semana de uma vez.</span>
+          {!confirmarBloco ? (
+            <Button size="sm" className="ml-auto" onClick={() => setConfirmarBloco(true)}>
+              <Check /> Aprovar todas ({lista.length})
+            </Button>
+          ) : (
+            <span className="ml-auto flex items-center gap-2">
+              <span>Aprovar as {lista.length} sequências desta lista?</span>
+              <Button size="sm" onClick={aprovarTodas} disabled={emBloco.isPending}>
+                {emBloco.isPending ? "Aprovando..." : "Sim, aprovar"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setConfirmarBloco(false)}>
+                Cancelar
+              </Button>
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
         <span className="font-semibold text-muted">Prioridade:</span>
