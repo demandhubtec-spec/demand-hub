@@ -1,43 +1,75 @@
-import { Card } from "@/components/ui/card";
-import { EmptyState } from "@/components/shared/EmptyState";
-import { kanbanCrm } from "@/data/seed";
+import { Navigate, useSearchParams } from "react-router-dom";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { KpiCard } from "@/components/shared/KpiCard";
+import { useAuth } from "@/hooks/useAuth";
+import { useContatos } from "@/hooks/useCrm";
+import { ProspeccaoPainel } from "./Prospeccao";
+import { InboundTab } from "./crm/InboundTab";
+import { ConversasTab } from "./crm/ConversasTab";
+import { OportunidadesTab } from "./crm/OportunidadesTab";
 
+const ABAS = ["oportunidades", "prospeccao", "inbound", "conversas"] as const;
+type Aba = (typeof ABAS)[number];
+
+/**
+ * CRM: o funil comercial inteiro num lugar só.
+ * Prospecção ativa (a Ana vai atrás) e inbound (o lead chega por anúncio, site ou WhatsApp)
+ * desembocam nas mesmas oportunidades, e as conversas da Ana ficam espelhadas aqui.
+ */
 export default function Crm() {
+  const { perfil, isColaborador } = useAuth();
+  const [params, setParams] = useSearchParams();
+  const { contatos } = useContatos();
+  if (isColaborador || (perfil && perfil.papel !== "dono")) return <Navigate to="/" replace />;
+
+  const aba: Aba = (ABAS as readonly string[]).includes(params.get("aba") ?? "") ? (params.get("aba") as Aba) : "oportunidades";
+  const irPara = (a: Aba, extra: Record<string, string> = {}) => setParams({ aba: a, ...extra }, { replace: true });
+
+  const hoje = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).toDateString();
+  const conversasHoje = contatos.filter(
+    (c) => c.last_inbound_at && new Date(new Date(c.last_inbound_at).toLocaleString("en-US", { timeZone: "America/Sao_Paulo" })).toDateString() === hoje,
+  ).length;
+  const inbound = contatos.filter((c) => c.tipo === "inbound").length;
+  const abertas =
+    contatos.filter((c) => c.tipo === "inbound" && c.funil_etapa && !["ganho", "perdido"].includes(c.funil_etapa)).length +
+    contatos.filter((c) => c.prospeccao && ["reuniao", "proposta"].includes(c.prospeccao.status_comercial)).length;
+
   return (
     <section>
-      <div className="mb-[22px]">
-        <div className="text-[21px] font-semibold">CRM — Funil comercial</div>
-        <div className="mt-1 text-[13px] text-muted">Oportunidades em andamento na DemandHub.</div>
+      <div className="mb-4">
+        <div className="text-[21px] font-semibold">CRM · Funil comercial</div>
+        <div className="mt-1 text-[13px] text-muted">
+          Prospecção ativa e leads inbound no mesmo funil, com as conversas da Ana ao vivo.
+        </div>
       </div>
-      <div className="grid grid-cols-1 items-start gap-3.5 sm:grid-cols-2 lg:grid-cols-4">
-        {kanbanCrm.map((col) => (
-          <div key={col.titulo}>
-            <div className="mb-3 flex items-center justify-between px-0.5">
-              <span className="text-[12.5px] font-semibold">{col.titulo}</span>
-              <span className="rounded-full bg-surface-2 px-[9px] py-0.5 font-mono text-[11px] text-muted">
-                {col.cards.length}
-              </span>
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {col.cards.length === 0 ? (
-                <EmptyState>Nenhum lead no momento</EmptyState>
-              ) : (
-                col.cards.map((c) => (
-                  <Card key={c.nome} className="p-[15px] px-[14px]">
-                    <div className="mb-2 text-[13px] font-semibold leading-snug">{c.nome}</div>
-                    <div className="mb-0.5 text-[11px] text-muted">{c.meta}</div>
-                    <div className="mt-2.5 flex items-center justify-between">
-                      <span className="rounded-[5px] bg-surface-2 px-2 py-[3px] font-mono text-[11px] text-muted">
-                        {c.valor}
-                      </span>
-                    </div>
-                  </Card>
-                ))
-              )}
-            </div>
-          </div>
-        ))}
+
+      <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+        <KpiCard label="Oportunidades abertas" value={String(abertas)} delta="reunião ou proposta" index={0} />
+        <KpiCard label="Conversas hoje" value={String(conversasHoje)} delta="contatos que escreveram hoje" accent="positive" index={1} />
+        <KpiCard label="Contatos inbound" value={String(inbound)} delta="anúncios, site e WhatsApp" index={2} />
+        <KpiCard label="Contatos da prospecção" value={String(contatos.length - inbound)} delta="responderam a abordagem" index={3} />
       </div>
+
+      <Tabs value={aba} onValueChange={(v) => irPara(v as Aba)}>
+        <TabsList className="flex-wrap">
+          <TabsTrigger value="oportunidades">Oportunidades</TabsTrigger>
+          <TabsTrigger value="prospeccao">Prospecção ativa (IA)</TabsTrigger>
+          <TabsTrigger value="inbound">Inbound</TabsTrigger>
+          <TabsTrigger value="conversas">Conversas</TabsTrigger>
+        </TabsList>
+        <TabsContent value="oportunidades">
+          <OportunidadesTab abrirConversa={(id) => irPara("conversas", { lead: id })} />
+        </TabsContent>
+        <TabsContent value="prospeccao">
+          <ProspeccaoPainel />
+        </TabsContent>
+        <TabsContent value="inbound">
+          <InboundTab abrirConversa={(id) => irPara("conversas", { lead: id })} />
+        </TabsContent>
+        <TabsContent value="conversas">
+          <ConversasTab leadId={params.get("lead")} escolher={(id) => irPara("conversas", { lead: id })} />
+        </TabsContent>
+      </Tabs>
     </section>
   );
 }

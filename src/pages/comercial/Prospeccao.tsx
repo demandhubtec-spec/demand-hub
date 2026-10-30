@@ -53,7 +53,13 @@ function useCountdown(iso: string | null | undefined) {
   return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** Antigo endereço da prospecção: agora ela é uma aba do CRM. */
 export default function Prospeccao() {
+  return <Navigate to="/comercial/crm?aba=prospeccao" replace />;
+}
+
+/** Painel da prospecção ativa (aba "Prospecção ativa" do CRM). */
+export function ProspeccaoPainel() {
   const { perfil, isColaborador } = useAuth();
   const { data: cfg } = useOutreachConfig();
   const { data: resumo } = useOutreachResumo();
@@ -74,13 +80,8 @@ export default function Prospeccao() {
 
   return (
     <section>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-[21px] font-semibold">Prospecção ativa</div>
-          <div className="mt-1 text-[13px] text-muted">
-            Abordagem e follow-up automáticos por WhatsApp e e-mail para leads coletados no Google Maps.
-          </div>
-        </div>
+      <div className="mb-3 text-[13px] text-muted">
+        Abordagem e follow-up automáticos por WhatsApp e e-mail para empresas coletadas no Google Maps.
       </div>
 
       <div className="mb-[22px] flex flex-wrap gap-2">
