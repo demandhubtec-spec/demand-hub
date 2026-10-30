@@ -180,9 +180,17 @@ export function saudacaoPrevia(lead: { decisor?: string | null; empresa?: string
 const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
 /** Mesma separação em balões que o envio faz (mensagem num bloco só vira apresentação, conteúdo e pergunta). */
 export function separarEmBaloes(texto: string): string {
-  const atuais = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-  if (atuais.length >= 3) return texto;
-  const frases = atuais.join(" ").match(/[^.!?\p{Extended_Pictographic}]+(?:[.!?]+|\s*\p{Extended_Pictographic}+)\s*|[^.!?]+$/gu)?.map((f) => f.trim()).filter(Boolean) ?? [];
+  const frasesDe = (t: string) => t.split(/(?<=[.!?…]|\p{Extended_Pictographic})\s+/u).map((f) => f.trim()).filter(Boolean);
+  let b = texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  if (b.length >= 3) {
+    // A pergunta final vai sempre sozinha no último balão
+    const fim = frasesDe(b[b.length - 1]);
+    if (fim.length > 1 && fim[fim.length - 1].includes("?")) b = [...b.slice(0, -1), fim.slice(0, -1).join(" "), fim[fim.length - 1]];
+    // Mais de 3 balões: junta a apresentação com o motivo (os primeiros)
+    while (b.length > 3) b = [`${b[0]} ${b[1]}`, ...b.slice(2)];
+    return b.join("\n\n");
+  }
+  const frases = frasesDe(b.join(" "));
   if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
   const pergunta = frases.pop() as string;
   let i = frases.findIndex((f) => /\bAna\b/.test(f));

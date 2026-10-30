@@ -272,17 +272,23 @@ const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando
  * o conteúdo e a pergunta final sozinha.
  */
 export function separarEmBaloes(texto: string): string {
-  const atuais = texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-  if (atuais.length >= 3) return texto;
-  const frases = atuais.join(" ").match(/[^.!?\p{Extended_Pictographic}]+(?:[.!?]+|\s*\p{Extended_Pictographic}+)\s*|[^.!?]+$/gu)?.map((f) => f.trim()).filter(Boolean) ?? [];
+  const frasesDe = (t: string) => t.split(/(?<=[.!?…]|\p{Extended_Pictographic})\s+/u).map((f) => f.trim()).filter(Boolean);
+  let b = texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  if (b.length >= 3) {
+    // A pergunta final vai sempre sozinha no último balão
+    const fim = frasesDe(b[b.length - 1]);
+    if (fim.length > 1 && fim[fim.length - 1].includes("?")) b = [...b.slice(0, -1), fim.slice(0, -1).join(" "), fim[fim.length - 1]];
+    // Mais de 3 balões: junta a apresentação com o motivo (os primeiros)
+    while (b.length > 3) b = [`${b[0]} ${b[1]}`, ...b.slice(2)];
+    return b.join("\n\n");
+  }
+  const frases = frasesDe(b.join(" "));
   if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
   const pergunta = frases.pop() as string;
   let i = frases.findIndex((f) => /\bAna\b/.test(f));
   if (i < 0) i = 0;
   while (i + 1 < frases.length - 1 && CONTEXTO.test(frases[i + 1])) i++;
-  const b1 = frases.slice(0, i + 1).join(" ");
-  const b2 = frases.slice(i + 1).join(" ");
-  return [b1, b2, pergunta].filter(Boolean).join("\n\n");
+  return [frases.slice(0, i + 1).join(" "), frases.slice(i + 1).join(" "), pergunta].filter(Boolean).join("\n\n");
 }
 
 /** Limpa uma mensagem de WhatsApp: tira cara de IA e garante no máximo 3 balões. */
