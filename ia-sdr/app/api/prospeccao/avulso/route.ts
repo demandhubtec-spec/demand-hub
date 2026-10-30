@@ -3,7 +3,8 @@
  * (só perfil "dono"). Serve para o follow-up feito à mão e para mandar a análise ao e-mail que a recepção passou.
  *
  *   POST { place_id, canal: "email", para: ["a@x.com"], assunto, texto }  → e-mail do Gmail da Ana, com assinatura
- *   POST { place_id, canal: "whatsapp", texto }                           → WhatsApp da Ana, balão por balão
+ *   POST { place_id, canal: "whatsapp", texto, para_whatsapp? }           → WhatsApp da Ana, balão por balão
+ *        (para_whatsapp: outro número da mesma empresa, ex.: o administrativo que a recepção indicou)
  *   → { ok, enviados }
  */
 import { db, addMessage, upsertLeadByPhone } from "@/src/lib/db.ts";
@@ -46,7 +47,7 @@ export async function POST(req: Request) {
   const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
   if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
 
-  const body = (await req.json().catch(() => ({}))) as { place_id?: string; canal?: string; para?: string[]; assunto?: string; texto?: string };
+  const body = (await req.json().catch(() => ({}))) as { place_id?: string; canal?: string; para?: string[]; assunto?: string; texto?: string; para_whatsapp?: string };
   const texto = (body.texto ?? "").trim();
   if (!body.place_id || !texto || !["email", "whatsapp"].includes(body.canal ?? "")) return json({ error: "informe place_id, canal e texto" }, 400);
   if (/[—–]/.test(texto)) return json({ error: "o texto tem travessão; troque por vírgula ou ponto" }, 400);
@@ -68,8 +69,10 @@ export async function POST(req: Request) {
       return json({ ok: true, enviados: para.length });
     }
 
-    if (!lead.whatsapp) return json({ error: "lead sem WhatsApp" }, 400);
-    const phone = String(lead.whatsapp).replace(/\D/g, "");
+    const outro = (body.para_whatsapp ?? "").replace(/\D/g, "");
+    if (outro && !/^55\d{10,11}$/.test(outro)) return json({ error: "número inválido: use 55 + DDD + número" }, 400);
+    if (!outro && !lead.whatsapp) return json({ error: "lead sem WhatsApp" }, 400);
+    const phone = outro || String(lead.whatsapp).replace(/\D/g, "");
     const sdr = await upsertLeadByPhone(phone, `${phone}@s.whatsapp.net`);
     const baloes = baloesAvulso(texto);
     // Marca antes de enviar: o webhook reconhece o envio como disparo da prospecção e não pausa a IA
