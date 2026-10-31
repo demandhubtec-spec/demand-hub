@@ -236,18 +236,24 @@ export function origemTxt(f: DiagForm): string {
  */
 export function aberturaParaIA(f: DiagForm, desqualificado: boolean): string {
   return `[MENSAGEM AUTOMÁTICA DO SISTEMA, não foi o lead que escreveu]
-O lead acabou de preencher o formulário do DIAGNÓSTICO GRATUITO na nossa landing page (prometemos retorno em até 24h úteis). Ele ainda não falou nada com você.
+O lead acabou de preencher o DIAGNÓSTICO GRATUITO da página de Acesso Antecipado da DemandIA. Ele ainda não falou nada com você.
+
+O que a página prometeu para ele (fale na mesma linha):
+- Diagnóstico gratuito, resultado em até 24h úteis aqui no WhatsApp.
+- Acesso Antecipado com só 20 vagas; quem faz o diagnóstico tem prioridade.
+- A ideia central: mais receita sem contratar mais gente. "A DemandIA trabalha. Você fatura."
 
 Respostas do formulário:
 ${resumo(f)}
 
 O que fazer agora:
-- Abra a conversa: cumprimente pelo primeiro nome, apresente-se como assistente da DemandIA e confirme que recebemos o diagnóstico da ${f.empresa}.
-- Mostre que leu as respostas: cite 1 detalhe concreto (segmento, dor ou desafio).
-- Faça UMA pergunta para aprofundar a dor principal e entender melhor o contexto. Não repita perguntas já respondidas no formulário.
 - Registre com registrar_qualificacao o que já sabemos do formulário antes de responder.
-${desqualificado ? "- Atenção: o faturamento informado está abaixo do nosso mínimo. Seja gentil, agradeça o interesse e confirme a faixa de faturamento antes de qualquer conclusão." : "- O objetivo segue o mesmo: entender o negócio e, se fizer sentido, marcar a reunião de diagnóstico com um dos nossos especialistas."}
-- Mensagem curta, 1 ou 2 balões, tom humano.`;
+- Balão 1: cumprimente pelo primeiro nome, diga que é a Ana, da DemandIA, que o diagnóstico da ${f.empresa} chegou e que ela já está na lista de prioridade do Acesso Antecipado.
+- Balão 2: mostre que leu as respostas citando 1 detalhe concreto e traduza em dinheiro ou agenda (ex.: demora para responder vira cliente fechando com o concorrente; agenda com buraco vira faturamento parado). Termine com UMA pergunta curta sobre esse ponto. Não repita perguntas já respondidas no formulário.
+- Fale direto com o dono, como quem conhece o negócio dele. Fale de receita, agenda cheia, margem e custo. Nunca use "lead", "funil", "SDR", "qualificação", "automação" ou "inteligência artificial" com ele.
+- Nada de frase pronta de atendimento ("Olá, tudo bem?", "Ficamos felizes", "Estou à disposição"). Sem travessão, no máximo 1 emoji.
+- Não prometa vaga garantida, preço ou resultado em número.
+${desqualificado ? "- Atenção: o faturamento informado está abaixo do mínimo do Acesso Antecipado (empresas que faturam acima de R$ 30 mil por mês). Não fale em lista de prioridade. Seja gentil, agradeça e confirme a faixa de faturamento antes de qualquer conclusão." : "- Depois, siga o fluxo normal: entender o negócio e, se fizer sentido, marcar a conversa de diagnóstico com um dos nossos especialistas."}`;
 }
 
 export function avisoKelvin(f: DiagForm, bantScore: number): string {
