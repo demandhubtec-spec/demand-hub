@@ -23,7 +23,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
   }, [msgs.length]);
 
   const nome = (id: string | null) => (id ? contatos.find((c) => c.id === id)?.nomeExibicao ?? "contato" : null);
-  const pendentes = msgs.filter((m) => m.status === "pendente");
+  const pendentes = msgs.filter((m) => m.status === "pendente" || m.status === "aguardando_ok");
 
   // Respondendo um pedido: já deixa o lead selecionado
   React.useEffect(() => {
@@ -51,7 +51,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                 className={cn(
                   "max-w-[80%] whitespace-pre-wrap rounded-[10px] px-3 py-2 text-[13px]",
                   ana ? "border border-border bg-surface" : "bg-primary/15",
-                  m.status === "pendente" && "border-attention/60 ring-1 ring-attention/40",
+                  (m.status === "pendente" || m.status === "aguardando_ok") && "border-attention/60 ring-1 ring-attention/40",
                 )}
               >
                 <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
@@ -65,6 +65,8 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                   {m.tipo === "audio" && <Mic className="h-3 w-3 text-muted" />}
                   {m.tipo === "imagem" && <ImageIcon className="h-3 w-3 text-muted" />}
                   {m.status === "pendente" && <span className="rounded bg-attention-tint px-1.5 text-attention">esperando você</span>}
+                  {m.status === "aguardando_ok" && <span className="rounded bg-attention-tint px-1.5 text-attention">esperando seu ok</span>}
+                  {m.status === "enviado" && <span className="rounded bg-positive-tint px-1.5 text-positive">enviado</span>}
                   {lead && (
                     <button onClick={() => abrirConversa(m.lead_id!)} className="inline-flex items-center gap-1 text-muted hover:text-primary-bright">
                       <MessageCircle className="h-3 w-3" /> {lead}

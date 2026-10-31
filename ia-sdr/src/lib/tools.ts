@@ -305,7 +305,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         status: input.motivo === "opt_out" ? "opt_out" : "desqualificado",
         next_followup_at: null,
       });
-      return "Follow-ups encerrados para este lead.";
+      return "Follow-ups encerrados para este lead. Agora responda ao lead com UMA mensagem curta, gentil e sem insistir (ex.: agradecer o retorno e deixar a porta aberta). Nunca deixe a mensagem dele sem resposta.";
     }
 
     default:
