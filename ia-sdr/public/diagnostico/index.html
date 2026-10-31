@@ -606,10 +606,68 @@ main section:not(.hero) h2 .hl{color:inherit}
 
 <footer><div class="wrap">
   <img src="/diagnostico/logo.svg" alt="DemandIA" width="100" height="26" loading="lazy">
-  <span>Sua demanda, resolvida com inteligência. © <span id="yr">2026</span> DemandIA. Atendimento online para todo o Brasil.</span>
+  <span>Sua demanda, resolvida com inteligência. © <span id="yr">2026</span> DemandIA. Atendimento online para todo o Brasil. Usamos dados anônimos de navegação para melhorar esta página.</span>
 </div></footer>
 
 <div class="mbar" id="mbar"><a href="#form" class="btn btn-wa">Quero meu diagnóstico agora</a></div>
+
+<script>
+/* Análise própria da página (mapa de calor, rolagem, seções e funil). Anônimo: não lê o que a pessoa digita. */
+(function(){
+  try{ if(window.top !== window.self || /[?&]nolog=1/.test(location.search) || navigator.webdriver) { window.dhT = function(){}; return; } }catch(e){ window.dhT = function(){}; return; }
+  function rid(){ return (Math.random().toString(36).slice(2) + Date.now().toString(36)).slice(0,20); }
+  function get(st,k){ try{ var v = st.getItem(k); if(!v){ v = rid(); st.setItem(k,v); } return v; }catch(e){ return rid(); } }
+  var V = get(localStorage,"dh_v"), S = get(sessionStorage,"dh_s"), Q = [], t0 = Date.now(), maxPf = 0;
+  function dev(){ var w = innerWidth; return w < 768 ? "mobile" : (w < 1024 ? "tablet" : "desktop"); }
+  function docH(){ return Math.max(document.documentElement.scrollHeight, document.body.scrollHeight); }
+  function base(t){ return {t:t, d:dev(), w:innerWidth}; }
+  function push(ev){ Q.push(ev); if(Q.length >= 25) flush(); }
+  function flush(beacon){
+    if(!Q.length) return;
+    var body = JSON.stringify({v:V, s:S, p:"diagnostico", e:Q.splice(0,60)});
+    try{
+      if(beacon && navigator.sendBeacon){ navigator.sendBeacon("/api/lp/track", new Blob([body],{type:"text/plain"})); return; }
+      fetch("/api/lp/track",{method:"POST", body:body, keepalive:true, headers:{"Content-Type":"text/plain"}}).catch(function(){});
+    }catch(e){}
+  }
+  window.dhT = function(t, extra){ var ev = base(t); for(var k in extra) ev[k] = extra[k]; push(ev); };
+
+  var qs = new URLSearchParams(location.search), ref = "";
+  try{ ref = document.referrer ? new URL(document.referrer).hostname : ""; }catch(e){}
+  var v = base("view"); v.h = docH(); v.o = ref || ""; v.rf = document.referrer.slice(0,200);
+  v.us = qs.get("utm_source") || ""; v.um = qs.get("utm_medium") || ""; v.uc = qs.get("utm_campaign") || ""; v.ux = qs.get("utm_content") || "";
+  if(!v.us && /facebook|instagram/.test(ref)) v.o = "instagram/facebook"; else if(!v.us && /google/.test(ref)) v.o = "google";
+  push(v);
+
+  var last = [];
+  document.addEventListener("click", function(e){
+    var de = document.documentElement, x = e.pageX, y = e.pageY, now = Date.now();
+    last = last.filter(function(c){ return now - c.t < 700 && Math.abs(c.x - x) < 30 && Math.abs(c.y - y) < 30; });
+    last.push({t:now, x:x, y:y});
+    var el = e.target.closest ? e.target.closest("a,button,summary,label,select,input,textarea,.acc-h,h1,h2,h3,p,li") : null, a = "";
+    if(el){
+      if(/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName)) a = "campo: " + (el.name || el.id || el.type);
+      else a = (el.getAttribute("aria-label") || el.textContent || "").replace(/\s+/g," ").trim().slice(0,60);
+    }
+    var ev = base("click"); ev.xp = x / de.scrollWidth * 100; ev.xc = Math.round(x - de.scrollWidth / 2); ev.y = Math.round(y); ev.h = docH(); ev.a = a; ev.r = last.length >= 3;
+    push(ev);
+  }, true);
+
+  addEventListener("scroll", function(){ var pf = Math.round((scrollY + innerHeight) / docH() * 100); if(pf > maxPf) maxPf = Math.min(100, pf); }, {passive:true});
+
+  var SEC = [[".hero","Topo"],["#areas","5 áreas"],[".y27","2027"],["#servicos","Soluções"],["#como","Como funciona"],["#duvidas","Dúvidas"],[".final","Chamada final"]];
+  if("IntersectionObserver" in window){
+    var so = new IntersectionObserver(function(es){ es.forEach(function(en){ if(en.isIntersecting){ dhT("section", {sc: en.target.getAttribute("data-sec"), et: +en.target.getAttribute("data-ord")}); so.unobserve(en.target); } }); }, {threshold:0, rootMargin:"0px 0px -25% 0px"});
+    SEC.forEach(function(s, i){ var el = document.querySelector(s[0]); if(el){ el.setAttribute("data-sec", s[1]); el.setAttribute("data-ord", i + 1); so.observe(el); } });
+  }
+
+  var sent = false;
+  function leave(){ if(sent) return; sent = true; var ev = base("leave"); ev.pf = maxPf; ev.ms = Date.now() - t0; Q.push(ev); flush(true); }
+  document.addEventListener("visibilitychange", function(){ if(document.visibilityState === "hidden"){ leave(); } else { sent = false; } });
+  addEventListener("pagehide", leave);
+  setInterval(function(){ flush(); }, 10000);
+})();
+</script>
 
 <script>
 (function(){
@@ -732,12 +790,12 @@ main section:not(.hero) h2 .hl{color:inherit}
     });
   });
   var started = false;
-  function startForm(){ if(started) return; started = true; px("InicioFormulario", {content_name: "Diagnóstico gratuito"}, true); }
+  function startForm(){ if(started) return; started = true; if(window.dhT) dhT("form_start", {}); px("InicioFormulario", {content_name: "Diagnóstico gratuito"}, true); }
   form.addEventListener("focusin", startForm);
   form.addEventListener("change", function(e){ var f = e.target.closest(".f"); if(f) f.classList.remove("err"); });
   form.addEventListener("input", function(e){ var f = e.target.closest(".f"); if(f) f.classList.remove("err"); });
   function go(n){
-    if(n > cur) px("EtapaFormulario", {etapa: n, content_name: "Diagnóstico gratuito"}, true);
+    if(n > cur){ px("EtapaFormulario", {etapa: n, content_name: "Diagnóstico gratuito"}, true); if(window.dhT) dhT("form_step", {et: n}); }
     cur = n;
     steps.forEach(function(s,i){ s.classList.toggle("on", i === n-1) });
     bars.forEach(function(b,i){ b.classList.toggle("on", i < n) });
@@ -788,6 +846,7 @@ main section:not(.hero) h2 .hl{color:inherit}
         }
         var lp = {content_name: "Diagnóstico gratuito", content_category: data.segmento || "Diagnóstico", value: 0, currency: "BRL"};
         px("Lead", lp, false, eventId);
+        if(window.dhT) dhT("form_submit", {});
         px("CompleteRegistration", {content_name: "Diagnóstico gratuito", status: true, value: 0, currency: "BRL"}, false, eventId + "_cr");
         form.style.display = "none";
         document.getElementById("doneName").textContent = data.nome.split(" ")[0];
