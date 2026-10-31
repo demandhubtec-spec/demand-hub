@@ -22,7 +22,7 @@ export default function Crm() {
   const [params, setParams] = useSearchParams();
   const { contatos } = useContatos();
   const { data: canal = [] } = useCanal();
-  const esperando = canal.filter((m) => m.status === "pendente").length;
+  const esperando = canal.filter((m) => m.status === "pendente" || m.status === "aguardando_ok").length;
   if (isColaborador || (perfil && perfil.papel !== "dono")) return <Navigate to="/" replace />;
 
   const aba: Aba = (ABAS as readonly string[]).includes(params.get("aba") ?? "") ? (params.get("aba") as Aba) : "oportunidades";

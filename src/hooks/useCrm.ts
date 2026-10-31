@@ -159,7 +159,7 @@ export interface MsgCanal {
   tipo: "texto" | "audio" | "imagem";
   conteudo: string;
   origem: "portal" | "whatsapp" | "sistema";
-  status: "pendente" | "respondido" | null;
+  status: "pendente" | "respondido" | "aguardando_ok" | "enviado" | "descartado" | null;
   created_at: string;
 }
 

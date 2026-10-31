@@ -147,7 +147,7 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
                 >
                   {!deles && m.author && m.author !== "ia" && <div className="mb-0.5 text-[10.5px] font-semibold text-primary-bright">Você</div>}
                   {robo && <div className="mb-0.5 text-[10.5px] font-semibold text-muted">Resposta automática da empresa</div>}
-                  {robo ? m.content.replace(/^\[resposta automática\]\s*/, "") : m.content}
+                  {robo ? m.content.replace(/^\[resposta automática\]\s*/, "") : m.content === "[reactionMessage]" ? "Reagiu à mensagem 👍" : m.content}
                   <div className="mt-1 text-right font-mono text-[10px] text-muted">
                     {new Date(m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
                   </div>
@@ -159,7 +159,7 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         <div ref={fim} />
       </div>
       <div className="border-t border-border px-3 pt-2 text-[11px] text-muted">
-        Fale com a Ana sobre esta conversa: ela aplica a sua orientação com o lead e te conta o que mandou na aba Você e a Ana.
+        Fale com a Ana sobre esta conversa: ela monta a mensagem, te mostra na aba Você e a Ana e só manda com o seu ok.
       </div>
       <Compositor leadId={c.id} placeholder="Ex.: Ana, não é assim. Pede desculpa e oferece terça às 10h" compacto />
     </>
