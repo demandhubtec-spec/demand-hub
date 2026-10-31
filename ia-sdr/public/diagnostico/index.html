@@ -317,6 +317,21 @@ footer img{height:26px;width:auto}
   *{animation:none!important;transition:none!important;scroll-behavior:auto!important}
   .js .rv,.js .rv-img,.js .bars .a,.js .bars .b{opacity:1!important;transform:none!important}
 }
+
+/* Acabamento (31/10): menos cara de template, mesma identidade */
+.js section:not(.hero) .rv{opacity:1;transform:none;transition:none}
+.btn-wa{box-shadow:inset 0 -4px 0 rgba(0,0,0,.12)}
+.btn-p{box-shadow:inset 0 -4px 0 rgba(0,0,0,.18)}
+.bx .ic,.it .ic{box-shadow:none}
+.it .num{display:none!important}
+main section:not(.hero) h2 .hl{color:inherit}
+.final h2 .grad{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:inherit}
+.y27 .big.grad{background:none;-webkit-background-clip:border-box;background-clip:border-box;color:var(--lilas2)}
+.final:before{display:none}
+.bx-10x{box-shadow:none!important}
+.pt{background:none;border:0;border-bottom:1px solid var(--borda);border-radius:0;padding:16px 0}
+.selo .sep{width:1px;height:12px;background:rgba(255,255,255,.35)}
+@media (min-width:720px){.it{grid-template-columns:56px 1fr 1.25fr}}
 </style>
 </head>
 <body>
@@ -334,7 +349,7 @@ footer img{height:26px;width:auto}
   <div class="wrap">
     <div class="copy">
       <img class="hero-logo" src="/diagnostico/logo.svg" alt="DemandIA" width="150" height="40">
-      <div class="selo rv"><i></i>Acesso Antecipado · 20 vagas</div>
+      <div class="selo rv"><i></i>Acesso Antecipado<span class="sep" aria-hidden="true"></span>20 vagas</div>
       <h1 class="h rv">Mais receita. <span class="grad">Sem contratar mais gente.</span></h1>
       <p class="sub rv d1"><b>A DemandIA trabalha. Você fatura.</b> Sem dor de cabeça.</p>
       <p class="contraste rv d1">Sem reunião infinita. Sem relatório de lead. Resultado no caixa da sua empresa.</p>
@@ -464,7 +479,7 @@ footer img{height:26px;width:auto}
       <li class="it rv"><span class="num">05</span><div class="ic"><svg viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><path d="M8 16 24 8 40 16V34L24 42 8 34Z"/><path d="M8 16 24 24 40 16M24 24V42"/></svg></div><div class="tt"><h3 class="h">Produto</h3><p>Venda mais do que dá margem.</p></div>
         <ul><li>Clareza da oferta</li><li>Posicionamento e preço</li><li>O que vender mais e o que rever</li></ul></li>
     </ol>
-    <div class="sec-cta rv"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico agora</a><span>Gratuito · Poucos minutos · Resultado em até 24h úteis</span></div>
+    <div class="sec-cta rv"><a href="#form" class="btn btn-wa cta-form">Quero meu diagnóstico agora</a><span>Gratuito, em poucos minutos e com resultado em até 24h úteis</span></div>
   </div>
 </section>
 
