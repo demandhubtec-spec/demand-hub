@@ -39,6 +39,7 @@ export const navGroups: NavGroup[] = [
     children: [
       ...deptChildren("marketing"),
       { label: "Instagram · Direct", path: "/marketing/instagram-direct", colaboradorPode: false },
+      { label: "Landing page", path: "/marketing/landing-page", colaboradorPode: false },
     ],
   },
   {
@@ -77,5 +78,5 @@ export const DEPTS_COLABORADOR = ["tecnologia", "marketing"] as const;
 /** Endereços que só o dono acessa (o colaborador volta para o Resumo). */
 export function rotaSoDono(caminho: string): boolean {
   if (/^\/(comercial|administrativo|configuracoes|prospeccao)(\/|$)/.test(caminho)) return true;
-  return caminho.startsWith("/marketing/instagram-direct");
+  return caminho.startsWith("/marketing/instagram-direct") || caminho.startsWith("/marketing/landing-page");
 }
