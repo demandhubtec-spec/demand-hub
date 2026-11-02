@@ -158,3 +158,16 @@ export async function unlock(leadId: string) {
 export async function logEvent(leadId: string | null, type: string, payload: unknown = {}) {
   await db().from("sdr_events").insert({ lead_id: leadId, type, payload });
 }
+
+/** Payload do evento mais recente de um tipo para o lead (ou null). */
+export async function ultimoEvento<T = unknown>(leadId: string, type: string): Promise<T | null> {
+  const res = await db()
+    .from("sdr_events")
+    .select("payload")
+    .eq("lead_id", leadId)
+    .eq("type", type)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (res.data?.payload as T) ?? null;
+}

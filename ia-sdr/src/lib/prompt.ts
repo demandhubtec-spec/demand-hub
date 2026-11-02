@@ -2,6 +2,7 @@ import { SDR_CONFIG } from "../config/sdr.ts";
 import type { Lead, Meeting } from "./db.ts";
 import { formatBR } from "./time.ts";
 import { contextoProspeccao, type Prospeccao } from "./prospeccao.ts";
+import { contextoAnuncio, type OrigemAnuncio } from "./anuncio.ts";
 
 const C = SDR_CONFIG;
 
@@ -22,7 +23,7 @@ function leadCard(lead: Lead, meeting: Meeting | null): string {
   ].join("\n");
 }
 
-export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = []): string {
+export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = [], anuncio: OrigemAnuncio | null = null): string {
   const q = C.qualificacao;
   return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
 
@@ -87,7 +88,7 @@ ${orientacoes.length ? `## Orientações do seu gestor (siga sempre; as mais nov
 Data e hora (Brasília): ${formatBR(now)}
 
 ## Ficha do lead
-${leadCard(lead, meeting)}${contextoProspeccao(prospeccao)}`;
+${leadCard(lead, meeting)}${contextoProspeccao(prospeccao)}${contextoAnuncio(anuncio)}`;
 }
 
 export function followUpPrompt(lead: Lead, attempt: number, max: number, now: Date): string {

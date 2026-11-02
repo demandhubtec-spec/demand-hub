@@ -8,6 +8,7 @@
 import { isBlocked } from "./bloqueio.ts";
 import { env } from "./env.ts";
 import type { MidiaRecebida } from "./midia.ts";
+import { dadosDoAnuncio, type DadosAnuncio } from "./anuncio.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -70,6 +71,8 @@ export interface InboundMessage {
   altPhones: string[];
   /** Mídia recebida (o Evolution GO manda o arquivo em base64 junto com a mensagem). */
   media?: MidiaRecebida;
+  /** Dados do anúncio quando a conversa começou pelo botão de um anúncio (clique para WhatsApp). */
+  anuncio?: DadosAnuncio | null;
 }
 
 function extractText(m: any): string | null {
@@ -159,6 +162,7 @@ export function parseWebhook(body: any): InboundMessage | null {
       instanceName: body.instanceName,
       altPhones: altPhonesFrom(info),
       media: extractMedia(m),
+      anuncio: dadosDoAnuncio(m),
     };
   }
 
