@@ -65,3 +65,22 @@ test("contexto do prompt: corte de faturamento por nicho e sem jargão", () => {
   assert.doesNotMatch(estetica, /[—–]/);
   assert.equal(contextoAnuncio(null), "");
 });
+
+test("academia precisa de 100 mil; clínica segue com 30 mil", async () => {
+  const { evaluateBant, faturamentoMinimo, ehAcademia } = await import("../src/lib/bant.ts");
+  assert.equal(faturamentoMinimo("academia ou estúdio"), 100_000);
+  assert.equal(faturamentoMinimo("clínica de estética"), 30_000);
+  assert.equal(faturamentoMinimo(null), 30_000);
+  assert.ok(ehAcademia("Estúdio de Pilates"));
+  assert.ok(!ehAcademia("estúdio de tatuagem"));
+  const base = { autoridade: "decisor", dores: ["quer mais alunos"], prazo: "imediato" };
+  assert.equal(evaluateBant({ ...base, segmento: "academia ou estúdio", faturamento_mensal: 50_000 }).desqualificado, true);
+  assert.equal(evaluateBant({ ...base, segmento: "academia ou estúdio", faturamento_mensal: 120_000 }).qualificado, true);
+  assert.equal(evaluateBant({ ...base, segmento: "clínica odontológica", faturamento_mensal: 50_000 }).qualificado, true);
+});
+
+test("responsável por marketing, atendimento ou vendas conta como autoridade", async () => {
+  const { evaluateBant } = await import("../src/lib/bant.ts");
+  assert.ok(evaluateBant({ autoridade: "responsavel_area" }).authority);
+  assert.ok(!evaluateBant({ autoridade: "sem_decisor" }).authority);
+});
