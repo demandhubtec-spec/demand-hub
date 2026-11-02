@@ -1,6 +1,7 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 
 export interface BantInput {
+  segmento?: string | null;
   faturamento_mensal?: number | null;
   autoridade?: string | null;
   dores?: string[] | null;
@@ -19,9 +20,23 @@ export interface BantResult {
   faltando: string[];
 }
 
+/** Academia, box de crossfit, estúdio de pilates ou de treino. */
+export function ehAcademia(segmento?: string | null): boolean {
+  const t = (segmento ?? "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return /academia|crossfit|pilates|estudio (de )?(treino|funcional|fitness|pilates)|studio fitness/.test(t);
+}
+
+/** Faturamento mínimo para o segmento: academias pedem mais, o resto segue o padrão. */
+export function faturamentoMinimo(segmento?: string | null, cfg = SDR_CONFIG.qualificacao): number {
+  return ehAcademia(segmento) ? cfg.faturamentoMinimoAcademia : cfg.faturamentoMinimoMensal;
+}
+
+/** Quem conta como autoridade: dono/sócio, o responsável por marketing, atendimento ou vendas, ou o decisor que vai participar. */
+export const AUTORIDADES_VALIDAS = ["decisor", "responsavel_area", "decisor_vai_participar"];
+
 export function evaluateBant(l: BantInput, cfg = SDR_CONFIG.qualificacao): BantResult {
-  const budget = (l.faturamento_mensal ?? 0) >= cfg.faturamentoMinimoMensal;
-  const authority = l.autoridade === "decisor" || l.autoridade === "decisor_vai_participar";
+  const budget = (l.faturamento_mensal ?? 0) >= faturamentoMinimo(l.segmento, cfg);
+  const authority = !!l.autoridade && AUTORIDADES_VALIDAS.includes(l.autoridade);
   const need = (l.dores?.length ?? 0) > 0;
   const timing = !!l.prazo && (cfg.prazosAceitos as readonly string[]).includes(l.prazo);
 
@@ -30,7 +45,7 @@ export function evaluateBant(l: BantInput, cfg = SDR_CONFIG.qualificacao): BantR
   if (l.faturamento_mensal == null) faltando.push("faturamento mensal");
   if (!l.prazo) faltando.push("prazo/urgência");
   if (!l.autoridade) faltando.push("quem decide");
-  if (l.autoridade === "sem_decisor") faltando.push("combinar a presença do decisor na reunião");
+  if (l.autoridade === "sem_decisor") faltando.push("combinar a presença do decisor (dono ou responsável por marketing, atendimento ou vendas) na reunião");
 
   const score = [budget, authority, need, timing].filter(Boolean).length;
   return {

@@ -151,7 +151,7 @@ export function leadPatch(f: DiagForm) {
   const autoridade = f.cargo === "dono" ? "decisor" : null; // diretor/colaborador: a IA confirma quem decide
   const dores = [...new Set(f.dores.map((d) => DOR_N[d]).filter(Boolean))];
   const necessidade_resumo = [f.dores.join(", "), f.desafio].filter(Boolean).join(" | ").slice(0, 600) || null;
-  const bant = evaluateBant({ faturamento_mensal, autoridade, dores, prazo: f.prazo });
+  const bant = evaluateBant({ segmento: f.segmento, faturamento_mensal, autoridade, dores, prazo: f.prazo });
   return {
     patch: {
       nome: f.nome,

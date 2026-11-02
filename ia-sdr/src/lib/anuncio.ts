@@ -11,6 +11,8 @@
  * em todas as respostas daquela conversa.
  */
 
+import { SDR_CONFIG } from "../config/sdr.ts";
+
 export type Nicho = "estetica" | "odonto" | "academia";
 
 export interface DadosAnuncio {
@@ -44,9 +46,9 @@ export const NICHO_LABEL: Record<Nicho, string> = {
 
 /** Faturamento que o anúncio de cada nicho anuncia como corte do Acesso Antecipado. */
 export const CORTE_DO_ANUNCIO: Record<Nicho, number> = {
-  estetica: 30_000,
-  odonto: 30_000,
-  academia: 100_000,
+  estetica: SDR_CONFIG.qualificacao.faturamentoMinimoMensal,
+  odonto: SDR_CONFIG.qualificacao.faturamentoMinimoMensal,
+  academia: SDR_CONFIG.qualificacao.faturamentoMinimoAcademia,
 };
 
 export function nichoDoTexto(texto: string): Nicho | null {
@@ -115,8 +117,8 @@ export function contextoAnuncio(o: OrigemAnuncio | null): string {
 ## Este contato veio de um anúncio da DemandIA
 Ele clicou num anúncio para donos de ${nicho} e caiu direto aqui no WhatsApp. O anúncio prometeu: ver você atendendo na hora, diagnóstico gratuito e Acesso Antecipado com vagas limitadas para quem fatura acima de R$ ${corte.toLocaleString("pt-BR")} por mês.
 - ${o.teste ? `A primeira mensagem é um TESTE: o dono está fingindo ser ${quem} para ver como você atende. ` : ""}Se a pessoa mandar uma pergunta de ${quem} (preço, horário, como funciona) ou pedir para testar, responda primeiro como você atenderia o ${quem} dela: 1 balão curto, simpático, sem inventar preço (diga que depende da avaliação ou do plano) e já oferecendo um próximo passo concreto. Depois, em outro balão, vire para o dono: diga que é assim que você atenderia o ${quem} dele, a qualquer hora, e pergunte se o negócio é dele.
-- Nas 3 primeiras trocas, descubra com naturalidade: se a pessoa é dona ou sócia, o faturamento mensal (pode ser faixa) e mais ou menos quantas mensagens chegam por dia. Registre tudo com \`registrar_qualificacao\` assim que souber.
-- Se a pessoa não for dona, peça com gentileza para chamar quem decide ou para seguir a conversa com o dono.
+- Nas 3 primeiras trocas, descubra com naturalidade: qual o papel da pessoa no negócio, o faturamento mensal (pode ser faixa) e mais ou menos quantas mensagens chegam por dia. Registre tudo com \`registrar_qualificacao\` assim que souber, com o segmento "${nicho}".
+- Pode seguir com o dono ou sócio e também com quem responde por marketing, atendimento ou vendas. Se for outra função (recepção, atendente), peça com gentileza para trazer o dono ou o responsável para a conversa.
 - Fale a língua do dono: receita, agenda cheia, ${quem} que escapa para o concorrente, custo de contratar mais gente. Nunca use "lead", "funil", "SDR" ou "BANT" com ele.
 - O próximo passo é o diagnóstico gratuito: a conversa com nosso especialista. Siga as regras de agendamento normais.
 - Se a ferramenta disser que o faturamento está abaixo do mínimo, agradeça, diga que o Acesso Antecipado é para quem fatura acima de R$ ${corte.toLocaleString("pt-BR")} e deixe a porta aberta.`;
