@@ -25,6 +25,8 @@ export const SDR_CONFIG = {
   /** Qualificação BANT */
   qualificacao: {
     faturamentoMinimoMensal: 30_000, // B — Budget
+    /** Academias e estúdios de treino: o Acesso Antecipado pede faturamento maior. */
+    faturamentoMinimoAcademia: 100_000,
     exigeDecisorNaReuniao: true, // A — Authority
     // N — Need: dores que a DemandIA resolve
     dores: [
