@@ -14,6 +14,7 @@ export const REGRAS_DE_ESTILO = `## Como escrever (obrigatório)
 - Não use palavras de marketing genérico: alavancar, potencializar, impulsionar, otimizar, solução, soluções, jornada, transformar, estratégico, incrível, excelente oportunidade, sinergia, robusto.
 - Não comece com elogio exagerado nem com "Olá!". Não repita a mesma abertura em todas as mensagens.
 - Não invente dados. Use só o que está no diagnóstico.
+- Nunca use a palavra "grátis": diga "gratuito" ou "gratuita".
 - Nunca cite o nome de ninguém da equipe. Quem faz o diagnóstico é "nosso especialista em presença digital" (ou "um dos nossos especialistas").`;
 
 const PROIBIDAS = [
@@ -60,6 +61,9 @@ export function humanizar(texto: string): string {
   t = t.replace(/\*\*(.+?)\*\*/g, "$1").replace(/__(.+?)__/g, "$1");
   t = t.replace(/^[ \t]*#{1,6}[ \t]+/gm, "");
   t = t.replace(/^[ \t]*[-•*][ \t]+/gm, "");
+  // "Grátis" não: o Kelvin prefere "gratuito"
+  t = t.replace(/\b(prévia|previa|análise|analise|avaliação|conversa|reunião|consultoria)\s+grátis\b/gi, "$1 gratuita");
+  t = t.replace(/\bgrátis\b/gi, "gratuito");
   // Exclamação em excesso
   t = t.replace(/!{2,}/g, "!");
   t = t.replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").replace(/[ \t]{2,}/g, " ");
@@ -71,6 +75,7 @@ export function problemasDeEstilo(texto: string): string[] {
   const low = (texto ?? "").toLowerCase();
   const out = PROIBIDAS.filter((p) => low.includes(p)).map((p) => `usa "${p}"`);
   if (/[—–]/.test(texto)) out.push("tem travessão");
+  if (/\bgrátis\b/i.test(texto)) out.push('usa "grátis" (diga "gratuito")');
   if ((texto.match(/!/g) || []).length > 1) out.push("mais de um ponto de exclamação");
   if ((texto.match(/\p{Extended_Pictographic}/gu) || []).length > 1) out.push("mais de um emoji");
   return out;

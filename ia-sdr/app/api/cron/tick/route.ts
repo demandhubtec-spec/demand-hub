@@ -7,6 +7,7 @@ import { env } from "@/src/lib/env.ts";
 import { runFollowUps, runMeetingReminders } from "@/src/lib/jobs.ts";
 import { ensureWhatsAppConnected } from "@/src/lib/whatsapp-health.ts";
 import { lembrarPedidos } from "@/src/lib/canal.ts";
+import { runRetomadas } from "@/src/lib/retomadas.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -22,7 +23,9 @@ async function handler(req: Request) {
     runFollowUps(),
     lembrarPedidos().catch(() => 0), // orientação que a Ana pediu e ainda não teve resposta
   ]);
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos });
+  // Conversas da prospecção que pararam: a Ana propõe a retomada e espera o ok
+  const retomadas = await runRetomadas().catch((e) => ({ error: String(e) }));
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas });
 }
 
 export const GET = handler;

@@ -36,7 +36,7 @@ export function promptDirect(lead: LeadPerfil, d: Diagnostico): string {
 
 Fatos verificados do perfil no Google (use só estes): ${JSON.stringify(d)}
 ${nome ? `Nome do decisor: ${nome} (só use se soar natural; no Instagram quem lê pode ser outra pessoa).` : ""}
-${semSiteProprio(lead.site) ? "A empresa não tem site próprio: ofereça também uma prévia grátis de como ficaria o site deles." : ""}
+${semSiteProprio(lead.site) ? "A empresa não tem site próprio: ofereça também uma prévia gratuita de como ficaria o site deles." : ""}
 
 Como escrever:
 - Direct é mais informal que e-mail: 2 parágrafos curtos, no máximo 380 caracteres no total.

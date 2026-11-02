@@ -48,3 +48,14 @@ export function nextFollowUpAt(from: Date, attempts: number, cfg: FollowCfg = SD
   const base = new Date(from.getTime() + days * 86_400_000);
   return clampToBusinessTime(base, cfg);
 }
+
+/** Momento N dias úteis depois de `from` (mesmo horário), empurrado para dentro do horário comercial. */
+export function addBusinessDays(from: Date, n: number, cfg: FollowCfg = SDR_CONFIG.followUp): Date {
+  let d = new Date(from.getTime());
+  let conta = 0;
+  for (let i = 0; i < 40 && conta < n; i++) {
+    d = new Date(d.getTime() + 86_400_000);
+    if (isBusinessDay(d, cfg)) conta++;
+  }
+  return clampToBusinessTime(d, cfg);
+}

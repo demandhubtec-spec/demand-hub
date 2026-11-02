@@ -1,12 +1,13 @@
 /**
  * Canal "Você e a Ana" · o Kelvin manda uma orientação pelo portal (só perfil "dono").
  *   POST { lead_id?, texto?, midia?: { tipo: "audio" | "imagem", base64, mimetype } } → { ok }
+ *   POST { acao: "aprovar" | "descartar", canal_id } → manda ou descarta um rascunho esperando ok
  * Áudio vira texto (transcrição) e imagem vira descrição; a Ana aplica e responde no próprio canal.
  */
 import { waitUntil } from "@vercel/functions";
 import { db } from "@/src/lib/db.ts";
 import { interpretarMidia, type MidiaRecebida } from "@/src/lib/midia.ts";
-import { processarOrientacao, registrar } from "@/src/lib/canal.ts";
+import { decidirRascunho, processarOrientacao, registrar } from "@/src/lib/canal.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -37,10 +38,17 @@ export async function POST(req: Request) {
   if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
 
   const body = (await req.json().catch(() => ({}))) as {
+    acao?: "aprovar" | "descartar";
+    canal_id?: string;
     lead_id?: string | null;
     texto?: string;
     midia?: { tipo?: string; base64?: string; mimetype?: string };
   };
+  // Botões "Mandar" e "Descartar" de um rascunho esperando ok
+  if (body.canal_id && (body.acao === "aprovar" || body.acao === "descartar")) {
+    const r = await decidirRascunho(body.canal_id, body.acao).catch((e) => `Erro: ${String((e as Error).message ?? e)}`);
+    return json({ ok: !r.startsWith("Erro"), conteudo: r });
+  }
   let conteudo = (body.texto ?? "").trim();
   let tipo: "texto" | "audio" | "imagem" = "texto";
   if (body.midia?.base64 && (body.midia.tipo === "audio" || body.midia.tipo === "imagem")) {
