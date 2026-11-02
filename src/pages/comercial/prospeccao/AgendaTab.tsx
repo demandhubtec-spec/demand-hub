@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AlertTriangle, ChevronDown, ChevronRight, Mail, MessageCircle, Search } from "lucide-react";
+import { AlertTriangle, CalendarDays, ChevronDown, ChevronRight, Mail, MessageCircle, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useEnviosHoje, useOutreachConfig, useOutreachLeads } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
@@ -83,6 +83,75 @@ function Linha({ e, onAbrir }: { e: EnvioPrevisto; onAbrir: () => void }) {
   );
 }
 
+/** Painel que abre embaixo de um botão e fecha ao clicar fora ou apertar Esc. */
+function Suspenso({
+  rotulo,
+  icone,
+  destaque,
+  children,
+  largura = 300,
+}: {
+  rotulo: React.ReactNode;
+  icone: React.ReactNode;
+  destaque?: boolean;
+  children: (fechar: () => void) => React.ReactNode;
+  largura?: number;
+}) {
+  const [aberto, setAberto] = React.useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setAberto(false);
+    };
+    const esc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setAberto(false);
+    };
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", fora);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [aberto]);
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        className={cn(
+          "flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold transition-colors",
+          destaque || aberto ? "border-primary-bright/70 bg-primary-tint text-primary-bright" : "border-border text-ink hover:border-primary-bright/50",
+        )}
+      >
+        {icone}
+        {rotulo}
+        <ChevronDown className={cn("h-3.5 w-3.5 opacity-70 transition-transform", aberto && "rotate-180")} />
+      </button>
+      {aberto && (
+        <div
+          className="absolute left-0 top-[calc(100%+6px)] z-30 rounded-lg border border-border bg-surface p-3 shadow-xl"
+          style={{ width: largura }}
+        >
+          {children(() => setAberto(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Filtro ativo mostrado ao lado dos botões, com X para tirar. */
+function Pilula({ children, onTirar }: { children: React.ReactNode; onTirar: () => void }) {
+  return (
+    <span className="flex h-7 items-center gap-1 rounded-full bg-surface-2 pl-2.5 pr-1 text-[12px] font-semibold text-ink">
+      {children}
+      <button onClick={onTirar} className="rounded-full p-0.5 text-muted hover:text-ink" aria-label="Tirar filtro">
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+}
+
 /** Agenda de envios: quem recebe o quê e mais ou menos a que horas, por dia. */
 export function AgendaTab() {
   const { data: leads = [] } = useOutreachLeads();
@@ -133,31 +202,87 @@ export function AgendaTab() {
 
   return (
     <div className="space-y-4">
-      <Card className="space-y-3 p-4 px-[22px]">
-        <div className="flex flex-wrap gap-1.5">
-          {PERIODOS.map((p) => (
-            <Chip key={p.key} ativo={periodo === p.key} onClick={() => setPeriodo(p.key)}>
-              {p.label}
-            </Chip>
-          ))}
-        </div>
-        <div className="flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[11.5px] text-muted">Canal</span>
-          <Chip ativo={canal === "todos"} onClick={() => setCanal("todos")}>Todos</Chip>
-          <Chip ativo={canal === "whatsapp"} onClick={() => setCanal("whatsapp")}>WhatsApp</Chip>
-          <Chip ativo={canal === "email"} onClick={() => setCanal("email")}>E-mail</Chip>
-          <span className="ml-3 mr-1 text-[11.5px] text-muted">Tipo</span>
-          {TIPOS.map((t) => (
-            <Chip key={String(t.key)} ativo={tipo === t.key} onClick={() => setTipo(t.key)}>
-              {t.label}
-            </Chip>
-          ))}
-          <label className="ml-auto flex items-center gap-1.5 rounded-full border border-border px-3 py-1 text-[12px]">
-            <Search className="h-3.5 w-3.5 text-muted" />
-            <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa" className="w-[150px] bg-transparent outline-none" />
-          </label>
-        </div>
-      </Card>
+      <div className="flex flex-wrap items-center gap-2">
+        <Suspenso
+          icone={<CalendarDays className="h-3.5 w-3.5" />}
+          rotulo={PERIODOS.find((p) => p.key === periodo)?.label}
+          largura={200}
+        >
+          {(fechar) => (
+            <div className="flex flex-col">
+              {PERIODOS.map((p) => (
+                <button
+                  key={p.key}
+                  onClick={() => {
+                    setPeriodo(p.key);
+                    fechar();
+                  }}
+                  className={cn(
+                    "rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-surface-2",
+                    periodo === p.key ? "font-semibold text-primary-bright" : "text-ink",
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+        </Suspenso>
+
+        <Suspenso
+          icone={<SlidersHorizontal className="h-3.5 w-3.5" />}
+          rotulo={`Filtros${(canal !== "todos" ? 1 : 0) + (tipo !== "todos" ? 1 : 0) ? ` (${(canal !== "todos" ? 1 : 0) + (tipo !== "todos" ? 1 : 0)})` : ""}`}
+          destaque={canal !== "todos" || tipo !== "todos"}
+          largura={320}
+        >
+          {() => (
+            <div className="space-y-3">
+              <div>
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Canal</div>
+                <div className="flex flex-wrap gap-1.5">
+                  <Chip ativo={canal === "todos"} onClick={() => setCanal("todos")}>Todos</Chip>
+                  <Chip ativo={canal === "whatsapp"} onClick={() => setCanal("whatsapp")}>WhatsApp</Chip>
+                  <Chip ativo={canal === "email"} onClick={() => setCanal("email")}>E-mail</Chip>
+                </div>
+              </div>
+              <div>
+                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Tipo de envio</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {TIPOS.map((t) => (
+                    <Chip key={String(t.key)} ativo={tipo === t.key} onClick={() => setTipo(t.key)}>
+                      {t.label}
+                    </Chip>
+                  ))}
+                </div>
+              </div>
+              {(canal !== "todos" || tipo !== "todos") && (
+                <button
+                  className="text-[12px] font-semibold text-primary-bright"
+                  onClick={() => {
+                    setCanal("todos");
+                    setTipo("todos");
+                  }}
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          )}
+        </Suspenso>
+
+        {canal !== "todos" && <Pilula onTirar={() => setCanal("todos")}>{canal === "whatsapp" ? "WhatsApp" : "E-mail"}</Pilula>}
+        {tipo !== "todos" && <Pilula onTirar={() => setTipo("todos")}>{TIPOS.find((t) => t.key === tipo)?.label}</Pilula>}
+
+        <label className="ml-auto flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-[12.5px] focus-within:border-primary-bright/60">
+          <Search className="h-3.5 w-3.5 text-muted" />
+          <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa" className="w-[150px] bg-transparent outline-none" />
+          {busca && (
+            <button onClick={() => setBusca("")} className="text-muted hover:text-ink" aria-label="Limpar busca">
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </label>
+      </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         {[
