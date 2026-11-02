@@ -6,7 +6,8 @@
 import { waitUntil } from "@vercel/functions";
 import { ehDisparoDaProspeccao, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
-import { addMessage, history, logEvent, messageExists, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
+import { addMessage, history, logEvent, messageExists, ultimoEvento, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
+import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
 import { env } from "@/src/lib/env.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
@@ -130,6 +131,13 @@ export async function POST(req: Request) {
     evolution_message_id: msg.id,
   });
   if (!saved) return Response.json({ duplicate: true });
+
+  // Veio de anúncio de WhatsApp (dados do anúncio ou mensagem pronta)? Registra uma vez por lead.
+  const origem = detectarOrigemAnuncio(msg.text, msg.anuncio);
+  if (origem && !(await ultimoEvento(lead.id, "origem_anuncio").catch(() => null))) {
+    await logEvent(lead.id, "origem_anuncio", { ...origem, url: msg.anuncio?.url ?? null, ctwaClid: msg.anuncio?.ctwaClid ?? null });
+    if (origem.nicho && !lead.segmento) await updateLead(lead.id, { segmento: NICHO_LABEL[origem.nicho] });
+  }
 
   // Lead respondeu: zera a sequência de follow-up
   await updateLead(lead.id, {
