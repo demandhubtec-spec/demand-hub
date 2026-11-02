@@ -4,7 +4,7 @@
  * garantidas aqui no servidor — não dependem do modelo "obedecer" o prompt.
  */
 import { SDR_CONFIG } from "../config/sdr.ts";
-import { evaluateBant, normalizeFaturamento } from "./bant.ts";
+import { evaluateBant, faturamentoMinimo, normalizeFaturamento } from "./bant.ts";
 import type { Tool } from "./llm.ts";
 import { activeMeeting, db, getLead, logEvent, updateLead, type Lead } from "./db.ts";
 import { env } from "./env.ts";
@@ -30,8 +30,8 @@ export const TOOLS: Tool[] = [
         faturamento_mensal: { type: "number", description: "Faturamento médio MENSAL em REAIS COMPLETOS. Ex.: '50 mil' = 50000; faixa '50 a 60 mil' = 50000 (use o mínimo); '1 milhão por ano' = 83000." },
         autoridade: {
           type: "string",
-          enum: ["decisor", "decisor_vai_participar", "sem_decisor"],
-          description: "decisor = a pessoa decide; decisor_vai_participar = não decide sozinha mas o decisor vai na reunião; sem_decisor = decisor não vai participar",
+          enum: ["decisor", "responsavel_area", "decisor_vai_participar", "sem_decisor"],
+          description: "decisor = dono ou sócio; responsavel_area = responde por marketing, atendimento ou vendas da empresa; decisor_vai_participar = não decide, mas o dono ou o responsável vai na reunião; sem_decisor = nenhum deles vai participar",
         },
         dores: {
           type: "array",
@@ -178,6 +178,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       }
       const merged = { ...lead, ...patch } as Lead;
       const r = evaluateBant(merged);
+      const minimo = faturamentoMinimo(merged.segmento);
       patch.bant_score = r.score;
       if (!["agendado", "humano", "opt_out", "cliente"].includes(lead.status)) {
         patch.status = r.qualificado ? "qualificado" : r.desqualificado ? "desqualificado" : "em_qualificacao";
@@ -193,6 +194,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         T_tempo: r.timing,
         qualificado: r.qualificado,
         desqualificado_por_faturamento: r.desqualificado,
+        faturamento_minimo: `R$ ${minimo.toLocaleString("pt-BR")}/mês`,
         ainda_falta: r.faltando,
         proximo_passo: r.qualificado
           ? "Lead qualificado: use ver_horarios e ofereça opções."
