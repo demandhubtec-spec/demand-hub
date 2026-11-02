@@ -13,6 +13,7 @@ import { busyIntervals, cancelMeeting, createMeeting } from "./google.ts";
 import { freeSlots, isValidSlot, pickOptions, reminderTimes } from "./schedule.ts";
 import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
 import { pedirOrientacao } from "./canal.ts";
+import { prospeccaoDoTelefone } from "./prospeccao.ts";
 
 export const TOOLS: Tool[] = [
   {
@@ -94,6 +95,32 @@ export const TOOLS: Tool[] = [
         opcoes: { type: "array", items: { type: "string" }, description: "1 a 3 respostas que você pensou em mandar." },
       },
       required: ["pergunta"],
+    },
+  },
+  {
+    name: "combinar_retorno",
+    description:
+      "Guarda o retorno combinado com o contato (ex.: 'o Adriano volta terça depois das 10h', 'me chama semana que vem'). No dia e hora, você prepara a retomada e o gestor aprova antes de sair.",
+    input_schema: {
+      type: "object",
+      properties: {
+        quando: { type: "string", description: "Data e hora no formato ISO com fuso de Brasília, ex: 2026-11-03T10:30:00-03:00. Sem hora definida, use 09:30." },
+        com_quem: { type: "string", description: "Com quem retomar (nome e função, se souber)." },
+        nota: { type: "string", description: "O que foi combinado, em uma frase." },
+      },
+      required: ["quando"],
+    },
+  },
+  {
+    name: "registrar_objetivo",
+    description:
+      "Marca o progresso rumo ao objetivo (reunião ou ligação com o responsável): diagnóstico enviado e/ou contato do responsável obtido.",
+    input_schema: {
+      type: "object",
+      properties: {
+        diagnostico_enviado: { type: "boolean", description: "true quando você mandou os achados ou a análise do diagnóstico." },
+        responsavel: { type: "string", description: "Nome do responsável e o contato dele (WhatsApp ou e-mail), como o lead passou." },
+      },
     },
   },
   {
@@ -300,11 +327,52 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       return "IA pausada nesta conversa. Avise o lead que alguém da nossa equipe vai responder pessoalmente em breve (sem dizer nomes).";
     }
 
+    case "combinar_retorno": {
+      const quando = new Date(String(input.quando ?? ""));
+      if (Number.isNaN(quando.getTime()) || quando.getTime() < Date.now() - 3600e3)
+        return "Data inválida. Use o formato ISO com fuso de Brasília, numa data futura (ex.: 2026-11-03T10:30:00-03:00).";
+      const nota = [input.com_quem, input.nota].filter((x) => typeof x === "string" && x.trim()).join(": ") || null;
+      const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+      if (p?.place_id) {
+        await db()
+          .from("outreach_leads")
+          .update({ retorno_em: quando.toISOString(), retorno_nota: nota, ...(input.com_quem && !p.responsavel_contato ? { responsavel_contato: String(input.com_quem) } : {}) })
+          .eq("place_id", p.place_id);
+      }
+      await updateLead(leadId, { next_followup_at: quando.toISOString() });
+      return `Retorno guardado para ${formatBR(quando)}. Agradeça, confirme que retoma nesse dia e encerre por agora, sem mais perguntas.`;
+    }
+
+    case "registrar_objetivo": {
+      const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+      if (!p?.place_id) return "Ok, anotado.";
+      const patch: Record<string, unknown> = {};
+      if (input.diagnostico_enviado === true && !p.diag_enviado_em) patch.diag_enviado_em = new Date().toISOString();
+      if (typeof input.responsavel === "string" && input.responsavel.trim()) patch.responsavel_contato = input.responsavel.trim().slice(0, 200);
+      if (Object.keys(patch).length) await db().from("outreach_leads").update(patch).eq("place_id", p.place_id);
+      return "Progresso registrado. Siga rumo à conversa de 30 minutos ou ligação com o responsável.";
+    }
+
     case "encerrar_contato": {
       await updateLead(leadId, {
         status: input.motivo === "opt_out" ? "opt_out" : "desqualificado",
         next_followup_at: null,
       });
+      // Na prospecção, quem pediu para sair vai para "Fora" e a cadência para de vez
+      const pe = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+      if (pe?.place_id) {
+        await db()
+          .from("outreach_leads")
+          .update({
+            status_comercial: "descartado",
+            cadencia: "parada",
+            proximo_toque_em: null,
+            proximo_canal: null,
+            retorno_em: null,
+            ...(input.motivo === "opt_out" ? { wa_status: "optout" } : {}),
+          })
+          .eq("place_id", pe.place_id);
+      }
       return "Follow-ups encerrados para este lead. Agora responda ao lead com UMA mensagem curta, gentil e sem insistir (ex.: agradecer o retorno e deixar a porta aberta). Nunca deixe a mensagem dele sem resposta.";
     }
 

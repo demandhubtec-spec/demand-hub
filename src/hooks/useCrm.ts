@@ -182,6 +182,15 @@ export interface EnvioCanal {
   midia?: { tipo: "audio" | "imagem"; base64: string; mimetype: string };
 }
 
+/** Botões "Mandar" e "Descartar" de um rascunho da Ana esperando seu ok. */
+export function useDecidirRascunho() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (b: { canal_id: string; acao: "aprovar" | "descartar" }) => chamarSdr<{ ok: boolean; conteudo: string }>("/api/ana/canal", b),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm", "canal"] }),
+  });
+}
+
 export function useEnviarCanal() {
   const qc = useQueryClient();
   return useMutation({

@@ -69,6 +69,13 @@ export interface OutreachLead {
   /** Prévia de site grátis (isca para quem não tem site próprio). */
   site_preview: SitePreview | null;
   site_preview_em: string | null;
+  /** Funil das conversas: retorno combinado, marcadores do objetivo e retomadas propostas pela Ana. */
+  retorno_em?: string | null;
+  retorno_nota?: string | null;
+  diag_enviado_em?: string | null;
+  responsavel_contato?: string | null;
+  retomadas?: number | null;
+  retomada_em?: string | null;
 }
 
 export interface SitePreview {
@@ -237,6 +244,31 @@ export function useOutreachLog(placeId?: string) {
       let query = supabase.from("outreach_log").select("*").order("created_at", { ascending: false }).limit(placeId ? 100 : 50);
       if (placeId) query = query.eq("place_id", placeId);
       return q<OutreachLogItem[]>(query);
+    },
+  });
+}
+
+/** Quanto já saiu hoje (para a Agenda descontar dos tetos do dia). */
+export function useEnviosHoje() {
+  return useQuery({
+    queryKey: ["outreach", "envios-hoje"],
+    refetchInterval: REFRESH,
+    queryFn: async () => {
+      const ymd = new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" });
+      const desde = new Date(`${ymd}T00:00:00-03:00`).toISOString();
+      const conta = async (canal: string, eventos: string[]) => {
+        const { count, error } = await supabase
+          .from("outreach_log")
+          .select("id", { count: "exact", head: true })
+          .eq("channel", canal)
+          .in("event", eventos)
+          .gte("created_at", desde);
+        if (error) throw new Error(error.message);
+        return count ?? 0;
+      };
+      const { count: novos, error } = await supabase.from("outreach_leads").select("place_id", { count: "exact", head: true }).gte("wa_sent_at", desde);
+      if (error) throw new Error(error.message);
+      return { waNovos: novos ?? 0, waFollow: await conta("whatsapp", ["followup"]), email: await conta("email", ["sent", "sent_test"]) };
     },
   });
 }

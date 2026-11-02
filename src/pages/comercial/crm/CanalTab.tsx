@@ -1,8 +1,10 @@
 import * as React from "react";
-import { Bot, MessageCircle, Mic, ImageIcon } from "lucide-react";
+import { Bot, MessageCircle, Mic, ImageIcon, Send, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { useCanal, useContatos } from "@/hooks/useCrm";
+import { useCanal, useContatos, useDecidirRascunho } from "@/hooks/useCrm";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { fmtData } from "../prospeccao/shared";
 import { Compositor } from "./Compositor";
@@ -16,6 +18,16 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
   const { data: msgs = [], isLoading, isError } = useCanal();
   const { contatos } = useContatos();
   const [sobre, setSobre] = React.useState<string>("");
+  const decidir = useDecidirRascunho();
+  const { showToast } = useToast();
+  async function responder(id: string, acao: "aprovar" | "descartar") {
+    try {
+      const r = await decidir.mutateAsync({ canal_id: id, acao });
+      showToast(r.conteudo);
+    } catch (e) {
+      showToast(`Erro: ${(e as Error).message}`);
+    }
+  }
   const fim = React.useRef<HTMLDivElement>(null);
   // Em navegadores novos o scrollIntoView devolve uma Promise: o efeito não pode retornar isso
   React.useEffect(() => {
@@ -74,6 +86,16 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                   )}
                 </div>
                 {m.conteudo.replace(/^\[áudio transcrito\]\s*/, "")}
+                {m.status === "aguardando_ok" && (
+                  <div className="mt-2 flex gap-2">
+                    <Button size="sm" className="h-7 px-2.5 text-[12px]" disabled={decidir.isPending} onClick={() => responder(m.id, "aprovar")}>
+                      <Send /> Mandar
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 px-2.5 text-[12px]" disabled={decidir.isPending} onClick={() => responder(m.id, "descartar")}>
+                      <X /> Descartar
+                    </Button>
+                  </div>
+                )}
                 <div className="mt-1 text-right font-mono text-[10px] text-muted">{fmtData(m.created_at)}</div>
               </div>
             </div>

@@ -48,6 +48,11 @@ export async function runFollowUps(now = new Date()) {
         await updateLead(lead.id, { next_followup_at: null });
         continue;
       }
+      // Conversa da prospecção que parou: a retomada é proposta ao Kelvin (runRetomadas), nunca sai sozinha
+      if (prosp?.place_id && prosp.cadencia === "respondeu") {
+        await updateLead(lead.id, { next_followup_at: null });
+        continue;
+      }
 
       const attempt = fresh.followup_attempts + 1;
       const msgs = toChat(await history(lead.id, 30));

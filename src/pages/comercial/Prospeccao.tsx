@@ -20,6 +20,7 @@ import { AtividadeTab } from "./prospeccao/AtividadeTab";
 import { AprovacaoTab } from "./prospeccao/AprovacaoTab";
 import { FunilTab } from "./prospeccao/FunilTab";
 import { AutomaticoTab } from "./prospeccao/AutomaticoTab";
+import { AgendaTab } from "./prospeccao/AgendaTab";
 
 function StatePill({ ok, children, strong = false }: { ok: boolean | null; children: React.ReactNode; strong?: boolean }) {
   return (
@@ -130,10 +131,11 @@ export function ProspeccaoPainel() {
       </div>
 
 
-      <Tabs defaultValue="aprovacao">
+      <Tabs defaultValue={paraRevisar ? "aprovacao" : "agenda"}>
         <TabsList>
           <TabsTrigger value="aprovacao">Aprovação{paraRevisar ? ` (${paraRevisar})` : ""}</TabsTrigger>
-          <TabsTrigger value="funil">Funil</TabsTrigger>
+          <TabsTrigger value="agenda">Agenda de envios</TabsTrigger>
+          <TabsTrigger value="funil">Funil das conversas</TabsTrigger>
           <TabsTrigger value="leads">Leads</TabsTrigger>
           <TabsTrigger value="templates">Mensagens</TabsTrigger>
           <TabsTrigger value="automatico">Automático</TabsTrigger>
@@ -142,6 +144,9 @@ export function ProspeccaoPainel() {
         </TabsList>
         <TabsContent value="aprovacao">
           <AprovacaoTab />
+        </TabsContent>
+        <TabsContent value="agenda">
+          <AgendaTab />
         </TabsContent>
         <TabsContent value="funil">
           <FunilTab />

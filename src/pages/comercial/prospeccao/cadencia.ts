@@ -6,11 +6,11 @@ export const ETAPAS = [
   { key: "aprovado", label: "Aprovado", dica: "Na fila para a primeira mensagem" },
   { key: "cadencia", label: "Em cadência", dica: "Recebendo os follow-ups" },
   { key: "respondeu", label: "Respondeu", dica: "A Ana está conversando" },
-  { key: "reuniao", label: "Reunião", dica: "Diagnóstico marcado" },
+  { key: "reuniao", label: "Reunião marcada", dica: "Conversa ou ligação marcada" },
   { key: "proposta", label: "Proposta", dica: "Proposta enviada" },
   { key: "ganho", label: "Ganho", dica: "Virou cliente" },
   { key: "retomar", label: "Retomar depois", dica: "Não respondeu, volta na data" },
-  { key: "descartado", label: "Descartado", dica: "Pediu para sair ou não tem fit" },
+  { key: "descartado", label: "Fora", dica: "Pediu para sair ou não tem fit" },
   { key: "fora", label: "Sem WhatsApp", dica: "Sem número para abordar" },
 ] as const;
 
@@ -26,6 +26,64 @@ export function etapaDoLead(l: OutreachLead): Etapa {
   if (l.wa_status === "pendente") return l.msg_status === "aprovada" ? "aprovado" : "aprovar";
   if (l.wa_status === "enviado") return "cadencia";
   return "fora";
+}
+
+// ── Conversas: quem respondeu se divide em "Em conversa", "Retorno combinado" e "Parou no meio" ──
+
+export const ETAPAS_CONVERSA = [
+  { key: "conversa", label: "Em conversa", dica: "Respondeu há pouco ou está esperando resposta nossa" },
+  { key: "retorno", label: "Retorno combinado", dica: "Tem dia certo para retomar" },
+  { key: "parou", label: "Parou no meio", dica: "2 dias úteis sem resposta: a Ana propõe a retomada" },
+] as const;
+export type EtapaConversa = (typeof ETAPAS_CONVERSA)[number]["key"];
+
+/** Mantenha igual a agenda.ts / ao motor. */
+const FERIADOS_CONVERSA = new Set(["2026-11-02", "2026-11-15", "2026-11-20", "2026-12-25", "2027-01-01", "2027-02-08", "2027-02-09", "2027-03-26", "2027-04-21", "2027-05-01", "2027-05-27", "2027-09-07", "2027-10-12", "2027-11-02", "2027-11-15", "2027-11-20", "2027-12-25"]);
+
+/** Dias úteis (seg a sex, sem feriado) depois do dia de `desde` até hoje, inclusive. */
+export function diasUteisDesde(desde: Date, agora = new Date()): number {
+  const local = (d: Date) => new Date(d.getTime() - 3 * 3600e3);
+  const a = local(desde);
+  let d = Date.UTC(a.getUTCFullYear(), a.getUTCMonth(), a.getUTCDate());
+  const b = local(agora);
+  const fim = Date.UTC(b.getUTCFullYear(), b.getUTCMonth(), b.getUTCDate());
+  let n = 0;
+  for (let i = 0; i < 120 && d < fim; i++) {
+    d += 864e5;
+    const dt = new Date(d);
+    const dow = dt.getUTCDay();
+    if (dow >= 1 && dow <= 5 && !FERIADOS_CONVERSA.has(dt.toISOString().slice(0, 10))) n++;
+  }
+  return n;
+}
+
+export interface CtxConversa {
+  ultimaEntrada?: string | null;
+  ultimaSaida?: string | null;
+}
+
+/** Em que pé está a conversa de quem respondeu. */
+export function etapaConversa(l: OutreachLead, ctx: CtxConversa = {}, agora = new Date()): EtapaConversa {
+  if (l.retorno_em) return "retorno";
+  const ent = ctx.ultimaEntrada ? new Date(ctx.ultimaEntrada) : null;
+  const sai = ctx.ultimaSaida ? new Date(ctx.ultimaSaida) : null;
+  // O lead falou por último: a bola está com a gente
+  if (ent && (!sai || ent > sai)) return "conversa";
+  const datas = [ent, sai, l.retomada_em ? new Date(l.retomada_em) : null].filter(Boolean) as Date[];
+  // Sem conversa no WhatsApp (respondeu por e-mail): vale a última atualização do lead
+  if (!datas.length && l.updated_at) datas.push(new Date(l.updated_at));
+  const ultima = datas.sort((a, b) => b.getTime() - a.getTime())[0];
+  if (!ultima) return "conversa";
+  return diasUteisDesde(ultima, agora) >= 2 ? "parou" : "conversa";
+}
+
+/** Marcadores do objetivo (reunião ou ligação com o responsável). */
+export function objetivo(l: OutreachLead) {
+  return {
+    diagnostico: !!l.diag_enviado_em,
+    responsavel: !!l.responsavel_contato,
+    reuniao: ["reuniao", "proposta", "ganho"].includes(l.status_comercial),
+  };
 }
 
 /** O que muda no lead quando você move o card para uma coluna. */

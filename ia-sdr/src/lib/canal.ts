@@ -53,6 +53,30 @@ export async function pedirOrientacao(leadId: string, pergunta: string, opcoes: 
   return "Pedido de orientação enviado. Responda ao lead com UMA mensagem curta e natural, sem dizer que vai consultar alguém (ex.: \"Boa pergunta, deixa eu confirmar direitinho e já te retorno 😊\"). Não invente a resposta.";
 }
 
+/** Retomada de conversa parada: vira proposta no canal e só sai com o ok do Kelvin. */
+export async function proporRetomada(leadId: string, texto: string, motivo: string): Promise<void> {
+  const nome = await nomeDe(leadId);
+  const msg = humanizar(texto);
+  await db().from("ana_canal").update({ status: "descartado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
+  await registrar({ lead_id: leadId, autor: "ana", conteudo: `Retomada para ${nome} (${motivo}):\n«${msg}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: msg });
+  await logEvent(leadId, "retomada_proposta", { motivo });
+  await avisarKelvin(`📝 Retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em CRM > Você e a Ana.`);
+}
+
+/** O Kelvin aprovou (ou descartou) um rascunho pelo botão do portal. */
+export async function decidirRascunho(canalId: string, acao: "aprovar" | "descartar"): Promise<string> {
+  const { data } = await db().from("ana_canal").select("id,lead_id,rascunho,status").eq("id", canalId).maybeSingle();
+  const r = data as { id: string; lead_id: string | null; rascunho: string | null; status: string } | null;
+  if (!r || r.status !== "aguardando_ok" || !r.lead_id || !r.rascunho) return "Esse rascunho não está mais esperando ok.";
+  if (acao === "descartar") {
+    await db().from("ana_canal").update({ status: "descartado" }).eq("id", r.id);
+    return "Rascunho descartado.";
+  }
+  const enviado = await enviarAoLead(r.lead_id, r.rascunho);
+  await registrar({ lead_id: r.lead_id, autor: "ana", conteudo: `Enviado para ${await nomeDe(r.lead_id)}: «${enviado}»`, origem: "sistema" });
+  return "Enviado.";
+}
+
 /** Último pedido de orientação ainda sem resposta (até 2 dias). */
 async function pedidoPendente(): Promise<{ id: string; lead_id: string } | null> {
   const desde = new Date(Date.now() - 2 * 864e5).toISOString();
@@ -128,6 +152,10 @@ async function enviarAoLead(leadId: string, texto: string) {
     await addMessage({ lead_id: leadId, direction: "out", author: "ia", content, evolution_message_id: id });
   });
   await updateLead(leadId, { last_outbound_at: new Date().toISOString() });
+  // Retorno combinado cumprido: sai da coluna "Retorno combinado"
+  const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+  if (p?.place_id && p.retorno_em && new Date(p.retorno_em).getTime() <= Date.now() + 12 * 3600e3)
+    await db().from("outreach_leads").update({ retorno_em: null }).eq("place_id", p.place_id);
   await logEvent(leadId, "orientacao_aplicada", { chars: msg.length });
   await db().from("ana_canal").update({ status: "enviado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
   await db().from("ana_canal").update({ status: "respondido" }).eq("lead_id", leadId).eq("status", "pendente");

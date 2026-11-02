@@ -1,29 +1,79 @@
 import * as React from "react";
-import { GripVertical, Pause, Play } from "lucide-react";
+import { CalendarClock, CheckCircle2, Circle, GripVertical, Pause, Play } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { type OutreachLead, useOutreachLeads, useOutreachLog, useUpdateLead } from "@/hooks/useProspeccao";
+import { useContatos } from "@/hooks/useCrm";
 import { cn } from "@/lib/utils";
-import { CADENCIA_PADRAO, ETAPAS, type Etapa, etapaDoLead, funil, patchParaEtapa, pontuacao, respostasPorToque, resumoCadencia } from "./cadencia";
+import {
+  CADENCIA_PADRAO,
+  type CtxConversa,
+  ETAPAS,
+  ETAPAS_CONVERSA,
+  type Etapa,
+  type EtapaConversa,
+  diasUteisDesde,
+  etapaConversa,
+  etapaDoLead,
+  funil,
+  objetivo,
+  patchParaEtapa,
+  pontuacao,
+  respostasPorToque,
+  resumoCadencia,
+} from "./cadencia";
 import { FichaLead } from "./FichaLead";
 
-const label = (e: Etapa) => ETAPAS.find((x) => x.key === e)?.label ?? e;
+/** Colunas do Kanban: "Respondeu" vira três (Em conversa, Retorno combinado, Parou no meio). */
+type Coluna = Exclude<Etapa, "respondeu"> | EtapaConversa;
+const GRUPO_CONVERSA: Coluna[] = ["conversa", "retorno", "parou"];
+const COLUNAS: { key: Coluna; label: string; dica: string }[] = [
+  ...ETAPAS.filter((e) => ["aprovar", "aprovado", "cadencia"].includes(e.key)),
+  ...ETAPAS_CONVERSA,
+  ...ETAPAS.filter((e) => ["reuniao", "proposta", "ganho", "retomar", "descartado", "fora"].includes(e.key)),
+] as { key: Coluna; label: string; dica: string }[];
+
+const label = (c: Coluna) => COLUNAS.find((x) => x.key === c)?.label ?? c;
+const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
+
+function colunaDoLead(l: OutreachLead, ctx: CtxConversa): Coluna {
+  const e = etapaDoLead(l);
+  return e === "respondeu" ? etapaConversa(l, ctx) : e;
+}
+
+/** Próximo dia útil às 09:30 (padrão quando você arrasta para "Retorno combinado"). */
+function proximoDiaUtil(): string {
+  let d = new Date(Date.now() + 864e5);
+  while ([0, 6].includes(new Date(d.getTime() - 3 * 3600e3).getUTCDay())) d = new Date(d.getTime() + 864e5);
+  const ymd = new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
+  return new Date(`${ymd}T09:30:00-03:00`).toISOString();
+}
 
 /** Para onde um card pode ser arrastado, saindo de cada coluna. */
-function destinosPermitidos(l: OutreachLead, de: Etapa): Etapa[] {
+function destinosPermitidos(l: OutreachLead, de: Coluna): Coluna[] {
   if (de === "fora") return [];
   if (de === "aprovar") return l.sequencia?.length ? ["aprovado", "descartado"] : ["descartado"];
   if (de === "aprovado") return ["aprovar", "descartado"];
-  return (["respondeu", "reuniao", "proposta", "ganho", "retomar", "descartado"] as Etapa[]).filter((x) => x !== de);
+  // "Parou no meio" é calculado pelo tempo sem resposta: não dá para soltar lá
+  const base: Coluna[] = ["conversa", "retorno", "reuniao", "proposta", "ganho", "retomar", "descartado"];
+  return base.filter((x) => x !== de && !(de === "parou" && x === "conversa"));
 }
 
-function patchArraste(l: OutreachLead, de: Etapa, para: Etapa): Partial<OutreachLead> | null {
+function patchArraste(l: OutreachLead, de: Coluna, para: Coluna): Partial<OutreachLead> | null {
   if (de === "aprovar" && para === "aprovado") return { msg_status: "aprovada", msg_aprovada_em: new Date().toISOString() };
   if (de === "aprovado" && para === "aprovar") return { msg_status: "rascunho", msg_aprovada_em: null };
   if ((de === "aprovar" || de === "aprovado") && para === "descartado") return { msg_status: "rejeitada", status_comercial: "descartado" };
-  return patchParaEtapa(l, para);
+  const jaConversa = GRUPO_CONVERSA.includes(de);
+  if (para === "conversa") return jaConversa ? { retorno_em: null, retorno_nota: null } : { ...patchParaEtapa(l, "respondeu"), retorno_em: null };
+  if (para === "retorno") return { ...(jaConversa ? {} : patchParaEtapa(l, "respondeu")), retorno_em: proximoDiaUtil() };
+  const p = patchParaEtapa(l, para as Etapa);
+  return p ? { ...p, ...(l.retorno_em ? { retorno_em: null } : {}) } : null;
 }
+
+/** Valor de <input type="datetime-local"> no horário de Brasília. */
+const paraInput = (iso: string) => new Date(new Date(iso).getTime() - 3 * 3600e3).toISOString().slice(0, 16);
+const deInput = (v: string) => new Date(`${v}:00-03:00`).toISOString();
 
 /** Funil em pé: cada faixa mais estreita que a anterior, com a conversão entre elas. */
 function FunilVertical({ leads }: { leads: OutreachLead[] }) {
@@ -61,14 +111,26 @@ function FunilVertical({ leads }: { leads: OutreachLead[] }) {
   );
 }
 
-function CardKanban({ lead, etapa, onAbrir, onArrastar }: { lead: OutreachLead; etapa: Etapa; onAbrir: () => void; onArrastar: (l: OutreachLead | null) => void }) {
+function CardKanban({
+  lead,
+  etapa,
+  ctx,
+  onAbrir,
+  onArrastar,
+}: {
+  lead: OutreachLead;
+  etapa: Coluna;
+  ctx: CtxConversa;
+  onAbrir: () => void;
+  onArrastar: (l: OutreachLead | null) => void;
+}) {
   const update = useUpdateLead();
   const { showToast } = useToast();
   const resumo = resumoCadencia(lead);
   const podeArrastar = destinosPermitidos(lead, etapa).length > 0;
 
-  async function salvar(e: React.MouseEvent, patch: Partial<OutreachLead>, msg: string) {
-    e.stopPropagation();
+  async function salvar(e: React.SyntheticEvent | null, patch: Partial<OutreachLead>, msg: string) {
+    e?.stopPropagation();
     try {
       await update.mutateAsync({ placeId: lead.place_id, patch, descricao: `${msg}: ${lead.empresa}` });
       showToast(msg);
@@ -120,10 +182,67 @@ function CardKanban({ lead, etapa, onAbrir, onArrastar }: { lead: OutreachLead; 
       {etapa === "retomar" && lead.retomar_em && (
         <div className="mt-1.5 text-[11.5px] text-muted">Volta para aprovação em {new Date(`${lead.retomar_em}T12:00:00`).toLocaleDateString("pt-BR")}</div>
       )}
-      {etapa === "respondeu" && lead.respondeu_no_toque && (
-        <div className="mt-1.5 text-[11.5px] text-positive">Respondeu no toque {lead.respondeu_no_toque}</div>
+      {etapa === "retorno" && lead.retorno_em && (
+        <div className="mt-1.5 space-y-1" onClick={(e) => e.stopPropagation()}>
+          <label className="flex items-center gap-1.5 text-[11.5px] text-primary-bright">
+            <CalendarClock className="h-3.5 w-3.5 shrink-0" />
+            <input
+              type="datetime-local"
+              className="min-w-0 flex-1 rounded border border-border bg-transparent px-1 text-[11.5px] text-ink"
+              defaultValue={paraInput(lead.retorno_em)}
+              onBlur={(e) => e.target.value && deInput(e.target.value) !== lead.retorno_em && salvar(null, { retorno_em: deInput(e.target.value) }, "Data do retorno alterada")}
+            />
+          </label>
+          {lead.retorno_nota && <div className="text-[11.5px] text-muted">{lead.retorno_nota}</div>}
+        </div>
       )}
-      {lead.reply_text && etapa === "respondeu" && <div className="mt-1 line-clamp-2 text-[11.5px] italic text-muted">"{lead.reply_text}"</div>}
+      {etapa === "parou" && (() => {
+        const ult = [ctx.ultimaEntrada, ctx.ultimaSaida, lead.retomada_em].filter(Boolean).sort().pop();
+        const n = ult ? diasUteisDesde(new Date(ult)) : null;
+        return (
+          <div className="mt-1.5 text-[11.5px] text-attention">
+            {n !== null ? `Sem resposta há ${n} dias úteis` : "Sem resposta"}
+            {lead.retomadas ? ` · ${lead.retomadas} de 2 retomadas propostas` : ""}
+          </div>
+        );
+      })()}
+      {etapa === "conversa" && ctx.ultimaEntrada && (!ctx.ultimaSaida || ctx.ultimaEntrada > ctx.ultimaSaida) && (
+        <div className="mt-1.5 text-[11.5px] text-attention">Respondeu e está esperando resposta nossa</div>
+      )}
+      {GRUPO_CONVERSA.includes(etapa) && lead.reply_text && <div className="mt-1 line-clamp-2 text-[11.5px] italic text-muted">"{lead.reply_text}"</div>}
+      {[...GRUPO_CONVERSA, "reuniao", "proposta"].includes(etapa) && (() => {
+        const o = objetivo(lead);
+        const Marca = ({ ok, children, onClick, title }: { ok: boolean; children: React.ReactNode; onClick?: (e: React.MouseEvent) => void; title?: string }) => (
+          <button
+            onClick={onClick}
+            title={title}
+            disabled={!onClick}
+            className={cn("inline-flex items-center gap-0.5 rounded-full px-1.5 text-[10.5px] font-semibold", ok ? "bg-positive-tint text-positive" : "bg-surface-2 text-muted")}
+          >
+            {ok ? <CheckCircle2 className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
+            {children}
+          </button>
+        );
+        return (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            <Marca
+              ok={o.diagnostico}
+              title="Clique para marcar ou desmarcar"
+              onClick={(e) => salvar(e, { diag_enviado_em: o.diagnostico ? null : new Date().toISOString() }, o.diagnostico ? "Diagnóstico desmarcado" : "Diagnóstico enviado")}
+            >
+              Diagnóstico
+            </Marca>
+            <Marca
+              ok={o.responsavel}
+              title={lead.responsavel_contato ?? "Clique para marcar que já temos o contato do responsável"}
+              onClick={(e) => salvar(e, { responsavel_contato: o.responsavel ? null : "informado" }, o.responsavel ? "Contato do responsável desmarcado" : "Contato do responsável marcado")}
+            >
+              Responsável
+            </Marca>
+            <Marca ok={o.reuniao}>Reunião</Marca>
+          </div>
+        );
+      })()}
       {lead.cadencia === "ativa" && (
         <Button size="sm" variant="ghost" className="mt-1.5 h-6 px-1.5 text-[11px]" onClick={(e) => salvar(e, { cadencia: "pausada" }, "Cadência pausada")}>
           <Pause /> Pausar
@@ -148,34 +267,48 @@ function CardKanban({ lead, etapa, onAbrir, onArrastar }: { lead: OutreachLead; 
 export function FunilTab() {
   const { data: leads = [] } = useOutreachLeads();
   const { data: log = [] } = useOutreachLog();
+  const { contatos } = useContatos();
   const update = useUpdateLead();
   const { showToast } = useToast();
   const [mostrarFora, setMostrarFora] = React.useState(false);
   const [aberto, setAberto] = React.useState<string | null>(null);
   const [arrastando, setArrastando] = React.useState<OutreachLead | null>(null);
-  const [sobre, setSobre] = React.useState<Etapa | null>(null);
+  const [sobre, setSobre] = React.useState<Coluna | null>(null);
+  const [mostrarFila, setMostrarFila] = React.useState(false);
   const [prio, setPrio] = React.useState<"todas" | "Alta" | "Média" | "Baixa">("todas");
 
-  const porEtapa = new Map<Etapa, OutreachLead[]>();
+  const conversaPorFone = React.useMemo(() => {
+    const m = new Map<string, CtxConversa>();
+    for (const c of contatos) m.set(fim8(c.phone), { ultimaEntrada: c.last_inbound_at, ultimaSaida: c.last_outbound_at });
+    return m;
+  }, [contatos]);
+  const ctxDe = (l: OutreachLead): CtxConversa => (l.whatsapp ? conversaPorFone.get(fim8(l.whatsapp)) ?? {} : {});
+
+  const porEtapa = new Map<Coluna, OutreachLead[]>();
   for (const l of leads) {
     if (prio !== "todas" && pontuacao(l).nivel !== prio) continue;
-    const e = etapaDoLead(l);
+    const e = colunaDoLead(l, ctxDe(l));
     porEtapa.set(e, [...(porEtapa.get(e) ?? []), l]);
   }
-  for (const [, arr] of porEtapa)
-    arr.sort((a, b) => (a.proximo_toque_em ?? "9").localeCompare(b.proximo_toque_em ?? "9") || pontuacao(b).nota - pontuacao(a).nota);
+  for (const [k, arr] of porEtapa) {
+    if (k === "retorno") arr.sort((a, b) => (a.retorno_em ?? "").localeCompare(b.retorno_em ?? ""));
+    else if (GRUPO_CONVERSA.includes(k)) {
+      const ult = (l: OutreachLead) => [ctxDe(l).ultimaEntrada, ctxDe(l).ultimaSaida].filter(Boolean).sort().pop() ?? "";
+      arr.sort((a, b) => (k === "parou" ? ult(a).localeCompare(ult(b)) : ult(b).localeCompare(ult(a))));
+    } else arr.sort((a, b) => (a.proximo_toque_em ?? "9").localeCompare(b.proximo_toque_em ?? "9") || pontuacao(b).nota - pontuacao(a).nota);
+  }
 
   const porToque = respostasPorToque(leads, CADENCIA_PADRAO);
   const maxToque = Math.max(1, ...porToque.map((t) => t.n));
   const inicioHoje = new Date(new Date().toLocaleDateString("en-CA", { timeZone: "America/Sao_Paulo" }) + "T00:00:00-03:00").getTime();
   const hoje = log.filter((e) => new Date(e.created_at).getTime() >= inicioHoje);
   const contar = (ch: string, ev: string) => hoje.filter((e) => e.channel === ch && e.event === ev).length;
-  const colunas = ETAPAS.filter((e) => e.key !== "fora" || mostrarFora);
-  const deArrasto = arrastando ? etapaDoLead(arrastando) : null;
+  const colunas = COLUNAS.filter((e) => (e.key !== "fora" || mostrarFora) && (!["aprovado", "cadencia"].includes(e.key) || mostrarFila));
+  const deArrasto = arrastando ? colunaDoLead(arrastando, ctxDe(arrastando)) : null;
   const alvos = arrastando && deArrasto ? destinosPermitidos(arrastando, deArrasto) : [];
   const leadAberto = aberto ? leads.find((l) => l.place_id === aberto) : null;
 
-  async function soltar(para: Etapa) {
+  async function soltar(para: Coluna) {
     const l = arrastando;
     setArrastando(null);
     setSobre(null);
@@ -184,7 +317,7 @@ export function FunilTab() {
     if (!patch) return;
     try {
       await update.mutateAsync({ placeId: l.place_id, patch, descricao: `Movido para ${label(para)}: ${l.empresa}` });
-      showToast(`${l.empresa} foi para ${label(para)}`);
+      showToast(para === "retorno" ? `${l.empresa} foi para Retorno combinado: ajuste a data no card` : `${l.empresa} foi para ${label(para)}`);
     } catch (e) {
       showToast(`Erro: ${(e as Error).message}`);
     }
@@ -223,7 +356,7 @@ export function FunilTab() {
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-[12px] text-muted">
-          Clique num card para abrir a ficha (análise, mensagens e histórico). Arraste para mudar de etapa. O robô também move sozinho quando envia ou quando a pessoa responde.
+          Aqui ficam as conversas. Quem vai receber mensagem e quando está na aba Agenda. Clique num card para abrir a ficha e arraste para mudar de etapa.
         </div>
         <select
           className="shrink-0 rounded-full border border-border bg-transparent px-3 py-1 text-[12px] font-semibold text-muted"
@@ -235,6 +368,11 @@ export function FunilTab() {
           <option value="Média">Só prioridade média</option>
           <option value="Baixa">Só prioridade baixa</option>
         </select>
+        <button className="shrink-0 text-[12px] font-semibold text-primary-bright" onClick={() => setMostrarFila((v) => !v)}>
+          {mostrarFila
+            ? "Esconder fila e cadência"
+            : `Mostrar fila e cadência (${(porEtapa.get("aprovado")?.length ?? 0) + (porEtapa.get("cadencia")?.length ?? 0)})`}
+        </button>
         <button className="shrink-0 text-[12px] font-semibold text-primary-bright" onClick={() => setMostrarFora((v) => !v)}>
           {mostrarFora ? "Esconder sem WhatsApp" : `Mostrar sem WhatsApp (${porEtapa.get("fora")?.length ?? 0})`}
         </button>
@@ -274,7 +412,7 @@ export function FunilTab() {
               <div className="mb-2 text-[11px] text-muted">{c.dica}</div>
               <div className="max-h-[560px] min-h-[60px] space-y-2 overflow-y-auto">
                 {itens.map((l) => (
-                  <CardKanban key={l.place_id} lead={l} etapa={c.key} onAbrir={() => setAberto(l.place_id)} onArrastar={setArrastando} />
+                  <CardKanban key={l.place_id} lead={l} etapa={c.key} ctx={ctxDe(l)} onAbrir={() => setAberto(l.place_id)} onArrastar={setArrastando} />
                 ))}
               </div>
             </div>

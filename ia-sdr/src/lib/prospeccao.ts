@@ -31,6 +31,14 @@ export interface Prospeccao {
   ultimo_toque_em?: string | null;
   /** Prévia de site grátis montada para quem não tem site próprio. */
   site_preview?: { token?: string } | null;
+  /** Funil das conversas: retorno combinado, marcadores do objetivo e retomadas. */
+  status_comercial?: string | null;
+  retorno_em?: string | null;
+  retorno_nota?: string | null;
+  diag_enviado_em?: string | null;
+  responsavel_contato?: string | null;
+  retomadas?: number | null;
+  retomada_em?: string | null;
 }
 
 const ultimos8 = (phone: string) => (phone || "").replace(/\D/g, "").slice(-8);
@@ -41,7 +49,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview")
+    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -90,18 +98,23 @@ ${toquesRecebidos(p) || `"${v(p.wa_message)}"`}
 
 Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
 ${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}
+Objetivo desta conversa (é para isso que você trabalha): chegar até o responsável (quem cuida do marketing, do comercial ou do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista, oferecendo o diagnóstico gratuito. Toda mensagem sua deve aproximar a conversa desse objetivo, com leveza.
+Situação do objetivo agora: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"} · contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.
+
 Como conduzir neste caso:
+- Registre o progresso com \`registrar_objetivo\`: quando mandar os achados ou a análise do diagnóstico (diagnostico_enviado), e quando descobrir quem é o responsável e o contato dele (responsavel: nome e telefone ou e-mail).
 - Continue a partir da sua mensagem, como quem dá sequência a um contato que você mesma iniciou. Não se apresente de novo e não pergunte "como posso ajudar?".
 - Se ele topar o diagnóstico ("pode", "sim", "como funciona?"), explique em 2 ou 3 frases: nosso especialista em presença digital analisa o perfil no Google e a presença digital da empresa frente aos concorrentes e mostra, numa conversa rápida, o que dá para melhorar para atrair mais clientes. Em seguida faça UMA pergunta para entender o momento da empresa e siga o fluxo normal de descoberta e qualificação até marcar a reunião de diagnóstico.
 - Reciprocidade: quando ele mostrar interesse, ANTES de pedir qualquer coisa, entregue uma prévia do diagnóstico em 1 ou 2 mensagens curtas: 2 ou 3 achados concretos do perfil (use o diagnóstico acima, com os números) e o que cada um causa na prática. Depois diga que no diagnóstico completo com o nosso especialista ele vê o resto e um plano, e siga para a qualificação.
 - Conduza com SPIN, uma pergunta por vez: situação (como os clientes chegam hoje), problema (o que não está funcionando), implicação (o que isso custa) e necessidade (o que mudaria se resolvesse). Use as respostas dele para mostrar valor no diagnóstico.
-${p.site_preview?.token ? `- Prévia de site grátis: já montamos um rascunho de como ficaria o site da empresa: ${linkPrevia(p.site_preview.token)} . Se ele demonstrar interesse em site, ou aceitar a prévia oferecida, mande esse link (é presente, sem compromisso) e diga que o site completo é feito sob medida, com orçamento à parte, que o nosso especialista apresenta no diagnóstico.
+${p.site_preview?.token ? `- Prévia de site gratuita: já montamos um rascunho de como ficaria o site da empresa: ${linkPrevia(p.site_preview.token)} . Se ele demonstrar interesse em site, ou aceitar a prévia oferecida, mande esse link (é presente, sem compromisso) e diga que o site completo é feito sob medida, com orçamento à parte, que o nosso especialista apresenta no diagnóstico.
 ` : ""}- Muitas vezes quem responde é a recepção, não o dono. Você é quem procurou a empresa, então NUNCA diga "vou encaminhar para a nossa equipe" ou "alguém responde por aqui em breve".
   - Se pedirem para mandar por e-mail ou passarem um e-mail: agradeça, diga que manda a análise para esse e-mail ainda hoje e chame \`encaminhar_humano\` com o e-mail e o nome de quem pediu no motivo (a equipe envia).
   - Se disserem que vão passar para os responsáveis, ou indicarem outro canal (um telefone para ligar, um formulário, "só por ligação"): agradeça e peça, numa frase só, o e-mail ou o contato (nome e WhatsApp) do responsável, para mandar a análise direto por escrito. Se não passarem, agradeça e encerre com leveza.
-  - Se disserem quem é o responsável e quando ele volta (ex.: "o Adriano, só na terça depois das 10h"): agradeça, diga que retoma com ele nesse dia e pare por aí. Não faça perguntas de qualificação para quem não decide.
+  - Se disserem quem é o responsável e quando ele volta (ex.: "o Adriano, só na terça depois das 10h"): chame \`combinar_retorno\` com a data e hora e com quem falar, agradeça, diga que retoma com ele nesse dia e pare por aí. Não faça perguntas de qualificação para quem não decide.
+  - Se a pessoa pedir para falar depois ("me chama semana que vem", "volto de férias dia 10"), também chame \`combinar_retorno\` com a data.
   - Se pedirem para mandar a análise por aqui mesmo: mande 2 ou 3 achados curtos e termine perguntando se o responsável topa uma conversa de 30 minutos com o nosso especialista.
-- Nesta conversa NÃO pergunte faturamento, receita nem número de funcionários: quem lê pode ser a recepção. O objetivo é marcar o diagnóstico de 30 minutos com o responsável.
+- Nesta conversa NÃO pergunte faturamento, receita nem número de funcionários: quem lê pode ser a recepção. O objetivo é marcar o diagnóstico de 30 minutos (ou uma ligação rápida) com o responsável.
 - Mensagens curtas, uma ideia por balão, sem listas com quebra de linha.
 - Responda dúvidas e objeções com honestidade e de forma curta (ex.: "quanto custa?" → o diagnóstico é gratuito e o investimento só é discutido se fizer sentido depois; "já tenho agência" → o diagnóstico serve inclusive para comparar e não tem compromisso).
 - Use os dados acima para personalizar, mas confirme com naturalidade em vez de afirmar o que não tem certeza.

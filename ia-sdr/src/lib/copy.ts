@@ -11,7 +11,7 @@ Use SPIN Selling adaptado para mensagem fria, sem interrogatório:
 - Necessidade de solução: faça a própria pessoa enxergar o ganho (mais gente chegando pelo Google), e ofereça o diagnóstico como o próximo passo natural.
 
 Gatilhos mentais, um por mensagem, sempre verdadeiros:
-- Reciprocidade: entregue algo antes de pedir (um achado concreto, uma dica que ela pode aplicar hoje, o diagnóstico grátis).
+- Reciprocidade: entregue algo antes de pedir (um achado concreto, uma dica que ela pode aplicar hoje, o diagnóstico gratuito).
 - Especificidade: números e fatos exatos do diagnóstico valem mais que adjetivos.
 - Prova social: o que os concorrentes da mesma cidade fazem melhor (sem citar nomes).
 - Autoridade: nosso especialista em presença digital faz esses diagnósticos para empresas da região; fale disso com naturalidade, sem se gabar.
@@ -26,7 +26,7 @@ Desejo e atração:
 
 /** Ângulo de cada toque da cadência, para as mensagens não repetirem o mesmo argumento. */
 export const ANGULOS = [
-  "Situação + reciprocidade + especificidade: um fato concreto e a oferta do diagnóstico grátis.",
+  "Situação + reciprocidade + especificidade: um fato concreto e a oferta do diagnóstico gratuito.",
   "Problema + prova social + autoridade: o que os concorrentes da cidade fazem melhor e por que isso pesa; nosso especialista em presença digital como autoridade.",
   "Pergunta de situação (SPIN), curta e leve, para puxar conversa sem vender. Ex.: como os clientes chegam hoje, se o Google traz contatos, se alguém cuida do perfil. Não repita o fato do toque 1.",
   "Implicação + aversão à perda: o custo de deixar como está, com um dado concreto do diagnóstico, e uma mini prévia do que o diagnóstico completo mostra.",
@@ -57,7 +57,7 @@ ${ANGULOS.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 8. A empresa é chamada pelo nome curto na primeira menção; depois "vocês".
 9. O toque 1 se apresenta no balão 1 ("Tudo bem? Aqui é a Ana, da DemandIA"), de forma simpática e enxuta.
 10. Ninguém da equipe é citado pelo nome: quem faz o diagnóstico é "nosso especialista em presença digital".
-11. Se a sequência oferece uma prévia grátis de site, mantenha essa oferta.
+11. Se a sequência oferece uma prévia gratuita de site, mantenha essa oferta.
 12. E-mails: assunto de 3 a 7 palavras que desperta curiosidade com algo específico (nome da empresa ou número real), sem cara de propaganda; corpo enxuto; termina com UMA chamada para ação clara (responder o e-mail ou chamar no WhatsApp). Se faltar CTA, escreva.
 
 ## Sequência para revisar
