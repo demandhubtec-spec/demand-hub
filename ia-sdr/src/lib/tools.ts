@@ -125,11 +125,32 @@ export const TOOLS: Tool[] = [
   },
   {
     name: "encaminhar_humano",
-    description: "Pausa a IA nesta conversa e avisa a equipe para assumir.",
+    description:
+      "Avisa a equipe. Só pausa a IA quando o lead pede para falar com uma pessoa ou faz uma reclamação; nos outros casos (ex.: mandar a análise por e-mail) a equipe é avisada e VOCÊ continua a conversa.",
     input_schema: {
       type: "object",
-      properties: { motivo: { type: "string" } },
+      properties: {
+        motivo: { type: "string" },
+        tipo: {
+          type: "string",
+          enum: ["pedido_de_pessoa", "reclamacao", "enviar_email", "outro"],
+          description: "pedido_de_pessoa e reclamacao pausam a IA; enviar_email e outro só avisam a equipe.",
+        },
+      },
       required: ["motivo"],
+    },
+  },
+  {
+    name: "lead_quente",
+    description:
+      "Avisa o especialista NA HORA para ligar para este contato. Use quando quem decide (dono, sócio, médico, advogado titular ou quem cuida do marketing/perfil no Google) estiver conversando com interesse: fez perguntas, mandou prints, pediu detalhes, aceitou ver a análise ou falou de horário. Não pausa a conversa: você continua oferecendo os horários.",
+    input_schema: {
+      type: "object",
+      properties: {
+        quem: { type: "string", description: "Nome e papel de quem está conversando (ex.: Helton, gestor do perfil)" },
+        resumo: { type: "string", description: "Em 1 ou 2 frases: o que a pessoa disse e por que está quente" },
+      },
+      required: ["resumo"],
     },
   },
   {
@@ -153,6 +174,17 @@ async function notifyOwner(text: string) {
   } catch (e) {
     console.error("Falha ao avisar o dono:", e);
   }
+}
+
+/**
+ * Pode oferecer horários e marcar? Inbound: só com BANT 4/4. Prospecção ativa: sim, porque ali a Ana
+ * não pergunta faturamento (quem responde costuma ser a recepção) e o objetivo é justamente marcar
+ * o diagnóstico com o responsável. Sem isso a Ana nunca conseguia oferecer horários reais.
+ */
+async function podeAgendar(lead: Lead): Promise<boolean> {
+  if (evaluateBant(lead).qualificado) return true;
+  const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+  return !!p;
 }
 
 export async function runTool(name: string, input: Input, leadId: string): Promise<string> {
@@ -205,7 +237,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
     }
 
     case "ver_horarios": {
-      if (!evaluateBant(lead).qualificado) {
+      if (!(await podeAgendar(lead))) {
         return "Bloqueado: o lead ainda não está qualificado (BANT 4/4). Continue a qualificação antes de oferecer horários.";
       }
       const now = new Date();
@@ -229,7 +261,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
     }
 
     case "agendar_reuniao": {
-      if (!evaluateBant(lead).qualificado) return "Bloqueado: lead não qualificado.";
+      if (!(await podeAgendar(lead))) return "Bloqueado: lead não qualificado.";
       const existing = await activeMeeting(leadId);
       if (existing) {
         return `Já existe reunião marcada para ${formatBR(new Date(existing.starts_at))}. Para trocar, use cancelar_reuniao antes.`;
@@ -324,9 +356,28 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       return pedirOrientacao(leadId, String(input.pergunta ?? ""), Array.isArray(input.opcoes) ? input.opcoes.map(String).slice(0, 3) : []);
 
     case "encaminhar_humano": {
-      await updateLead(leadId, { ai_paused: true, status: "humano", next_followup_at: null });
-      await notifyOwner(`🙋 Lead pediu atendimento humano\n${lead.nome ?? ""} (+${lead.phone})\nMotivo: ${input.motivo}\nwa.me/${lead.phone}`);
-      return "IA pausada nesta conversa. Avise o lead que alguém da nossa equipe vai responder pessoalmente em breve (sem dizer nomes).";
+      const tipo = String(input.tipo ?? "");
+      const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+      // Na prospecção, pausar só quando a pessoa pede um humano ou reclama: "vou encaminhar para a equipe"
+      // e parar era o que mais matava conversa (ninguém assumia).
+      const pausar = !p || tipo === "pedido_de_pessoa" || tipo === "reclamacao";
+      if (pausar) {
+        await updateLead(leadId, { ai_paused: true, status: "humano", next_followup_at: null });
+        await notifyOwner(`🙋 Lead pediu atendimento humano\n${lead.nome ?? ""} (+${lead.phone})\nMotivo: ${input.motivo}\nwa.me/${lead.phone}`);
+        return "IA pausada nesta conversa. Avise o lead que alguém da nossa equipe vai responder pessoalmente em breve (sem dizer nomes).";
+      }
+      await notifyOwner(`📌 ${p?.empresa ?? lead.empresa ?? lead.nome ?? ""} (+${lead.phone})\n${input.motivo}\nwa.me/${lead.phone}`);
+      return "Equipe avisada. NÃO diga ao lead que alguém da equipe vai responder: continue você mesma a conversa, rumo à conversa de 30 minutos com o nosso especialista.";
+    }
+
+    case "lead_quente": {
+      const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+      const empresa = p?.empresa ?? lead.empresa ?? lead.nome ?? `+${lead.phone}`;
+      await logEvent(leadId, "lead_quente", input);
+      await notifyOwner(
+        `🔥 LEAD QUENTE: ligue em até 1 hora\n${empresa}${input.quem ? `\nQuem: ${input.quem}` : ""}\n${input.resumo ?? ""}\nLigar: +${lead.phone}\nwa.me/${lead.phone}`,
+      );
+      return "Especialista avisado para ligar. Continue a conversa normalmente e ofereça 2 horários reais (ver_horarios) para a conversa de 30 minutos.";
     }
 
     case "combinar_retorno": {
