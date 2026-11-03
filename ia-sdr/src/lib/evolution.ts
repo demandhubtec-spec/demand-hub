@@ -29,6 +29,22 @@ export async function sendText(number: string, text: string): Promise<string | n
   return json?.data?.Info?.ID ?? null;
 }
 
+/** Manda um arquivo (PDF) pelo WhatsApp. A URL precisa ser pública (bucket "materiais" do Supabase). */
+export async function sendDocument(number: string, url: string, filename: string, caption = ""): Promise<string | null> {
+  if (number !== env.alertPhone && number !== env.ownerPhone && isBlocked(number)) {
+    console.warn("sendDocument: número bloqueado, envio cancelado", number);
+    return null;
+  }
+  const res = await fetch(`${env.evolutionUrl}/send/media`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
+    body: JSON.stringify({ number, url, type: "document", filename, caption, delay: 1500 }),
+  });
+  if (!res.ok) throw new Error(`Evolution sendDocument ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as { data?: { Info?: { ID?: string } } };
+  return json?.data?.Info?.ID ?? null;
+}
+
 /** Para onde enviar: número puro, ou o JID quando o contato usa identificador LID do WhatsApp. */
 export function destination(lead: { phone: string; whatsapp_jid: string | null }): string {
   return lead.whatsapp_jid && !lead.whatsapp_jid.endsWith("@s.whatsapp.net") ? lead.whatsapp_jid : lead.phone;

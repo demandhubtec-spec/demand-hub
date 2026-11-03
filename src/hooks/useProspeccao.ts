@@ -469,8 +469,25 @@ export function useMarcarDirect() {
 export function useEnviarAvulso() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: (b: { placeId: string; canal: "email" | "whatsapp"; para?: string[]; assunto?: string; texto: string }) =>
-      chamarSdr<{ ok: boolean; enviados: number }>("/api/prospeccao/avulso", { place_id: b.placeId, canal: b.canal, para: b.para, assunto: b.assunto, texto: b.texto }),
+    mutationFn: async (b: { placeId: string; canal: "email" | "whatsapp"; para?: string[]; assunto?: string; texto: string; pdf?: File | null }) => {
+      // PDF anexo (só WhatsApp): sobe para o bucket público "materiais" e a Ana manda pelo link
+      let documento: { url: string; nome: string } | undefined;
+      if (b.pdf && b.canal === "whatsapp") {
+        const nome = b.pdf.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w.-]+/g, "-");
+        const caminho = `prospeccao/${b.placeId}/${Date.now()}-${nome}`;
+        const up = await supabase.storage.from("materiais").upload(caminho, b.pdf, { contentType: "application/pdf", upsert: false });
+        if (up.error) throw new Error(`não consegui subir o PDF: ${up.error.message}`);
+        documento = { url: supabase.storage.from("materiais").getPublicUrl(caminho).data.publicUrl, nome: b.pdf.name };
+      }
+      return chamarSdr<{ ok: boolean; enviados: number }>("/api/prospeccao/avulso", {
+        place_id: b.placeId,
+        canal: b.canal,
+        para: b.para,
+        assunto: b.assunto,
+        texto: b.texto,
+        ...(documento ? { documento } : {}),
+      });
+    },
     onSuccess: invalidate,
   });
 }
