@@ -85,20 +85,15 @@ export async function POST(req: Request) {
     await db().from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
     for (let i = 0; i < baloes.length; i++) {
       // 504: o servidor do WhatsApp demorou, mas a mensagem sai mesmo assim; não reenviar
-      const id = await sendText(phone, baloes[i]).catch((e: Error) => {
-        if (/ 504/.test(e.message)) return null;
-        throw e;
-      });
+      // sendText já tenta de novo quando o servidor demora; se ainda falhar, o erro volta para a tela
+      const id = await sendText(phone, baloes[i]);
       // Registrado como mensagem da Ana: o webhook reconhece e não pausa a IA como se fosse resposta manual
       // (se o registro falhar, a mensagem já saiu: segue para o próximo balão em vez de parar no meio)
       await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "followup", content: baloes[i], evolution_message_id: id }).catch(() => null);
       // O PDF vai logo depois do 1º balão (o que diz "segue em anexo"); a pergunta fica por último
       if (i === 0 && doc) {
         await sleep(1500);
-        const idDoc = await sendDocument(phone, doc.url, doc.nome).catch((e: Error) => {
-          if (/ 504/.test(e.message)) return null;
-          throw e;
-        });
+        const idDoc = await sendDocument(phone, doc.url, doc.nome);
         await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "followup", content: `[PDF] ${doc.nome} ${doc.url}`, evolution_message_id: idDoc }).catch(() => null);
       }
       if (i < baloes.length - 1) await sleep(2500 + Math.floor(Math.random() * 2500));
