@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Mail, MessageCircle, Send } from "lucide-react";
+import { FileText, Mail, MessageCircle, Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -36,6 +36,8 @@ export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?:
   const [assunto, setAssunto] = React.useState("");
   const [texto, setTexto] = React.useState("");
   const [confirmar, setConfirmar] = React.useState(false);
+  const [pdf, setPdf] = React.useState<File | null>(null);
+  const arquivo = React.useRef<HTMLInputElement>(null);
   // Rascunho da Ana: abre já no e-mail, preenchido, para revisar
   React.useEffect(() => {
     if (!rascunho) return;
@@ -52,10 +54,11 @@ export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?:
 
   async function mandar() {
     try {
-      const r = await enviar.mutateAsync({ placeId: lead.place_id, canal, texto, ...(canal === "email" ? { para: emails, assunto } : {}) });
-      showToast(canal === "email" ? `E-mail enviado para ${emails.join(", ")}` : `WhatsApp enviado (${r.enviados} balões)`);
+      const r = await enviar.mutateAsync({ placeId: lead.place_id, canal, texto, pdf: canal === "whatsapp" ? pdf : null, ...(canal === "email" ? { para: emails, assunto } : {}) });
+      showToast(canal === "email" ? `E-mail enviado para ${emails.join(", ")}` : `WhatsApp enviado (${r.enviados} balões${pdf ? " + PDF" : ""})`);
       setTexto("");
       setAssunto("");
+      setPdf(null);
     } catch (e) {
       showToast(`Não enviou: ${(e as Error).message}`);
     } finally {
@@ -100,8 +103,38 @@ export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?:
         value={texto}
         onChange={(e) => { setTexto(e.target.value); setConfirmar(false); }}
       />
+      {canal === "whatsapp" && (
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
+          <input
+            ref={arquivo}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0] ?? null;
+              if (f && f.size > 15 * 1024 * 1024) showToast("PDF muito grande: o limite é 15 MB");
+              else setPdf(f);
+              e.target.value = "";
+              setConfirmar(false);
+            }}
+          />
+          {pdf ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-surface-2 px-2 py-1">
+              <FileText className="h-3.5 w-3.5 text-primary-bright" /> {pdf.name}
+              <button onClick={() => setPdf(null)} className="text-muted hover:text-ink" aria-label="Tirar PDF">
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          ) : (
+            <button onClick={() => arquivo.current?.click()} className="inline-flex items-center gap-1 font-semibold text-primary-bright">
+              <Paperclip className="h-3.5 w-3.5" /> Anexar PDF
+            </button>
+          )}
+          {pdf && <span className="text-muted">O PDF vai logo depois do 1º balão.</span>}
+        </div>
+      )}
       <div className="mt-1 text-[11.5px] text-muted">
-        {canal === "whatsapp" ? `${baloes.length} balão(ões). Sai do WhatsApp da Ana.` : "Sai do e-mail da Ana, com foto e assinatura."}
+        {canal === "whatsapp" ? `${baloes.length} balão(ões)${pdf ? " + PDF" : ""}. Sai do WhatsApp da Ana.` : "Sai do e-mail da Ana, com foto e assinatura."}
         {travessao && <span className="text-attention"> Tem travessão: troque por vírgula ou ponto.</span>}
       </div>
 

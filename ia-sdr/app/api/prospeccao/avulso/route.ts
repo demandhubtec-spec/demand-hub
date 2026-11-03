@@ -3,12 +3,14 @@
  * (só perfil "dono"). Serve para o follow-up feito à mão e para mandar a análise ao e-mail que a recepção passou.
  *
  *   POST { place_id, canal: "email", para: ["a@x.com"], assunto, texto }  → e-mail do Gmail da Ana, com assinatura
- *   POST { place_id, canal: "whatsapp", texto, para_whatsapp? }           → WhatsApp da Ana, balão por balão
+ *   POST { place_id, canal: "whatsapp", texto, para_whatsapp?, documento? } → WhatsApp da Ana, balão por balão
+ *        (documento: { url, nome } de um PDF no bucket "materiais"; vai logo depois do 1º balão)
  *        (para_whatsapp: outro número da mesma empresa, ex.: o administrativo que a recepção indicou)
  *   → { ok, enviados }
  */
 import { db, addMessage, upsertLeadByPhone } from "@/src/lib/db.ts";
-import { sendText } from "@/src/lib/evolution.ts";
+import { sendDocument, sendText } from "@/src/lib/evolution.ts";
+import { env } from "@/src/lib/env.ts";
 import { comRodape, gmailRemetente, gmailSend } from "@/src/lib/outreach-email.ts";
 
 export const runtime = "nodejs";
@@ -47,7 +49,7 @@ export async function POST(req: Request) {
   const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
   if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
 
-  const body = (await req.json().catch(() => ({}))) as { place_id?: string; canal?: string; para?: string[]; assunto?: string; texto?: string; para_whatsapp?: string };
+  const body = (await req.json().catch(() => ({}))) as { place_id?: string; canal?: string; para?: string[]; assunto?: string; texto?: string; para_whatsapp?: string; documento?: { url?: string; nome?: string } };
   const texto = (body.texto ?? "").trim();
   if (!body.place_id || !texto || !["email", "whatsapp"].includes(body.canal ?? "")) return json({ error: "informe place_id, canal e texto" }, 400);
   if (/[—–]/.test(texto)) return json({ error: "o texto tem travessão; troque por vírgula ou ponto" }, 400);
@@ -75,6 +77,10 @@ export async function POST(req: Request) {
     const phone = outro || String(lead.whatsapp).replace(/\D/g, "");
     const sdr = await upsertLeadByPhone(phone, `${phone}@s.whatsapp.net`);
     const baloes = baloesAvulso(texto);
+    // PDF anexo: só aceita arquivo do nosso bucket público "materiais"
+    const doc = body.documento?.url ? { url: String(body.documento.url), nome: String(body.documento.nome || "analise.pdf") } : null;
+    if (doc && !doc.url.startsWith(`${env.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/materiais/`)) return json({ error: "o PDF precisa estar no bucket materiais" }, 400);
+    if (doc && !/\.pdf$/i.test(doc.nome)) doc.nome = `${doc.nome}.pdf`;
     // Marca antes de enviar: o webhook reconhece o envio como disparo da prospecção e não pausa a IA
     await db().from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
     for (let i = 0; i < baloes.length; i++) {
@@ -86,9 +92,18 @@ export async function POST(req: Request) {
       // Registrado como mensagem da Ana: o webhook reconhece e não pausa a IA como se fosse resposta manual
       // (se o registro falhar, a mensagem já saiu: segue para o próximo balão em vez de parar no meio)
       await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "followup", content: baloes[i], evolution_message_id: id }).catch(() => null);
+      // O PDF vai logo depois do 1º balão (o que diz "segue em anexo"); a pergunta fica por último
+      if (i === 0 && doc) {
+        await sleep(1500);
+        const idDoc = await sendDocument(phone, doc.url, doc.nome).catch((e: Error) => {
+          if (/ 504/.test(e.message)) return null;
+          throw e;
+        });
+        await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "followup", content: `[PDF] ${doc.nome} ${doc.url}`, evolution_message_id: idDoc }).catch(() => null);
+      }
       if (i < baloes.length - 1) await sleep(2500 + Math.floor(Math.random() * 2500));
     }
-    await log("whatsapp", "avulso", { to: phone, msg: `${lead.empresa}: mensagem avulsa (${baloes.length} balões)` });
+    await log("whatsapp", "avulso", { to: phone, msg: `${lead.empresa}: mensagem avulsa (${baloes.length} balões${doc ? " + PDF" : ""})`, ...(doc ? { pdf: doc.url } : {}) });
     return json({ ok: true, enviados: baloes.length });
   } catch (e) {
     await log(body.canal ?? "?", "error", { avulso: true, msg: String((e as Error).message ?? e).slice(0, 300) });
