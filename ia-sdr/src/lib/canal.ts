@@ -63,6 +63,14 @@ export async function proporRetomada(leadId: string, texto: string, motivo: stri
   await avisarKelvin(`📝 Retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em CRM > Você e a Ana.`);
 }
 
+/** A Ana não conseguiu responder um lead (ex.: WhatsApp fora do ar): avisa o Kelvin para ninguém ficar sem resposta. */
+export async function avisarFalha(leadId: string, erro: string): Promise<void> {
+  const nome = await nomeDe(leadId);
+  const texto = `Não consegui responder ${nome}: o envio pelo WhatsApp falhou. Me diga o que mandar e eu reenvio.`;
+  await registrar({ lead_id: leadId, autor: "ana", conteudo: texto, origem: "sistema", status: "pendente" });
+  await avisarKelvin(`⚠️ ${texto}\n\nErro: ${erro.slice(0, 120)}`);
+}
+
 /** O Kelvin aprovou (ou descartou) um rascunho pelo botão do portal. */
 export async function decidirRascunho(canalId: string, acao: "aprovar" | "descartar"): Promise<string> {
   const { data } = await db().from("ana_canal").select("id,lead_id,rascunho,status").eq("id", canalId).maybeSingle();

@@ -24,7 +24,7 @@ import { nextFollowUpAt } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { runTool, TOOLS } from "./tools.ts";
-import { orientacoesPara } from "./canal.ts";
+import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -46,6 +46,12 @@ export async function handleInbound(leadId: string, messageId: string) {
       await reply(leadId);
       if ((await latestInboundId(leadId)) === before) break;
     }
+  } catch (e) {
+    // A resposta não saiu: registra e avisa o Kelvin no canal, para ninguém ficar sem resposta
+    const erro = String((e as Error)?.message ?? e).slice(0, 300);
+    console.error("Ana não conseguiu responder", leadId, erro);
+    await logEvent(leadId, "ia_erro", { erro }).catch(() => null);
+    await avisarFalha(leadId, erro).catch(() => null);
   } finally {
     await unlock(leadId);
   }

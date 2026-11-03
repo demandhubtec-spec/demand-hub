@@ -18,15 +18,44 @@ export async function sendText(number: string, text: string): Promise<string | n
     console.warn("sendText: número bloqueado, envio cancelado", number);
     return null;
   }
-  const res = await fetch(`${env.evolutionUrl}/send/text`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
-    // delay em ms: mostra "digitando..." antes de enviar
-    body: JSON.stringify({ number, text, delay: Math.min(1200 + text.length * 25, 4000) }),
-  });
-  if (!res.ok) throw new Error(`Evolution sendText ${res.status}: ${await res.text()}`);
-  const json = (await res.json()) as { data?: { Info?: { ID?: string } } };
-  return json?.data?.Info?.ID ?? null;
+  // delay em ms: mostra "digitando..." antes de enviar
+  const body = JSON.stringify({ number, text, delay: Math.min(1200 + text.length * 25, 4000) });
+  // Servidor do WhatsApp lento (03/11: respostas da Ana se perderam): 504 ou demora = a mensagem
+  // costuma sair mesmo assim, então não reenvia (evita duplicar). Falha de rede antes de chegar: tenta de novo uma vez.
+  for (let tentativa = 1; ; tentativa++) {
+    let res: Response;
+    try {
+      res = await fetch(`${env.evolutionUrl}/send/text`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
+        body,
+        signal: AbortSignal.timeout(25_000),
+      });
+    } catch (e) {
+      const nome = (e as Error)?.name ?? "";
+      if (nome === "TimeoutError" || nome === "AbortError") {
+        console.warn("sendText: servidor do WhatsApp demorou, considerando enviado", number);
+        return null;
+      }
+      if (tentativa >= 2) throw e;
+      await sleep(3000);
+      continue;
+    }
+    if (res.status === 504) {
+      console.warn("sendText: 504 do servidor do WhatsApp, considerando enviado", number);
+      return null;
+    }
+    if (!res.ok) {
+      const txt = await res.text();
+      if (res.status >= 500 && tentativa < 2) {
+        await sleep(3000);
+        continue;
+      }
+      throw new Error(`Evolution sendText ${res.status}: ${txt}`);
+    }
+    const json = (await res.json().catch(() => ({}))) as { data?: { Info?: { ID?: string } } };
+    return json?.data?.Info?.ID ?? null;
+  }
 }
 
 /** Manda um arquivo (PDF) pelo WhatsApp. A URL precisa ser pública (bucket "materiais" do Supabase). */
