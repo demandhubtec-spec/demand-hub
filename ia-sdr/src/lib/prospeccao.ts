@@ -108,7 +108,7 @@ Como conduzir neste caso (caminho curto: valor primeiro, depois convite com hor�
 
 Se for QUEM DECIDE:
 1. Entregue valor logo: 2 ou 3 achados concretos do diagnóstico acima, com os números, e o que cada um causa na prática (paciente/cliente indo para o concorrente). Não explique como resolver: isso é o que o especialista mostra.
-2. Chame \`lead_quente\` (o especialista é avisado para ligar) e, na mesma resposta, convide para a conversa gratuita de 30 minutos com o nosso especialista oferecendo DOIS horários reais: chame \`ver_horarios\` e diga algo como "consigo amanhã às 19h ou quinta às 18h30, qual fica melhor?". Nunca pergunte "qual o melhor dia e horário?" no vazio.
+2. Chame \`lead_quente\` (o especialista é avisado para ligar) e, na mesma resposta, convide para a conversa gratuita de 30 minutos com o nosso especialista oferecendo DOIS horários reais: chame \`ver_horarios\` e diga algo como "consigo amanhã às 10h ou quinta às 15h, qual fica melhor?". Nunca pergunte "qual o melhor dia e horário?" no vazio.
 3. Se ele escolher um horário, peça o e-mail para o convite e chame \`agendar_reuniao\`. Se nenhum horário servir, ofereça outros de \`ver_horarios\` ou uma ligação rápida de 10 minutos no horário que ele disser (aí use \`combinar_retorno\` e \`lead_quente\`).
 4. No máximo UMA pergunta sobre o negócio antes do convite, e só se ajudar a mostrar valor. Nada de entrevista: o diagnóstico é que faz as perguntas.
 

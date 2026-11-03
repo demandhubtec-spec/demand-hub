@@ -43,19 +43,19 @@ export const SDR_CONFIG = {
 
   /** Agenda do Kelvin para reuniões */
   reuniao: {
-    duracaoMin: 40,
+    duracaoMin: 30, // a Ana oferece "uma conversa de 30 minutos"
     intervaloEntreReunioesMin: 0,
     antecedenciaMinimaHoras: 3, // não oferecer horário muito em cima
     diasAFrente: 7, // até quantos dias à frente oferecer horários
     maxOpcoesOferecidas: 3,
-    // 0=domingo ... 6=sábado
+    // 0=domingo ... 6=sábado. Decisão do Kelvin (03/11/2026): segunda a sábado, das 9h às 19h.
     janelas: {
-      1: [["18:30", "20:30"]],
-      2: [["18:30", "20:30"]],
-      3: [["18:30", "20:30"]],
-      4: [["18:30", "20:30"]],
-      5: [["18:30", "20:30"]],
-      6: [["09:00", "12:00"], ["13:00", "14:00"]], // sábado, sem o almoço
+      1: [["09:00", "19:00"]],
+      2: [["09:00", "19:00"]],
+      3: [["09:00", "19:00"]],
+      4: [["09:00", "19:00"]],
+      5: [["09:00", "19:00"]],
+      6: [["09:00", "19:00"]],
     } as Record<number, Window[]>,
     tituloEvento: "Diagnóstico DemandIA",
   },

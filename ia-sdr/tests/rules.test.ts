@@ -9,22 +9,19 @@ const hhmm = (d: Date) => {
   return `${String(l.h).padStart(2, "0")}:${String(l.min).padStart(2, "0")}`;
 };
 
-test("dias úteis: 3 reuniões de 40 min entre 18:30 e 20:30", () => {
-  const now = fromLocal(2026, 10, 21, 9, 0); // quarta 09:00
-  const today = candidateSlots(now).filter((s) => toLocal(s.start).d === 21);
-  assert.deepEqual(today.map((s) => hhmm(s.start)), ["18:30", "19:10", "19:50"]);
-  assert.equal(hhmm(today[2].end), "20:30");
+const DIA_TODO = Array.from({ length: 20 }, (_, i) => `${String(9 + Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`);
+
+test("dias úteis: reuniões de 30 min das 9h às 19h", () => {
+  const now = fromLocal(2026, 10, 20, 18, 0); // terça 18:00 → quarta inteira livre
+  const day = candidateSlots(now).filter((s) => toLocal(s.start).d === 21);
+  assert.deepEqual(day.map((s) => hhmm(s.start)), DIA_TODO);
+  assert.equal(hhmm(day[day.length - 1].end), "19:00");
 });
 
-test("sábado: 09:00 às 14:00 sem o horário de almoço", () => {
+test("sábado: mesmo horário, das 9h às 19h", () => {
   const now = fromLocal(2026, 10, 21, 9, 0);
   const sat = candidateSlots(now).filter((s) => toLocal(s.start).d === 24);
-  assert.deepEqual(sat.map((s) => hhmm(s.start)), ["09:00", "09:40", "10:20", "11:00", "13:00"]);
-  for (const s of sat) {
-    const ini = toLocal(s.start).h * 60 + toLocal(s.start).min;
-    const fim = ini + 40;
-    assert.ok(fim <= 12 * 60 || ini >= 13 * 60, "não pode pegar o almoço");
-  }
+  assert.deepEqual(sat.map((s) => hhmm(s.start)), DIA_TODO);
 });
 
 test("domingo não tem reunião", () => {
@@ -33,18 +30,17 @@ test("domingo não tem reunião", () => {
 });
 
 test("antecedência mínima de 3h", () => {
-  const now = fromLocal(2026, 10, 21, 17, 0); // 17:00 → 18:30 está a 1h30
-  const today = candidateSlots(now).filter((s) => toLocal(s.start).d === 21);
-  assert.deepEqual(today.map((s) => hhmm(s.start)), []);
-  const t2 = candidateSlots(fromLocal(2026, 10, 21, 16, 10)).filter((s) => toLocal(s.start).d === 21);
-  assert.deepEqual(t2.map((s) => hhmm(s.start)), ["19:10", "19:50"]);
+  const today = candidateSlots(fromLocal(2026, 10, 21, 15, 10)).filter((s) => toLocal(s.start).d === 21);
+  assert.deepEqual(today.map((s) => hhmm(s.start)), ["18:30"]);
+  const tarde = candidateSlots(fromLocal(2026, 10, 21, 16, 0)).filter((s) => toLocal(s.start).d === 21);
+  assert.deepEqual(tarde.map((s) => hhmm(s.start)), []);
 });
 
 test("remove horários ocupados no Google Agenda", () => {
-  const now = fromLocal(2026, 10, 21, 9, 0);
-  const busy = [{ start: fromLocal(2026, 10, 21, 19, 0), end: fromLocal(2026, 10, 21, 19, 30) }];
+  const now = fromLocal(2026, 10, 21, 14, 0);
+  const busy = [{ start: fromLocal(2026, 10, 21, 17, 45), end: fromLocal(2026, 10, 21, 18, 15) }];
   const today = freeSlots(now, busy).filter((s) => toLocal(s.start).d === 21);
-  assert.deepEqual(today.map((s) => hhmm(s.start)), ["19:50"]);
+  assert.deepEqual(today.map((s) => hhmm(s.start)), ["17:00", "18:30"]);
 });
 
 test("oferece até 3 opções em dias diferentes", () => {
@@ -52,13 +48,14 @@ test("oferece até 3 opções em dias diferentes", () => {
   const opts = pickOptions(freeSlots(now, []));
   assert.equal(opts.length, 3);
   assert.equal(new Set(opts.map((o) => toLocal(o.start).d)).size, 3);
-  assert.match(formatBR(opts[0].start), /^quarta, 21\/10 às 18:30$/);
+  assert.match(formatBR(opts[0].start), /^quarta, 21\/10 às 12:00$/);
 });
 
 test("valida horário escolhido", () => {
   const now = fromLocal(2026, 10, 21, 9, 0);
-  assert.ok(isValidSlot(fromLocal(2026, 10, 22, 19, 10), now));
-  assert.ok(!isValidSlot(fromLocal(2026, 10, 22, 19, 0), now));
+  assert.ok(isValidSlot(fromLocal(2026, 10, 22, 10, 30), now));
+  assert.ok(!isValidSlot(fromLocal(2026, 10, 22, 10, 15), now));
+  assert.ok(!isValidSlot(fromLocal(2026, 10, 22, 19, 0), now)); // termina 19:30
   assert.ok(!isValidSlot(fromLocal(2026, 10, 25, 10, 0), now)); // domingo
 });
 
