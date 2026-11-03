@@ -20,10 +20,12 @@ export async function sendText(number: string, text: string): Promise<string | n
   }
   // delay em ms: mostra "digitando..." antes de enviar
   const body = JSON.stringify({ number, text, delay: Math.min(1200 + text.length * 25, 4000) });
-  // Servidor do WhatsApp lento (03/11: respostas da Ana se perderam): 504 ou demora = a mensagem
-  // costuma sair mesmo assim, então não reenvia (evita duplicar). Falha de rede antes de chegar: tenta de novo uma vez.
+  // Servidor do WhatsApp lento (03/11): uma resposta da Ana se perdeu por falha e outra por "demora = enviado"
+  // (a correção da Agrofera não chegou). Agora: demora, 504 ou erro 5xx tenta mais uma vez; se falhar de novo,
+  // dá erro (e quem chamou avisa o Kelvin). Só conta como enviada com a confirmação do WhatsApp.
   for (let tentativa = 1; ; tentativa++) {
-    let res: Response;
+    let res: Response | null = null;
+    let falha = "";
     try {
       res = await fetch(`${env.evolutionUrl}/send/text`, {
         method: "POST",
@@ -32,27 +34,18 @@ export async function sendText(number: string, text: string): Promise<string | n
         signal: AbortSignal.timeout(25_000),
       });
     } catch (e) {
-      const nome = (e as Error)?.name ?? "";
-      if (nome === "TimeoutError" || nome === "AbortError") {
-        console.warn("sendText: servidor do WhatsApp demorou, considerando enviado", number);
-        return null;
-      }
-      if (tentativa >= 2) throw e;
-      await sleep(3000);
-      continue;
+      falha = `${(e as Error)?.name ?? "erro"}: ${String((e as Error)?.message ?? e).slice(0, 120)}`;
     }
-    if (res.status === 504) {
-      console.warn("sendText: 504 do servidor do WhatsApp, considerando enviado", number);
-      return null;
-    }
-    if (!res.ok) {
-      const txt = await res.text();
-      if (res.status >= 500 && tentativa < 2) {
-        await sleep(3000);
+    if (res && !res.ok) falha = `${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`;
+    if (falha) {
+      if (tentativa < 2) {
+        console.warn("sendText: falhou, tentando de novo", number, falha);
+        await sleep(4000);
         continue;
       }
-      throw new Error(`Evolution sendText ${res.status}: ${txt}`);
+      throw new Error(`Evolution sendText ${falha}`);
     }
+    if (!res) throw new Error("Evolution sendText: sem resposta");
     const json = (await res.json().catch(() => ({}))) as { data?: { Info?: { ID?: string } } };
     return json?.data?.Info?.ID ?? null;
   }
