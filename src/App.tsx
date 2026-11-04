@@ -12,6 +12,7 @@ import Prospeccao from "@/pages/comercial/Prospeccao";
 import Clientes from "@/pages/comercial/Clientes";
 import InstagramDirect from "@/pages/marketing/InstagramDirect";
 import LandingPage from "@/pages/marketing/LandingPage";
+import Estudio from "@/pages/marketing/Estudio";
 import Financas from "@/pages/administrativo/Financas";
 import Contratos from "@/pages/administrativo/Contratos";
 import Acessos from "@/pages/config/Acessos";
@@ -39,6 +40,7 @@ export default function App() {
 
           <Route path="marketing/instagram-direct" element={<InstagramDirect />} />
           <Route path="marketing/landing-page" element={<LandingPage />} />
+          <Route path="marketing/estudio" element={<Estudio />} />
 
           <Route path="comercial/crm" element={<Crm />} />
           <Route path="comercial/sdr" element={<Sdr />} />
