@@ -89,6 +89,21 @@ export function emTesteDoDono(ini: DemoIniciada | null, agora: Date): boolean {
   return agora.getTime() - inicio < TESTE_DONO_MIN * 60_000;
 }
 
+/**
+ * Quem pede a demo e está com a Ana pausada (ex.: follow-up esgotado num contato antigo) volta a ser
+ * atendido. Não vale quando a conversa foi passada para a equipe (status "humano"), quando a pessoa
+ * pediu para não receber mensagens, ou quando alguém da equipe respondeu na mão nos últimos 7 dias.
+ */
+export const DIAS_PROTEGE_HANDOFF = 7;
+export function podeRetomarParaDemo(status: string | null | undefined, ultimoHandoffEm: string | null, agora: Date): boolean {
+  if (status === "humano" || status === "opt_out") return false;
+  if (ultimoHandoffEm) {
+    const t = new Date(ultimoHandoffEm).getTime();
+    if (!Number.isNaN(t) && agora.getTime() - t < DIAS_PROTEGE_HANDOFF * 86_400_000) return false;
+  }
+  return true;
+}
+
 /** Mensagens que fazem parte da demo atual (do pedido em diante). */
 export function mensagensDaDemo(msgs: Message[], ini: DemoIniciada): Message[] {
   // 2 minutos de folga: o evento é gravado logo depois da mensagem do pedido
