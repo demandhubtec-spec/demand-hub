@@ -138,3 +138,7 @@ test("pedido da demo reativa a Ana pausada, menos quando a equipe assumiu", () =
   assert.ok(!podeRetomarParaDemo("humano", null, agora));
   assert.ok(!podeRetomarParaDemo("opt_out", null, agora));
 });
+
+test("modo teste do Kelvin está desligado: o número dele é só orientação", () => {
+  assert.equal(SDR_CONFIG.demo.testeDoDono, false);
+});

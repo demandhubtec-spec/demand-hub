@@ -10,6 +10,7 @@ import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEve
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
 import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, emTesteDoDono, podeRetomarParaDemo, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
 import { env } from "@/src/lib/env.ts";
+import { SDR_CONFIG } from "@/src/config/sdr.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
 import { interpretarMidia } from "@/src/lib/midia.ts";
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
   const doKelvin = (env.ownerPhone && msg.phone === env.ownerPhone) || (env.alertPhone && msg.phone === env.alertPhone);
   // Modo teste do Kelvin: pediu a demo pelo WhatsApp pessoal? Por 30 minutos ele conversa como cliente.
   let testeDoDono = false;
-  if (doKelvin && !msg.fromMe) {
+  if (SDR_CONFIG.demo.testeDoDono && doKelvin && !msg.fromMe) {
     if (ehPedidoDeDemo(msg.text)) testeDoDono = true;
     else {
       const eu = await leadDoTelefone(msg.phone).catch(() => null);
