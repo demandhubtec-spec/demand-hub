@@ -176,6 +176,13 @@ async function notifyOwner(text: string) {
   }
 }
 
+/** Próximos horários livres reais da agenda (para a retomada já chegar com 2 opções concretas). */
+export async function proximosHorarios(now = new Date()): Promise<string[]> {
+  const cfg = SDR_CONFIG.reuniao;
+  const busy = await busyIntervals(now, new Date(now.getTime() + (cfg.diasAFrente + 1) * 86_400_000));
+  return pickOptions(freeSlots(now, busy, cfg)).map((s) => formatBR(s.start));
+}
+
 /**
  * Pode oferecer horários e marcar? Inbound: só com BANT 4/4. Prospecção ativa: sim, porque ali a Ana
  * não pergunta faturamento (quem responde costuma ser a recepção) e o objetivo é justamente marcar
