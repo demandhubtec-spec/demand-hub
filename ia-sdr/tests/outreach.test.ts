@@ -430,3 +430,25 @@ test("automática: estado entra na busca e filtros de site, nota e avaliações"
   assert.equal(passaNosFiltros(l, { avaliacoes_min: 10, avaliacoes_max: 300 }), true);
   assert.equal(passaNosFiltros(l, { avaliacoes_max: 30 }), false);
 });
+
+test("prospecção: 1º contato com áudio deixa a análise como pendente", () => {
+  const base = {
+    empresa: "X", nicho: null, cidade: null, decisor: null, cargo_decisor: null, site: null, instagram: null, observacoes: null,
+    wa_message: "Oi, bom dia! 😊\n\nTudo bem?\n\n[Áudio da Ana] Oi, prazer, aqui é a Ana, da DemandIA.",
+    wa_sent_at: "2026-11-04T11:00:00Z", ultimo_toque_em: "2026-11-04T11:00:00Z",
+    sequencia: [
+      { n: 0, canal: "whatsapp", texto: "Fiz uma análise do perfil: vocês aparecem em 7º no Google." },
+      { n: 1, canal: "whatsapp", texto: "Conseguiu ver a mensagem?" },
+    ],
+  };
+  const p0 = { ...base, toque_atual: 0 };
+  const r0 = toquesRecebidos(p0);
+  assert.match(r0, /áudio seu/);
+  assert.doesNotMatch(r0, /7º no Google/);
+  assert.match(contextoProspeccao(p0 as never), /AINDA NÃO foi enviada[\s\S]*7º no Google/);
+  // Depois que a análise saiu (toque 1), ela aparece como recebida e some o aviso de pendente
+  const p1 = { ...base, toque_atual: 1 };
+  assert.match(toquesRecebidos(p1), /7º no Google/);
+  assert.doesNotMatch(contextoProspeccao(p1 as never), /AINDA NÃO foi enviada/);
+  assert.equal(ehDisparoDaProspeccao(p0, "Tudo bem?", new Date("2026-11-05T12:00:00Z")), true);
+});
