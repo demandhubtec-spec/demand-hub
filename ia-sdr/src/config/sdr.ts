@@ -81,6 +81,33 @@ export const SDR_CONFIG = {
     lembreteAntesMin: 60,
   },
 
+  /**
+   * Demo ao vivo (Reels "Comenta DEMO", 04/11/2026): quem chega pelo botão "Testar no WhatsApp"
+   * conversa com uma recepcionista de IA de clínica, como se fosse paciente. Depois a Ana volta.
+   */
+  demo: {
+    /** "O teste fica liberado só por tempo limitado" (o vídeo mostra 6 horas). */
+    duracaoHoras: 6,
+    /** Depois de tantas mensagens do lead dentro da demo, a recepcionista encerra e a Ana volta. */
+    maxMensagens: 14,
+    /** Clínica de exemplo, usada até o dono contar como é a clínica dele. Valores só de demonstração. */
+    clinicaExemplo: {
+      nome: "Clínica Bella Forma",
+      tipo: "clínica de estética",
+      horario: "segunda a sexta das 9h às 19h e sábado das 9h às 13h",
+      convenio: "atendimento particular; emitimos nota para pedir reembolso ao plano",
+      procedimentos: [
+        "avaliação: gratuita",
+        "limpeza de pele: a partir de R$ 180",
+        "botox: a partir de R$ 900 (por região, definido na avaliação)",
+        "preenchimento labial: a partir de R$ 1.200",
+        "bioestimulador de colágeno: a partir de R$ 1.800",
+        "depilação a laser: pacotes a partir de R$ 150 por sessão",
+      ],
+      pagamento: "Pix, cartão em até 10x sem juros",
+    },
+  },
+
   /** Agrupa mensagens seguidas do lead antes de responder */
   debounceMs: 8_000,
 };

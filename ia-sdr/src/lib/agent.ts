@@ -26,6 +26,16 @@ import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { runTool, TOOLS } from "./tools.ts";
 import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
+import {
+  contextoPosDemo,
+  demoAtiva,
+  demoEsgotada,
+  mensagensDaDemo,
+  promptDemo,
+  TOOL_ENCERRAR_DEMO,
+  type DemoEncerrada,
+  type DemoIniciada,
+} from "./demo.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const OPEN_STATUSES = ["novo", "em_qualificacao", "qualificado"];
@@ -67,17 +77,38 @@ async function reply(leadId: string) {
   const orientacoes = await orientacoesPara(leadId).catch(() => [] as string[]);
   // Veio de anúncio de WhatsApp? A Ana segue a linha do anúncio a conversa toda
   const anuncio = await ultimoEvento<OrigemAnuncio>(leadId, "origem_anuncio").catch(() => null);
-  const messages: ChatMessage[] = toChat(await history(leadId));
+  const hist = await history(leadId);
+  // Demo ao vivo da recepcionista (Reels "Comenta DEMO"): enquanto valer, quem responde é ela
+  const demoIni = await ultimoEvento<DemoIniciada>(leadId, "demo_iniciada").catch(() => null);
+  const demoFim = await ultimoEvento<DemoEncerrada>(leadId, "demo_encerrada").catch(() => null);
+  let emDemo = demoAtiva(demoIni, demoFim, new Date());
+  let demoAcabouAgora = false;
+  if (emDemo && demoIni && demoEsgotada(hist, demoIni)) {
+    await logEvent(leadId, "demo_encerrada", { em: new Date().toISOString(), motivo: "limite de mensagens" });
+    emDemo = false;
+    demoAcabouAgora = true;
+  }
+  const messages: ChatMessage[] = toChat(emDemo && demoIni ? mensagensDaDemo(hist, demoIni) : hist);
   if (!messages.length || messages[messages.length - 1].role !== "user") return;
+  // Pediu para sair da demo na última mensagem (o webhook já registrou): a Ana faz a virada agora
+  if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
 
   let finalText = "";
   for (let step = 0; step < 6; step++) {
     lead = await getLead(leadId);
-    const res = await callLLM({
-      system: systemPrompt(lead, meeting, new Date(), prospeccao, orientacoes, anuncio),
-      messages,
-      tools: TOOLS,
-    });
+    const agora = new Date();
+    const res = emDemo && demoIni
+      ? await callLLM({
+          system: promptDemo(agora, demoIni, mensagensDaDemo(hist, demoIni).filter((m) => m.direction === "in").length),
+          messages,
+          tools: [TOOL_ENCERRAR_DEMO],
+        })
+      : await callLLM({
+          system: systemPrompt(lead, meeting, agora, prospeccao, orientacoes, anuncio, demoIni ? contextoPosDemo(demoAcabouAgora) : ""),
+          messages,
+          // encerrar_demo fica na lista para o histórico da virada continuar válido
+          tools: demoIni ? [...TOOLS, TOOL_ENCERRAR_DEMO] : TOOLS,
+        });
     const msg = res.message;
     messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls });
 
@@ -88,6 +119,18 @@ async function reply(leadId: string) {
 
     for (const call of msg.tool_calls) {
       let out: string;
+      if (call.function.name === TOOL_ENCERRAR_DEMO.name) {
+        if (emDemo) {
+          await logEvent(leadId, "demo_encerrada", { em: new Date().toISOString(), motivo: String(parseArgs(call).motivo ?? "") });
+          emDemo = false;
+          demoAcabouAgora = true;
+          out = "Demo encerrada. Agora quem responde é a Ana: faça a virada para o dono, sem repetir o que a recepcionista já disse.";
+        } else {
+          out = "A demo já terminou. Siga a conversa normalmente.";
+        }
+        messages.push({ role: "tool", tool_call_id: call.id, content: out });
+        continue;
+      }
       try {
         out = await runTool(call.function.name, parseArgs(call), leadId);
       } catch (e) {

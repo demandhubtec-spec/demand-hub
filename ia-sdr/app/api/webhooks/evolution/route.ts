@@ -8,6 +8,7 @@ import { ehDisparoDaProspeccao, pareceRespostaAutomatica, prospeccaoDoTelefone }
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, history, logEvent, messageExists, ultimoEvento, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
+import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
 import { env } from "@/src/lib/env.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
@@ -141,6 +142,18 @@ export async function POST(req: Request) {
   if (origem && !(await ultimoEvento(lead.id, "origem_anuncio").catch(() => null))) {
     await logEvent(lead.id, "origem_anuncio", { ...origem, url: msg.anuncio?.url ?? null, ctwaClid: msg.anuncio?.ctwaClid ?? null });
     if (origem.nicho && !lead.segmento) await updateLead(lead.id, { segmento: NICHO_LABEL[origem.nicho] });
+  }
+
+  // Demo ao vivo da recepcionista (botão "Testar no WhatsApp" do Reels "Comenta DEMO")
+  if (msg.text) {
+    const ini = await ultimoEvento<DemoIniciada>(lead.id, "demo_iniciada").catch(() => null);
+    const fim = await ultimoEvento<DemoEncerrada>(lead.id, "demo_encerrada").catch(() => null);
+    const ativa = demoAtiva(ini, fim, new Date());
+    if (!ativa && ehPedidoDeDemo(msg.text)) {
+      await logEvent(lead.id, "demo_iniciada", { inicio: new Date().toISOString() });
+    } else if (ativa && ehSaidaDaDemo(msg.text)) {
+      await logEvent(lead.id, "demo_encerrada", { em: new Date().toISOString(), motivo: "lead pediu para sair" });
+    }
   }
 
   // Lead respondeu: zera a sequência de follow-up
