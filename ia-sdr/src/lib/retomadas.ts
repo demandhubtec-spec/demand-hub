@@ -1,6 +1,6 @@
 /**
  * Conversas da prospecção que pararam no meio (decisão do Kelvin em 02/11/2026):
- *  - 2 dias úteis sem resposta, ou chegou a data do retorno combinado → a Ana escreve uma retomada
+ *  - 1 dia útil sem resposta (a 2ª retomada, 3 dias úteis depois), ou chegou a data do retorno combinado → a Ana escreve uma retomada
  *    com o objetivo de chegar ao responsável e marcar a conversa/ligação com o especialista;
  *  - a retomada NUNCA sai sozinha: vira proposta no canal "Você e a Ana" e espera o ok do Kelvin;
  *  - no máximo 2 retomadas sem resposta; depois o lead vai para "Retomar depois" (60 dias).
@@ -14,9 +14,14 @@ import { addBusinessDays, isBusinessTime } from "./followup.ts";
 import { humanizar, REGRAS_DE_ESTILO } from "./estilo.ts";
 import { formatBR } from "./time.ts";
 import { proporRetomada } from "./canal.ts";
+import { proximosHorarios } from "./tools.ts";
 
 const MAX_RETOMADAS = 2;
-const DIAS_PARADA = 2;
+/**
+ * Dias úteis parada antes de cada retomada (Kelvin, 04/11/2026): conversa quente esfria rápido,
+ * então a 1ª sai no dia útil seguinte e a 2ª três dias úteis depois.
+ */
+const DIAS_PARADA = [1, 3];
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
 
 interface LeadProsp {
@@ -79,7 +84,7 @@ export async function runRetomadas(now = new Date()) {
       if (retorno > now) continue;
       motivo = `retorno combinado${p.retorno_nota ? `: ${p.retorno_nota}` : ""}`;
     } else {
-      if (addBusinessDays(ultimo, DIAS_PARADA) > now) continue;
+      if (addBusinessDays(ultimo, DIAS_PARADA[Math.min(feitas, DIAS_PARADA.length - 1)]) > now) continue;
       if (feitas >= MAX_RETOMADAS) {
         // Duas retomadas sem resposta: volta para a cadência daqui a 60 dias
         const volta = new Date(now.getTime() + 60 * 864e5).toISOString().slice(0, 10);
@@ -117,6 +122,7 @@ async function escrever(lead: Lead, p: LeadProsp, motivo: string, now: Date): Pr
     return acc;
   }, []);
 
+  const horarios = await proximosHorarios(now).catch(() => [] as string[]);
   const system = `Você é a Ana, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo um diagnóstico gratuito do perfil dela no Google, e a conversa parou.
 Motivo desta mensagem: ${motivo}.
 Objetivo: chegar até o responsável (marketing, comercial ou quem cuida do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista em presença digital.
@@ -124,7 +130,11 @@ Situação: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não envia
 
 Escreva UMA mensagem curta de retomada (1 a 3 frases, no máximo 2 balões separados por linha em branco):
 - Retome o ponto exato onde a conversa parou (veja o histórico). Se foi combinado um retorno com alguém, fale com essa pessoa pelo nome e lembre do combinado.
-- Dê o próximo passo concreto rumo ao objetivo e termine com UMA pergunta fácil de responder (ex.: sugerir um horário para a conversa de 30 minutos, ou pedir o contato de quem cuida do marketing).
+- Traga 1 achado concreto do diagnóstico (com número) que ainda não foi dito, ou retome o que a pessoa perguntou.
+- Se quem está conversando é quem decide (ou já mostrou interesse), termine convidando para a conversa gratuita de 30 minutos com o nosso especialista oferecendo exatamente estes 2 horários reais: ${horarios.slice(0, 2).join(" ou ") || "(sem horários livres: pergunte qual dia da semana fica melhor)"}, e pergunte qual fica melhor.
+- Se for a recepção ou ainda não sabemos quem decide, termine pedindo o nome e o WhatsApp de quem cuida do perfil no Google.
+- PROIBIDO pergunta de qualificação ou descoberta: nada de "indicação ou Google?", "já têm alguém que cuida disso?", "querem mais contatos?", faturamento, equipe ou "pra eu direcionar a análise".
+- Nunca diga que enviou algo que não está no histórico. Não explique como resolver os problemas: isso é o que o especialista mostra.
 - Tom leve, sem cobrar e sem "só passando". Não repita frases que você já mandou.
 - Não se apresente de novo se já se apresentou. Não use "grátis": diga "gratuito".
 - Responda só com o texto da mensagem.

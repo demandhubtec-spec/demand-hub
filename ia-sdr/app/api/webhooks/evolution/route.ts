@@ -110,7 +110,11 @@ export async function POST(req: Request) {
       const ultimo = prospeccao.ultimo_toque_em ?? prospeccao.wa_sent_at;
       const seg = ultimo ? (Date.now() - new Date(ultimo).getTime()) / 1000 : null;
       segDoDisparo = seg;
-      if (pareceRespostaAutomatica(msg.text ?? interpretado ?? "", seg)) {
+      // Mesma mensagem longa que já chegou antes = robô repetindo (em 04/11 a Ana respondeu 4 vezes ao robô do Med Anchieta)
+      const norm = (t: string) => t.replace(/^\[resposta automática\]\s*/, "").replace(/\s+/g, " ").trim().toLowerCase();
+      const repetida = content.length > 25 && (await history(lead.id, 40).catch(() => []))
+        .some((m) => m.direction === "in" && norm(m.content) === norm(content));
+      if (repetida || pareceRespostaAutomatica(msg.text ?? interpretado ?? "", seg)) {
         const salvo = await addMessage({
           lead_id: lead.id,
           direction: "in",
