@@ -78,11 +78,28 @@ export function ehDisparoDaProspeccao(p: Prospeccao | null, texto: string, agora
 
 /** Mensagens da cadência que o contato já recebeu (WhatsApp e e-mail), em ordem. */
 export function toquesRecebidos(p: Prospeccao): string {
-  const feitos = (p.sequencia ?? []).slice(0, Math.max(p.toque_atual ?? 0, 1));
-  if (!feitos.length) return p.wa_message ? `- WhatsApp: "${p.wa_message}"` : "";
-  return feitos
-    .map((x) => (x.canal === "email" ? `- E-mail (assunto "${x.assunto ?? ""}"): "${x.texto}"` : `- WhatsApp: "${x.texto}"`))
-    .join("\n");
+  // 1º contato com o áudio da Ana: a mensagem 1 da sequência (a análise) ainda não saiu, vira o próximo toque
+  const audio = abriuComAudio(p);
+  const feitos = (p.sequencia ?? []).slice(0, audio ? Math.max(p.toque_atual ?? 0, 0) : Math.max(p.toque_atual ?? 0, 1));
+  const linhas = feitos.map((x) =>
+    x.canal === "email" ? `- E-mail (assunto "${x.assunto ?? ""}"): "${x.texto}"` : `- WhatsApp: "${x.texto}"`,
+  );
+  if (audio) linhas.unshift(`- WhatsApp (1º contato: saudação e um áudio seu): "${p.wa_message}"`);
+  if (!linhas.length) return p.wa_message ? `- WhatsApp: "${p.wa_message}"` : "";
+  return linhas.join("\n");
+}
+
+/** O 1º contato foi "Oi" + "Tudo bem?" + áudio da Ana (o texto do áudio fica no wa_message). */
+export function abriuComAudio(p: Prospeccao): boolean {
+  return !!p.wa_message && p.wa_message.includes("[Áudio da Ana]");
+}
+
+/** A análise aprovada que ainda não foi enviada (quando o 1º contato foi o áudio). */
+function analisePendente(p: Prospeccao): string {
+  if (!abriuComAudio(p) || (p.toque_atual ?? 0) > 0) return "";
+  const a = (p.sequencia ?? [])[0];
+  if (!a?.texto) return "";
+  return `\nA análise do perfil (aprovada) AINDA NÃO foi enviada. Se a pessoa pedir a análise, perguntar o que você viu ou demonstrar interesse, mande este conteúdo em balões curtos, adaptando só o começo para a conversa (sem se apresentar de novo):\n"${a.texto}"\n`;
 }
 
 /** Bloco que entra no prompt da Ana quando o contato veio da prospecção ativa. */
@@ -97,7 +114,7 @@ Mensagens que ele já recebeu de você (as que podem não ter sido lidas também
 ${toquesRecebidos(p) || `"${v(p.wa_message)}"`}
 
 Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
-${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}
+${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}${analisePendente(p)}
 Objetivo desta conversa (é para isso que você trabalha): chegar até o responsável (quem cuida do marketing, do comercial ou do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista, oferecendo o diagnóstico gratuito. Toda mensagem sua deve aproximar a conversa desse objetivo, com leveza.
 Situação do objetivo agora: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"} · contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.
 
