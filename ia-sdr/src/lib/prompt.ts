@@ -86,7 +86,7 @@ Foi VOCÊ quem procurou esta empresa, oferecendo um diagnóstico gratuito do per
 `;
 }
 
-export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = [], anuncio: OrigemAnuncio | null = null): string {
+export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = [], anuncio: OrigemAnuncio | null = null, extra = ""): string {
   const q = C.qualificacao;
   return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
 
@@ -122,7 +122,7 @@ ${orientacoes.length ? `## Orientações do seu gestor (siga sempre; as mais nov
 Data e hora (Brasília): ${formatBR(now)}
 
 ## Ficha do lead
-${leadCard(lead, meeting)}${contextoProspeccao(prospeccao)}${contextoAnuncio(anuncio)}`;
+${leadCard(lead, meeting)}${contextoProspeccao(prospeccao)}${contextoAnuncio(anuncio)}${extra}`;
 }
 
 export function followUpPrompt(lead: Lead, attempt: number, max: number, now: Date): string {
