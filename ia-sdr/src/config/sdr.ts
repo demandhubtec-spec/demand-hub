@@ -90,6 +90,11 @@ export const SDR_CONFIG = {
     duracaoHoras: 6,
     /** Depois de tantas mensagens do lead dentro da demo, a recepcionista encerra e a Ana volta. */
     maxMensagens: 14,
+    /**
+     * Modo teste do Kelvin pelo WhatsApp pessoal (30 minutos depois de pedir a demo).
+     * Desligado em 04/11/2026 a pedido dele: o número dele volta a ser só orientação para a Ana.
+     */
+    testeDoDono: false,
     /** Clínica de exemplo, usada até o dono contar como é a clínica dele. Valores só de demonstração. */
     clinicaExemplo: {
       nome: "Clínica Bella Forma",
