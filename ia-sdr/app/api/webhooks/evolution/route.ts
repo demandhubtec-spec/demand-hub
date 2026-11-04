@@ -6,9 +6,9 @@
 import { waitUntil } from "@vercel/functions";
 import { ehDisparoDaProspeccao, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
-import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
+import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, ultimoEventoEm, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
-import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, emTesteDoDono, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
+import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, emTesteDoDono, podeRetomarParaDemo, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
 import { env } from "@/src/lib/env.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
@@ -165,6 +165,15 @@ export async function POST(req: Request) {
       await logEvent(lead.id, "demo_iniciada", { inicio: new Date().toISOString() });
     } else if (ativa && ehSaidaDaDemo(msg.text)) {
       await logEvent(lead.id, "demo_encerrada", { em: new Date().toISOString(), motivo: "lead pediu para sair" });
+    }
+    // Pediu a demo com a Ana pausada (contato antigo, follow-up esgotado): a Ana volta para atender
+    if (lead.ai_paused && ehPedidoDeDemo(msg.text)) {
+      const handoff = await ultimoEventoEm(lead.id, "handoff_manual").catch(() => null);
+      if (podeRetomarParaDemo(lead.status, handoff, new Date())) {
+        await updateLead(lead.id, { ai_paused: false });
+        await logEvent(lead.id, "ia_retomada_demo");
+        lead.ai_paused = false;
+      }
     }
   }
 

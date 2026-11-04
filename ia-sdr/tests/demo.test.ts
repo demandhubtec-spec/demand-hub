@@ -9,6 +9,7 @@ import {
   ehSaidaDaDemo,
   emTesteDoDono,
   mensagensDaDemo,
+  podeRetomarParaDemo,
   TESTE_DONO_MIN,
   promptDemo,
 } from "../src/lib/demo.ts";
@@ -127,4 +128,13 @@ test("mandar o nome da clínica personaliza a demo e não encerra", () => {
   assert.match(p, /a demo CONTINUA/);
   assert.match(p, /NÃO use `encerrar_demo` por isso/);
   assert.doesNotMatch(p, /falar como dono/);
+});
+
+test("pedido da demo reativa a Ana pausada, menos quando a equipe assumiu", () => {
+  assert.ok(podeRetomarParaDemo("qualificado", null, agora));
+  assert.ok(podeRetomarParaDemo("sem_resposta", null, agora));
+  assert.ok(podeRetomarParaDemo("em_qualificacao", h(24 * 8), agora));
+  assert.ok(!podeRetomarParaDemo("em_qualificacao", h(24 * 2), agora));
+  assert.ok(!podeRetomarParaDemo("humano", null, agora));
+  assert.ok(!podeRetomarParaDemo("opt_out", null, agora));
 });
