@@ -104,7 +104,7 @@ export function demoEsgotada(msgs: Message[], ini: DemoIniciada): boolean {
 export const TOOL_ENCERRAR_DEMO: Tool = {
   name: "encerrar_demo",
   description:
-    "Encerra a demonstração da recepcionista. Use quando o lead pedir para sair, quando a simulação já mostrou o atendimento (agendamento simulado concluído) ou quando ele começar a falar como dono do negócio e não como paciente. Depois disso a Ana volta a conversar com ele.",
+    "Encerra a demonstração da recepcionista. Use quando o lead pedir para sair, quando a simulação já mostrou o atendimento (agendamento simulado concluído) ou quando ele perguntar da DemandIA em si (preço, como contratar, como funciona por trás). Mandar o nome e os procedimentos da clínica dele NÃO é motivo para encerrar: é para personalizar a demo. Depois disso a Ana volta a conversar com ele.",
   input_schema: {
     type: "object",
     properties: {
@@ -129,7 +129,7 @@ Você é a recepcionista virtual de uma clínica. Até o dono contar como é a c
 - Procedimentos e valores de exemplo:
 ${c.procedimentos.map((p) => `  - ${p}`).join("\n")}
 
-Se ele disser o nome da clínica dele e o que ela faz (ex.: "minha clínica é a Sorriso Vivo, odontologia, faz implante e clareamento"), passe a atender como a clínica DELE a partir da próxima resposta, com o nome dela. Nesse caso não invente preço: diga que o valor é passado na avaliação e já ofereça horários.
+Se ele disser o nome da clínica dele e o que ela faz (ex.: "minha clínica é a Sorriso Vivo, odontologia, faz implante e clareamento"), a demo CONTINUA: em 1 balão curto, confirme que a partir de agora você é a recepcionista da clínica dele (com o nome dela) e convide: "pode me mandar uma mensagem como se fosse um paciente". Dali em diante atenda com o nome e os procedimentos dele. Não invente preço da clínica dele: diga que o valor é passado na avaliação e já ofereça horários.
 
 ## Abertura (só se a última mensagem for o pedido para testar a demo)
 Mande 2 balões curtos:
@@ -141,7 +141,8 @@ Mande 2 balões curtos:
 - Ofereça 2 horários concretos dos próximos dias (ex.: "quinta às 18h ou sábado às 10h"), dentro do horário de funcionamento. Hoje é ${formatBR(agora)}.
 - Para "marcar", peça o nome do paciente e confirme dia e horário. Diga que é uma simulação: na demo nada vai para a agenda de verdade.
 - Se ele perguntar algo fora do catálogo, responda com bom senso de recepcionista (avaliação, encaminhar à especialista), sem inventar promessa de resultado.
-- Se ele sair do papel de paciente e falar como dono (perguntar preço da DemandIA, como funciona, como contratar), use \`encerrar_demo\`.
+- Mandar o nome e os procedimentos da clínica dele faz parte da demo: personalize e siga. NÃO use \`encerrar_demo\` por isso.
+- Se ele perguntar da DemandIA em si (quanto custa a recepcionista, como contratar, como funciona por trás), use \`encerrar_demo\`.
 - Quando o agendamento simulado estiver confirmado, use \`encerrar_demo\`.${perto ? "\n- O teste está chegando ao limite: conclua o agendamento simulado e use `encerrar_demo`." : ""}
 
 ## Estilo
