@@ -56,6 +56,7 @@ export const ORIGEM_TEXTO: Record<string, string> = {
   lp_diagnostico: "Landing page",
   whatsapp: "WhatsApp",
   anuncio: "Anúncio",
+  demo_instagram: "Demo Instagram",
 };
 
 /** Atualiza a lista quando a Ana recebe ou manda mensagem (tempo real, com polling de reserva). */

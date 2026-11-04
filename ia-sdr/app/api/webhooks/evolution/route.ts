@@ -164,6 +164,9 @@ export async function POST(req: Request) {
     const ativa = demoAtiva(ini, fim, new Date()) && (!testeDoDono || emTesteDoDono(ini, new Date()));
     if (!ativa && ehPedidoDeDemo(msg.text)) {
       await logEvent(lead.id, "demo_iniciada", { inicio: new Date().toISOString() });
+      // No CRM o contato aparece como "Demo Instagram" (sem apagar origem de landing page ou anúncio)
+      const origemAtual = (lead as { origem?: string | null }).origem ?? null;
+      if (!origemAtual || origemAtual === "whatsapp") await updateLead(lead.id, { origem: "demo_instagram" });
     } else if (ativa && ehSaidaDaDemo(msg.text)) {
       await logEvent(lead.id, "demo_encerrada", { em: new Date().toISOString(), motivo: "lead pediu para sair" });
     }
