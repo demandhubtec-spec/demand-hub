@@ -475,7 +475,10 @@ Deno.serve(async (req) => {
   // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
   const nome = nomeParaSaudar(lead, nomeWhats);
   // Com o áudio configurado, o 1º contato é "Oi" + "Tudo bem?" + áudio; a análise aprovada vira o próximo toque
-  const usarAudio = !!cfg.audio_abordagem_url && Array.isArray(lead.sequencia) && !!lead.sequencia[0]?.texto;
+  // O áudio fala de clínica e paciente: só vai para os nichos marcados na configuração (vazio = todos)
+  const nichosAudio: string[] = Array.isArray(cfg.audio_abordagem_nichos) ? cfg.audio_abordagem_nichos : [];
+  const usarAudio = !!cfg.audio_abordagem_url && Array.isArray(lead.sequencia) && !!lead.sequencia[0]?.texto
+    && (!nichosAudio.length || nichosAudio.includes(lead.nicho));
   const env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string } = usarAudio
     ? await enviarAbordagemComAudio(cfg.evolution_send_path, to, nome, cfg, text)
     : await enviarComSaudacao(cfg.evolution_send_path, to, nome, text);
