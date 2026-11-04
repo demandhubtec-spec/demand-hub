@@ -160,6 +160,61 @@ async function enviarComSaudacao(path: string, to: string, nome: string, texto: 
   const resto = separarEmBaloes(semSaudacao(texto));
   return { r: await enviarBaloes(path, to, resto), enviado: `${oi}\n\n${resto}` };
 }
+/**
+ * 1º contato com o áudio da Ana (configurado no portal): "Oi, bom dia!", espera o robô de boas-vindas
+ * da empresa (~20s), "Tudo bem?", aparece "gravando áudio..." pelo tempo do áudio e o áudio sai como
+ * mensagem de voz. A análise aprovada não vai aqui: vira o próximo toque (se a pessoa não responder).
+ */
+async function enviarAbordagemComAudio(path: string, to: string, nome: string, cfg: any, textoReserva: string):
+  Promise<{ r: { ok: boolean; status: number; body: string }; enviado: string; audio: boolean; erroAudio?: string }> {
+  const oi = saudacaoCurta(nome);
+  const r0 = await enviarBaloes(path, to, oi);
+  if (!r0.ok) return { r: r0, enviado: oi, audio: false };
+  await sleep(rand(18000, 23000));
+  const tudo = pick(["Tudo bem?", "Tudo bem? 😊", "Tudo bem por aí?"]);
+  const r1 = await enviarBaloes(path, to, tudo);
+  if (!r1.ok) return { r: r1, enviado: `${oi}\n\n${tudo}`, audio: false };
+  await sleep(rand(1500, 3000));
+  // "gravando áudio..." pelo tempo do áudio (o Evolution mantém o aviso aceso durante o delay)
+  const seg = Math.min(Math.max(Number(cfg.audio_abordagem_seg) || 30, 5), 60);
+  const t0 = Date.now();
+  try {
+    await fetch(`${EVO_URL}/message/presence`, {
+      method: "POST",
+      headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+      body: JSON.stringify({ number: to, state: "composing", isAudio: true, delay: seg * 1000 }),
+      signal: AbortSignal.timeout((seg + 15) * 1000),
+    });
+  } catch { /* sem o aviso de gravando, o áudio sai mesmo assim */ }
+  const falta = seg * 1000 - (Date.now() - t0);
+  if (falta > 0) await sleep(falta);
+  const r = await fetch(`${EVO_URL}/send/media`, {
+    method: "POST",
+    headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+    body: JSON.stringify({ number: to, url: cfg.audio_abordagem_url, type: "audio", delay: 0 }),
+    signal: AbortSignal.timeout(40000),
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response);
+  const r2 = { ok: r.ok || r.status === 504, status: r.status, body: await r.text() };
+  if (!r2.ok) {
+    // O áudio falhou depois do "Oi" e do "Tudo bem?": manda a análise aprovada em texto para não deixar a conversa solta
+    const resto = separarEmBaloes(semSaudacao(textoReserva));
+    const r3 = await enviarBaloes(path, to, resto);
+    return { r: r3, enviado: `${oi}\n\n${tudo}\n\n${resto}`, audio: false, erroAudio: `${r2.status}: ${r2.body.slice(0, 200)}` };
+  }
+  const fala = String(cfg.audio_abordagem_texto || "").trim();
+  return { r: r2, enviado: `${oi}\n\n${tudo}\n\n[Áudio da Ana] ${fala}`.trim(), audio: true };
+}
+/** Próximo dia de envio às 9h30 (pula domingo e feriado), para o toque que vem depois do áudio. */
+function proximoDiaUtil930(): string {
+  for (let i = 1; i < 10; i++) {
+    const d = new Date(Date.now() + i * 864e5);
+    const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+    const wd = new Date(`${ymd}T12:00:00-03:00`).getUTCDay();
+    if (wd === 0 || FERIADOS.has(ymd)) continue;
+    return new Date(`${ymd}T09:30:00-03:00`).toISOString();
+  }
+  return new Date(Date.now() + 864e5).toISOString();
+}
 /** Tira o "Oi, fulano, tudo bem?" do começo da abordagem, porque a saudação já foi antes. */
 function semSaudacao(texto: string) {
   const partes = texto.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
@@ -419,20 +474,35 @@ Deno.serve(async (req) => {
   // 1º contato em duas etapas: a saudação vai sozinha, a gente espera o robô de boas-vindas da empresa
   // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
   const nome = nomeParaSaudar(lead, nomeWhats);
-  const env = await enviarComSaudacao(cfg.evolution_send_path, to, nome, text);
+  // Com o áudio configurado, o 1º contato é "Oi" + "Tudo bem?" + áudio; a análise aprovada vira o próximo toque
+  const usarAudio = !!cfg.audio_abordagem_url && Array.isArray(lead.sequencia) && !!lead.sequencia[0]?.texto;
+  const env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string } = usarAudio
+    ? await enviarAbordagemComAudio(cfg.evolution_send_path, to, nome, cfg, text)
+    : await enviarComSaudacao(cfg.evolution_send_path, to, nome, text);
+  const comAudio = !!env.audio;
+  if (env.erroAudio) await log(lead.place_id, "audio_erro", { erro: env.erroAudio });
   const r = env.r;
   text = env.enviado;
   const body = r.body;
   if (r.ok) {
     if (!cfg.test_number) {
+      const agora = new Date().toISOString();
       await sb.from("outreach_leads").update({
-        wa_status: "enviado", wa_sent_at: new Date().toISOString(), wa_message: text,
-        updated_at: new Date().toISOString(),
+        wa_status: "enviado", wa_sent_at: agora, wa_message: text,
+        updated_at: agora,
       }).eq("place_id", lead.place_id);
-      // Começa a cadência de follow-up (só para quem tem a sequência aprovada)
-      await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
+      if (comAudio) {
+        // O toque 1 da sequência (a análise) sai no próximo dia útil, se a pessoa não responder antes
+        await sb.from("outreach_leads").update({
+          cadencia: "ativa", cadencia_inicio: agora, toque_atual: 0, ultimo_toque_em: agora, ultimo_canal: "whatsapp",
+          proximo_canal: lead.sequencia[0]?.canal || "whatsapp", proximo_toque_em: proximoDiaUtil930(),
+        }).eq("place_id", lead.place_id).eq("cadencia", "nao_iniciada");
+      } else {
+        // Começa a cadência de follow-up (só para quem tem a sequência aprovada)
+        await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
+      }
     }
-    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
+    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, audio: comAudio, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
     return Response.json({ ...out, sent: lead.empresa, to, next: nextAt });
   }
   const attempts = lead.wa_attempts + 1;
