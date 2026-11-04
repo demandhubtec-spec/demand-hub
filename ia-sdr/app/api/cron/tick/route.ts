@@ -8,6 +8,7 @@ import { runFollowUps, runMeetingReminders } from "@/src/lib/jobs.ts";
 import { ensureWhatsAppConnected } from "@/src/lib/whatsapp-health.ts";
 import { lembrarPedidos } from "@/src/lib/canal.ts";
 import { runRetomadas } from "@/src/lib/retomadas.ts";
+import { estudioTick } from "@/src/lib/estudio/agentes.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -25,7 +26,9 @@ async function handler(req: Request) {
   ]);
   // Conversas da prospecção que pararam: a Ana propõe a retomada e espera o ok
   const retomadas = await runRetomadas().catch((e) => ({ error: String(e) }));
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas });
+  // Estúdio: pesquisa, pautas, copy, arte e publicação no Instagram (cada agente pega pouco por vez)
+  const estudio = await estudioTick().catch((e) => ({ error: String(e) }));
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, estudio });
 }
 
 export const GET = handler;
