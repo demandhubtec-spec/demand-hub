@@ -30,6 +30,8 @@ import {
   contextoPosDemo,
   demoAtiva,
   demoEsgotada,
+  ehNumeroDoDono,
+  emTesteDoDono,
   mensagensDaDemo,
   promptDemo,
   TOOL_ENCERRAR_DEMO,
@@ -69,7 +71,11 @@ export async function handleInbound(leadId: string, messageId: string) {
 
 async function reply(leadId: string) {
   let lead = await getLead(leadId);
-  if (lead.ai_paused || lead.status === "opt_out" || isBlocked(lead.phone, lead.whatsapp_jid)) return;
+  // Modo teste do Kelvin: só no número dele e só nos 30 minutos depois de pedir a demo
+  const doDono = ehNumeroDoDono(lead.phone);
+  const testeIni = doDono ? await ultimoEvento<DemoIniciada>(leadId, "demo_iniciada").catch(() => null) : null;
+  if (doDono && !emTesteDoDono(testeIni, new Date())) return;
+  if (!doDono && (lead.ai_paused || lead.status === "opt_out" || isBlocked(lead.phone, lead.whatsapp_jid))) return;
 
   const meeting = await activeMeeting(leadId);
   // Opção C: se o contato veio da prospecção ativa, a Ana continua sabendo disso
@@ -81,14 +87,17 @@ async function reply(leadId: string) {
   // Demo ao vivo da recepcionista (Reels "Comenta DEMO"): enquanto valer, quem responde é ela
   const demoIni = await ultimoEvento<DemoIniciada>(leadId, "demo_iniciada").catch(() => null);
   const demoFim = await ultimoEvento<DemoEncerrada>(leadId, "demo_encerrada").catch(() => null);
-  let emDemo = demoAtiva(demoIni, demoFim, new Date());
+  let emDemo = demoAtiva(demoIni, demoFim, new Date()) && (!doDono || emTesteDoDono(demoIni, new Date()));
   let demoAcabouAgora = false;
   if (emDemo && demoIni && demoEsgotada(hist, demoIni)) {
     await logEvent(leadId, "demo_encerrada", { em: new Date().toISOString(), motivo: "limite de mensagens" });
     emDemo = false;
     demoAcabouAgora = true;
   }
-  const messages: ChatMessage[] = toChat(emDemo && demoIni ? mensagensDaDemo(hist, demoIni) : hist);
+  // No teste do Kelvin, só conta o que veio depois do pedido (o histórico dele tem avisos antigos do canal)
+  const messages: ChatMessage[] = toChat(
+    emDemo && demoIni ? mensagensDaDemo(hist, demoIni) : doDono && testeIni ? mensagensDaDemo(hist, testeIni) : hist,
+  );
   if (!messages.length || messages[messages.length - 1].role !== "user") return;
   // Pediu para sair da demo na última mensagem (o webhook já registrou): a Ana faz a virada agora
   if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
@@ -153,7 +162,8 @@ async function reply(leadId: string) {
   const patch: Record<string, unknown> = { last_outbound_at: now.toISOString() };
   if (lead.status === "novo") patch.status = "em_qualificacao";
   // Agenda o primeiro follow-up caso o lead não responda
-  if (!lead.ai_paused && OPEN_STATUSES.includes(lead.status)) {
+  // No teste do Kelvin não tem follow-up
+  if (!doDono && !lead.ai_paused && OPEN_STATUSES.includes(lead.status)) {
     patch.followup_attempts = 0;
     patch.next_followup_at = nextFollowUpAt(now, 0)?.toISOString() ?? null;
   }

@@ -82,6 +82,12 @@ export async function upsertLeadByPhone(phone: string, jid: string, pushName?: s
   return must(created, "upsertLeadByPhone");
 }
 
+/** Lead do telefone, se já existir (não cria). */
+export async function leadDoTelefone(phone: string): Promise<Lead | null> {
+  const r = await db().from("sdr_leads").select("*").in("phone", phoneVariants(phone)).limit(1).maybeSingle();
+  return (r.data as Lead) ?? null;
+}
+
 async function getLeadByPhone(phone: string): Promise<Lead> {
   return must(await db().from("sdr_leads").select("*").eq("phone", phone).single(), "getLeadByPhone");
 }

@@ -15,6 +15,8 @@ import { SDR_CONFIG } from "../config/sdr.ts";
 import type { Tool } from "./llm.ts";
 import type { Message } from "./db.ts";
 import { formatBR } from "./time.ts";
+import { env } from "./env.ts";
+import { phoneVariants } from "./diagnostico.ts";
 
 const D = SDR_CONFIG.demo;
 
@@ -64,6 +66,27 @@ export function demoAtiva(ini: DemoIniciada | null, fim: DemoEncerrada | null, a
   if (Number.isNaN(inicio)) return false;
   if (fim?.em && new Date(fim.em).getTime() >= inicio) return false;
   return agora.getTime() - inicio < D.duracaoHoras * 3_600_000;
+}
+
+/**
+ * Modo teste do Kelvin (04/11/2026): pelo WhatsApp pessoal dele, o que ele escreve para a Ana vira
+ * orientação. Quando ele pede a demo, por 30 minutos ele conversa com a Ana como se fosse um cliente
+ * (demo e virada para o diagnóstico). Depois volta a ser orientação. Só vale para o número dele.
+ */
+export const TESTE_DONO_MIN = 30;
+
+/** O número é do Kelvin (dono ou número de alertas)? */
+export function ehNumeroDoDono(phone: string | null | undefined, donos: string[] = [env.ownerPhone, env.alertPhone]): boolean {
+  if (!phone) return false;
+  return donos.filter(Boolean).some((d) => phoneVariants(d).includes(phone) || phoneVariants(phone).includes(d));
+}
+
+/** O teste do Kelvin vale por 30 minutos a partir do pedido da demo. */
+export function emTesteDoDono(ini: DemoIniciada | null, agora: Date): boolean {
+  if (!ini?.inicio) return false;
+  const inicio = new Date(ini.inicio).getTime();
+  if (Number.isNaN(inicio)) return false;
+  return agora.getTime() - inicio < TESTE_DONO_MIN * 60_000;
 }
 
 /** Mensagens que fazem parte da demo atual (do pedido em diante). */

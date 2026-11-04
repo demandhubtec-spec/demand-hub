@@ -6,9 +6,9 @@
 import { waitUntil } from "@vercel/functions";
 import { ehDisparoDaProspeccao, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
-import { addMessage, history, logEvent, messageExists, ultimoEvento, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
+import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
-import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
+import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, emTesteDoDono, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
 import { env } from "@/src/lib/env.ts";
 import { isBlocked } from "@/src/lib/bloqueio.ts";
 import { parseWebhook } from "@/src/lib/evolution.ts";
@@ -43,7 +43,19 @@ export async function POST(req: Request) {
   }
   // Conversa com o próprio Kelvin não é lead: o que ele escreve para a Ana vira orientação no canal interno
   const doKelvin = (env.ownerPhone && msg.phone === env.ownerPhone) || (env.alertPhone && msg.phone === env.alertPhone);
+  // Modo teste do Kelvin: pediu a demo pelo WhatsApp pessoal? Por 30 minutos ele conversa como cliente.
+  let testeDoDono = false;
   if (doKelvin && !msg.fromMe) {
+    if (ehPedidoDeDemo(msg.text)) testeDoDono = true;
+    else {
+      const eu = await leadDoTelefone(msg.phone).catch(() => null);
+      const ini = eu ? await ultimoEvento<DemoIniciada>(eu.id, "demo_iniciada").catch(() => null) : null;
+      testeDoDono = emTesteDoDono(ini, new Date());
+    }
+  }
+  // O que sai do número da Ana para o Kelvin (avisos, respostas do teste) não é conversa de lead
+  if (doKelvin && msg.fromMe) return Response.json({ ok: true, ignorado: "mensagem_para_o_kelvin" });
+  if (doKelvin && !msg.fromMe && !testeDoDono) {
     waitUntil(
       (async () => {
         const interp = !msg.text && msg.media ? await interpretarMidia(msg.media) : null;
@@ -56,9 +68,9 @@ export async function POST(req: Request) {
     );
     return Response.json({ ok: true, canal: true });
   }
-  if (env.ownerPhone && msg.phone === env.ownerPhone) return Response.json({ ignored: "owner" });
+  if (!testeDoDono && env.ownerPhone && msg.phone === env.ownerPhone) return Response.json({ ignored: "owner" });
   // Números da lista de bloqueio: a IA não conversa nem registra como lead
-  if (isBlocked(msg.phone, msg.jid, ...msg.altPhones)) return Response.json({ ignored: "bloqueado" });
+  if (!testeDoDono && isBlocked(msg.phone, msg.jid, ...msg.altPhones)) return Response.json({ ignored: "bloqueado" });
 
   // Mensagem enviada pelo nosso número: foi a IA ou o Kelvin respondendo na mão?
   if (msg.fromMe) {
@@ -148,7 +160,7 @@ export async function POST(req: Request) {
   if (msg.text) {
     const ini = await ultimoEvento<DemoIniciada>(lead.id, "demo_iniciada").catch(() => null);
     const fim = await ultimoEvento<DemoEncerrada>(lead.id, "demo_encerrada").catch(() => null);
-    const ativa = demoAtiva(ini, fim, new Date());
+    const ativa = demoAtiva(ini, fim, new Date()) && (!testeDoDono || emTesteDoDono(ini, new Date()));
     if (!ativa && ehPedidoDeDemo(msg.text)) {
       await logEvent(lead.id, "demo_iniciada", { inicio: new Date().toISOString() });
     } else if (ativa && ehSaidaDaDemo(msg.text)) {
@@ -177,7 +189,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (lead.ai_paused || lead.status === "opt_out") return Response.json({ ok: true, ai: "pausada" });
+  if (!testeDoDono && (lead.ai_paused || lead.status === "opt_out")) return Response.json({ ok: true, ai: "pausada" });
   // Respondeu enquanto a abordagem ainda está saindo (saudação + apresentação): a apresentação já
   // termina com uma pergunta, então a Ana espera a próxima mensagem em vez de atropelar.
   if (segDoDisparo !== null && segDoDisparo >= 0 && segDoDisparo < 45) return Response.json({ ok: true, ai: "aguardando_abordagem" });
