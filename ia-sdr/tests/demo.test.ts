@@ -5,8 +5,11 @@ import {
   demoAtiva,
   demoEsgotada,
   ehPedidoDeDemo,
+  ehNumeroDoDono,
   ehSaidaDaDemo,
+  emTesteDoDono,
   mensagensDaDemo,
+  TESTE_DONO_MIN,
   promptDemo,
 } from "../src/lib/demo.ts";
 import { detectarOrigemAnuncio } from "../src/lib/anuncio.ts";
@@ -99,4 +102,22 @@ test("depois da demo a Ana faz a virada uma vez e segue para o diagnóstico", ()
   assert.doesNotMatch(contextoPosDemo(false), /faça a virada/);
   assert.match(contextoPosDemo(false), /diagnóstico gratuito/);
   assert.doesNotMatch(contextoPosDemo(true), /[—–]/);
+});
+
+test("modo teste reconhece o número do Kelvin com e sem o 9 e ignora os outros", () => {
+  const donos = ["5519999990000"];
+  assert.ok(ehNumeroDoDono("5519999990000", donos));
+  assert.ok(ehNumeroDoDono("551999990000", donos));
+  assert.ok(!ehNumeroDoDono("5511988887777", donos));
+  assert.ok(!ehNumeroDoDono("5511988887777", ["", ""]));
+  assert.ok(!ehNumeroDoDono(null, donos));
+});
+
+test("modo teste do Kelvin dura 30 minutos a partir do pedido", () => {
+  const min = (n: number) => new Date(agora.getTime() - n * 60_000).toISOString();
+  assert.equal(TESTE_DONO_MIN, 30);
+  assert.ok(emTesteDoDono({ inicio: min(5) }, agora));
+  assert.ok(emTesteDoDono({ inicio: min(29) }, agora));
+  assert.ok(!emTesteDoDono({ inicio: min(31) }, agora));
+  assert.ok(!emTesteDoDono(null, agora));
 });
