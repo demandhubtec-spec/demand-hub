@@ -121,3 +121,10 @@ test("modo teste do Kelvin dura 30 minutos a partir do pedido", () => {
   assert.ok(!emTesteDoDono({ inicio: min(31) }, agora));
   assert.ok(!emTesteDoDono(null, agora));
 });
+
+test("mandar o nome da clínica personaliza a demo e não encerra", () => {
+  const p = promptDemo(agora, { inicio: h(0.1) }, 2);
+  assert.match(p, /a demo CONTINUA/);
+  assert.match(p, /NÃO use `encerrar_demo` por isso/);
+  assert.doesNotMatch(p, /falar como dono/);
+});
