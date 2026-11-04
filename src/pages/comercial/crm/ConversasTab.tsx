@@ -4,7 +4,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
-import { ORIGEM_TEXTO, useContatos, useConversa, type Contato } from "@/hooks/useCrm";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/components/ui/toast";
+import { ORIGEM_TEXTO, useAlternarAna, useContatos, useConversa, type Contato } from "@/hooks/useCrm";
 import { fmtData } from "../prospeccao/shared";
 import { STATUS_ANA } from "./InboundTab";
 import { Compositor } from "./Compositor";
@@ -95,6 +97,8 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
 
 function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
   const { data: msgs = [], isLoading } = useConversa(c.id);
+  const alternar = useAlternarAna();
+  const { showToast } = useToast();
   const fim = React.useRef<HTMLDivElement>(null);
   // Em navegadores novos o scrollIntoView devolve uma Promise: o efeito não pode retornar isso
   React.useEffect(() => {
@@ -115,15 +119,31 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
             {c.phone} · {c.tipo === "prospeccao" ? "Prospecção ativa" : ORIGEM_TEXTO[c.origem ?? ""] ?? "Inbound"}
           </div>
         </div>
-        <span
+        <label
           className={cn(
-            "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold",
+            "inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pl-2.5 pr-1 text-[11px] font-semibold",
             c.ai_paused ? "bg-attention-tint text-attention" : "bg-positive-tint text-positive",
           )}
+          title={c.ai_paused ? "Ligar a Ana nesta conversa" : "Pausar a Ana nesta conversa"}
         >
           {c.ai_paused ? <PauseCircle className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
           {c.ai_paused ? "Ana pausada" : "Ana atendendo"}
-        </span>
+          <Switch
+            checked={!c.ai_paused}
+            disabled={alternar.isPending || c.status === "opt_out"}
+            onCheckedChange={(ligar) =>
+              alternar.mutate(
+                { id: c.id, ligar, status: c.status },
+                {
+                  onSuccess: () =>
+                    showToast(ligar ? "Ana ligada. Ela responde a partir da próxima mensagem do contato." : "Ana pausada nesta conversa."),
+                  onError: () => showToast("Não consegui mudar agora. Tente de novo."),
+                },
+              )
+            }
+            aria-label={c.ai_paused ? "Ligar a Ana" : "Pausar a Ana"}
+          />
+        </label>
       </div>
       <div className="flex-1 space-y-1.5 overflow-y-auto bg-surface-2/40 p-3">
         {isLoading && <div className="text-[12.5px] text-muted">Carregando…</div>}
