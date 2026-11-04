@@ -452,3 +452,19 @@ test("prospecção: 1º contato com áudio deixa a análise como pendente", () =
   assert.doesNotMatch(contextoProspeccao(p1 as never), /AINDA NÃO foi enviada/);
   assert.equal(ehDisparoDaProspeccao(p0, "Tudo bem?", new Date("2026-11-05T12:00:00Z")), true);
 });
+
+import { systemPrompt } from "../src/lib/prompt.ts";
+
+test("prospecção: prompt sem entrevista/BANT e com convite de 2 horários; inbound mantém o BANT", () => {
+  const lead = { id: "x", phone: "5519999999999", nome: null, empresa: null, segmento: null, email: null, faturamento_mensal: null, autoridade: null, dores: [], necessidade_resumo: null, prazo: null, bant_score: 0, status: "novo" } as never;
+  const now = new Date("2026-11-04T15:00:00Z");
+  const p = systemPrompt(lead, null, now, prosp as never);
+  assert.doesNotMatch(p, /Critérios BANT/);
+  assert.doesNotMatch(p, /Acolher e descobrir o negócio/);
+  assert.match(p, /Sem entrevista/);
+  assert.match(p, /DOIS horários reais/);
+  assert.match(p, /nunca "enviei"/);
+  const i = systemPrompt(lead, null, now, null);
+  assert.match(i, /Critérios BANT/);
+  assert.doesNotMatch(i, /Sem entrevista/);
+});
