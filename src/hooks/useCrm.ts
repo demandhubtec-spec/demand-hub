@@ -150,6 +150,24 @@ export function useEtapaInbound() {
   });
 }
 
+/**
+ * Liga ou pausa a Ana numa conversa. Pausar também cancela o próximo follow-up.
+ * Religar uma conversa que tinha sido passada para a equipe devolve ela para a Ana.
+ */
+export function useAlternarAna() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ligar, status }: { id: string; ligar: boolean; status: string | null }) => {
+      const patch: Record<string, unknown> = ligar
+        ? { ai_paused: false, ...(status === "humano" ? { status: "em_qualificacao" } : {}) }
+        : { ai_paused: true, next_followup_at: null };
+      const { error } = await supabase.from("sdr_leads").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm"] }),
+  });
+}
+
 /* ---------- Canal "Você e a Ana" ---------- */
 
 export interface MsgCanal {
