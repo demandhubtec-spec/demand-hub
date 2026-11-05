@@ -97,10 +97,12 @@ export function useDesligarLink() {
 /** Comentários do cliente + respostas da equipe. Atualiza sozinho quando o cliente comenta. */
 export function useComentariosCliente(clienteId: string | null) {
   const qc = useQueryClient();
+  // Nome de canal único por tela: o hook é usado em mais de um lugar ao mesmo tempo.
+  const instancia = React.useId().replace(/[^a-zA-Z0-9]/g, "");
   React.useEffect(() => {
     if (!clienteId) return;
     const canal = supabase
-      .channel(`comentarios-cliente-${clienteId}`)
+      .channel(`comentarios-cliente-${clienteId}-${instancia}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "comentarios_cliente", filter: `cliente_id=eq.${clienteId}` },
@@ -110,7 +112,7 @@ export function useComentariosCliente(clienteId: string | null) {
     return () => {
       supabase.removeChannel(canal);
     };
-  }, [clienteId, qc]);
+  }, [clienteId, qc, instancia]);
 
   return useQuery({
     queryKey: ["comentarios-cliente", clienteId],
