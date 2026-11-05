@@ -2,6 +2,7 @@ import * as React from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutGrid,
+  ListChecks,
   Folder,
   Code2,
   Megaphone,
@@ -199,6 +200,16 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
           >
             <LayoutGrid className="h-[17px] w-[17px] shrink-0" aria-label="Resumo" />
             {!collapsed && <span>Resumo</span>}
+          </NavLink>
+
+          <NavLink
+            to="/minhas-atividades"
+            onClick={onCloseMobile}
+            title={collapsed ? "Minhas atividades" : undefined}
+            className={({ isActive }) => topItemClass(isActive, collapsed)}
+          >
+            <ListChecks className="h-[17px] w-[17px] shrink-0" />
+            {!collapsed && <span>Minhas atividades</span>}
           </NavLink>
 
           <NavLink

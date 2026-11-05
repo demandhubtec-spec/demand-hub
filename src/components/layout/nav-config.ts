@@ -35,7 +35,7 @@ export const navGroups: NavGroup[] = [
     key: "marketing",
     label: "Marketing",
     icon: "marketing",
-    colaboradorPode: true,
+    colaboradorPode: false, // colaborador (Fabrício) fica só com Tecnologia
     children: [
       ...deptChildren("marketing"),
       { label: "Time de Marketing IA", path: "/marketing/estudio", colaboradorPode: false },
@@ -75,10 +75,9 @@ export const navGroups: NavGroup[] = [
 ];
 
 /** Departamentos que o colaborador enxerga. */
-export const DEPTS_COLABORADOR = ["tecnologia", "marketing"] as const;
+export const DEPTS_COLABORADOR = ["tecnologia"] as const;
 
 /** Endereços que só o dono acessa (o colaborador volta para o Resumo). */
 export function rotaSoDono(caminho: string): boolean {
-  if (/^\/(comercial|administrativo|configuracoes|prospeccao)(\/|$)/.test(caminho)) return true;
-  return caminho.startsWith("/marketing/instagram-direct") || caminho.startsWith("/marketing/landing-page") || caminho.startsWith("/marketing/estudio");
+  return /^\/(comercial|marketing|administrativo|configuracoes|prospeccao)(\/|$)/.test(caminho);
 }
