@@ -67,7 +67,10 @@ export async function verificarConta(username: string) {
       .upsert({ tipo: "conta", valor: u, nome: c.name ?? null, seguidores: c.followers_count ?? null, posts: c.media_count ?? null, verificado_em: new Date().toISOString(), erro: null }, { onConflict: "tipo,valor" });
     return { ok: true as const, username: u, nome: c.name ?? null, seguidores: c.followers_count ?? null, posts: c.media_count ?? null };
   } catch (e) {
-    const erro = e instanceof ErroMeta && /not found|does not exist|Invalid user/i.test(e.message) ? "conta não encontrada ou não é profissional" : String((e as Error).message).slice(0, 200);
+    const erro =
+      e instanceof ErroMeta && /not found|does not exist|Invalid user/i.test(e.message) ? "conta não encontrada ou não é profissional"
+      : e instanceof ErroMeta && e.semPermissao ? "falta a permissão instagram_manage_insights no acesso da Meta (o Radar fica parado até liberar)"
+      : String((e as Error).message).slice(0, 200);
     await db().from("estudio_fontes").upsert({ tipo: "conta", valor: u, erro }, { onConflict: "tipo,valor" });
     return { ok: false as const, username: u, erro };
   }
@@ -103,7 +106,9 @@ export async function rodarRadar(agora = new Date()) {
         coletadas += linhas.length;
       }
     } catch (e) {
-      const msg = String((e as Error).message).slice(0, 200);
+      const msg = e instanceof ErroMeta && e.semPermissao
+        ? "falta a permissão instagram_manage_insights no acesso da Meta (o Radar fica parado até liberar)"
+        : String((e as Error).message).slice(0, 200);
       erros.push(`@${f.valor}: ${msg}`);
       await db().from("estudio_fontes").update({ erro: msg }).eq("id", f.id);
     }
