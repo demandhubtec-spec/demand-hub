@@ -1,5 +1,5 @@
 /**
- * Estúdio · os agentes, chamados pelo relógio (cron/tick, a cada 10 minutos) e pelo portal.
+ * Estúdio · os agentes, chamados pelo relógio (cron/estudio, a cada minuto) e pelo portal.
  *   Radar → Curador → Pauteiro → Redator → (aprovação da copy) → Diretor de arte → (aprovação da arte) → Publicador
  * Cada agente pega pouco trabalho por vez, para caber no tempo do relógio, e é ligado/desligado em estudio_config.
  */
@@ -321,7 +321,7 @@ export async function rodarPublicador(agora = new Date()) {
 
 /* ---------------- Relógio ---------------- */
 
-/** Chamado pelo cron a cada 10 minutos. Cada etapa falha sozinha, sem derrubar as outras. */
+/** Chamado pelo relógio do Estúdio a cada minuto (uma rodada por vez). Cada etapa falha sozinha, sem derrubar as outras. */
 export async function estudioTick(agora = new Date()) {
   let c: Config;
   try {
