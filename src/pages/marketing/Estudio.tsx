@@ -348,12 +348,12 @@ function Radar() {
 
 /* ───────────── Configurações ───────────── */
 
-const AGENTES: { chave: "radar" | "pauteiro" | "redator" | "diretor" | "publicador"; nome: string; faz: string }[] = [
-  { chave: "radar", nome: "Radar", faz: "Pesquisa os perfis de referência todo dia e acha o que bombou." },
-  { chave: "pauteiro", nome: "Pauteiro", faz: "Monta o calendário: 1 post por dia, alternando os horários." },
-  { chave: "redator", nome: "Redator", faz: "Escreve slides, roteiro e legenda com a palavra do Direct." },
-  { chave: "diretor", nome: "Diretor de arte", faz: "Gera as imagens do carrossel e do estático." },
-  { chave: "publicador", nome: "Publicador", faz: "Posta no horário e cria o gatilho do Direct." },
+const AGENTES: { chave: "radar" | "pauteiro" | "redator" | "diretor" | "publicador"; nome: string; foto: string; faz: string }[] = [
+  { chave: "radar", nome: "Rita · Radar", foto: "rita", faz: "Pesquisa os perfis de referência todo dia e acha o que bombou." },
+  { chave: "pauteiro", nome: "Téo · Pauteiro", foto: "teo", faz: "Monta o calendário: 1 post por dia, alternando os horários." },
+  { chave: "redator", nome: "Bia · Redatora", foto: "bia", faz: "Escreve slides, roteiro e legenda com a palavra do Direct." },
+  { chave: "diretor", nome: "Duda · Diretora de arte", foto: "duda", faz: "Gera as imagens do carrossel e do estático." },
+  { chave: "publicador", nome: "Lara · Publicadora", foto: "lara", faz: "Posta no horário e cria o gatilho do Direct." },
 ];
 
 function Configuracoes() {
@@ -387,6 +387,7 @@ function Configuracoes() {
               checked={config.agentes?.[a.chave] !== false}
               onCheckedChange={(v) => salvar.mutate({ agentes: { ...config.agentes, [a.chave]: v } }, { onSuccess: ok, onError: erro })}
             />
+            <img src={`/brand/agente-${a.foto}.webp`} alt={a.nome} className="h-10 w-10 rounded-full border border-border object-cover" loading="lazy" />
             <div className="min-w-[220px] flex-1">
               <div className="text-[13.5px] font-semibold text-ink">{a.nome}</div>
               <div className="text-[12.5px] text-muted">{a.faz}</div>
