@@ -5,7 +5,7 @@ import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import DepartmentVisao from "@/pages/department/DepartmentVisao";
 import DepartmentProjetos from "@/pages/department/DepartmentProjetos";
-import DepartmentAtividades from "@/pages/department/DepartmentAtividades";
+import MinhasAtividades from "@/pages/MinhasAtividades";
 import Crm from "@/pages/comercial/Crm";
 import Sdr from "@/pages/comercial/Sdr";
 import Prospeccao from "@/pages/comercial/Prospeccao";
@@ -35,12 +35,13 @@ export default function App() {
         <Route element={<AppLayout />}>
           <Route index element={<Dashboard />} />
 
+          <Route path="minhas-atividades" element={<MinhasAtividades />} />
           <Route path="projetos" element={<ProjetosHome />} />
           <Route path="projetos/:clienteId" element={<ProjetosCliente />} />
 
           <Route path=":dept/visao" element={<DepartmentVisao />} />
           <Route path=":dept/projetos" element={<DepartmentProjetos />} />
-          <Route path=":dept/atividades" element={<DepartmentAtividades />} />
+          <Route path=":dept/atividades" element={<MinhasAtividades />} />
 
           <Route path="marketing/instagram-direct" element={<InstagramDirect />} />
           <Route path="marketing/landing-page" element={<LandingPage />} />
