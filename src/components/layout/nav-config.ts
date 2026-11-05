@@ -38,7 +38,7 @@ export const navGroups: NavGroup[] = [
     colaboradorPode: true,
     children: [
       ...deptChildren("marketing"),
-      { label: "Estúdio", path: "/marketing/estudio", colaboradorPode: false },
+      { label: "Time de Marketing IA", path: "/marketing/estudio", colaboradorPode: false },
       { label: "Instagram · Direct", path: "/marketing/instagram-direct", colaboradorPode: false },
       { label: "Landing page", path: "/marketing/landing-page", colaboradorPode: false },
     ],
