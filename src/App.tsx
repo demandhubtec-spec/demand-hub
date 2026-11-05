@@ -22,11 +22,14 @@ import Processos from "@/pages/Processos";
 import Ajuda from "@/pages/Ajuda";
 import ProjetosHome from "@/pages/projetos/ProjetosHome";
 import ProjetosCliente from "@/pages/projetos/ProjetosCliente";
+import Acompanhar from "@/pages/Acompanhar";
 
 export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      {/* Página pública do cliente (sem login): cronograma por link secreto */}
+      <Route path="/acompanhar/:token" element={<Acompanhar />} />
 
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
