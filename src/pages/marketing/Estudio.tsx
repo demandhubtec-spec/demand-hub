@@ -1,6 +1,8 @@
 import * as React from "react";
 import { Navigate } from "react-router-dom";
-import { Check, Pencil, Play, Trash2, Upload, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy as CopyIcon, Download, LayoutGrid, List, Pencil, Play, Trash2, Upload, X } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -32,12 +34,17 @@ import {
 } from "@/hooks/useEstudio";
 
 /**
- * Marketing · Estúdio: social media no automático.
+ * Marketing · Time de Marketing IA (antes "Estúdio"): social media no automático.
  * Agentes no servidor da Ana pesquisam, montam o calendário, escrevem e fazem a arte.
- * Aqui o Kelvin aprova copy e arte; o Publicador posta no horário. Só o dono acessa.
+ * Aqui o Kelvin conversa com o time (Central), aprova copy e arte por etapa e acompanha o calendário.
+ * Só o dono acessa.
  */
 export default function Estudio() {
   const { isColaborador } = useAuth();
+  // O chat da Central (HTML na mesma origem) grava as conversas com o cliente do banco do portal
+  React.useEffect(() => {
+    (window as unknown as { __demandSupabase?: typeof supabase }).__demandSupabase = supabase;
+  }, []);
   if (isColaborador) return <Navigate to="/" replace />;
   return (
     <Tabs defaultValue="central">
@@ -45,15 +52,16 @@ export default function Estudio() {
         <TabsTrigger value="central">Central do time</TabsTrigger>
         <TabsTrigger value="aprovar">Aprovações</TabsTrigger>
         <TabsTrigger value="calendario">Calendário</TabsTrigger>
+        <TabsTrigger value="materiais">Materiais</TabsTrigger>
         <TabsTrigger value="radar">Radar</TabsTrigger>
         <TabsTrigger value="config">Configurações</TabsTrigger>
       </TabsList>
       <TabsContent value="central">
         <iframe
           src="/central-estudio.html"
-          title="Central do Time de Social Media"
+          title="Central do Time de Marketing IA"
           className="block w-full rounded-[14px] border-0"
-          style={{ height: "calc(100vh - 150px)", minHeight: 640 }}
+          style={{ height: "calc(100vh - 140px)", minHeight: 640 }}
         />
       </TabsContent>
       <TabsContent value="aprovar">
@@ -61,6 +69,9 @@ export default function Estudio() {
       </TabsContent>
       <TabsContent value="calendario">
         <Calendario />
+      </TabsContent>
+      <TabsContent value="materiais">
+        <Materiais />
       </TabsContent>
       <TabsContent value="radar">
         <Radar />
@@ -89,27 +100,77 @@ function Selo({ status }: { status: Pauta["status"] }) {
 
 /* ───────────── Aprovações ───────────── */
 
-function Aprovacoes() {
-  const { data: pautas = [], isLoading } = usePautas();
-  const pendentes = pautas.filter((p) => ["revisar_copy", "revisar_arte", "aguardando_video", "erro"].includes(p.status));
-  const { data: pecas = {} } = usePecas(pendentes.map((p) => p.id));
-  if (isLoading) return <p className="p-6 text-[13px] text-muted">Carregando…</p>;
-  if (!pendentes.length)
-    return (
-      <EmptyState>
-        Nada para aprovar agora. Os agentes rodam a cada 10 minutos; quando tiver copy ou arte pronta, aparece aqui.
-      </EmptyState>
-    );
+/** Etapas do quadro de aprovação, na ordem do fluxo. */
+const ETAPAS: { chave: string; titulo: string; status: Pauta["status"][]; voce?: boolean }[] = [
+  { chave: "pauta", titulo: "Pauta · Bia escrevendo", status: ["pauta"] },
+  { chave: "copy", titulo: "Aprovar copy", status: ["revisar_copy"], voce: true },
+  { chave: "arte_prod", titulo: "Arte em produção", status: ["copy_aprovada", "aguardando_video"] },
+  { chave: "arte", titulo: "Aprovar arte", status: ["revisar_arte"], voce: true },
+  { chave: "agendado", titulo: "Agendado", status: ["agendado", "publicando"] },
+  { chave: "publicado", titulo: "Publicado", status: ["publicado"] },
+  { chave: "erro", titulo: "Com erro", status: ["erro"] },
+];
+
+/** Abre a pauta num quadro com a copy, a arte e os botões de aprovar. */
+function PautaDialog({ pauta, onClose }: { pauta: Pauta | null; onClose: () => void }) {
+  const { data: pecas = {} } = usePecas(pauta ? [pauta.id] : []);
   return (
-    <div className="space-y-4">
-      {pendentes.map((p) => (
-        <CartaoAprovacao key={p.id} pauta={p} copy={pecas[p.id]?.copy} arte={pecas[p.id]?.arte} />
-      ))}
-    </div>
+    <Dialog open={!!pauta} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-h-[88vh] max-w-[860px] overflow-y-auto p-0">
+        <DialogTitle className="sr-only">{pauta?.tema ?? "Pauta"}</DialogTitle>
+        {pauta && <CartaoAprovacao pauta={pauta} copy={pecas[pauta.id]?.copy} arte={pecas[pauta.id]?.arte} onDone={onClose} />}
+      </DialogContent>
+    </Dialog>
   );
 }
 
-function CartaoAprovacao({ pauta, copy, arte }: { pauta: Pauta; copy?: Peca; arte?: Peca }) {
+function CartaoPauta({ p, onOpen }: { p: Pauta; onOpen: (p: Pauta) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onOpen(p)}
+      className="w-full rounded-[10px] border border-border bg-surface p-3 text-left transition hover:border-primary hover:shadow-[0_0_18px_rgba(164,123,255,.18)]"
+    >
+      <div className="flex items-center gap-2 text-[11.5px] text-muted">
+        <span>{diaBonito(p.dia)} · {p.horario}</span>
+        <span className="ml-auto rounded-full bg-surface-2 px-2 py-[1px] font-semibold">{FORMATO_TEXTO[p.formato]}</span>
+      </div>
+      <div className="mt-1.5 line-clamp-3 text-[13px] font-semibold leading-snug text-ink">{p.tema}</div>
+      {p.palavra_gatilho && <div className="mt-1 text-[11.5px] text-primary-bright">palavra {p.palavra_gatilho}</div>}
+      {p.erro && <div className="mt-1 line-clamp-2 text-[11.5px] text-red-300">{p.erro}</div>}
+    </button>
+  );
+}
+
+function Aprovacoes() {
+  const { data: pautas = [], isLoading } = usePautas();
+  const [aberta, setAberta] = React.useState<Pauta | null>(null);
+  if (isLoading) return <p className="p-6 text-[13px] text-muted">Carregando…</p>;
+  const visiveis = pautas.filter((p) => p.status !== "descartado");
+  if (!visiveis.length) return <EmptyState>O quadro está vazio. O Pauteiro monta os próximos dias sozinho; dá para rodar agora em Configurações.</EmptyState>;
+  const colunas = ETAPAS.map((e) => ({ ...e, itens: visiveis.filter((p) => e.status.includes(p.status)) })).filter((c) => c.chave !== "erro" || c.itens.length);
+  return (
+    <>
+      <p className="mb-3 text-[12.5px] text-muted">Cada post anda da esquerda para a direita. As colunas em amarelo esperam você: clique no card para ver e aprovar.</p>
+      <div className="flex gap-3 overflow-x-auto pb-3">
+        {colunas.map((c) => (
+          <div key={c.chave} className={cn("flex w-[260px] shrink-0 flex-col rounded-xl border bg-surface-2/60 p-2.5", c.voce ? "border-amber-400/40" : "border-border")}>
+            <div className="mb-2 flex items-center gap-2 px-1">
+              <span className={cn("text-[12.5px] font-semibold", c.voce ? "text-amber-300" : "text-ink")}>{c.titulo}</span>
+              <span className="ml-auto rounded-full bg-surface px-2 text-[11.5px] text-muted">{c.itens.length}</span>
+            </div>
+            <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto pr-0.5">
+              {c.itens.length ? c.itens.map((p) => <CartaoPauta key={p.id} p={p} onOpen={setAberta} />) : <div className="px-1 py-4 text-center text-[12px] text-muted">Nada aqui</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+      <PautaDialog pauta={aberta} onClose={() => setAberta(null)} />
+    </>
+  );
+}
+
+function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: Peca; arte?: Peca; onDone?: () => void }) {
   const { showToast } = useToast();
   const decidir = useDecidirPauta();
   const enviarVideo = useEnviarVideo();
@@ -123,6 +184,7 @@ function CartaoAprovacao({ pauta, copy, arte }: { pauta: Pauta; copy?: Peca; art
       {
         onSuccess: () => {
           setAjuste(null);
+          onDone?.();
           showToast(decisao === "aprovar" ? (emArte ? "Aprovado. Vai para a agenda." : "Copy aprovada. Agora vem a arte.") : decisao === "ajuste" ? "Pedido de ajuste enviado." : "Descartado.");
         },
         onError: (e) => showToast(`Não deu: ${(e as Error).message}`),
@@ -138,8 +200,8 @@ function CartaoAprovacao({ pauta, copy, arte }: { pauta: Pauta; copy?: Peca; art
   };
 
   return (
-    <Card className="space-y-3 p-5">
-      <div className="flex flex-wrap items-center gap-2">
+    <Card className="space-y-3 border-0 p-6">
+      <div className="flex flex-wrap items-center gap-2 pr-6">
         <Selo status={pauta.status} />
         <span className="text-[12.5px] text-muted">
           {diaBonito(pauta.dia)} · {pauta.horario} · {FORMATO_TEXTO[pauta.formato]}
@@ -257,7 +319,94 @@ function CopyTexto({ copy, formato, aberto }: { copy: Peca; formato: Pauta["form
 
 /* ───────────── Calendário ───────────── */
 
+const COR_STATUS: Partial<Record<Pauta["status"], string>> = {
+  revisar_copy: "border-amber-400/50 bg-amber-500/10",
+  revisar_arte: "border-amber-400/50 bg-amber-500/10",
+  aguardando_video: "border-amber-400/50 bg-amber-500/10",
+  agendado: "border-sky-400/40 bg-sky-500/10",
+  publicado: "border-emerald-400/40 bg-emerald-500/10",
+  erro: "border-red-400/50 bg-red-500/10",
+};
+
 function Calendario() {
+  const [modo, setModo] = React.useState<"mes" | "lista">("mes");
+  const [aberta, setAberta] = React.useState<Pauta | null>(null);
+  return (
+    <div className="space-y-3">
+      <div className="flex gap-1">
+        <Button size="sm" variant={modo === "mes" ? "primary" : "outline"} onClick={() => setModo("mes")}>
+          <LayoutGrid /> Mês
+        </Button>
+        <Button size="sm" variant={modo === "lista" ? "primary" : "outline"} onClick={() => setModo("lista")}>
+          <List /> Lista
+        </Button>
+      </div>
+      {modo === "mes" ? <CalendarioMes onOpen={setAberta} /> : <CalendarioLista onOpen={setAberta} />}
+      <PautaDialog pauta={aberta} onClose={() => setAberta(null)} />
+    </div>
+  );
+}
+
+const ymd = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+
+function CalendarioMes({ onOpen }: { onOpen: (p: Pauta) => void }) {
+  const { data: pautas = [], isLoading } = usePautas();
+  const [ref, setRef] = React.useState(() => {
+    const [a, m] = hoje().split("-").map(Number);
+    return new Date(a, m - 1, 1);
+  });
+  if (isLoading) return <p className="p-6 text-[13px] text-muted">Carregando…</p>;
+  const porDia: Record<string, Pauta[]> = {};
+  for (const p of pautas) if (p.status !== "descartado") (porDia[p.dia] ??= []).push(p);
+  const inicio = new Date(ref.getFullYear(), ref.getMonth(), 1 - ref.getDay());
+  const dias = Array.from({ length: 42 }, (_, i) => new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i));
+  const semanas = dias[35].getMonth() !== ref.getMonth() ? dias.slice(0, 35) : dias;
+  const hj = hoje();
+  return (
+    <Card className="p-4">
+      <div className="mb-3 flex items-center gap-2">
+        <Button size="icon" variant="ghost" onClick={() => setRef(new Date(ref.getFullYear(), ref.getMonth() - 1, 1))} aria-label="Mês anterior">
+          <ChevronLeft />
+        </Button>
+        <h3 className="min-w-[160px] text-center text-[15px] font-semibold text-ink">{ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase())}</h3>
+        <Button size="icon" variant="ghost" onClick={() => setRef(new Date(ref.getFullYear(), ref.getMonth() + 1, 1))} aria-label="Próximo mês">
+          <ChevronRight />
+        </Button>
+        <span className="ml-auto text-[12px] text-muted">Amarelo: espera você · Azul: agendado · Verde: publicado</span>
+      </div>
+      <div className="grid grid-cols-7 gap-1.5 text-[11.5px] text-muted">
+        {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
+          <div key={d} className="px-1 pb-1 font-semibold uppercase">{d}</div>
+        ))}
+        {semanas.map((d) => {
+          const k = ymd(d);
+          const fora = d.getMonth() !== ref.getMonth();
+          return (
+            <div key={k} className={cn("min-h-[104px] rounded-[9px] border border-border p-1.5", fora && "opacity-40", k === hj && "border-primary")}>
+              <div className={cn("mb-1 text-[11.5px] font-semibold", k === hj ? "text-primary-bright" : "text-muted")}>{d.getDate()}</div>
+              <div className="flex flex-col gap-1">
+                {(porDia[k] ?? []).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => onOpen(p)}
+                    title={`${p.horario} · ${FORMATO_TEXTO[p.formato]} · ${STATUS_TEXTO[p.status]}\n${p.tema}`}
+                    className={cn("rounded-[6px] border px-1.5 py-1 text-left text-[11px] leading-tight text-ink hover:brightness-125", COR_STATUS[p.status] ?? "border-border bg-surface-2")}
+                  >
+                    <span className="font-semibold">{p.horario}</span> {FORMATO_TEXTO[p.formato]}
+                    <span className="mt-0.5 line-clamp-2 block text-muted">{p.tema}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </Card>
+  );
+}
+
+function CalendarioLista({ onOpen }: { onOpen: (p: Pauta) => void }) {
   const { data: pautas = [], isLoading } = usePautas();
   const reagendar = useReagendar();
   const decidir = useDecidirPauta();
@@ -274,7 +423,7 @@ function Calendario() {
     <div key={p.id} className="flex flex-wrap items-center gap-3 border-b border-border py-2 text-[13px] last:border-0">
       <span className="w-[110px] text-muted">{diaBonito(p.dia)} {p.horario}</span>
       <span className="w-[80px] text-muted">{FORMATO_TEXTO[p.formato]}</span>
-      <span className="min-w-[200px] flex-1 text-ink">{p.tema}</span>
+      <button type="button" onClick={() => onOpen(p)} className="min-w-[200px] flex-1 text-left text-ink hover:text-primary-bright">{p.tema}</button>
       <Selo status={p.status} />
       {editando?.id === p.id ? (
         <span className="flex items-center gap-1">
@@ -325,13 +474,107 @@ function Calendario() {
   );
 }
 
+/* ───────────── Materiais ───────────── */
+
+/** Tudo o que o time já produziu (copy e arte), para baixar, conferir e validar. */
+function Materiais() {
+  const { data: pautas = [], isLoading } = usePautas();
+  const vivas = pautas.filter((p) => p.status !== "descartado" && p.status !== "pauta");
+  const { data: pecas = {} } = usePecas(vivas.map((p) => p.id));
+  const { showToast } = useToast();
+  const [aberta, setAberta] = React.useState<Pauta | null>(null);
+  if (isLoading) return <p className="p-6 text-[13px] text-muted">Carregando…</p>;
+  if (!vivas.length) return <EmptyState>Ainda não tem material pronto. Assim que a Bia escrever e a Duda fizer as artes, tudo fica guardado aqui.</EmptyState>;
+  const legendaDe = (c?: Peca) => {
+    const x = (c?.conteudo ?? {}) as Record<string, unknown>;
+    const tags = ((x.hashtags as string[] | undefined) ?? []).map((h) => (h.startsWith("#") ? h : `#${h}`)).join(" ");
+    return `${String(x.legenda ?? "")}${tags ? `\n\n${tags}` : ""}`;
+  };
+  return (
+    <>
+      <div className="grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(260px,1fr))]">
+        {vivas.map((p) => {
+          const arte = pecas[p.id]?.arte;
+          const copy = pecas[p.id]?.copy;
+          const capa = arte?.arquivos.find((u) => !/\.(mp4|mov)(\?|$)/i.test(u));
+          return (
+            <Card key={p.id} className="flex flex-col overflow-hidden p-0">
+              <button type="button" onClick={() => setAberta(p)} className="block aspect-[4/5] w-full bg-surface-2">
+                {capa ? (
+                  <img src={capa} alt={p.tema} className="h-full w-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="flex h-full items-center justify-center p-4 text-center text-[12.5px] text-muted">{arte ? "Vídeo" : "Arte ainda não feita"}</div>
+                )}
+              </button>
+              <div className="flex flex-1 flex-col gap-2 p-3">
+                <div className="flex items-center gap-2 text-[11.5px] text-muted">
+                  <span>{diaBonito(p.dia)} · {FORMATO_TEXTO[p.formato]}</span>
+                  <span className="ml-auto"><Selo status={p.status} /></span>
+                </div>
+                <div className="line-clamp-2 text-[13px] font-semibold text-ink">{p.tema}</div>
+                <div className="mt-auto flex flex-wrap gap-1.5">
+                  {copy && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigator.clipboard.writeText(legendaDe(copy)).then(() => showToast("Legenda copiada."), () => showToast("Não deu para copiar."))}
+                    >
+                      <CopyIcon /> Legenda
+                    </Button>
+                  )}
+                  {(arte?.arquivos ?? []).map((u, i) => (
+                    <a key={u} href={u} target="_blank" rel="noreferrer" download className="inline-flex items-center gap-1 rounded-md border border-border px-2 py-1 text-[12px] text-ink hover:border-primary">
+                      <Download className="h-3.5 w-3.5" /> {arte!.arquivos.length > 1 ? `${i + 1}` : "Arte"}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+      </div>
+      <PautaDialog pauta={aberta} onClose={() => setAberta(null)} />
+    </>
+  );
+}
+
 /* ───────────── Radar ───────────── */
+
+function ComoFuncionaRadar() {
+  const { data: fontes = [] } = useFontes();
+  const ativas = fontes.filter((f) => f.ativo);
+  const semPermissao = ativas.filter((f) => /permiss/i.test(f.erro ?? "")).length;
+  return (
+    <Card className="space-y-2 p-5 text-[13px]">
+      <h3 className="text-[15px] font-semibold text-ink">Como o Radar funciona</h3>
+      <ol className="list-decimal space-y-1 pl-5 text-muted">
+        <li>Uma vez por dia a Rita lê os últimos 25 posts de cada perfil de referência ({ativas.length} perfis ligados em Configurações).</li>
+        <li>Cada post ganha uma nota: curtidas, comentários e views comparados ao tamanho da conta. Assim um perfil pequeno que bombou aparece na frente de um grande que foi mal.</li>
+        <li>Os 10 melhores dos últimos 30 dias ganham uma explicação em uma frase: o tipo de gancho, o formato e o tema que fizeram funcionar.</li>
+        <li>O Téo usa esses 10 como inspiração de formato e gancho no plano dos próximos posts (nunca copia o texto).</li>
+      </ol>
+      {semPermissao > 0 && (
+        <p className="rounded-[9px] bg-amber-500/10 p-2 text-amber-200">
+          Parado agora: a Meta não está deixando ler os perfis ({semPermissao} de {ativas.length}). Falta a permissão instagram_manage_insights no acesso do app DemandIA Direct. Assim que liberar, o Radar volta sozinho no próximo ciclo.
+        </p>
+      )}
+    </Card>
+  );
+}
 
 function Radar() {
   const { data: refs = [], isLoading } = useReferencias();
   if (isLoading) return <p className="p-6 text-[13px] text-muted">Carregando…</p>;
-  if (!refs.length) return <EmptyState>O Radar ainda não trouxe referências. Ele roda uma vez por dia; dá para rodar agora em Configurações.</EmptyState>;
+  if (!refs.length)
+    return (
+      <div className="space-y-4">
+        <ComoFuncionaRadar />
+        <EmptyState>O Radar ainda não trouxe referências. Ele roda uma vez por dia; dá para rodar agora em Configurações.</EmptyState>
+      </div>
+    );
   return (
+    <div className="space-y-4">
+    <ComoFuncionaRadar />
     <Card className="p-5">
       <h3 className="mb-1 text-[15px] font-semibold text-ink">O que bombou nos últimos 30 dias</h3>
       <p className="mb-3 text-[12.5px] text-muted">Nota = engajamento comparado ao tamanho da conta. O Pauteiro usa os melhores como inspiração.</p>
@@ -352,17 +595,18 @@ function Radar() {
         </div>
       ))}
     </Card>
+    </div>
   );
 }
 
 /* ───────────── Configurações ───────────── */
 
 const AGENTES: { chave: "radar" | "pauteiro" | "redator" | "diretor" | "publicador"; nome: string; faz: string }[] = [
-  { chave: "radar", nome: "Radar", faz: "Pesquisa os perfis de referência todo dia e acha o que bombou." },
-  { chave: "pauteiro", nome: "Pauteiro", faz: "Monta o calendário: 1 post por dia, alternando os horários." },
-  { chave: "redator", nome: "Redator", faz: "Escreve slides, roteiro e legenda com a palavra do Direct." },
-  { chave: "diretor", nome: "Diretor de arte", faz: "Gera as imagens do carrossel e do estático." },
-  { chave: "publicador", nome: "Publicador", faz: "Posta no horário e cria o gatilho do Direct." },
+  { chave: "radar", nome: "Rita · Radar", faz: "Pesquisa os perfis de referência todo dia e acha o que bombou." },
+  { chave: "pauteiro", nome: "Téo · Plano do mês", faz: "Monta o calendário: 1 post por dia, alternando os horários." },
+  { chave: "redator", nome: "Bia · Copy", faz: "Escreve slides, roteiro e legenda com a palavra do Direct." },
+  { chave: "diretor", nome: "Duda · Arte", faz: "Gera as imagens do carrossel e do estático." },
+  { chave: "publicador", nome: "Lara · Publicação", faz: "Posta no horário e cria o gatilho do Direct." },
 ];
 
 function Configuracoes() {
@@ -385,7 +629,7 @@ function Configuracoes() {
       <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-[15px] font-semibold text-ink">Estúdio ligado</h3>
+            <h3 className="text-[15px] font-semibold text-ink">Time de Marketing IA ligado</h3>
             <p className="text-[12.5px] text-muted">Desligado, nenhum agente roda e nada é publicado.</p>
           </div>
           <Switch checked={config.ativo} onCheckedChange={(v) => salvar.mutate({ ativo: v }, { onSuccess: ok, onError: erro })} />
