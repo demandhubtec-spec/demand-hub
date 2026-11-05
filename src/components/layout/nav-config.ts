@@ -50,6 +50,7 @@ export const navGroups: NavGroup[] = [
     colaboradorPode: false, // colaborador não vê nada do Comercial (CRM, clientes, prospecção)
     children: [
       ...deptChildren("comercial"),
+      { label: "Time comercial", path: "/comercial/time", colaboradorPode: false },
       { label: "CRM", path: "/comercial/crm", colaboradorPode: false },
       { label: "Clientes", path: "/comercial/clientes", colaboradorPode: false },
     ],
