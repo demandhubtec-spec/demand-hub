@@ -190,8 +190,17 @@ const AUTO_FORTE = [
   /nunca solicita pagamento|nao caia em golpe/,
   /contato e exclusivo para mensagens/,
   /para (comecarmos|iniciarmos|agilizar (o |seu )?atendimento)/,
+  // 04/11: Ortosol, Pet Smell, Dra. Pri Benfica e Dra. Jéssica mandaram boas-vindas de robô minutos depois
+  // do disparo e a Ana despejou o diagnóstico em cima do robô
+  /agradece (o |seu |o seu |pelo )?contato/,
+  /damos (as )?boas[- ]?vindas/,
+  /se (eu )?nao (responder|atender|conseguir responder) (imediatamente|na hora|de imediato|agora)/,
+  /retornarei (sua mensagem|seu contato|assim que)/,
+  /caso (ainda )?nao tenha informado/,
   /^\s*(1|1\.|1\)|1 -|1-)\s.+\n\s*(2|2\.|2\)|2 -|2-)\s/m,
 ];
+
+const NAO_TEM_INTERESSE = /\bnao (temos|tenho|ha|teriamos|tenhamos) (nenhum )?interesse|\bsem interesse\b|\bnao (queremos|precisamos|pretendemos contratar)/;
 
 /** Sinais fracos (saudação genérica): só contam se chegou logo depois da nossa mensagem. */
 const AUTO_FRACO = [
@@ -215,6 +224,8 @@ const AUTO_FRACO = [
 export function pareceRespostaAutomatica(texto: string, segundosDesdeEnvio?: number | null): boolean {
   const t = sem(texto ?? "");
   if (!t.trim()) return false;
+  // "Obrigada pelo contato, mas não temos interesse" é gente dizendo não (Xavier Imóveis, 04/11): nunca é robô
+  if (NAO_TEM_INTERESSE.test(t)) return false;
   if (AUTO_FORTE.some((r) => r.test(t))) return true;
   const logo = segundosDesdeEnvio !== null && segundosDesdeEnvio !== undefined && segundosDesdeEnvio >= 0 && segundosDesdeEnvio <= 90;
   return logo && AUTO_FRACO.some((r) => r.test(t));

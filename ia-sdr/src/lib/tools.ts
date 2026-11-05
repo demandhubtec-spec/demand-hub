@@ -176,10 +176,19 @@ async function notifyOwner(text: string) {
   }
 }
 
+/** Agenda fora do ar: avisa o Kelvin no máximo uma vez a cada 6 horas. */
+let ultimoAvisoAgenda = 0;
+async function avisarAgendaFora(lead: Lead, e: unknown) {
+  if (Date.now() - ultimoAvisoAgenda < 6 * 3600e3) return;
+  ultimoAvisoAgenda = Date.now();
+  const msg = String((e as Error)?.message ?? e).slice(0, 160);
+  await notifyOwner(`⚠️ A Google Agenda da Ana não respondeu (${msg}). Ela segue oferecendo horários do expediente, mas reconecte a agenda para não marcar em cima de compromisso. Lead: ${lead.empresa ?? lead.nome ?? lead.phone}`).catch(() => {});
+}
+
 /** Próximos horários livres reais da agenda (para a retomada já chegar com 2 opções concretas). */
 export async function proximosHorarios(now = new Date()): Promise<string[]> {
   const cfg = SDR_CONFIG.reuniao;
-  const busy = await busyIntervals(now, new Date(now.getTime() + (cfg.diasAFrente + 1) * 86_400_000));
+  const busy = await busyIntervals(now, new Date(now.getTime() + (cfg.diasAFrente + 1) * 86_400_000)).catch(() => []);
   return pickOptions(freeSlots(now, busy, cfg)).map((s) => formatBR(s.start));
 }
 
@@ -254,7 +263,15 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       const offsetDias = isNaN(pedido.getTime()) ? 0 : Math.min(30, Math.max(0, Math.ceil((pedido.getTime() - now.getTime()) / 86_400_000)));
       const base = new Date(now.getTime() + offsetDias * 86_400_000);
       const diasAFrente = cfg.diasAFrente + offsetDias;
-      const busy = await busyIntervals(now, new Date(now.getTime() + (diasAFrente + 1) * 86_400_000));
+      // Agenda do Google fora do ar (ex.: acesso expirado): oferece os horários do expediente mesmo assim
+      // e avisa o Kelvin, em vez de travar a conversa com quem decide (Munhoz, 04/11)
+      let agendaOk = true;
+      const busy = await busyIntervals(now, new Date(now.getTime() + (diasAFrente + 1) * 86_400_000)).catch(async (e) => {
+        agendaOk = false;
+        console.error("ver_horarios: agenda indisponível", e);
+        await avisarAgendaFora(lead, e);
+        return [] as Awaited<ReturnType<typeof busyIntervals>>;
+      });
       let slots = freeSlots(now, busy, { ...cfg, diasAFrente }).filter((s) => offsetDias === 0 || s.start >= localDayStart(base));
       if (input.preferencia === "sabado") slots = slots.filter((s) => toLocal(s.start).dow === 6);
       if (input.preferencia === "dias_de_semana") slots = slots.filter((s) => toLocal(s.start).dow !== 6);
@@ -264,6 +281,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         opcoes: options.map((s) => ({ inicio: isoBR(s.start), legivel: formatBR(s.start) })),
         outros_horarios_livres: slots.slice(0, 12).map((s) => formatBR(s.start)),
         duracao_minutos: SDR_CONFIG.reuniao.duracaoMin,
+        ...(agendaOk ? {} : { aviso: "Agenda não confirmada agora; o especialista já foi avisado. Ofereça normalmente 2 destes horários." }),
       });
     }
 
@@ -282,7 +300,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (!emails.length) return "Preciso de pelo menos um e-mail válido para enviar o convite. Peça ao lead.";
 
       const end = new Date(start.getTime() + SDR_CONFIG.reuniao.duracaoMin * 60_000);
-      const busy = await busyIntervals(start, end);
+      const busy = await busyIntervals(start, end).catch(() => []);
       if (busy.length) return "Esse horário acabou de ser ocupado. Chame ver_horarios de novo e ofereça outras opções.";
 
       // Reserva no banco primeiro (índice único impede duas reuniões no mesmo horário)
@@ -330,9 +348,19 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           convite_enviado_para: emails,
         });
       } catch (e) {
-        await db().from("sdr_meetings").delete().eq("id", ins.data.id);
+        // Sem Google Agenda: a reunião fica reservada no banco e o Kelvin manda o convite à mão.
+        // Perder a reunião por falha técnica é pior do que o convite chegar alguns minutos depois.
         console.error(e);
-        return "Não consegui criar o evento na agenda agora. Peça desculpas, diga que o nosso especialista vai confirmar o horário em instantes e use encaminhar_humano.";
+        await updateLead(leadId, { status: "agendado", email: lead.email ?? emails[0], next_followup_at: null, followup_attempts: 0 });
+        await notifyOwner(
+          `📅 REUNIÃO MARCADA, mas a Google Agenda falhou: crie o convite à mão\n${formatBR(start)} (${SDR_CONFIG.reuniao.duracaoMin} min)\n${lead.nome ?? ""} ${lead.empresa ? `(${lead.empresa})` : ""}\nE-mail: ${emails.join(", ")}\nWhatsApp: +${lead.phone}`,
+        );
+        return JSON.stringify({
+          ok: true,
+          quando: formatBR(start),
+          duracao_minutos: SDR_CONFIG.reuniao.duracaoMin,
+          convite: "o link do Google Meet chega por e-mail em seguida (o especialista envia). Confirme dia e horário ao lead e diga que o convite chega no e-mail.",
+        });
       }
     }
 

@@ -468,3 +468,14 @@ test("prospecção: prompt sem entrevista/BANT e com convite de 2 horários; inb
   assert.match(i, /Critérios BANT/);
   assert.doesNotMatch(i, /Sem entrevista/);
 });
+
+import { pareceRespostaAutomatica as auto } from "../src/lib/prospeccao.ts";
+
+test("04/11: boas-vindas de robô fora dos 90s e 'não temos interesse' de gente", () => {
+  assert.equal(auto("Ortosol agradece seu contato. Como podemos ajudar?", 14000), true);
+  assert.equal(auto("Olá! Damos as boas-vindas ao consultório da Dra. Priscilla Benfica", 1500), true);
+  assert.equal(auto("Olá! Sou a Dra. Jéssica Carvalho. 😊 Se eu não responder imediatamente, é possível que esteja realizando um atendimento.", 300), true);
+  assert.equal(auto("Olá, Ana! Obrigada pelo contato, mas no momento não temos interesse nesse tipo de serviço.", 30), false);
+  assert.equal(auto("Bom dia!!! Não tenho interesse", 30), false);
+  assert.equal(auto("Sim", 30), false);
+});
