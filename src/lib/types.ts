@@ -6,6 +6,7 @@ export type Departamento = "tecnologia" | "marketing" | "comercial" | "administr
 export type Papel = "dono" | "colaborador";
 export type ClienteStatus = "ativo" | "pausado" | "prospeccao";
 export type ProjetoStatus = "a-fazer" | "andamento" | "concluido" | "atrasado";
+export type ProjetoFase = "implementacao" | "teste" | "correcao" | "aprovacao" | "concluido";
 export type AtividadeStatus = "a-fazer" | "andamento" | "atrasado" | "concluido";
 export type AtividadePrioridade = "baixa" | "media" | "alta" | "urgente";
 export type LancamentoTipo = "entrada" | "saida";
@@ -55,6 +56,7 @@ export interface Projeto {
   prazo_fim: string | null;
   entrega_numero: number | null;
   subtitulo: string | null;
+  fase?: ProjetoFase | null;
 }
 
 export interface Mensagem {
