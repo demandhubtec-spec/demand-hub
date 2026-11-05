@@ -12,6 +12,9 @@ import { useProjetosCliente, type ProjetoView } from "@/hooks/useProjetos";
 import { useAtividadesTodas } from "@/hooks/useAtividades";
 import { useEscopo } from "@/hooks/useEscopo";
 import type { EscopoEntrega } from "@/lib/types";
+import { useAuth } from "@/hooks/useAuth";
+import { AcompanhamentoCliente } from "@/components/shared/AcompanhamentoCliente";
+import { faseLabel } from "@/lib/fases";
 
 const statusLabels: Record<string, string> = {
   "a-fazer": "A fazer",
@@ -52,6 +55,16 @@ function CardProjeto({ p, rotulo, subtitulo, onOpen }: { p: ProjetoView; rotulo:
       <div className="mb-1.5 font-mono text-[11px] text-muted">{rotulo}</div>
       <div className="mb-3.5 min-h-[38px] text-[14.5px] font-semibold leading-tight">{p.nome}</div>
       {subtitulo && <div className="-mt-2 mb-3.5 text-[13px] text-muted">{subtitulo}</div>}
+      {(p.fase || p.prazoFim) && (
+        <div className="-mt-1 mb-3 flex flex-wrap items-center gap-2 font-mono text-[11px]">
+          {p.fase && (
+            <span className="rounded-full bg-primary-tint px-2 py-0.5 font-semibold text-primary-bright">
+              {faseLabel[p.fase] ?? p.fase}
+            </span>
+          )}
+          {p.prazoFim && <span className="text-muted">até {dataBR(p.prazoFim)}</span>}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <StatusBadge status={p.status} />
         <span className="font-mono text-[11px] text-muted">Prioridade {prioLabels[p.prioridade] ?? p.prioridade}</span>
@@ -83,6 +96,7 @@ export default function ProjetosCliente() {
   const { data: atividades = [] } = useAtividadesTodas();
   const [abertoId, setAbertoId] = React.useState<string | null>(null);
   const [imprimindo, setImprimindo] = React.useState(false);
+  const { isColaborador } = useAuth();
 
   const cliente = clientes.find((c) => c.id === clienteId);
   const aberto = projetos.find((p) => p.id === abertoId) ?? null;
@@ -144,6 +158,7 @@ export default function ProjetosCliente() {
           <div className="text-[21px] font-semibold">{cliente.nome}</div>
           <div className="mt-1 text-[13px] text-muted">{sub}</div>
         </div>
+        {!isColaborador && <AcompanhamentoCliente clienteId={cliente.id} clienteNome={cliente.nome} projetos={projetos} />}
         <Button variant="primary" onClick={() => setImprimindo(true)}>
           <Download className="h-4 w-4" />
           Exportar ficha em PDF
@@ -233,7 +248,7 @@ export default function ProjetosCliente() {
                 <div className="print-section" key={p.id}>
                   <h3>
                     {p.entregaNumero ? `${numeroEntrega(p.entregaNumero)} · ` : ""}
-                    {p.nome} — {statusLabels[p.status] ?? p.status}
+                    {p.nome} — {p.fase ? faseLabel[p.fase] : statusLabels[p.status] ?? p.status}
                     {prazo}
                   </h3>
                   {ativs.length === 0 ? (

@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
-import type { AtividadePrioridade, Departamento, ProjetoStatus } from "@/lib/types";
+import type { AtividadePrioridade, Departamento, ProjetoFase, ProjetoStatus } from "@/lib/types";
 
 export interface ProjetoView {
   id: string;
@@ -18,6 +18,7 @@ export interface ProjetoView {
   prazoFim: string | null;
   entregaNumero: number | null;
   subtitulo: string | null;
+  fase: ProjetoFase | null;
 }
 
 type ProjetoRow = {
@@ -36,6 +37,7 @@ type ProjetoRow = {
   prazo_fim?: string | null;
   entrega_numero?: number | null;
   subtitulo?: string | null;
+  fase?: ProjetoFase | null;
   clientes: { nome: string } | null;
 };
 
@@ -56,6 +58,7 @@ function mapRow(p: ProjetoRow): ProjetoView {
     prazoFim: p.prazo_fim ?? p.prazo ?? null,
     entregaNumero: p.entrega_numero ?? null,
     subtitulo: p.subtitulo ?? null,
+    fase: p.fase ?? null,
   };
 }
 
@@ -143,6 +146,7 @@ export type ProjetoPatch = Partial<{
   prioridade: AtividadePrioridade;
   prazo_inicio: string | null;
   prazo_fim: string | null;
+  fase: ProjetoFase | null;
 }>;
 
 /** Atualiza campos do projeto a partir do modal de detalhe. */

@@ -17,8 +17,9 @@ import {
 } from "@/hooks/useAtividades";
 import { useMensagens, useEnviarMensagem, type ChatAlvo } from "@/hooks/useMensagens";
 import { useAnexos, useUploadAnexos, useRemoverAnexo, abrirAnexo } from "@/hooks/useAnexos";
-import type { Anexo, AtividadePrioridade, AtividadeStatus, Perfil, ProjetoStatus } from "@/lib/types";
+import type { Anexo, AtividadePrioridade, AtividadeStatus, Perfil, ProjetoFase, ProjetoStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { FASES, statusDaFase } from "@/lib/fases";
 
 // Mesmas opções do protótipo; valores fora delas (ex.: "urgente", "atrasado") só aparecem se já estiverem salvos.
 const prioridadeBase: { value: AtividadePrioridade; label: string }[] = [
@@ -486,6 +487,16 @@ function TelaProjeto({
               value={local.status}
               options={comAtual(projetoStatusBase, local.status, statusExtra)}
               onSave={(v) => salvar({ status: v }, { status: v })}
+            />
+            <SelectField
+              label="Fase"
+              value={(local.fase ?? "none") as ProjetoFase | "none"}
+              options={[{ value: "none" as const, label: "Não iniciada" }, ...FASES]}
+              onSave={(v) => {
+                const fase = v === "none" ? null : v;
+                const status = statusDaFase(fase, local.status) as ProjetoStatus;
+                salvar({ fase, status }, { fase, status });
+              }}
             />
             <SelectField
               label="Prioridade"
