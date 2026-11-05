@@ -40,13 +40,22 @@ export default function Estudio() {
   const { isColaborador } = useAuth();
   if (isColaborador) return <Navigate to="/" replace />;
   return (
-    <Tabs defaultValue="aprovar">
+    <Tabs defaultValue="central">
       <TabsList>
+        <TabsTrigger value="central">Central do time</TabsTrigger>
         <TabsTrigger value="aprovar">Aprovações</TabsTrigger>
         <TabsTrigger value="calendario">Calendário</TabsTrigger>
         <TabsTrigger value="radar">Radar</TabsTrigger>
         <TabsTrigger value="config">Configurações</TabsTrigger>
       </TabsList>
+      <TabsContent value="central">
+        <iframe
+          src="/central-estudio.html"
+          title="Central do Time de Social Media"
+          className="block w-full rounded-[14px] border-0"
+          style={{ height: "calc(100vh - 150px)", minHeight: 640 }}
+        />
+      </TabsContent>
       <TabsContent value="aprovar">
         <Aprovacoes />
       </TabsContent>

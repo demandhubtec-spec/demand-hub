@@ -10,6 +10,7 @@ import Crm from "@/pages/comercial/Crm";
 import Sdr from "@/pages/comercial/Sdr";
 import Prospeccao from "@/pages/comercial/Prospeccao";
 import Clientes from "@/pages/comercial/Clientes";
+import TimeComercial from "@/pages/comercial/TimeComercial";
 import InstagramDirect from "@/pages/marketing/InstagramDirect";
 import LandingPage from "@/pages/marketing/LandingPage";
 import Estudio from "@/pages/marketing/Estudio";
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="comercial/prospeccao" element={<Prospeccao />} />
           <Route path="prospeccao" element={<Navigate to="/comercial/prospeccao" replace />} />
           <Route path="comercial/clientes" element={<Clientes />} />
+          <Route path="comercial/time" element={<TimeComercial />} />
 
           <Route path="administrativo/financas" element={<Financas />} />
           <Route path="administrativo/contratos" element={<Contratos />} />
