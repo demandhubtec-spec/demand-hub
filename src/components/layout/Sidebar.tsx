@@ -9,8 +9,8 @@ import {
   Briefcase,
   Settings,
   ChevronDown,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronLeft,
+  ChevronRight,
   HelpCircle,
   GitBranch,
   LifeBuoy,
@@ -179,12 +179,12 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             {collapsed ? <BrandMark size={32} /> : <BrandLogo height={30} />}
           </NavLink>
           <button
-            className="hidden h-[28px] w-[28px] shrink-0 items-center justify-center rounded-md text-[#847E90] hover:bg-white/[.07] hover:text-white md:flex"
+            className="hidden h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full text-[#847E90] transition-colors hover:bg-white/[.06] hover:text-white md:flex"
             onClick={onToggleCollapse}
             aria-label={collapsed ? "Abrir menu" : "Recolher menu"}
             title={collapsed ? "Abrir menu" : "Recolher menu"}
           >
-            {collapsed ? <PanelLeftOpen className="h-[17px] w-[17px]" /> : <PanelLeftClose className="h-[17px] w-[17px]" />}
+            {collapsed ? <ChevronRight className="h-[16px] w-[16px]" strokeWidth={2.2} /> : <ChevronLeft className="h-[16px] w-[16px]" strokeWidth={2.2} />}
           </button>
         </div>
 

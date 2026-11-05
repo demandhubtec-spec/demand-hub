@@ -24,6 +24,7 @@ function buildTitleMap(): Record<string, string> {
 }
 
 const titleMap = buildTitleMap();
+const TELA_CHEIA = ["/marketing/estudio", "/comercial/time"];
 
 export function AppLayout() {
   const location = useLocation();
@@ -80,7 +81,13 @@ export function AppLayout() {
           theme={theme}
           onToggleTheme={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
         />
-        <main className="max-w-[1180px] px-[26px] pb-[60px] pt-6 max-md:px-4 max-md:pb-[50px] max-md:pt-[18px]">
+        <main
+          className={cn(
+            "px-[26px] pb-[60px] pt-6 max-md:px-4 max-md:pb-[50px] max-md:pt-[18px]",
+            // As centrais dos times usam a tela toda (widescreen); o resto do portal segue na largura de leitura
+            TELA_CHEIA.some((p) => location.pathname.startsWith(p)) ? "max-w-none" : "max-w-[1180px]",
+          )}
+        >
           {isColaborador && rotaSoDono(location.pathname) ? <Navigate to="/" replace /> : <Outlet />}
         </main>
       </div>

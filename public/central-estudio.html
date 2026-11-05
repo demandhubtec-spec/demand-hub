@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DemandIA · Estúdio · Central do Time de Social Media</title>
+<title>DemandIA · Time de Marketing IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Anton&display=swap" rel="stylesheet">
 <style>
@@ -194,6 +194,17 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
 .brandbook .sw div{width:92px;border-radius:10px;overflow:hidden;border:1px solid var(--line);font-family:var(--mono);font-size:10px}
 .brandbook .sw i{display:block;height:46px}
 .brandbook .sw span{display:block;padding:5px 6px}
+
+/* barras de rolagem finas, quase invisíveis */
+*{scrollbar-width:thin;scrollbar-color:rgba(164,123,255,.16) transparent}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(164,123,255,.16);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:rgba(164,123,255,.4)}
+::-webkit-scrollbar-corner{background:transparent}
+/* chat do time (grupo) */
+.grp{display:flex}.grp .mini{width:34px;height:34px;margin-left:-10px;border:2px solid #14093a}.grp .mini:first-child{margin-left:0}
+.gm{display:flex;gap:8px;align-items:flex-end;max-width:92%}.gm .mini{width:28px;height:28px;flex-shrink:0}
+.gm .nmz{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0 0 3px 2px}
+.gm .m{max-width:100%}
 </style>
 </head>
 <body>
@@ -202,15 +213,16 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
 <div class="wrap">
   <div class="hud">
     <div class="brand">Demand<b>IA</b></div>
-    <div class="crumb">Marketing / Estúdio</div>
+    <div class="crumb">Marketing / Time de Marketing IA</div>
     <div class="sp"></div>
     <div class="stat"><span class="blink"></span>OPERAÇÃO <b>AO VIVO</b></div>
     <div class="stat">CICLO <b>DEZ/2026</b></div>
     <div class="stat">AGENTES <b>8 ONLINE</b></div>
     <div class="stat">NA SUA FILA <b id="qcount">0</b></div>
+    <button class="btn pri" onclick="abrirGrupo()">Chat do time</button>
     <button class="btn" onclick="abrirManual()">Manual de marca</button>
   </div>
-  <h1 class="title">Central do Time de Social Media</h1>
+  <h1 class="title">Central do Time de Marketing IA</h1>
   <p class="sub">A Vera coordena o time. Cada etapa passa pelo Rui antes de chegar em você, e nada é publicado sem a sua aprovação.</p>
 
   <section class="panel">
@@ -570,9 +582,37 @@ function aba_(t){
    document.getElementById('send').onsubmit=e=>{e.preventDefault();const i=document.getElementById('inp');falar(i.value);i.value=''};pintarChat();setTimeout(()=>document.getElementById('inp')?.focus(),250)}
 }
 function pintarChat(extra=''){const m=document.getElementById('msgs');if(!m)return;m.innerHTML=CONV[atual].map(x=>`<div class="m ${x.de}">${x.t.replace(/</g,'&lt;')}</div>`).join('')+extra;m.scrollTop=m.scrollHeight}
-function falar(t){if(!t||!t.trim())return;const id=atual,a=byId(id);CONV[id].push({de:'me',t});pintarChat(`<div class="typing">${a.nome.toUpperCase()} DIGITANDO...</div>`);
+function falar(t){if(!t||!t.trim())return;const id=atual,a=byId(id);CONV[id].push({de:'me',t});salvarMsg('kelvin',id,t);pintarChat(`<div class="typing">${a.nome.toUpperCase()} DIGITANDO...</div>`);
   const r=(a.resp||[]).find(([re])=>re.test(t.toLowerCase()));
   setTimeout(()=>{CONV[id].push({de:'ag',t:r?r[1]:'Anotado. Vou aplicar na próxima entrega e aviso a Vera para ajustar o fluxo. Te respondo por aqui quando estiver pronto.'});if(atual===id)pintarChat()},1000+Math.random()*700)}
+
+/* ================= CHAT DO TIME (grupo) ================= */
+/* O portal expõe o cliente do banco (mesma origem). Sem ele, o chat funciona só na tela. */
+const SB=(()=>{try{return (window.parent&&window.parent.__demandSupabase)||null}catch(e){return null}})();
+let GRUPO=[];
+const ACK={vera:'Recebido, Kelvin. Já passei para o time e acompanho nas próximas entregas.',rita:'Anotado. Vou olhar isso nas próximas pesquisas.',teo:'Combinado. Ajusto o plano das próximas semanas com isso.',bia:'Perfeito. Aplico nos próximos textos.',duda:'Fechado. Levo isso para as próximas artes.',rui:'Entra no meu checklist a partir de agora.',lara:'Ok, sigo publicando no horário com esse ajuste.',nina:'Vou medir o efeito disso nos próximos relatórios.'};
+const hhmm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+async function salvarMsg(autor,para,texto){if(!SB)return;try{await SB.from('estudio_mensagens').insert({autor,para,texto})}catch(e){}}
+async function carregarGrupo(){if(!SB)return;try{const {data}=await SB.from('estudio_mensagens').select('autor,texto,created_at').eq('para','time').order('created_at',{ascending:false}).limit(60);if(data&&data.length)GRUPO=data.reverse().map(m=>({de:m.autor,t:m.texto,h:hhmm(m.created_at)}))}catch(e){}}
+function abrirGrupo(){
+  const d=document.getElementById('drawer');
+  d.innerHTML=`<div class="dh"><div class="grp">${T.slice(0,5).map(a=>mini(a.id)).join('')}</div><div><div class="nm">Chat do time</div><div class="rl">Você e os ${T.length} agentes. O que você escrever aqui vira orientação para as próximas pautas, textos e artes.</div></div><button class="x" onclick="fecharTudo()">×</button></div>
+  <div class="db"><div class="chat"><div class="msgs" id="gmsgs"></div><div class="sugs">${['Foco do mês: lotar a agenda das clínicas','Menos texto nos slides','Mais reels de demonstração'].map(c=>`<button onclick='falarGrupo(${JSON.stringify(c)})'>${c}</button>`).join('')}</div><form class="send" id="gsend"><input id="ginp" placeholder="Fale com o time todo..." autocomplete="off"><button class="btn pri">Enviar</button></form></div></div>`;
+  d.classList.add('on');document.getElementById('shade').classList.add('on');
+  document.getElementById('gsend').onsubmit=e=>{e.preventDefault();const i=document.getElementById('ginp');falarGrupo(i.value);i.value=''};
+  pintarGrupo();carregarGrupo().then(()=>pintarGrupo());setTimeout(()=>document.getElementById('ginp')?.focus(),250)}
+function pintarGrupo(extra=''){const m=document.getElementById('gmsgs');if(!m)return;
+  const ini=GRUPO.length?'':`<div class="gm">${mini('vera')}<div><div class="nmz">Vera · coordenação</div><div class="m ag">Oi, Kelvin. Aqui é o grupo do time todo. Passa a visão que eu distribuo e cada um aplica na sua parte.</div></div></div>`;
+  m.innerHTML=ini+GRUPO.map(x=>x.de==='kelvin'?`<div class="m me">${x.t.replace(/</g,'&lt;')}</div>`:`<div class="gm">${mini(x.de)}<div><div class="nmz">${byId(x.de)?.nome??x.de} · ${x.h||''}</div><div class="m ag">${x.t.replace(/</g,'&lt;')}</div></div></div>`).join('')+extra;m.scrollTop=m.scrollHeight}
+function falarGrupo(t){if(!t||!t.trim())return;t=t.trim();GRUPO.push({de:'kelvin',t,h:hhmm(new Date())});salvarMsg('kelvin','time',t);pintarGrupo('<div class="typing">VERA DIGITANDO...</div>');
+  const low=t.toLowerCase();
+  const casam=T.filter(a=>!a.coord&&(a.resp||[]).some(([re])=>re.test(low))).map(a=>a.id);
+  const extras=['teo','bia','duda'].filter(i=>!casam.includes(i)).sort(()=>Math.random()-.5).slice(0,Math.max(0,2-casam.length));
+  const quem=['vera',...casam.slice(0,2),...extras];
+  quem.forEach((id,k)=>setTimeout(()=>{const a=byId(id);const r=(a.resp||[]).find(([re])=>re.test(low));const tx=(r&&id!=='vera')?r[1]:ACK[id];
+    GRUPO.push({de:id,t:tx,h:hhmm(new Date())});salvarMsg(id,'time',tx);
+    pintarGrupo(k<quem.length-1?`<div class="typing">${byId(quem[k+1]).nome.toUpperCase()} DIGITANDO...</div>`:'');
+    if(k===0)addComm('vera','kelvin','Orientação do Kelvin no chat do time: '+t.slice(0,140))},900+k*1300))}
 
 /* ================= MANUAL DE MARCA ================= */
 function abrirManual(){

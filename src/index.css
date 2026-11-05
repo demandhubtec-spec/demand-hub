@@ -132,19 +132,25 @@ a {
   color: var(--primary-bright);
 }
 
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Barras de rolagem finas e quase invisíveis (Kelvin, 05/11) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(164, 123, 255, 0.16) transparent;
 }
-::-webkit-scrollbar-track {
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(164, 123, 255, 0.35);
+  background: rgba(164, 123, 255, 0.16);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(164, 123, 255, 0.6);
+  background: rgba(164, 123, 255, 0.4);
 }
 
 @keyframes gridshift {

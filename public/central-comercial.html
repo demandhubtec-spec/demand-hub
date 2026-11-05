@@ -260,6 +260,12 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
 
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 @media(max-width:800px){.two-col,.qual{grid-template-columns:1fr 1fr}}
+
+/* barras de rolagem finas, quase invisíveis */
+*{scrollbar-width:thin;scrollbar-color:rgba(164,123,255,.16) transparent}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(164,123,255,.16);border-radius:4px}::-webkit-scrollbar-thumb:hover{background:rgba(164,123,255,.4)}
+::-webkit-scrollbar-corner{background:transparent}
 </style>
 </head>
 <body>

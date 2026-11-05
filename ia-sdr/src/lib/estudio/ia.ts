@@ -3,6 +3,7 @@
  * Todas as respostas vêm em JSON e passam pelas regras de marca da DemandIA.
  */
 import { callLLM } from "../llm.ts";
+import { db } from "../db.ts";
 import { SDR_CONFIG } from "../../config/sdr.ts";
 import type { Formato, Pilar, Vaga } from "./regras.ts";
 
@@ -15,6 +16,23 @@ export const REGRAS_DE_MARCA = `## Regras de marca da ${SDR_CONFIG.empresa.nome}
 - Assinatura da marca, quando couber: "A DemandIA trabalha. Você fatura."
 - Nunca invente número de cliente, depoimento, nome de cliente ou resultado. Use números só como exemplo ilustrativo e deixe isso claro.
 - Use a referência como formato e tipo de gancho, nunca copie o texto dela.`;
+
+/**
+ * O que o Kelvin disse ao time no chat da Central (grupo ou individual), últimos 30 dias.
+ * Entra no prompt do Pauteiro e do Redator como orientação de prioridade alta.
+ */
+export async function orientacoesDoKelvin(): Promise<string> {
+  const desde = new Date(Date.now() - 30 * 86_400_000).toISOString();
+  const { data } = await db()
+    .from("estudio_mensagens")
+    .select("para,texto,created_at")
+    .eq("autor", "kelvin")
+    .gte("created_at", desde)
+    .order("created_at", { ascending: false })
+    .limit(15);
+  const linhas = ((data ?? []) as { para: string; texto: string }[]).map((m) => `- ${m.para === "time" ? "para o time" : `para ${m.para}`}: ${m.texto.slice(0, 400)}`);
+  return linhas.length ? `\n\n## Orientações do Kelvin no chat do time (siga, a mais recente vale mais)\n${linhas.join("\n")}` : "";
+}
 
 function jsonDe<T>(txt: string | null | undefined): T {
   const t = (txt ?? "").trim().replace(/^```(?:json)?/i, "").replace(/```$/, "");
@@ -70,6 +88,7 @@ export async function gerarPautas(opts: { vagas: Vaga[]; pilares: Pilar[]; refs:
     .map((r) => `- id=${r.id} | @${r.conta} | ${r.formato} | nota ${r.nota} | ${r.motivo ?? ""} | "${(r.legenda ?? "").slice(0, 160)}"`)
     .join("\n");
   const vagas = opts.vagas.map((v) => `- ${v.dia} | ${v.formato} | pilar: ${v.pilar}`).join("\n");
+  const orientacoes = await orientacoesDoKelvin().catch(() => "");
   const out = await pedirJson<{ pautas: PautaGerada[] }>(
     `Você é o Pauteiro da ${SDR_CONFIG.empresa.nome}, que vende recepcionista de IA, automação de atendimento, diagnóstico gratuito e marketing para donos de clínicas e negócios locais.
 Monte uma pauta para cada vaga do calendário: tema (o assunto do post), gancho (a primeira frase, que segura a atenção), palavra_gatilho (uma palavra em maiúsculas para o seguidor comentar e receber algo no Direct, como DEMO, AGENDA, DIAGNOSTICO; use em cerca de metade dos posts, nos de oferta e demonstração; senão null) e referencias (ids das referências que inspiraram, 0 a 2).
@@ -82,7 +101,7 @@ ${pilares}
 ## Não repita estes temas recentes
 ${opts.temasRecentes.slice(0, 40).map((t) => `- ${t}`).join("\n") || "- (nenhum)"}
 
-Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","palavra_gatilho":"DEMO" ou null,"referencias":["id"]}]}`,
+Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","palavra_gatilho":"DEMO" ou null,"referencias":["id"]}]}${orientacoes}`,
     `## Vagas\n${vagas}\n\n## Referências que mais engajaram\n${refs || "- (ainda sem referências)"}`,
     6000,
   );
@@ -110,7 +129,7 @@ export interface CopyReels {
 export type Copy = CopyCarrossel | CopyEstatico | CopyReels;
 
 const FORMATO_PEDIDO: Record<Formato, string> = {
-  carrossel: `Carrossel de 5 a 8 lâminas. Lâmina 1 = capa com o gancho (titulo até 60 caracteres, texto opcional até 90). Lâminas do meio = um ponto por lâmina (titulo até 50, texto até 220). Última lâmina = chamada para ação (com a palavra-chave, se houver).
+  carrossel: `Carrossel de 7 a 10 lâminas (Kelvin, 05/11: os de 5 ficaram curtos demais). Lâmina 1 = capa com o gancho (titulo até 60 caracteres, texto opcional até 90). Lâmina 2 = o problema com uma cena real do dono. Lâminas do meio = um ponto por lâmina, com exemplo concreto (titulo até 50, texto de 120 a 240 caracteres). Última lâmina = chamada para ação (com a palavra-chave, se houver).
 JSON: {"slides":[{"titulo":"...","texto":"..."}],"legenda":"...","hashtags":["...","..."]}`,
   estatico: `Post estático de uma imagem: titulo forte (até 70 caracteres) e subtitulo (até 120).
 JSON: {"titulo":"...","subtitulo":"...","legenda":"...","hashtags":["..."]}`,
@@ -132,6 +151,7 @@ export async function redigir(opts: {
   const ajuste = opts.ajuste
     ? `\n\n## Ajuste pedido pelo Kelvin (prioridade máxima)\n${opts.ajuste.comentario}\n\n## Versão anterior\n${JSON.stringify(opts.ajuste.anterior).slice(0, 4000)}`
     : "";
+  const orientacoes = await orientacoesDoKelvin().catch(() => "");
   return pedirJson<Copy>(
     `Você é o Redator da ${SDR_CONFIG.empresa.nome} no Instagram (@demand_ia).
 
@@ -141,7 +161,7 @@ ${REGRAS_DE_MARCA}
 ${FORMATO_PEDIDO[opts.formato]}
 
 ## Legenda
-Até 1.200 caracteres, parágrafos curtos, começa com o gancho, termina com uma pergunta ou com a chamada da palavra-chave. Hashtags: 3 a 5, do nicho, sem #.`,
+Até 1.200 caracteres, parágrafos curtos, começa com o gancho, termina com uma pergunta ou com a chamada da palavra-chave. Hashtags: 3 a 5, do nicho, sem #.${orientacoes}`,
     `Tema: ${opts.tema}
 Gancho sugerido: ${opts.gancho ?? "(crie um)"}
 Pilar: ${opts.pilar ?? "-"}
