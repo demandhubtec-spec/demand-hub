@@ -2,6 +2,7 @@ import * as React from "react";
 import { Navigate } from "react-router-dom";
 import { Check, ChevronLeft, ChevronRight, Copy as CopyIcon, Download, LayoutGrid, List, Pencil, Play, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { chamarSdr } from "@/hooks/useProspeccao";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -29,6 +30,8 @@ import {
   useReferencias,
   useRodarAgente,
   useSalvarConfig,
+  subirArquivoDaMarca,
+  type Marca,
   type Pauta,
   type Peca,
 } from "@/hooks/useEstudio";
@@ -43,7 +46,10 @@ export default function Estudio() {
   const { isColaborador } = useAuth();
   // O chat da Central (HTML na mesma origem) grava as conversas com o cliente do banco do portal
   React.useEffect(() => {
-    (window as unknown as { __demandSupabase?: typeof supabase }).__demandSupabase = supabase;
+    const w = window as unknown as { __demandSupabase?: typeof supabase; __demandChamarSdr?: typeof chamarSdr };
+    w.__demandSupabase = supabase;
+    // O chat da Central conversa com os agentes de verdade pelo servidor da Ana
+    w.__demandChamarSdr = chamarSdr;
   }, []);
   if (isColaborador) return <Navigate to="/" replace />;
   return (
@@ -53,6 +59,7 @@ export default function Estudio() {
         <TabsTrigger value="aprovar">Aprovações</TabsTrigger>
         <TabsTrigger value="calendario">Calendário</TabsTrigger>
         <TabsTrigger value="materiais">Materiais</TabsTrigger>
+        <TabsTrigger value="marca">Manual de marca</TabsTrigger>
         <TabsTrigger value="radar">Radar</TabsTrigger>
         <TabsTrigger value="config">Configurações</TabsTrigger>
       </TabsList>
@@ -72,6 +79,9 @@ export default function Estudio() {
       </TabsContent>
       <TabsContent value="materiais">
         <Materiais />
+      </TabsContent>
+      <TabsContent value="marca">
+        <ManualDeMarca />
       </TabsContent>
       <TabsContent value="radar">
         <Radar />
@@ -602,10 +612,10 @@ function Radar() {
 /* ───────────── Configurações ───────────── */
 
 const AGENTES: { chave: "radar" | "pauteiro" | "redator" | "diretor" | "publicador"; nome: string; faz: string }[] = [
-  { chave: "radar", nome: "Rita · Radar", faz: "Pesquisa os perfis de referência todo dia e acha o que bombou." },
-  { chave: "pauteiro", nome: "Téo · Plano do mês", faz: "Monta o calendário: 1 post por dia, alternando os horários." },
-  { chave: "redator", nome: "Bia · Copy", faz: "Escreve slides, roteiro e legenda com a palavra do Direct." },
-  { chave: "diretor", nome: "Duda · Arte", faz: "Gera as imagens do carrossel e do estático." },
+  { chave: "radar", nome: "Rita · Radar", faz: "Pesquisa os perfis de referência todo dia e estuda o nosso perfil toda semana." },
+  { chave: "pauteiro", nome: "Téo · Plano do mês", faz: "Monta o mês inteiro, 1 post por dia. A partir do dia 24 já planeja o mês seguinte." },
+  { chave: "redator", nome: "Bia · Copy", faz: "Escreve slides, roteiro e legenda com a palavra do Direct, no tom do manual." },
+  { chave: "diretor", nome: "Duda · Arte", faz: "Faz as imagens do carrossel e do estático e o vídeo dos reels, no visual da marca." },
   { chave: "publicador", nome: "Lara · Publicação", faz: "Posta no horário e cria o gatilho do Direct." },
 ];
 
@@ -669,17 +679,16 @@ function Configuracoes() {
             <Input value={horarios} onChange={(e) => setHorarios(e.target.value)} placeholder="12:00, 19:30" />
           </div>
           <div>
-            <Label>Dias planejados à frente</Label>
+            <Label>Começar a postar em</Label>
             <Input
-              type="number"
-              min={3}
-              max={45}
-              defaultValue={config.dias_a_frente}
+              type="date"
+              defaultValue={config.inicio_em ?? ""}
               onBlur={(e) => {
-                const n = Math.min(45, Math.max(3, Number(e.target.value) || 14));
-                if (n !== config.dias_a_frente) salvar.mutate({ dias_a_frente: n }, { onSuccess: ok, onError: erro });
+                const v = e.target.value || null;
+                if (v !== config.inicio_em) salvar.mutate({ inicio_em: v }, { onSuccess: ok, onError: erro });
               }}
             />
+            <p className="mt-1 text-[12px] text-muted">O Téo planeja o mês inteiro a partir daqui. Do dia 24 em diante, já monta o mês seguinte.</p>
           </div>
         </div>
         <Button
@@ -783,5 +792,170 @@ function Fontes() {
         </div>
       ))}
     </Card>
+  );
+}
+
+/* ───────────── Manual de marca ───────────── */
+
+const CORES: { chave: keyof NonNullable<Marca["cores"]>; nome: string; padrao: string }[] = [
+  { chave: "fundo", nome: "Fundo", padrao: "#0d0a1a" },
+  { chave: "fundo2", nome: "Brilho do fundo", padrao: "#1e1145" },
+  { chave: "destaque", nome: "Destaque", padrao: "#8b5cf6" },
+  { chave: "destaque2", nome: "Destaque claro", padrao: "#c4b5fd" },
+  { chave: "texto", nome: "Texto", padrao: "#ffffff" },
+];
+
+function proporcaoDaImagem(arquivo: File): Promise<number> {
+  return new Promise((ok) => {
+    const img = new Image();
+    img.onload = () => ok(img.naturalHeight ? img.naturalWidth / img.naturalHeight : 3);
+    img.onerror = () => ok(3);
+    img.src = URL.createObjectURL(arquivo);
+  });
+}
+
+function ManualDeMarca() {
+  const { data: config } = useConfigEstudio();
+  const salvar = useSalvarConfig();
+  const rodar = useRodarAgente();
+  const { showToast } = useToast();
+  const [m, setM] = React.useState<Marca>({});
+  const [subindo, setSubindo] = React.useState<"logo" | "manual" | null>(null);
+  React.useEffect(() => {
+    if (config) setM(config.marca ?? {});
+  }, [config]);
+  if (!config) return <p className="p-6 text-[13px] text-muted">Carregando…</p>;
+
+  const campo = (k: keyof Marca, v: string) => setM((x) => ({ ...x, [k]: v }));
+  const gravar = (nova: Marca, aviso = "Manual salvo. Vale para as próximas copies e artes.") =>
+    salvar.mutate({ marca: nova }, { onSuccess: () => showToast(aviso), onError: (e) => showToast(`Não salvou: ${(e as Error).message}`) });
+  const subir = async (arquivo: File | undefined, tipo: "logo" | "manual") => {
+    if (!arquivo) return;
+    setSubindo(tipo);
+    try {
+      const url = await subirArquivoDaMarca(arquivo, tipo);
+      const nova: Marca = tipo === "logo" ? { ...m, logo_url: url, logo_proporcao: await proporcaoDaImagem(arquivo) } : { ...m, manual_url: url };
+      setM(nova);
+      gravar(nova, tipo === "logo" ? "Logo salva. Entra nas próximas artes." : "Manual salvo.");
+    } catch (e) {
+      showToast(`Não subiu: ${(e as Error).message}`);
+    } finally {
+      setSubindo(null);
+    }
+  };
+  const perfil = config.perfil_padrao ?? {};
+
+  return (
+    <div className="space-y-4">
+      <Card className="space-y-4 p-5">
+        <div>
+          <h3 className="text-[15px] font-semibold text-ink">Manual de marca</h3>
+          <p className="text-[12.5px] text-muted">Tudo aqui entra nas copies (Bia), nas artes e nos vídeos (Duda). Mudou, vale a partir da próxima peça.</p>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label>Logo (PNG ou SVG, de preferência fundo transparente)</Label>
+            <div className="flex items-center gap-3">
+              {m.logo_url ? <img src={m.logo_url} alt="Logo" className="h-12 max-w-[200px] rounded-md bg-[#0d0a1a] object-contain p-1" /> : <span className="text-[12.5px] text-muted">Sem logo ainda</span>}
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface-2">
+                <Upload className="h-3.5 w-3.5" /> {subindo === "logo" ? "Subindo…" : "Subir logo"}
+                <input type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" className="hidden" onChange={(e) => subir(e.target.files?.[0], "logo")} />
+              </label>
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label>Manual completo (PDF)</Label>
+            <div className="flex items-center gap-3">
+              {m.manual_url ? (
+                <a href={m.manual_url} target="_blank" rel="noreferrer" className="text-[12.5px] text-primary underline">Abrir manual</a>
+              ) : (
+                <span className="text-[12.5px] text-muted">Sem PDF ainda</span>
+              )}
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface-2">
+                <Upload className="h-3.5 w-3.5" /> {subindo === "manual" ? "Subindo…" : "Subir PDF"}
+                <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => subir(e.target.files?.[0], "manual")} />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <Label>Cores</Label>
+          <div className="mt-2 flex flex-wrap gap-4">
+            {CORES.map((c) => {
+              const v = m.cores?.[c.chave] || c.padrao;
+              return (
+                <label key={c.chave} className="flex items-center gap-2 text-[12.5px] text-ink">
+                  <input type="color" value={v} onChange={(e) => setM((x) => ({ ...x, cores: { ...x.cores, [c.chave]: e.target.value } }))} className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent" />
+                  <span>{c.nome}<br /><span className="text-muted">{v}</span></span>
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div>
+            <Label>Nome da marca</Label>
+            <Input value={m.nome ?? ""} onChange={(e) => campo("nome", e.target.value)} placeholder="Demand AI" />
+          </div>
+          <div>
+            <Label>Fonte dos títulos (Google Fonts)</Label>
+            <Input value={m.fontes?.titulo ?? ""} onChange={(e) => setM((x) => ({ ...x, fontes: { ...x.fontes, titulo: e.target.value } }))} placeholder="Anton" />
+          </div>
+          <div>
+            <Label>Fonte dos textos (Google Fonts)</Label>
+            <Input value={m.fontes?.texto ?? ""} onChange={(e) => setM((x) => ({ ...x, fontes: { ...x.fontes, texto: e.target.value } }))} placeholder="Inter" />
+          </div>
+        </div>
+        <div>
+          <Label>Tom de voz</Label>
+          <Textarea rows={3} value={m.tom ?? ""} onChange={(e) => campo("tom", e.target.value)} placeholder="Como a marca fala: com quem, de que jeito, o que vende." />
+        </div>
+        <div>
+          <Label>Regras (o que sempre fazer e o que nunca fazer)</Label>
+          <Textarea rows={4} value={m.regras ?? ""} onChange={(e) => campo("regras", e.target.value)} placeholder="Ex.: nome sempre escrito assim, palavras proibidas, uso da logo, chamadas." />
+        </div>
+        <div>
+          <Label>Assinatura (aparece na última lâmina e no fim dos vídeos)</Label>
+          <Input value={m.assinatura ?? ""} onChange={(e) => campo("assinatura", e.target.value)} placeholder="A DemandIA trabalha. Você fatura." />
+        </div>
+        <Button size="sm" disabled={salvar.isPending} onClick={() => gravar(m)}>
+          <Check /> Salvar manual
+        </Button>
+      </Card>
+
+      <Card className="space-y-3 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 className="text-[15px] font-semibold text-ink">Padrão do nosso perfil (@demand_ia)</h3>
+            <p className="text-[12.5px] text-muted">
+              A Rita estuda os nossos posts toda semana (texto e imagem) e o time segue essa linha.
+              {config.ultimo_perfil ? ` Último estudo: ${config.ultimo_perfil.split("-").reverse().join("/")}.` : " Ainda não estudou."}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={rodar.isPending}
+            onClick={() => rodar.mutate("perfil", { onSuccess: () => showToast("Perfil estudado de novo."), onError: (e) => showToast(`Não deu: ${(e as Error).message}`) })}
+          >
+            <Play /> {rodar.isPending ? "Estudando…" : "Estudar agora"}
+          </Button>
+        </div>
+        {perfil.resumo ? (
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="rounded-[10px] border border-border p-3">
+              <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-muted">Conteúdo</div>
+              <p className="whitespace-pre-wrap text-[13px] text-ink">{perfil.resumo}</p>
+            </div>
+            <div className="rounded-[10px] border border-border p-3">
+              <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-muted">Visual</div>
+              <p className="whitespace-pre-wrap text-[13px] text-ink">{perfil.visual}</p>
+            </div>
+          </div>
+        ) : null}
+      </Card>
+    </div>
   );
 }

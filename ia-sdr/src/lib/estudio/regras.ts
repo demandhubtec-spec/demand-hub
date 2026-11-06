@@ -71,6 +71,9 @@ export interface Vaga {
 export function vagasDoCalendario(opts: {
   hoje: string;
   diasAFrente: number;
+  /** Primeiro e último dia do plano (AAAA-MM-DD). Quando vêm, valem no lugar de diasAFrente. */
+  de?: string;
+  ate?: string;
   ocupados: Set<string>;
   horarios: string[];
   mix: Mix;
@@ -80,8 +83,9 @@ export function vagasDoCalendario(opts: {
   const horarios = opts.horarios.length ? opts.horarios : ["12:00"];
   const pilares = opts.pilares.length ? opts.pilares : [{ nome: "Geral", descricao: "" }];
   const out: Vaga[] = [];
-  for (let i = 1; i <= opts.diasAFrente; i++) {
-    const dia = somarDias(opts.hoje, i);
+  const primeiro = opts.de && opts.de > opts.hoje ? opts.de : somarDias(opts.hoje, 1);
+  const ultimo = opts.ate ?? somarDias(opts.hoje, opts.diasAFrente);
+  for (let dia = primeiro; dia <= ultimo; dia = somarDias(dia, 1)) {
     if (opts.ocupados.has(dia)) continue;
     const n = Math.round(new Date(`${dia}T12:00:00Z`).getTime() / 86_400_000);
     out.push({
@@ -92,6 +96,23 @@ export function vagasDoCalendario(opts: {
     });
   }
   return out;
+}
+
+/** Último dia do mês de `dia` (AAAA-MM-DD). */
+export function fimDoMes(dia: string): string {
+  const [a, m] = dia.split("-").map(Number);
+  return new Date(Date.UTC(a, m, 0)).toISOString().slice(0, 10);
+}
+
+/**
+ * Até onde o Pauteiro planeja: o mês corrente inteiro e, a partir do dia `virada` (24), o mês seguinte também.
+ * Nada antes de `inicio` (a data em que o Kelvin quer começar a postar).
+ */
+export function horizonteDoPlano(hoje: string, inicio: string | null, virada = 24): { de: string; ate: string } {
+  const dia = Number(hoje.slice(8, 10));
+  const ate = dia >= virada ? fimDoMes(somarDias(fimDoMes(hoje), 1)) : fimDoMes(hoje);
+  const amanha = somarDias(hoje, 1);
+  return { de: inicio && inicio > amanha ? inicio : amanha, ate };
 }
 
 /**

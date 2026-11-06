@@ -12,7 +12,10 @@ import {
   sequenciaDaSemana,
   somarDias,
   vagasDoCalendario,
+  horizonteDoPlano,
+  fimDoMes,
 } from "../src/lib/estudio/regras.ts";
+import { argumentosDoVideo, duracaoDaCena } from "../src/lib/estudio/video-args.ts";
 
 const pilares = [
   { nome: "Dor", descricao: "" },
@@ -92,4 +95,49 @@ test("legenda ganha a chamada da palavra-chave, hashtags e nunca passa de 2.200"
 
 test("texto da arte sai sem travessão", () => {
   assert.equal(limparTexto("Agenda cheia — sem recepção  extra"), "Agenda cheia, sem recepção extra");
+});
+
+test("plano do mês: começa na data escolhida e vai até o fim do mês", () => {
+  assert.equal(fimDoMes("2026-11-05"), "2026-11-30");
+  assert.equal(fimDoMes("2027-02-10"), "2027-02-28");
+  assert.deepEqual(horizonteDoPlano("2026-11-05", "2026-11-09"), { de: "2026-11-09", ate: "2026-11-30" });
+  assert.deepEqual(horizonteDoPlano("2026-11-12", "2026-11-09"), { de: "2026-11-13", ate: "2026-11-30" });
+});
+
+test("plano do mês: a partir do dia 24 já planeja o mês seguinte", () => {
+  assert.deepEqual(horizonteDoPlano("2026-11-24", "2026-11-09"), { de: "2026-11-25", ate: "2026-12-31" });
+  assert.deepEqual(horizonteDoPlano("2026-12-28", null), { de: "2026-12-29", ate: "2027-01-31" });
+});
+
+test("vagas do mês: um post por dia entre de e ate, sem os dias ocupados", () => {
+  const v = vagasDoCalendario({
+    hoje: "2026-11-05",
+    diasAFrente: 14,
+    de: "2026-11-09",
+    ate: "2026-11-30",
+    ocupados: new Set(["2026-11-10"]),
+    horarios: ["12:00", "19:30"],
+    mix: { carrossel: 4, estatico: 2, reels: 1 },
+    pilares,
+  });
+  assert.equal(v.length, 21);
+  assert.equal(v[0].dia, "2026-11-09");
+  assert.equal(v[v.length - 1].dia, "2026-11-30");
+  assert.ok(!v.some((x) => x.dia === "2026-11-10"));
+});
+
+test("reels: duração de cada cena sai do roteiro, entre 2 e 5 segundos", () => {
+  assert.equal(duracaoDaCena("0-3s"), 3);
+  assert.equal(duracaoDaCena("3-10s"), 5);
+  assert.equal(duracaoDaCena("10-11s"), 2);
+  assert.equal(duracaoDaCena(undefined), 3);
+});
+
+test("reels: comando do vídeo encadeia as cenas com transição e áudio mudo", () => {
+  const a = argumentosDoVideo(["a.png", "b.png", "c.png"], [3, 4, 3], "out.mp4");
+  const filtro = a[a.indexOf("-filter_complex") + 1];
+  assert.equal((filtro.match(/xfade/g) ?? []).length, 2);
+  assert.ok(filtro.includes("offset=2.60") && filtro.includes("offset=6.20"));
+  assert.ok(a.includes("anullsrc=channel_layout=stereo:sample_rate=44100"));
+  assert.equal(a[a.length - 1], "out.mp4");
 });
