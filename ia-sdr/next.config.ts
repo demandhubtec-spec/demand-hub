@@ -19,6 +19,9 @@ const nextConfig: NextConfig = {
       { source: "/diagnostico", destination: "/diagnostico/index.html" },
       // Portfólio animado para clínicas (arquivo estático em public/portfolioclinicas)
       { source: "/portfolioclinicas", destination: "/portfolioclinicas/index.html" },
+      // Portfólio animado para barbearias (arquivo estático em public/portfoliobarbearia)
+      { source: "/portfoliobarbearia", destination: "/portfoliobarbearia/index.html" },
+      { source: "/portfolio/barbearia", destination: "/portfoliobarbearia/index.html" },
     ];
   },
 };
