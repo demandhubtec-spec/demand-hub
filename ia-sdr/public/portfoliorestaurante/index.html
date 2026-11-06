@@ -1,0 +1,496 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>DemandIA para restaurantes</title>
+<meta name="description" content="A DemandIA une marketing, atendimento e tecnologia em um sistema só, para o seu restaurante ser encontrado, responder rápido e vender mais.">
+<meta property="og:title" content="DemandIA para restaurantes">
+<meta property="og:description" content="A demanda do seu restaurante, resolvida com inteligência.">
+<meta name="theme-color" content="#0B0420">
+<link rel="icon" href="/diagnostico/simbolo.svg">
+<link rel="canonical" href="https://demandhub.com.br/portfoliorestaurante">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@600&family=Geist:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+--noite:#0B0420; --ametista:#1C0A4A; --violeta:#6E3AFF; --lilas:#A47BFF; --nevoa:#F6F4FB;
+--texto:#E9E4F7; --suave:#A99FC9; --linha:rgba(164,123,255,.22);
+--verde:#25D366; --verde-escuro:#1EBE5A;
+--display:"Archivo Narrow","Arial Narrow",sans-serif;
+--corpo:"Geist",system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:var(--noite)}
+body{background:var(--noite);color:var(--texto);font-family:var(--corpo);font-weight:300;font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--lilas);outline-offset:4px;border-radius:6px}
+
+.cena{min-height:100vh;min-height:100svh;position:relative;display:flex;flex-direction:column;justify-content:center;padding:100px max(24px,7vw) 96px;overflow:hidden}
+.miolo{width:100%;max-width:1180px;margin:0 auto;position:relative;z-index:2}
+h1,h2,h3{font-family:var(--display);font-weight:600;letter-spacing:-.01em;line-height:1.02;color:#fff}
+h2{font-size:clamp(40px,5.4vw,76px);max-width:16ch}
+.lead{font-size:clamp(18px,1.5vw,21px);color:var(--suave);max-width:58ch;margin-top:20px}
+.lead strong{color:#fff;font-weight:500}
+
+/* topo fixo */
+.topo{position:fixed;inset:0 0 auto 0;z-index:20;display:flex;justify-content:space-between;align-items:center;padding:18px max(24px,7vw);pointer-events:none;background:linear-gradient(var(--noite) 30%,rgba(11,4,32,0))}
+.topo img{height:30px;pointer-events:auto}
+.topo .dir{display:flex;align-items:center;gap:18px;pointer-events:auto}
+.topo .pos{font-size:14px;color:var(--suave);font-variant-numeric:tabular-nums}
+.zap-mini{font-size:15px;font-weight:500;text-decoration:none;padding:10px 18px;border-radius:999px;background:var(--verde);color:#062814;transition:background .2s}
+.zap-mini:hover{background:var(--verde-escuro)}
+
+/* trilho */
+.trilho{position:fixed;right:max(14px,2.2vw);top:50%;transform:translateY(-50%);z-index:20;display:flex;flex-direction:column;gap:12px}
+.trilho button{width:10px;height:10px;border-radius:50%;border:1px solid var(--lilas);background:transparent;cursor:pointer;transition:background .4s,transform .4s}
+.trilho button[aria-current="true"]{background:var(--lilas);transform:scale(1.3)}
+
+/* botão de seguir: guia a pessoa passo a passo */
+.seguir{position:absolute;left:50%;bottom:26px;transform:translateX(-50%);z-index:3;display:inline-flex;align-items:center;gap:10px;background:transparent;border:1px solid var(--linha);color:var(--texto);font:500 15px var(--corpo);padding:10px 18px 10px 14px;border-radius:999px;cursor:pointer;transition:border-color .3s,background .3s;white-space:nowrap}
+.seguir:hover{border-color:var(--lilas);background:rgba(110,58,255,.15)}
+.seguir i{width:22px;height:22px;border-radius:50%;background:var(--violeta);display:grid;place-items:center}
+.seguir i::before{content:"";width:6px;height:6px;border-right:1.6px solid #fff;border-bottom:1.6px solid #fff;transform:translateY(-1px) rotate(45deg)}
+.seguir.pulsa i{animation:pulso 2.4s infinite}
+@keyframes pulso{0%,100%{box-shadow:0 0 0 0 rgba(110,58,255,.6)}50%{box-shadow:0 0 0 9px rgba(110,58,255,0)}}
+
+/* entrada de cada cena, mais lenta */
+.cena .miolo{opacity:0;transform:translateY(56px);transition:opacity 1.4s cubic-bezier(.2,.7,.2,1),transform 1.6s cubic-bezier(.2,.7,.2,1)}
+.cena.viva .miolo{opacity:1;transform:none}
+
+/* 1. capa */
+.capa .miolo{display:grid;grid-template-columns:1.1fr .9fr;align-items:center;gap:48px;opacity:1;transform:none}
+.capa h1{font-size:clamp(46px,5vw,80px);max-width:15ch}
+.capa .lead{margin-top:26px}
+.palco{--k:1;position:relative;aspect-ratio:1/1;width:100%;max-width:500px;justify-self:center}
+.palco .nucleo{position:absolute;left:50%;top:50%;width:34%;transform:translate(-50%,-50%) scale(.4);opacity:0;animation:nasce 1.2s 2.4s cubic-bezier(.2,.8,.2,1) forwards}
+.palco .nucleo img{width:100%;display:block;filter:drop-shadow(0 0 40px rgba(110,58,255,.6))}
+.palco .halo{position:absolute;inset:18%;border-radius:50%;border:1px solid var(--linha);opacity:0;animation:aparece 1s 2.8s forwards}
+.palco .halo.b{inset:3%;animation-delay:3s}
+.chip{position:absolute;left:50%;top:50%;font-size:15px;font-weight:500;color:var(--texto);white-space:nowrap;padding:9px 15px;border-radius:999px;background:var(--ametista);border:1px solid var(--linha);
+transform:translate(calc(-50% + var(--x)*var(--k)),calc(-50% + var(--y)*var(--k))) rotate(var(--r));
+animation:junta 1.5s var(--d) cubic-bezier(.75,0,.25,1) forwards, orbita 1.2s 3.7s forwards}
+@keyframes junta{
+0%{transform:translate(calc(-50% + var(--x)*var(--k)),calc(-50% + var(--y)*var(--k))) rotate(var(--r));opacity:1}
+80%{opacity:1}
+100%{transform:translate(-50%,-50%) rotate(0) scale(.3);opacity:0}}
+@keyframes orbita{
+0%{transform:translate(-50%,-50%) scale(.3);opacity:0}
+100%{transform:translate(calc(-50% + var(--ox)*var(--k)),calc(-50% + var(--oy)*var(--k))) scale(1);opacity:1;background:rgba(110,58,255,.16);border-color:rgba(164,123,255,.5)}}
+@keyframes nasce{to{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@keyframes aparece{to{opacity:1}}
+
+/* 2. gargalos */
+.gargalos h2{max-width:24ch}
+.gargalos ul{list-style:none;margin-top:44px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 44px}
+.gargalos li{padding:22px 0 26px;border-top:1px solid var(--linha)}
+.gargalos li b{display:block;font-family:var(--display);font-weight:600;font-size:26px;color:var(--lilas);margin-bottom:8px}
+.gargalos li span{color:var(--texto);font-size:17px}
+
+/* 3. o que é a DemandIA */
+.sobre .miolo{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center}
+.objetivos{list-style:none;margin-top:34px;display:grid;gap:0}
+.objetivos li{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:start;padding:16px 0;border-top:1px solid var(--linha)}
+.objetivos li:last-child{border-bottom:1px solid var(--linha)}
+.objetivos .ic{width:44px;height:44px;border-radius:12px;background:var(--ametista);border:1px solid var(--linha);display:grid;place-items:center}
+.objetivos .ic svg{width:22px;height:22px;stroke:var(--lilas);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.objetivos b{display:block;font-family:var(--display);font-weight:600;font-size:24px;color:#fff;line-height:1.1}
+.objetivos span{color:var(--suave);font-size:16px}
+.mapa{width:100%;max-width:520px;justify-self:end}
+.mapa svg{width:100%;height:auto;display:block;overflow:visible}
+.mapa .fio{fill:none;stroke:var(--lilas);stroke-width:1.4;stroke-dasharray:400;stroke-dashoffset:400;transition:stroke-dashoffset 2s .5s cubic-bezier(.6,0,.2,1)}
+.sobre.viva .fio{stroke-dashoffset:0}
+.mapa text{font-family:var(--corpo);font-size:14px;fill:var(--texto)}
+.mapa .rot rect{fill:var(--ametista);stroke:var(--linha)}
+.mapa .fim{font-family:var(--display);font-size:17px;font-weight:600;fill:#fff}
+
+/* 4. pilares */
+.pilares .miolo{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);column-gap:64px;align-items:start}
+.pilares .cab{grid-column:1/-1}
+.pilares h2{max-width:none}
+.instrucao{display:flex;align-items:center;gap:10px;margin-top:30px;color:#fff;font-weight:500;font-size:16px}
+.instrucao .dedo{width:28px;height:28px;border-radius:50%;background:var(--violeta);display:grid;place-items:center;animation:pulso 2.4s infinite}
+.instrucao .dedo svg{width:15px;height:15px;fill:#fff}
+.abas{display:flex;flex-direction:column;margin-top:16px;border-top:1px solid var(--linha)}
+.abas button{all:unset;cursor:pointer;display:grid;grid-template-columns:34px 1fr 16px;align-items:center;gap:12px;padding:14px 12px 14px 0;border-bottom:1px solid var(--linha);transition:background .3s,padding .4s}
+.abas button .n{font-family:var(--display);font-weight:600;font-size:18px;color:var(--suave);width:34px;height:34px;border-radius:50%;border:1px solid var(--linha);display:grid;place-items:center;transition:background .3s,color .3s,border-color .3s}
+.abas button .t{font-family:var(--display);font-weight:600;font-size:clamp(28px,3vw,40px);line-height:1;color:var(--suave);transition:color .3s}
+.abas button .s{width:9px;height:9px;border-right:1.6px solid var(--suave);border-bottom:1.6px solid var(--suave);transform:rotate(-45deg);transition:transform .3s,border-color .3s}
+.abas button:hover .t{color:var(--texto)}
+.abas button[aria-selected="true"]{padding-left:12px;background:linear-gradient(90deg,rgba(110,58,255,.22),transparent)}
+.abas button[aria-selected="true"] .n{background:var(--violeta);border-color:var(--violeta);color:#fff}
+.abas button[aria-selected="true"] .t{color:#fff}
+.abas button[aria-selected="true"] .s{border-color:#fff;transform:rotate(-45deg) translate(3px,3px)}
+.abas button.visto:not([aria-selected="true"]) .n{border-color:var(--lilas);color:var(--lilas)}
+.abas button:focus-visible{outline:2px solid var(--lilas);outline-offset:2px}
+.painel{position:relative;margin-top:62px;padding:30px 32px;border-radius:22px;background:var(--ametista);border:1px solid var(--linha)}
+.painel article{display:none}
+.painel article.ativo{display:block;animation:entra .7s cubic-bezier(.2,.8,.2,1)}
+@keyframes entra{from{opacity:0;transform:translateX(24px)}to{opacity:1;transform:none}}
+.painel .rotulo{font-size:15px;color:var(--lilas);font-weight:500}
+.painel .dor{font-size:17px;color:var(--texto);margin-top:6px;max-width:56ch}
+.painel h3{font-size:clamp(26px,2.4vw,32px);margin-top:22px}
+.painel ul{list-style:none;margin-top:14px}
+.painel li{padding:11px 0 11px 26px;border-top:1px solid var(--linha);position:relative;font-size:17px}
+.painel li::before{content:"";position:absolute;left:2px;top:20px;width:9px;height:9px;border-radius:2px;background:var(--violeta);transform:rotate(45deg)}
+.painel .prox{margin-top:20px;background:none;border:0;color:var(--lilas);font:500 15px var(--corpo);cursor:pointer;padding:6px 0;text-decoration:underline;text-underline-offset:4px}
+.painel .prox:hover{color:#fff}
+
+/* 5. passos */
+.passos ol{list-style:none;margin-top:52px;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px;counter-reset:p;position:relative}
+.passos ol::before{content:"";position:absolute;left:0;right:0;top:27px;height:1px;background:var(--linha)}
+.passos li{counter-increment:p;position:relative}
+.passos li::before{content:counter(p);display:grid;place-items:center;width:54px;height:54px;border-radius:50%;background:var(--noite);border:1px solid var(--lilas);font-family:var(--display);font-weight:600;font-size:24px;color:#fff;position:relative}
+.passos li:first-child::before{background:var(--violeta);border-color:var(--violeta)}
+.passos li h3{font-size:26px;margin-top:22px}
+.passos li p{color:var(--suave);margin-top:10px;font-size:17px}
+.passos .nota{margin-top:46px;font-size:19px;color:var(--texto);max-width:62ch}
+
+/* 6. contato */
+.contato{background:radial-gradient(120% 90% at 85% 110%,rgba(110,58,255,.35),transparent 60%),var(--noite)}
+.contato .miolo{display:grid;grid-template-columns:1.2fr .8fr;gap:56px;align-items:center}
+.cartao{justify-self:end;width:100%;max-width:380px;padding:34px;border-radius:28px;background:var(--ametista);border:1px solid var(--linha)}
+.cartao img{width:132px;height:132px;border-radius:50%;object-fit:cover;border:3px solid var(--violeta);display:block}
+.cartao .nome{font-family:var(--display);font-weight:600;font-size:34px;color:#fff;margin-top:22px;line-height:1.05}
+.cartao .cargo{color:var(--lilas);font-size:16px;margin-top:6px}
+.cartao .fone{margin-top:18px;font-size:17px}
+.botao{display:inline-flex;align-items:center;gap:14px;margin-top:34px;background:var(--verde);color:#062814;text-decoration:none;font-weight:600;font-size:19px;line-height:1.25;padding:18px 30px 18px 22px;border-radius:999px;box-shadow:0 10px 34px rgba(37,211,102,.28);transition:background .2s,transform .2s}
+.botao:hover{background:var(--verde-escuro);transform:translateY(-2px)}
+.botao svg{width:28px;height:28px;flex:none}
+.contato .sub{margin-top:14px;color:var(--suave);font-size:15px}
+.contato .diag{margin-top:26px;font-size:16px;color:var(--texto)}
+.contato .diag a{color:var(--lilas);text-underline-offset:4px}
+.contato .diag a:hover{color:#fff}
+
+@media (max-width:900px){
+body{font-size:17px}
+.cena{padding:92px 22px 90px;min-height:auto}
+.cena.capa{min-height:100svh}
+.capa .miolo,.sobre .miolo,.pilares .miolo,.contato .miolo{grid-template-columns:1fr;gap:32px}
+.palco{--k:.56;max-width:300px;order:-1;margin-top:-6px}
+.chip{font-size:13px;padding:6px 11px}
+.capa h1{font-size:clamp(40px,11vw,56px)}
+.gargalos ul{grid-template-columns:1fr}
+.mapa{justify-self:center}
+.painel{margin-top:22px;padding:24px 20px}
+.passos ol{grid-template-columns:1fr;gap:26px}
+.passos ol::before{left:27px;right:auto;top:0;bottom:0;width:1px;height:auto}
+.passos li{display:grid;grid-template-columns:54px 1fr;column-gap:18px}
+.passos li h3{margin-top:10px}
+.passos li p{grid-column:2}
+.cartao{justify-self:stretch;max-width:none}
+.botao{width:100%;justify-content:center;font-size:18px}
+.trilho,.topo .pos{display:none}
+.seguir{display:none}
+.capa .seguir{display:inline-flex}
+.topo img{height:24px}
+.zap-mini{font-size:14px;padding:8px 14px}
+}
+@media (prefers-reduced-motion:reduce){
+*,*::before,*::after{animation-duration:.01ms!important;animation-delay:0s!important;transition-duration:.01ms!important}
+.cena .miolo{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<header class="topo">
+<img src="/diagnostico/logo.svg" alt="DemandIA">
+<div class="dir">
+<span class="pos" aria-live="polite">1 de 6</span>
+<a class="zap-mini" href="https://wa.me/5519988506553?text=Ol%C3%A1%2C%20vi%20o%20portf%C3%B3lio%20da%20DemandIA%20para%20restaurantes%20e%20quero%20conversar." target="_blank" rel="noopener">Falar no WhatsApp</a>
+</div>
+</header>
+
+<nav class="trilho" aria-label="Partes do portfólio"></nav>
+
+<main>
+
+<section class="cena capa viva" aria-label="Início" data-prox="Onde o restaurante perde faturamento">
+<div class="miolo">
+<div>
+<h1>A demanda do seu restaurante, resolvida com inteligência.</h1>
+<p class="lead">Marketing, atendimento, pedidos, reservas e clientes em um sistema só. Você foca na estratégia e a operação roda redonda, sem planilha, sem um monte de sistema paralelo e sem depender só do aplicativo.</p>
+</div>
+<div class="palco" aria-hidden="true">
+<div class="halo"></div><div class="halo b"></div>
+<div class="nucleo"><img src="/diagnostico/simbolo.svg" alt=""></div>
+<span class="chip" style="--x:-170px;--y:-150px;--r:-8deg;--d:.5s;--ox:-145px;--oy:-170px">Pedidos</span>
+<span class="chip" style="--x:150px;--y:-185px;--r:6deg;--d:.7s;--ox:150px;--oy:-150px">Reservas</span>
+<span class="chip" style="--x:205px;--y:20px;--r:-4deg;--d:.9s;--ox:200px;--oy:15px">Clientes</span>
+<span class="chip" style="--x:140px;--y:180px;--r:9deg;--d:1.1s;--ox:135px;--oy:175px">Delivery</span>
+<span class="chip" style="--x:-130px;--y:190px;--r:-10deg;--d:1.3s;--ox:-140px;--oy:170px">Marketing</span>
+<span class="chip" style="--x:-215px;--y:15px;--r:5deg;--d:1.5s;--ox:-200px;--oy:0px">Caixa</span>
+</div>
+</div>
+</section>
+
+<section class="cena gargalos" aria-label="Onde o restaurante perde faturamento" data-prox="O que é a DemandIA">
+<div class="miolo">
+<h2>Quanto o seu restaurante deixa de faturar sem perceber?</h2>
+<p class="lead">Quase nunca é a comida. O dinheiro escapa no atendimento, no cliente que não volta e na taxa que fica com o aplicativo.</p>
+<ul>
+<li><b>WhatsApp</b><span>O cliente quer pedir ou reservar e a mensagem fica sem resposta no horário de pico.</span></li>
+<li><b>Retorno</b><span>Quem pedia toda semana sumiu e ninguém chamou de volta.</span></li>
+<li><b>Aplicativo</b><span>Boa parte dos pedidos vai pelo aplicativo e a taxa leva a margem.</span></li>
+<li><b>Região</b><span>Quem está perto procura onde comer no Google e encontra outro restaurante.</span></li>
+<li><b>Reservas</b><span>Mesa reservada que ninguém confirmou e lugar vazio no fim de semana.</span></li>
+<li><b>Dono</b><span>O dono vive apagando incêndio e não sobra tempo para pensar no crescimento.</span></li>
+</ul>
+</div>
+</section>
+
+<section class="cena sobre" aria-label="O que é a DemandIA" data-prox="Os cinco pilares">
+<div class="miolo">
+<div>
+<h2>O que é a DemandIA</h2>
+<p class="lead">A DemandIA une <strong>marketing, tecnologia e gestão em um sistema só</strong>. Pedidos, reservas, clientes e caixa no mesmo lugar, para o dono focar na estratégia e o restaurante ter três resultados:</p>
+<ul class="objetivos">
+<li><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><div><b>Atrair clientes da região</b><span>Aparecer para quem está perto e procura onde comer.</span></div></li>
+<li><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.4-3.5A8 8 0 0 1 4 12Z"/></svg></span><div><b>Responder rápido</b><span>Pedido e reserva respondidos na hora, mesmo no pico.</span></div></li>
+<li><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span><div><b>Fazer o cliente voltar</b><span>Promoções e lembretes para quem já pediu.</span></div></li>
+</ul>
+</div>
+<div class="mapa" aria-hidden="true">
+<svg viewBox="0 0 520 430">
+<path class="fio" d="M156 40 C 260 40, 260 215, 362 215"/>
+<path class="fio" d="M156 110 C 250 110, 270 215, 362 215"/>
+<path class="fio" d="M156 180 C 240 180, 280 215, 362 215"/>
+<path class="fio" d="M156 250 C 240 250, 280 215, 362 215"/>
+<path class="fio" d="M156 320 C 250 320, 270 215, 362 215"/>
+<path class="fio" d="M156 390 C 260 390, 260 215, 362 215"/>
+<g class="rot">
+<rect x="0" y="22" width="156" height="36" rx="18"/><text x="78" y="45" text-anchor="middle">Google</text>
+<rect x="0" y="92" width="156" height="36" rx="18"/><text x="78" y="115" text-anchor="middle">Instagram e YouTube</text>
+<rect x="0" y="162" width="156" height="36" rx="18"/><text x="78" y="185" text-anchor="middle">WhatsApp</text>
+<rect x="0" y="232" width="156" height="36" rx="18"/><text x="78" y="255" text-anchor="middle">Pedidos e delivery</text>
+<rect x="0" y="302" width="156" height="36" rx="18"/><text x="78" y="325" text-anchor="middle">Reservas</text>
+<rect x="0" y="372" width="156" height="36" rx="18"/><text x="78" y="395" text-anchor="middle">Clientes e caixa</text>
+</g>
+<circle cx="440" cy="215" r="80" fill="#1C0A4A" stroke="rgba(164,123,255,.45)"/>
+<image href="/diagnostico/simbolo.svg" x="405" y="168" width="70" height="70"/>
+<text class="fim" x="440" y="262" text-anchor="middle">Um lugar só</text>
+</svg>
+</div>
+</div>
+</section>
+
+<section class="cena pilares" aria-label="Os cinco pilares" data-prox="Como começamos">
+<div class="miolo">
+<div class="cab">
+<h2>Como resolvemos: cinco pilares</h2>
+<p class="lead">Olhamos o restaurante inteiro e atuamos onde ele está perdendo faturamento. Cada pilar resolve um problema diferente.</p>
+</div>
+<div>
+<p class="instrucao"><span class="dedo"><svg viewBox="0 0 24 24"><path d="M9 11V5a2 2 0 1 1 4 0v5h1.5a2 2 0 0 1 2 1.7l.5 1.3 1.6.4A2 2 0 0 1 20 15.4V18a4 4 0 0 1-4 4h-4.3a4 4 0 0 1-3.2-1.6L5 15.6a1.6 1.6 0 0 1 2.4-2L9 15Z"/></svg></span>Toque em cada pilar para ver a solução</p>
+<div class="abas" role="tablist" aria-label="Pilares">
+<button role="tab" id="t1" aria-controls="p1" aria-selected="true" class="visto"><span class="n">1</span><span class="t">Marketing</span><span class="s"></span></button>
+<button role="tab" id="t2" aria-controls="p2" aria-selected="false" tabindex="-1"><span class="n">2</span><span class="t">Comercial</span><span class="s"></span></button>
+<button role="tab" id="t3" aria-controls="p3" aria-selected="false" tabindex="-1"><span class="n">3</span><span class="t">Processos</span><span class="s"></span></button>
+<button role="tab" id="t4" aria-controls="p4" aria-selected="false" tabindex="-1"><span class="n">4</span><span class="t">Equipe</span><span class="s"></span></button>
+<button role="tab" id="t5" aria-controls="p5" aria-selected="false" tabindex="-1"><span class="n">5</span><span class="t">Produto</span><span class="s"></span></button>
+</div>
+</div>
+<div class="painel" aria-live="polite">
+<article role="tabpanel" id="p1" aria-labelledby="t1" class="ativo">
+<p class="rotulo">O problema</p>
+<p class="dor">Quem está perto não encontra o restaurante no Google e no Instagram. E ninguém sabe de onde vêm os clientes novos.</p>
+<h3>O que fazemos</h3>
+<ul>
+<li>Perfil no Google completo, com fotos dos pratos, cardápio e avaliações</li>
+<li>Instagram e YouTube com rotina de posts dos pratos e da casa</li>
+<li>Campanhas para atrair clientes da região</li>
+<li>Medição de onde vem cada cliente e onde vale investir</li>
+</ul>
+<button class="prox" type="button" data-ir="t2">Ver o próximo pilar: Comercial</button>
+</article>
+<article role="tabpanel" id="p2" aria-labelledby="t2" hidden>
+<p class="rotulo">O problema</p>
+<p class="dor">Cada mensagem que demora no WhatsApp é um pedido a menos. E quem para de pedir, ninguém chama de volta.</p>
+<h3>O que fazemos</h3>
+<ul>
+<li>Atendimento com IA no WhatsApp, 24 horas, recebendo pedidos e reservas</li>
+<li>Pedido direto pelo WhatsApp, sem taxa de aplicativo</li>
+<li>Campanhas para quem não pede há algum tempo</li>
+<li>Programa de fidelidade e combos</li>
+</ul>
+<button class="prox" type="button" data-ir="t3">Ver o próximo pilar: Processos</button>
+</article>
+<article role="tabpanel" id="p3" aria-labelledby="t3" hidden>
+<p class="rotulo">O problema</p>
+<p class="dor">Pedidos, reservas e caixa dependem de papel, planilha e um monte de sistema que não conversa entre si.</p>
+<h3>O que fazemos</h3>
+<ul>
+<li>Pedidos, reservas, clientes e caixa em um sistema só</li>
+<li>Confirmação automática de reservas</li>
+<li>Base de clientes com histórico de pedidos</li>
+<li>Tarefas repetitivas feitas pela IA, sem aumentar a equipe</li>
+</ul>
+<button class="prox" type="button" data-ir="t4">Ver o próximo pilar: Equipe</button>
+</article>
+<article role="tabpanel" id="p4" aria-labelledby="t4" hidden>
+<p class="rotulo">O problema</p>
+<p class="dor">O dono não sabe como cada turno está rendendo e perde tempo organizando escala.</p>
+<h3>O que fazemos</h3>
+<ul>
+<li>Desempenho de cada turno no mesmo painel</li>
+<li>Rotina clara para salão, cozinha e delivery</li>
+<li>Treinamento da equipe no atendimento e nas ferramentas</li>
+<li>Números do dia, sem planilha manual</li>
+</ul>
+<button class="prox" type="button" data-ir="t5">Ver o próximo pilar: Produto</button>
+</article>
+<article role="tabpanel" id="p5" aria-labelledby="t5" hidden>
+<p class="rotulo">O problema</p>
+<p class="dor">Cardápio e preços sem clareza de margem, e nenhum sistema pronto se encaixa no jeito que o restaurante trabalha.</p>
+<h3>O que fazemos</h3>
+<ul>
+<li>Cardápio e combos organizados, mostrando o que dá mais margem</li>
+<li>Sistema de gestão construído para a sua rotina</li>
+<li>Painel com faturamento, pedidos, ticket médio e clientes do mês</li>
+</ul>
+<button class="prox" type="button" data-cena="4">Ver como começamos</button>
+</article>
+</div>
+</div>
+</section>
+
+<section class="cena passos" aria-label="Como começamos" data-prox="Marcar a conversa">
+<div class="miolo">
+<h2>Tudo começa com uma conversa</h2>
+<ol>
+<li><h3>Conversa e diagnóstico</h3><p>Entendemos a rotina do restaurante e onde estão os gargalos. Sem compromisso.</p></li>
+<li><h3>Plano sob medida</h3><p>Você recebe só o que faz sentido para o seu restaurante, nada de pacote fechado.</p></li>
+<li><h3>Implementação</h3><p>Colocamos tudo para rodar junto com a sua equipe.</p></li>
+<li><h3>Evolução</h3><p>Acompanhamos os números e ajustamos mês a mês.</p></li>
+</ol>
+<p class="nota">Cada restaurante precisa de uma combinação diferente dos cinco pilares. Por isso o primeiro passo é sempre o diagnóstico.</p>
+</div>
+</section>
+
+<section class="cena contato" aria-label="Marcar a conversa">
+<div class="miolo">
+<div>
+<h2>Vamos conversar sobre o seu restaurante?</h2>
+<p class="lead">Uma conversa rápida, online ou presencial, para entender o momento do restaurante e mostrar onde ele está perdendo faturamento.</p>
+<a class="botao" href="https://wa.me/5519988506553?text=Ol%C3%A1%20Kelvin%2C%20vi%20o%20portf%C3%B3lio%20da%20DemandIA%20para%20restaurantes%20e%20quero%20marcar%20uma%20conversa." target="_blank" rel="noopener">
+<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3a2.6 2.6 0 0 0-.8 1.9 4.5 4.5 0 0 0 1 2.4 10.3 10.3 0 0 0 4 3.5c1.5.6 2 .7 2.8.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3Z"/></svg>
+Clique aqui e marque sua conversa no WhatsApp
+</a>
+<p class="sub">Sem compromisso, online ou presencial.</p>
+<p class="diag">Prefere começar sozinho? <a href="https://demandhub.com.br/diagnostico?utm_source=portfolio&amp;utm_medium=link&amp;utm_campaign=portfolio-restaurantes">Faça o diagnóstico gratuito em 3 minutos</a></p>
+</div>
+<div class="cartao">
+<img src="data:image/jpeg;base64,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" alt="Foto de Kelvin Pinheiro">
+<p class="nome">Kelvin Pinheiro</p>
+<p class="cargo">Especialista em Estratégia e Negócios</p>
+<p class="fone">WhatsApp (19) 98850-6553</p>
+</div>
+</div>
+</section>
+
+</main>
+
+<script>
+(function(){
+var cenas=[].slice.call(document.querySelectorAll('.cena'));
+var pos=document.querySelector('.topo .pos');
+var trilho=document.querySelector('.trilho');
+var reduz=matchMedia('(prefers-reduced-motion: reduce)').matches;
+var atual=0, andando=false;
+
+// rolagem lenta e suave até uma cena
+function ease(t){return t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2}
+function ir(i){
+if(i<0||i>=cenas.length)return;
+var de=window.scrollY, para=cenas[i].getBoundingClientRect().top+de, dur=reduz?0:1500, t0=null;
+andando=true;
+function passo(t){
+if(t0===null)t0=t;
+var p=dur?Math.min(1,(t-t0)/dur):1;
+window.scrollTo(0,de+(para-de)*ease(p));
+if(p<1)requestAnimationFrame(passo);else setTimeout(function(){andando=false},450);
+}
+requestAnimationFrame(passo);
+}
+
+// trilho e botões de seguir
+var bots=cenas.map(function(c,i){
+var b=document.createElement('button');
+b.type='button';b.setAttribute('aria-label',c.getAttribute('aria-label'));
+b.onclick=function(){ir(i)};trilho.appendChild(b);
+if(c.dataset.prox){
+var s=document.createElement('button');
+s.type='button';s.className='seguir'+(i===0?' pulsa':'');
+s.innerHTML='<i></i>Próximo: '+c.dataset.prox;
+s.onclick=function(){ir(i+1)};c.appendChild(s);
+}
+return b;
+});
+
+function marca(i){
+atual=i;pos.textContent=(i+1)+' de '+cenas.length;
+bots.forEach(function(b,j){b.setAttribute('aria-current',j===i?'true':'false')});
+}
+var io=new IntersectionObserver(function(es){
+es.forEach(function(e){
+if(e.isIntersecting){e.target.classList.add('viva')}
+});
+},{threshold:.25});
+cenas.forEach(function(c){io.observe(c)});
+function qual(){
+var meio=innerHeight/2, i=0;
+cenas.forEach(function(c,j){var r=c.getBoundingClientRect();if(r.top<=meio)i=j});
+if(i!==atual||pos.textContent==='')marca(i);
+}
+addEventListener('scroll',qual,{passive:true});marca(0);
+
+// no computador: cada giro da rodinha leva para a próxima cena, devagar
+var desktop=matchMedia('(min-width: 901px) and (pointer: fine)');
+addEventListener('wheel',function(e){
+if(!desktop.matches)return;
+var c=cenas[atual].getBoundingClientRect();
+if(e.deltaY>0&&c.bottom>innerHeight+8&&!andando)return; // cena maior que a tela: rola normal
+if(e.deltaY<0&&c.top<-8&&!andando)return;
+e.preventDefault();
+if(andando||Math.abs(e.deltaY)<6)return;
+ir(atual+(e.deltaY>0?1:-1));
+},{passive:false});
+addEventListener('keydown',function(e){
+if(e.target.closest('[role=tablist]'))return;
+if(['ArrowDown','PageDown',' '].indexOf(e.key)>-1){e.preventDefault();if(!andando)ir(atual+1)}
+if(['ArrowUp','PageUp'].indexOf(e.key)>-1){e.preventDefault();if(!andando)ir(atual-1)}
+});
+
+// pilares
+var abas=[].slice.call(document.querySelectorAll('[role=tab]'));
+var painel=document.querySelector('.painel');
+function abre(t,toque){
+abas.forEach(function(a){
+var on=a===t;a.setAttribute('aria-selected',on);a.tabIndex=on?0:-1;
+var p=document.getElementById(a.getAttribute('aria-controls'));
+p.hidden=!on;p.classList.toggle('ativo',on);
+});
+t.classList.add('visto');
+if(toque&&innerWidth<=900)painel.scrollIntoView({behavior:'smooth',block:'start'});
+}
+abas.forEach(function(a,i){
+a.addEventListener('click',function(){abre(a,true)});
+a.addEventListener('keydown',function(e){
+var n=null;
+if(e.key==='ArrowDown'||e.key==='ArrowRight')n=abas[(i+1)%abas.length];
+if(e.key==='ArrowUp'||e.key==='ArrowLeft')n=abas[(i-1+abas.length)%abas.length];
+if(n){e.preventDefault();n.focus();abre(n)}
+});
+});
+[].forEach.call(document.querySelectorAll('.painel .prox'),function(b){
+b.addEventListener('click',function(){
+if(b.dataset.ir)abre(document.getElementById(b.dataset.ir),true);
+else ir(+b.dataset.cena);
+});
+});
+})();
+</script>
+</body>
+</html>
