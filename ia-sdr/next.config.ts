@@ -17,6 +17,8 @@ const nextConfig: NextConfig = {
     return [
       // Landing page do diagnóstico gratuito (arquivo estático em public/diagnostico)
       { source: "/diagnostico", destination: "/diagnostico/index.html" },
+      // Portfólio animado para clínicas (arquivo estático em public/portfolioclinicas)
+      { source: "/portfolioclinicas", destination: "/portfolioclinicas/index.html" },
     ];
   },
 };
