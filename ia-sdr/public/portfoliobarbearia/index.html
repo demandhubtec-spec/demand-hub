@@ -82,6 +82,7 @@ animation:junta 1.5s var(--d) cubic-bezier(.75,0,.25,1) forwards, orbita 1.2s 3.
 @keyframes aparece{to{opacity:1}}
 
 /* 2. gargalos */
+.gargalos h2{max-width:24ch}
 .gargalos ul{list-style:none;margin-top:44px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 44px}
 .gargalos li{padding:22px 0 26px;border-top:1px solid var(--linha)}
 .gargalos li b{display:block;font-family:var(--display);font-weight:600;font-size:26px;color:var(--lilas);margin-bottom:8px}
@@ -206,36 +207,36 @@ body{font-size:17px}
 
 <main>
 
-<section class="cena capa viva" aria-label="Início" data-prox="Onde a barbearia perde clientes">
+<section class="cena capa viva" aria-label="Início" data-prox="Onde a barbearia perde faturamento">
 <div class="miolo">
 <div>
 <h1>A demanda da sua barbearia, resolvida com inteligência.</h1>
-<p class="lead">Agenda, atendimento, clientes e caixa funcionando juntos, em um só lugar. Assim o barbeiro foca no corte e a cadeira não fica vazia.</p>
+<p class="lead">Marketing, atendimento, clientes e barbeiros em um sistema só. Você foca na estratégia e a operação roda redonda, sem planilha, sem um monte de sistema paralelo e sem inchar a equipe.</p>
 </div>
 <div class="palco" aria-hidden="true">
 <div class="halo"></div><div class="halo b"></div>
 <div class="nucleo"><img src="/diagnostico/simbolo.svg" alt=""></div>
 <span class="chip" style="--x:-170px;--y:-150px;--r:-8deg;--d:.5s;--ox:-145px;--oy:-170px">Agenda</span>
-<span class="chip" style="--x:150px;--y:-185px;--r:6deg;--d:.7s;--ox:150px;--oy:-150px">Atendimento</span>
+<span class="chip" style="--x:150px;--y:-185px;--r:6deg;--d:.7s;--ox:150px;--oy:-150px">Recepção</span>
 <span class="chip" style="--x:205px;--y:20px;--r:-4deg;--d:.9s;--ox:200px;--oy:15px">Clientes</span>
-<span class="chip" style="--x:140px;--y:180px;--r:9deg;--d:1.1s;--ox:135px;--oy:175px">Horários</span>
-<span class="chip" style="--x:-130px;--y:190px;--r:-10deg;--d:1.3s;--ox:-140px;--oy:170px">Planos</span>
+<span class="chip" style="--x:140px;--y:180px;--r:9deg;--d:1.1s;--ox:135px;--oy:175px">Barbeiros</span>
+<span class="chip" style="--x:-130px;--y:190px;--r:-10deg;--d:1.3s;--ox:-140px;--oy:170px">Marketing</span>
 <span class="chip" style="--x:-215px;--y:15px;--r:5deg;--d:1.5s;--ox:-200px;--oy:0px">Caixa</span>
 </div>
 </div>
 </section>
 
-<section class="cena gargalos" aria-label="Onde a barbearia perde clientes" data-prox="O que é a DemandIA">
+<section class="cena gargalos" aria-label="Onde a barbearia perde faturamento" data-prox="O que é a DemandIA">
 <div class="miolo">
-<h2>Onde a barbearia perde clientes sem perceber</h2>
-<p class="lead">Quase nunca é a qualidade do corte. A perda acontece no caminho entre o cliente procurar uma barbearia e sentar na cadeira.</p>
+<h2>Quanto a sua barbearia deixa de faturar sem perceber?</h2>
+<p class="lead">Quase nunca é a qualidade do corte. O dinheiro escapa no atendimento, no retorno do cliente e na correria da operação.</p>
 <ul>
-<li><b>Google</b><span>O cliente busca barbearia perto dele e encontra outra primeiro.</span></li>
-<li><b>Instagram</b><span>Perfil sem os cortes recentes, que não mostra o trabalho dos barbeiros.</span></li>
-<li><b>WhatsApp</b><span>O barbeiro está com a máquina na mão e a mensagem fica sem resposta.</span></li>
-<li><b>Ligação</b><span>O telefone toca no meio do corte e ninguém consegue atender.</span></li>
-<li><b>Retorno</b><span>O cliente que cortava todo mês sumiu e ninguém percebeu.</span></li>
-<li><b>Agenda</b><span>Cliente que não aparece e horário vago que poderia ser preenchido.</span></li>
+<li><b>WhatsApp</b><span>A recepção demora para responder e o cliente marca na concorrente.</span></li>
+<li><b>Retorno</b><span>Cliente que cortava todo mês sumiu e ninguém chamou de volta.</span></li>
+<li><b>Agenda</b><span>Faltas sem aviso e horários vagos que viram faturamento perdido.</span></li>
+<li><b>Região</b><span>Quem mora e trabalha perto procura no Google e no Instagram e acha outra barbearia.</span></li>
+<li><b>Planilhas</b><span>Clientes, comissões e caixa espalhados em planilha e em vários sistemas.</span></li>
+<li><b>Dono</b><span>O dono vive apagando incêndio e não sobra tempo para pensar no crescimento.</span></li>
 </ul>
 </div>
 </section>
@@ -244,11 +245,11 @@ body{font-size:17px}
 <div class="miolo">
 <div>
 <h2>O que é a DemandIA</h2>
-<p class="lead">A DemandIA une <strong>marketing, atendimento e tecnologia em um sistema só</strong>. Cuidamos de todo o caminho do cliente, da busca no Google até o próximo corte, para a barbearia ter três resultados:</p>
+<p class="lead">A DemandIA une <strong>marketing, tecnologia e gestão em um sistema só</strong>. Clientes, barbeiros, agenda e caixa no mesmo lugar, para o dono focar na estratégia e a barbearia ter três resultados:</p>
 <ul class="objetivos">
-<li><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><div><b>Ser encontrada</b><span>Aparecer para quem procura barbearia na sua região.</span></div></li>
-<li><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.4-3.5A8 8 0 0 1 4 12Z"/></svg></span><div><b>Responder rápido</b><span>Todo contato respondido na hora, mesmo no meio do corte.</span></div></li>
-<li><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span><div><b>Atender mais</b><span>Agenda cheia, menos faltas e clientes que voltam.</span></div></li>
+<li><span class="ic"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg></span><div><b>Atrair clientes da região</b><span>Aparecer para quem mora e trabalha perto da barbearia.</span></div></li>
+<li><span class="ic"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 1 3.5 6.6L4 20l1.4-3.5A8 8 0 0 1 4 12Z"/></svg></span><div><b>Responder rápido</b><span>Todo contato respondido na hora, sem sobrecarregar a recepção.</span></div></li>
+<li><span class="ic"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg></span><div><b>Fazer o cliente voltar</b><span>Lembretes e chamadas para quem passou do tempo do próximo corte.</span></div></li>
 </ul>
 </div>
 <div class="mapa" aria-hidden="true">
@@ -262,10 +263,10 @@ body{font-size:17px}
 <g class="rot">
 <rect x="0" y="22" width="156" height="36" rx="18"/><text x="78" y="45" text-anchor="middle">Google</text>
 <rect x="0" y="92" width="156" height="36" rx="18"/><text x="78" y="115" text-anchor="middle">Instagram e YouTube</text>
-<rect x="0" y="162" width="156" height="36" rx="18"/><text x="78" y="185" text-anchor="middle">WhatsApp</text>
-<rect x="0" y="232" width="156" height="36" rx="18"/><text x="78" y="255" text-anchor="middle">Ligações</text>
-<rect x="0" y="302" width="156" height="36" rx="18"/><text x="78" y="325" text-anchor="middle">Processos</text>
-<rect x="0" y="372" width="156" height="36" rx="18"/><text x="78" y="395" text-anchor="middle">Sistema de gestão</text>
+<rect x="0" y="162" width="156" height="36" rx="18"/><text x="78" y="185" text-anchor="middle">WhatsApp e recepção</text>
+<rect x="0" y="232" width="156" height="36" rx="18"/><text x="78" y="255" text-anchor="middle">Clientes</text>
+<rect x="0" y="302" width="156" height="36" rx="18"/><text x="78" y="325" text-anchor="middle">Barbeiros</text>
+<rect x="0" y="372" width="156" height="36" rx="18"/><text x="78" y="395" text-anchor="middle">Agenda e caixa</text>
 </g>
 <circle cx="440" cy="215" r="80" fill="#1C0A4A" stroke="rgba(164,123,255,.45)"/>
 <image href="/diagnostico/simbolo.svg" x="405" y="168" width="70" height="70"/>
@@ -279,7 +280,7 @@ body{font-size:17px}
 <div class="miolo">
 <div class="cab">
 <h2>Como resolvemos: cinco pilares</h2>
-<p class="lead">Olhamos a barbearia inteira e atuamos onde está o gargalo. Cada pilar resolve um problema diferente.</p>
+<p class="lead">Olhamos a barbearia inteira e atuamos onde ela está perdendo faturamento. Cada pilar resolve um problema diferente.</p>
 </div>
 <div>
 <p class="instrucao"><span class="dedo"><svg viewBox="0 0 24 24"><path d="M9 11V5a2 2 0 1 1 4 0v5h1.5a2 2 0 0 1 2 1.7l.5 1.3 1.6.4A2 2 0 0 1 20 15.4V18a4 4 0 0 1-4 4h-4.3a4 4 0 0 1-3.2-1.6L5 15.6a1.6 1.6 0 0 1 2.4-2L9 15Z"/></svg></span>Toque em cada pilar para ver a solução</p>
@@ -294,49 +295,49 @@ body{font-size:17px}
 <div class="painel" aria-live="polite">
 <article role="tabpanel" id="p1" aria-labelledby="t1" class="ativo">
 <p class="rotulo">O problema</p>
-<p class="dor">O trabalho é bom, mas quem procura no Google e no Instagram não encontra a barbearia ou não vê os cortes. E ninguém sabe ao certo de onde vêm os clientes novos.</p>
+<p class="dor">Quem mora perto não encontra a barbearia no Google e no Instagram. E ninguém sabe de onde vêm os clientes novos.</p>
 <h3>O que fazemos</h3>
 <ul>
 <li>Perfil no Google completo, com fotos dos cortes e avaliações</li>
 <li>Instagram e YouTube com rotina de posts dos cortes e da equipe</li>
-<li>Página de agendamento rápida no celular</li>
+<li>Campanhas para atrair clientes da região</li>
 <li>Medição de onde vem cada cliente e onde vale investir</li>
 </ul>
 <button class="prox" type="button" data-ir="t2">Ver o próximo pilar: Comercial</button>
 </article>
 <article role="tabpanel" id="p2" aria-labelledby="t2" hidden>
 <p class="rotulo">O problema</p>
-<p class="dor">Cliente chama no WhatsApp, demora para ter resposta e vai para a barbearia do lado.</p>
+<p class="dor">Cada mensagem que demora no WhatsApp é um cliente a menos na cadeira. E quem para de vir, ninguém chama de volta.</p>
 <h3>O que fazemos</h3>
 <ul>
 <li>Atendimento com IA no WhatsApp, 24 horas, marcando direto na agenda</li>
-<li>Lembrete e confirmação do horário para reduzir faltas</li>
-<li>Chamada automática para o cliente que passou do tempo de voltar</li>
+<li>Recepção livre para cuidar de quem está na barbearia</li>
+<li>Recuperação de clientes que passaram do tempo de voltar</li>
 <li>Venda de planos de assinatura e combos</li>
 </ul>
 <button class="prox" type="button" data-ir="t3">Ver o próximo pilar: Processos</button>
 </article>
 <article role="tabpanel" id="p3" aria-labelledby="t3" hidden>
 <p class="rotulo">O problema</p>
-<p class="dor">Tudo depende do barbeiro lembrar: confirmar horário, chamar cliente sumido, fechar o caixa. O tempo vai embora em tarefa manual.</p>
+<p class="dor">A operação depende de planilha, caderno e um monte de sistema que não conversa entre si.</p>
 <h3>O que fazemos</h3>
 <ul>
-<li>Desenho da jornada do cliente, do primeiro contato ao próximo corte</li>
-<li>Lembretes, confirmações e pós-atendimento automáticos</li>
-<li>Agenda, WhatsApp e cadastro de clientes conversando entre si</li>
-<li>Tarefas repetitivas feitas pela IA, sem precisar de recepcionista</li>
+<li>Agenda, WhatsApp, clientes e caixa em um sistema só</li>
+<li>Lembretes e confirmações automáticos para reduzir faltas</li>
+<li>Follow-up depois do corte para o cliente voltar</li>
+<li>Tarefas repetitivas feitas pela IA, sem aumentar a equipe</li>
 </ul>
 <button class="prox" type="button" data-ir="t4">Ver o próximo pilar: Equipe</button>
 </article>
 <article role="tabpanel" id="p4" aria-labelledby="t4" hidden>
 <p class="rotulo">O problema</p>
-<p class="dor">Cada barbeiro trabalha de um jeito e ninguém sabe quem está sobrecarregado ou com a cadeira vazia.</p>
+<p class="dor">O dono não sabe quem rende mais, quem está com a cadeira vazia e passa horas fazendo conta de comissão.</p>
 <h3>O que fazemos</h3>
 <ul>
-<li>Quem faz o quê, com rotina clara de atendimento</li>
-<li>Agenda equilibrada entre os barbeiros</li>
-<li>Treinamento da equipe no atendimento e nas ferramentas</li>
-<li>Números de cada barbeiro, sem planilha manual</li>
+<li>Agenda e desempenho de cada barbeiro no mesmo painel</li>
+<li>Comissões calculadas automaticamente</li>
+<li>Rotina clara para recepção e barbeiros</li>
+<li>Treinamento da equipe nas ferramentas</li>
 </ul>
 <button class="prox" type="button" data-ir="t5">Ver o próximo pilar: Produto</button>
 </article>
@@ -347,7 +348,7 @@ body{font-size:17px}
 <ul>
 <li>Serviços, combos e planos organizados, mostrando o que dá mais margem</li>
 <li>Sistema de gestão construído para a sua rotina</li>
-<li>Painel com agenda, clientes, caixa e comissões do mês</li>
+<li>Painel com faturamento, clientes, caixa e comissões do mês</li>
 </ul>
 <button class="prox" type="button" data-cena="4">Ver como começamos</button>
 </article>
@@ -372,7 +373,7 @@ body{font-size:17px}
 <div class="miolo">
 <div>
 <h2>Vamos conversar sobre a sua barbearia?</h2>
-<p class="lead">Uma conversa rápida, online ou presencial, para entender o momento da barbearia e mostrar o que dá para melhorar já nas primeiras semanas.</p>
+<p class="lead">Uma conversa rápida, online ou presencial, para entender o momento da barbearia e mostrar onde ela está perdendo faturamento.</p>
 <a class="botao" href="https://wa.me/5519988506553?text=Ol%C3%A1%20Kelvin%2C%20vi%20o%20portf%C3%B3lio%20da%20DemandIA%20para%20barbearias%20e%20quero%20marcar%20uma%20conversa." target="_blank" rel="noopener">
 <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.6-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3a2.6 2.6 0 0 0-.8 1.9 4.5 4.5 0 0 0 1 2.4 10.3 10.3 0 0 0 4 3.5c1.5.6 2 .7 2.8.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.5-.3Z"/></svg>
 Clique aqui e marque sua conversa no WhatsApp
