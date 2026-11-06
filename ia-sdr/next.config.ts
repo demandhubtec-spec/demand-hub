@@ -22,6 +22,19 @@ const nextConfig: NextConfig = {
       // Portfólio animado para barbearias (arquivo estático em public/portfoliobarbearia)
       { source: "/portfoliobarbearia", destination: "/portfoliobarbearia/index.html" },
       { source: "/portfolio/barbearia", destination: "/portfoliobarbearia/index.html" },
+      // Portfólios dos outros nichos (mesma estrutura, narrativa adaptada)
+      { source: "/portfolioimobiliaria", destination: "/portfolioimobiliaria/index.html" },
+      { source: "/portfolio/imobiliaria", destination: "/portfolioimobiliaria/index.html" },
+      { source: "/portfolioadvocacia", destination: "/portfolioadvocacia/index.html" },
+      { source: "/portfolio/advocacia", destination: "/portfolioadvocacia/index.html" },
+      { source: "/portfoliopetshop", destination: "/portfoliopetshop/index.html" },
+      { source: "/portfolio/petshop", destination: "/portfoliopetshop/index.html" },
+      { source: "/portfoliorestaurante", destination: "/portfoliorestaurante/index.html" },
+      { source: "/portfolio/restaurante", destination: "/portfoliorestaurante/index.html" },
+      { source: "/portfolioeventos", destination: "/portfolioeventos/index.html" },
+      { source: "/portfolio/eventos", destination: "/portfolioeventos/index.html" },
+      { source: "/portfolioservicos", destination: "/portfolioservicos/index.html" },
+      { source: "/portfolio/servicos", destination: "/portfolioservicos/index.html" },
     ];
   },
 };
