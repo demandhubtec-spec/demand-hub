@@ -212,7 +212,22 @@ export function contextoDaMarca(marca: Marca | null | undefined, perfil: PerfilP
 /** Chamada com imagens (visão), para o time estudar o visual dos nossos posts. */
 async function pedirJsonComImagens<T>(system: string, pedido: string, imagens: string[], maxTokens = 3000): Promise<T> {
   const { env } = await import("../env.ts");
-  const conteudo = [{ type: "text", text: pedido }, ...imagens.slice(0, 8).map((url) => ({ type: "image_url", image_url: { url, detail: "low" } }))];
+  // O CDN do Instagram não deixa a OpenAI baixar a imagem: baixamos aqui e mandamos o arquivo junto
+  const embutidas = (
+    await Promise.all(
+      imagens.slice(0, 8).map(async (url) => {
+        try {
+          const r = await fetch(url);
+          if (!r.ok) return null;
+          const tipo = r.headers.get("content-type") || "image/jpeg";
+          return `data:${tipo};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
+        } catch {
+          return null;
+        }
+      }),
+    )
+  ).filter((u): u is string => !!u);
+  const conteudo = [{ type: "text", text: pedido }, ...embutidas.map((url) => ({ type: "image_url", image_url: { url, detail: "low" } }))];
   const r = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.openaiKey}` },
