@@ -1,9 +1,13 @@
 {
+  "ignoreCommand": "[ \"$VERCEL_ENV\" != \"production\" ]",
   "rewrites": [
     {
       "source": "/api/prospeccao/:path*",
       "destination": "https://rqcarttwamgzypumcklf.supabase.co/functions/v1/outreach-import/:path*"
     },
-    { "source": "/(.*)", "destination": "/index.html" }
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
   ]
 }

@@ -15,6 +15,9 @@ export interface AtividadeView {
   prioridade: AtividadePrioridade;
   responsavelId: string | null;
   responsavelNome: string | null;
+  /** Nome do projeto e número da entrega do escopo (quando houver). */
+  projetoNome: string | null;
+  entregaNumero: number | null;
 }
 
 type AtividadeRow = {
@@ -27,11 +30,11 @@ type AtividadeRow = {
   status: AtividadeStatus;
   prioridade: AtividadePrioridade;
   responsavel_id: string | null;
-  projetos: { nome: string; clientes: { nome: string } | null } | null;
+  projetos: { nome: string; entrega_numero?: number | null; clientes: { nome: string } | null } | null;
   perfis: { nome: string } | null;
 };
 
-const SELECT = "*, projetos(nome, clientes(nome)), perfis(nome)";
+const SELECT = "*, projetos(nome, entrega_numero, clientes(nome)), perfis(nome)";
 
 function mapRow(a: AtividadeRow): AtividadeView {
   return {
@@ -46,6 +49,8 @@ function mapRow(a: AtividadeRow): AtividadeView {
     prioridade: a.prioridade ?? "media",
     responsavelId: a.responsavel_id,
     responsavelNome: a.perfis?.nome ?? null,
+    projetoNome: a.projetos?.nome ?? null,
+    entregaNumero: a.projetos?.entrega_numero ?? null,
   };
 }
 

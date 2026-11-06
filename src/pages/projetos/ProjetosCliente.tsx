@@ -1,7 +1,7 @@
 import * as React from "react";
 import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Download } from "lucide-react";
+import { ArrowLeft, ChevronRight, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -15,6 +15,8 @@ import type { EscopoEntrega } from "@/lib/types";
 import { useAuth } from "@/hooks/useAuth";
 import { AcompanhamentoCliente } from "@/components/shared/AcompanhamentoCliente";
 import { faseLabel } from "@/lib/fases";
+import { diaMes, estaAtrasada } from "@/lib/prazo";
+import { AtrasadaBadge } from "@/components/shared/AtrasadaBadge";
 
 const statusLabels: Record<string, string> = {
   "a-fazer": "A fazer",
@@ -46,43 +48,97 @@ function clicavel(onOpen: () => void) {
   } as const;
 }
 
-function CardProjeto({ p, rotulo, subtitulo, onOpen }: { p: ProjetoView; rotulo: string; subtitulo: string; onOpen: () => void }) {
+const COLS = "md:grid md:grid-cols-[minmax(0,1fr)_120px_150px_150px_130px] md:items-center md:gap-4";
+
+function Cabecalho() {
   return (
-    <Card
-      {...clicavel(onOpen)}
-      className="cursor-pointer p-[18px] pb-4 transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-primary-bright"
-    >
-      <div className="mb-1.5 font-mono text-[11px] text-muted">{rotulo}</div>
-      <div className="mb-3.5 min-h-[38px] text-[14.5px] font-semibold leading-tight">{p.nome}</div>
-      {subtitulo && <div className="-mt-2 mb-3.5 text-[13px] text-muted">{subtitulo}</div>}
-      {(p.fase || p.prazoFim) && (
-        <div className="-mt-1 mb-3 flex flex-wrap items-center gap-2 font-mono text-[11px]">
-          {p.fase && (
-            <span className="rounded-full bg-primary-tint px-2 py-0.5 font-semibold text-primary-bright">
-              {faseLabel[p.fase] ?? p.fase}
-            </span>
-          )}
-          {p.prazoFim && <span className="text-muted">até {dataBR(p.prazoFim)}</span>}
-        </div>
-      )}
-      <div className="flex items-center justify-between">
-        <StatusBadge status={p.status} />
-        <span className="font-mono text-[11px] text-muted">Prioridade {prioLabels[p.prioridade] ?? p.prioridade}</span>
-      </div>
-    </Card>
+    <div className={`hidden border-b border-border px-[18px] py-2.5 font-mono text-[10.5px] uppercase tracking-[.06em] text-muted ${COLS}`}>
+      <span>Entrega</span>
+      <span>Fase</span>
+      <span>Etapas</span>
+      <span>Prazo</span>
+      <span>Status</span>
+    </div>
   );
 }
 
-function CardTravado({ e }: { e: EscopoEntrega }) {
+function LinhaProjeto({
+  p,
+  rotulo,
+  subtitulo,
+  feitas,
+  total,
+  onOpen,
+}: {
+  p: ProjetoView;
+  rotulo: string;
+  subtitulo: string;
+  feitas: number;
+  total: number;
+  onOpen: () => void;
+}) {
+  const atrasada = estaAtrasada(p.prazoFim, p.status);
+  const pct = total ? Math.round((feitas / total) * 100) : 0;
   return (
-    <Card className="p-[18px] pb-4 opacity-50">
-      <div className="mb-1.5 font-mono text-[11px] text-muted">{numeroEntrega(e.numero)}</div>
-      <div className="mb-3.5 min-h-[38px] text-[14.5px] font-semibold leading-tight">{e.nome}</div>
-      {e.resumo && <div className="-mt-2 mb-3.5 text-[13px] text-muted">{e.resumo}</div>}
-      <div className="flex items-center justify-between">
-        <span className="text-xs text-muted">Ainda não iniciado</span>
+    <div
+      {...clicavel(onOpen)}
+      className={`flex cursor-pointer flex-col gap-2.5 border-b border-border px-[18px] py-3.5 transition-colors last:border-b-0 hover:bg-surface-2/60 ${COLS}`}
+    >
+      <div className="min-w-0">
+        <div className="mb-0.5 font-mono text-[11px] text-muted">{rotulo}</div>
+        <div className="text-[14px] font-semibold leading-tight">{p.nome}</div>
+        {subtitulo && <div className="mt-0.5 truncate text-[12.5px] text-muted">{subtitulo}</div>}
       </div>
-    </Card>
+      <div>
+        {p.fase ? (
+          <span className="rounded-full bg-primary-tint px-2 py-0.5 font-mono text-[11px] font-semibold text-primary-bright">
+            {faseLabel[p.fase] ?? p.fase}
+          </span>
+        ) : (
+          <span className="font-mono text-[11px] text-muted">Não iniciada</span>
+        )}
+      </div>
+      <div>
+        {total ? (
+          <>
+            <div className="mb-1 font-mono text-[11px] text-muted">
+              {feitas}/{total} feitas
+            </div>
+            <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+            </div>
+          </>
+        ) : (
+          <span className="font-mono text-[11px] text-muted">Sem etapas</span>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11.5px]">
+        <span className={atrasada ? "text-negative" : "text-muted"}>
+          {p.prazoInicio || p.prazoFim ? `${diaMes(p.prazoInicio)} a ${diaMes(p.prazoFim)}` : "a definir"}
+        </span>
+        {atrasada && <AtrasadaBadge />}
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <StatusBadge status={p.status} />
+        <ChevronRight className="h-4 w-4 shrink-0 text-muted" />
+      </div>
+    </div>
+  );
+}
+
+function LinhaTravada({ e }: { e: EscopoEntrega }) {
+  return (
+    <div className={`flex flex-col gap-1 border-b border-border px-[18px] py-3.5 opacity-50 last:border-b-0 ${COLS}`}>
+      <div className="min-w-0">
+        <div className="mb-0.5 font-mono text-[11px] text-muted">{numeroEntrega(e.numero)}</div>
+        <div className="text-[14px] font-semibold leading-tight">{e.nome}</div>
+        {e.resumo && <div className="mt-0.5 truncate text-[12.5px] text-muted">{e.resumo}</div>}
+      </div>
+      <span className="font-mono text-[11px] text-muted">Não iniciada</span>
+      <span />
+      <span className="font-mono text-[11px] text-muted">a definir</span>
+      <span className="text-xs text-muted">Ainda não iniciado</span>
+    </div>
   );
 }
 
@@ -134,6 +190,10 @@ export default function ProjetosCliente() {
   const porNumero = new Map(projetos.filter((p) => p.entregaNumero).map((p) => [p.entregaNumero!, p] as [number, ProjetoView]));
   const numerosEscopo = new Set(escopo.map((e) => e.numero));
   const outros = projetos.filter((p) => !p.entregaNumero || !numerosEscopo.has(p.entregaNumero));
+  const contar = (projetoId: string) => {
+    const ativs = atividades.filter((a) => a.projetoId === projetoId);
+    return { total: ativs.length, feitas: ativs.filter((a) => a.status === "concluido").length };
+  };
 
   const sub = [
     cliente.segmento,
@@ -170,22 +230,25 @@ export default function ProjetosCliente() {
       ) : (
         <>
           {escopo.length > 0 && (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-3.5">
+            <Card className="overflow-hidden p-0">
+              <Cabecalho />
               {escopo.map((e) => {
                 const p = porNumero.get(e.numero);
                 return p ? (
-                  <CardProjeto
+                  <LinhaProjeto
                     key={e.id}
                     p={p}
                     rotulo={numeroEntrega(e.numero)}
                     subtitulo={p.subtitulo ?? e.resumo ?? ""}
+                    feitas={contar(p.id).feitas}
+                    total={contar(p.id).total}
                     onOpen={() => setAbertoId(p.id)}
                   />
                 ) : (
-                  <CardTravado key={e.id} e={e} />
+                  <LinhaTravada key={e.id} e={e} />
                 );
               })}
-            </div>
+            </Card>
           )}
 
           {outros.length > 0 && (
@@ -193,20 +256,23 @@ export default function ProjetosCliente() {
               {escopo.length > 0 && (
                 <div className="mb-3 mt-7 text-xs font-bold uppercase tracking-[.04em] text-muted">Outros projetos</div>
               )}
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(270px,1fr))] gap-3.5">
+              <Card className="overflow-hidden p-0">
+                <Cabecalho />
                 {outros.map((p) => {
                   const b = p.briefing ?? "";
                   return (
-                    <CardProjeto
+                    <LinhaProjeto
                       key={p.id}
                       p={p}
                       rotulo="Projeto"
-                      subtitulo={b.length > 90 ? b.slice(0, 90) + "…" : b}
+                      subtitulo={b.length > 110 ? b.slice(0, 110) + "…" : b}
+                      feitas={contar(p.id).feitas}
+                      total={contar(p.id).total}
                       onOpen={() => setAbertoId(p.id)}
                     />
                   );
                 })}
-              </div>
+              </Card>
             </>
           )}
         </>

@@ -14,6 +14,7 @@ function buildTitleMap(): Record<string, string> {
     "/processos": "Processos DemandIA",
     "/ajuda": "Central de ajuda",
     "/projetos": "Projetos",
+    "/minhas-atividades": "Minhas atividades",
   };
   navGroups.forEach((group) => {
     group.children.forEach((child) => {

@@ -20,6 +20,8 @@ import { useAnexos, useUploadAnexos, useRemoverAnexo, abrirAnexo } from "@/hooks
 import type { Anexo, AtividadePrioridade, AtividadeStatus, Perfil, ProjetoFase, ProjetoStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { FASES, statusDaFase } from "@/lib/fases";
+import { estaAtrasada } from "@/lib/prazo";
+import { AtrasadaBadge } from "@/components/shared/AtrasadaBadge";
 
 // Mesmas opções do protótipo; valores fora delas (ex.: "urgente", "atrasado") só aparecem se já estiverem salvos.
 const prioridadeBase: { value: AtividadePrioridade; label: string }[] = [
@@ -347,6 +349,7 @@ function AtividadeRow({ a, onClick }: { a: AtividadeView; onClick: () => void })
     >
       <StatusBadge status={a.status} />
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{a.titulo}</span>
+      {estaAtrasada(a.prazo, a.status) && <AtrasadaBadge />}
       <span className="whitespace-nowrap text-[11px] text-muted">
         {a.responsavelNome || "Sem responsável"}
         {a.prazo ? ` · ${formatarData(a.prazo)}` : ""}
@@ -363,14 +366,16 @@ function AtividadeRow({ a, onClick }: { a: AtividadeView; onClick: () => void })
 interface ProjetoModalProps {
   projeto: ProjetoView | null;
   onOpenChange: (open: boolean) => void;
+  /** Abre direto na tela de uma atividade do projeto. */
+  atividadeInicial?: string | null;
 }
 
-export function ProjetoModal({ projeto, onOpenChange }: ProjetoModalProps) {
-  const [atividadeId, setAtividadeId] = React.useState<string | null>(null);
+export function ProjetoModal({ projeto, onOpenChange, atividadeInicial = null }: ProjetoModalProps) {
+  const [atividadeId, setAtividadeId] = React.useState<string | null>(atividadeInicial);
 
   React.useEffect(() => {
-    if (!projeto) setAtividadeId(null);
-  }, [projeto]);
+    setAtividadeId(projeto ? atividadeInicial : null);
+  }, [projeto?.id, atividadeInicial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <DialogPrimitive.Root open={!!projeto} onOpenChange={onOpenChange}>
@@ -610,6 +615,11 @@ function TelaAtividade({
               <TitleInput value={local.titulo} onSave={(titulo) => salvar({ titulo }, { titulo })} />
             </div>
           </DialogPrimitive.Title>
+          {estaAtrasada(local.prazo, local.status) && (
+            <div className="mt-2">
+              <AtrasadaBadge prazo={local.prazo} />
+            </div>
+          )}
 
           <div className="mt-[22px]">
             <SectionTitle>Briefing</SectionTitle>
