@@ -61,6 +61,23 @@ export interface ConfigEstudio {
   pilares: { nome: string; descricao: string }[];
   mix: Partial<Record<Formato, number>>;
   ultimo_radar: string | null;
+  inicio_em: string | null;
+  marca: Marca | null;
+  perfil_padrao: { resumo?: string; visual?: string; atualizado_em?: string } | null;
+  ultimo_perfil: string | null;
+}
+
+/** Manual de marca que os agentes seguem nas copies, nas artes e nos vídeos. */
+export interface Marca {
+  nome?: string;
+  cores?: { fundo?: string; fundo2?: string; destaque?: string; destaque2?: string; texto?: string };
+  fontes?: { titulo?: string; texto?: string };
+  logo_url?: string;
+  logo_proporcao?: number;
+  manual_url?: string;
+  tom?: string;
+  regras?: string;
+  assinatura?: string;
 }
 
 export const STATUS_TEXTO: Record<StatusPauta, string> = {
@@ -242,8 +259,17 @@ export function useFonteAcoes() {
 export function useRodarAgente() {
   const invalidar = useInvalidar();
   return useMutation({
-    mutationFn: (etapa: "radar" | "pauteiro" | "redator" | "diretor" | "publicador") =>
+    mutationFn: (etapa: "radar" | "perfil" | "pauteiro" | "redator" | "diretor" | "publicador") =>
       chamarSdr<{ ok: boolean; resultado: Record<string, unknown> }>("/api/estudio", { acao: "rodar", etapa }),
     onSuccess: invalidar,
   });
+}
+
+/** Sobe um arquivo da marca (logo ou manual) no bucket do Estúdio e devolve o link público. */
+export async function subirArquivoDaMarca(arquivo: File, nome: "logo" | "manual"): Promise<string> {
+  const ext = (arquivo.name.split(".").pop() || "bin").toLowerCase();
+  const caminho = `marca/${nome}-${Date.now()}.${ext}`;
+  const up = await supabase.storage.from("estudio").upload(caminho, arquivo, { contentType: arquivo.type || undefined, upsert: true });
+  if (up.error) throw up.error;
+  return supabase.storage.from("estudio").getPublicUrl(caminho).data.publicUrl;
 }

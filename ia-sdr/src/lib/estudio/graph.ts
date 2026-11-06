@@ -89,6 +89,22 @@ export async function contaPublica(username: string, limite = 25): Promise<Conta
   return r.business_discovery;
 }
 
+export interface MinhaMidia extends MidiaPublica {
+  media_url?: string;
+  thumbnail_url?: string;
+  children?: { data: { media_url?: string; media_type?: string }[] };
+}
+
+/** Posts do nosso próprio perfil (@demand_ia), com o link das imagens para o time estudar o visual. */
+export async function minhasMidias(limite = 30): Promise<MinhaMidia[]> {
+  const { igId } = await credenciais();
+  const r = await chamar<{ data: MinhaMidia[] }>("GET", `/${igId}/media`, {
+    fields: "id,caption,media_type,media_product_type,media_url,thumbnail_url,like_count,comments_count,permalink,timestamp,children{media_url,media_type}",
+    limit: String(limite),
+  });
+  return r.data ?? [];
+}
+
 const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Espera o container ficar pronto (vídeo demora; imagem costuma ser na hora). */

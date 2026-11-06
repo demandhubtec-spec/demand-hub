@@ -216,14 +216,14 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
     <div class="crumb">Marketing / Time de Marketing IA</div>
     <div class="sp"></div>
     <div class="stat"><span class="blink"></span>OPERAÇÃO <b>AO VIVO</b></div>
-    <div class="stat">CICLO <b>DEZ/2026</b></div>
-    <div class="stat">AGENTES <b>8 ONLINE</b></div>
+    <div class="stat">CICLO <b id="ciclo">…</b></div>
+    <div class="stat">AGENTES <b id="online">…</b></div>
     <div class="stat">NA SUA FILA <b id="qcount">0</b></div>
     <button class="btn pri" onclick="abrirGrupo()">Chat do time</button>
     <button class="btn" onclick="abrirManual()">Manual de marca</button>
   </div>
   <h1 class="title">Central do Time de Marketing IA</h1>
-  <p class="sub">A Vera coordena o time. Cada etapa passa pelo Rui antes de chegar em você, e nada é publicado sem a sua aprovação.</p>
+  <p class="sub">A Vera coordena o time. Você aprova a copy e a arte de cada post, e nada é publicado sem a sua aprovação. Tudo aqui é real e atualiza sozinho.</p>
 
   <section class="panel">
     <div class="ph"><h2>Linha de produção do conteúdo</h2><span class="tag">FLUXO</span><span class="sp"></span>
@@ -241,7 +241,7 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
       <div class="queue" id="queue"></div>
     </section>
   </div>
-  <p class="foot">PROTÓTIPO VISUAL · agentes, conversas e números de exemplo para validar a experiência antes de construir.</p>
+  <p class="foot" id="foot">Carregando o time…</p>
 </div>
 
 <div class="shade" id="shade" onclick="fecharTudo()"></div>
@@ -301,16 +301,16 @@ const T = [
  chips:['Deixa o gancho mais forte','Faz uma versão mais curta','Mostra a legenda de amanhã'],
  resp:[[/gancho/,'Opção nova: "Seu paciente mandou mensagem às 21h. Quem respondeu?" Mais direta e com cena real. Quer que eu troque?'],[/curt/,'Versão curta: "Paciente que espera, desiste. Comenta AGENDA e veja a IA respondendo em 10 segundos."'],[/legenda/,'Abre com "Você perde paciente sem perceber" e fecha com "Comenta AGENDA que eu te mando no Direct." Está na sua fila junto com a arte.']]},
 {id:'duda',nome:'Duda',cargo:'Design: estático, carrossel e vídeo',look:{h:'bun',g:'f'},
- tarefas:['Renderizando 7 slides 1080x1350','Gerando cenas do reels no KaironGen','Ajustando contraste para celular','Exportando a capa do reels'],
+ tarefas:['Renderizando 7 slides 1080x1350','Montando o vídeo do reels','Ajustando contraste para celular','Exportando a capa do reels'],
  manual:{objetivo:'Transformar a copy em peças com cara de marca premium, sem nada que pareça feito com IA.',
- resp:['Carrossel e estático 1080x1350, capa e reels 9:16','Gerar cenas e avatar da Ana no KaironGen para os vídeos','Legenda na tela em todo vídeo','Aplicar o manual de marca em todas as peças'],
+ resp:['Carrossel e estático 1080x1350, capa e reels 9:16','Montar o vídeo dos reels com texto animado no visual da marca','Legenda na tela em todo vídeo','Aplicar o manual de marca em todas as peças'],
  recebe:'Copy aprovada da Bia, orientação visual do Téo, manual de marca',
  entrega:'Arquivos finais prontos para o Rui revisar',
  padroes:['Fundo roxo profundo, destaque lilás, títulos em Anton e textos em Inter','Margem de segurança de 90px; título nunca cortado no feed 4:5','Uma ideia por slide, texto legível no celular (mínimo 34px)','Marca DemandIA e @demand_ia em todas as peças','Gancho visual nos 3 primeiros segundos do reels'],
  aceito:['Propor variação de layout com justificativa','Pedir à Bia para cortar texto que não cabe'],
  naoaceito:['Rosto estranho, mãos deformadas ou texto errado dentro da imagem','Visual de template genérico','Mais de uma ideia por slide','Peça fora da paleta da marca'],
  kpis:['Aprovação da arte de primeira','Taxa de retenção nos 3 primeiros segundos do reels']},
- chips:['Muda a cor do destaque','Faz uma capa mais limpa','Quanto custa gerar o vídeo?'],
+ chips:['Muda a cor do destaque','Faz uma capa mais limpa','Como fica o vídeo do reels?'],
  resp:[[/cor/,'Posso testar o lilás atual ou um ciano holográfico só no número. Te mando as duas versões lado a lado.'],[/capa/,'Faço só o título grande, fundo escuro e o rosto da Ana em destaque. Fica mais limpa e para mais no feed.'],[/custa|vídeo|video/,'Antes de gerar eu peço a estimativa ao KaironGen e te mostro. Reels de 20 a 30 segundos costuma ser poucos créditos.']]},
 {id:'rui',nome:'Rui',cargo:'Revisor de qualidade',look:{h:'side',g:'m',glasses:1},
  tarefas:['Conferindo ortografia e acentos','Medindo legibilidade no celular','Validando CTA e gatilho do Direct','Comparando peça com o briefing'],
@@ -350,8 +350,8 @@ const T = [
  resp:[[/semana/,'Alcance subiu 32% e 14 pessoas chegaram na Ana pelo Direct. Carrossel de dor do dono foi o campeão de salvamento.'],[/lead/,'O reels de demonstração trouxe 9 dos 14 leads. A palavra DEMO converte muito bem.']]},
 ];
 const byId=id=>T.find(a=>a.id===id);
-const ST={vera:'work',rita:'work',teo:'wait',bia:'work',duda:'work',rui:'work',lara:'idle',nina:'idle'};
-const PR={vera:40,rita:55,teo:100,bia:35,duda:70,rui:20,lara:0,nina:15};
+const ST={vera:'idle',rita:'idle',teo:'idle',bia:'idle',duda:'idle',rui:'idle',lara:'idle',nina:'idle'};
+const PR={vera:0,rita:0,teo:0,bia:0,duda:0,rui:0,lara:0,nina:0};
 const TI={};T.forEach(a=>TI[a.id]=0);
 const LB={work:'TRABALHANDO',wait:'ESPERA VOCÊ',idle:'EM ESPERA',talk:'CONVERSANDO'};
 
@@ -387,7 +387,7 @@ const mini=(a,cls='mini')=>a==='kelvin'?`<div class="${cls} kelvin">K</div>`:`<d
 
 /* ================= FLUXOGRAMA ================= */
 const PIPE=['rita','teo','bia','duda','rui','lara','nina'];
-const GATES={rita:'PESQUISA',teo:'PLANO',bia:'COPY',rui:'ARTE FINAL'};
+const GATES={bia:'COPY',rui:'ARTE FINAL'};
 function montarFlow(){
   const fl=document.getElementById('flow');fl.querySelectorAll('.node,.gate').forEach(n=>n.remove());
   const W=fl.clientWidth,H=fl.clientHeight;
@@ -400,7 +400,7 @@ function montarFlow(){
   PIPE.forEach((id,i)=>{if(!GATES[id]||i===PIPE.length-1)return;const [x1,y]=pos[id],[x2]=pos[PIPE[i+1]];const g=document.createElement('div');g.className='gate';g.style.left=(x1+x2)/2+'px';g.style.top=(y+11)+'px';g.innerHTML=`VOCÊ APROVA<br>${GATES[id]}<div class="dia"><span>K</span></div>`;fl.appendChild(g)});
   desenharLinks();
 }
-function agora(a){return ST[a.id]==='wait'?'Plano de dezembro entregue. Aguardando você.':a.tarefas[TI[a.id]]}
+function agora(a){return (typeof REAL!=='undefined'&&REAL.agora[a.id])||'Carregando…'}
 function desenharLinks(){
   const P=window.POS,svg=document.getElementById('links');let s=`<defs>
   <linearGradient id="gp" x1="0" x2="1" gradientUnits="objectBoundingBox"><stop offset="0" stop-color="#7c4dff"/><stop offset="1" stop-color="#62f3ff"/></linearGradient>
@@ -421,140 +421,156 @@ function desenharLinks(){
   svg.innerHTML=s;
 }
 
+/* ================= DADOS REAIS ================= */
+/* O portal expõe o cliente do banco e a chamada ao servidor da Ana (mesma origem). */
+const SB=(()=>{try{return (window.parent&&window.parent.__demandSupabase)||null}catch(e){return null}})();
+const SDR=(()=>{try{return (window.parent&&window.parent.__demandChamarSdr)||null}catch(e){return null}})();
+const esc=s=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const hhmm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const hojeBR=()=>new Date(Date.now()-3*3600e3).toISOString().slice(0,10);
+const somar=(d,n)=>{const x=new Date(d+'T12:00:00Z');x.setUTCDate(x.getUTCDate()+n);return x.toISOString().slice(0,10)};
+const fimMes=d=>{const [a,m]=d.split('-').map(Number);return new Date(Date.UTC(a,m,0)).toISOString().slice(0,10)};
+const dm=d=>`${d.slice(8,10)}/${d.slice(5,7)}`;
+const FMT={carrossel:'Carrossel',estatico:'Estático',reels:'Reels'};
+const MESES=['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const NOMES={kelvin:'Kelvin',time:'Time'};
+const nomeDe=id=>NOMES[id]||byId(id)?.nome||id;
+const REAL={agora:{},tarefas:{},pautas:[],cfg:null,ultimoId:0,carregou:false};
+
+/** Até onde vai o plano (igual ao servidor): mês corrente e, do dia 24 em diante, o seguinte. */
+function horizonte(hoje,inicio){const ate=Number(hoje.slice(8,10))>=24?fimMes(somar(fimMes(hoje),1)):fimMes(hoje);const am=somar(hoje,1);return {de:inicio&&inicio>am?inicio:am,ate}}
+
+async function carregarTudo(){
+  if(!SB){document.getElementById('foot').textContent='Abra pela aba do portal para ver o time ao vivo.';return}
+  const hoje=hojeBR();
+  try{
+    const msgsQ=REAL.ultimoId?SB.from('estudio_mensagens').select('id,autor,para,texto,created_at').gt('id',REAL.ultimoId).order('id',{ascending:true}).limit(100)
+      :SB.from('estudio_mensagens').select('id,autor,para,texto,created_at').order('id',{ascending:false}).limit(80);
+    const [cfg,pa,ms]=await Promise.all([
+      SB.from('estudio_config').select('*').eq('id',1).maybeSingle(),
+      SB.from('estudio_pautas').select('id,dia,horario,formato,pilar,tema,status,palavra_gatilho,erro,comentario').gte('dia',somar(hoje,-14)).neq('status','descartado').order('dia').order('horario'),
+      msgsQ]);
+    REAL.cfg=cfg.data||{};REAL.pautas=pa.data||[];
+    let novas=ms.data||[];if(!REAL.ultimoId)novas=novas.reverse();
+    novas.forEach(m=>{REAL.ultimoId=Math.max(REAL.ultimoId,m.id);receberMsg(m,REAL.carregou)});
+    calcularEstado(hoje);
+    T.forEach(a=>atualizarNo(a.id));
+    pintarFila();
+    const h=horizonte(hoje,REAL.cfg.inicio_em);
+    document.getElementById('ciclo').textContent=MESES[Number(h.de.slice(5,7))-1]+(h.ate.slice(0,7)!==h.de.slice(0,7)?'+'+MESES[Number(h.ate.slice(5,7))-1]:'')+'/'+h.de.slice(0,4);
+    const on=Object.values(REAL.cfg.agentes||{}).filter(Boolean).length;
+    document.getElementById('online').textContent=REAL.cfg.ativo?`${on} DE 5 LIGADOS`:'PAUSADO';
+    document.getElementById('foot').textContent=`AO VIVO · atualizado às ${hhmm(new Date())} · o time trabalha sozinho a cada minuto, 24 horas`;
+    REAL.carregou=true;
+  }catch(e){document.getElementById('foot').textContent='Não consegui ler o time agora. Tento de novo em 20 segundos.'}
+}
+
+/** Status de cada agente a partir do calendário real. */
+function calcularEstado(hoje){
+  const P=REAL.pautas,c=REAL.cfg||{},lig=k=>c.ativo&&(c.agentes||{})[k]!==false;
+  const por=s=>P.filter(p=>p.status===s);
+  const h=horizonte(hoje,c.inicio_em);
+  const noPlano=P.filter(p=>p.dia>=h.de&&p.dia<=h.ate);
+  let dias=0;for(let d=h.de;d<=h.ate;d=somar(d,1))dias++;
+  const set=(id,st,txt,tar)=>{ST[id]=st;REAL.agora[id]=txt;REAL.tarefas[id]=tar||[]};
+  const lin=p=>`${dm(p.dia)} ${p.horario} · ${FMT[p.formato]} · ${p.tema}`;
+  // Rita
+  if(!lig('radar'))set('rita','idle','Pausada nas Configurações.');
+  else if(c.ultimo_radar===hoje)set('rita','idle',`Radar de hoje feito.${c.ultimo_perfil?` Nosso perfil estudado em ${dm(c.ultimo_perfil)}.`:''}`,['Próximo radar: amanhã a partir das 6h','Estudo do @demand_ia: toda semana']);
+  else set('rita','work','Lendo os perfis de referência de hoje.');
+  // Téo
+  const falta=dias-noPlano.length;
+  if(!lig('pauteiro'))set('teo','idle',`Pausado. ${noPlano.length} de ${dias} dias planejados até ${dm(h.ate)}.`,noPlano.slice(0,8).map(lin));
+  else if(falta>0)set('teo','work',`Plano: ${noPlano.length} de ${dias} dias prontos.`,noPlano.slice(-6).map(lin));
+  else set('teo','idle',`Plano fechado até ${dm(h.ate)}: ${noPlano.length} posts.`,noPlano.slice(0,8).map(lin));
+  // Bia
+  const escr=por('pauta').filter(p=>p.dia>=hoje),rc=por('revisar_copy');
+  if(escr.length&&lig('redator'))set('bia','work',`Escrevendo: ${FMT[escr[0].formato].toLowerCase()} de ${dm(escr[0].dia)}.${escr.length>1?` Mais ${escr.length-1} na fila.`:''}`,escr.slice(0,8).map(lin));
+  else if(rc.length)set('bia','wait',`${rc.length} copy(s) esperando você aprovar.`,rc.slice(0,8).map(lin));
+  else set('bia','idle',lig('redator')?'Sem copy para escrever agora.':'Pausada nas Configurações.');
+  // Duda
+  const fz=por('copy_aprovada'),ra=por('revisar_arte');
+  if(fz.length&&lig('diretor'))set('duda','work',`Fazendo ${fz[0].formato==='reels'?'o vídeo':'a arte'} de ${dm(fz[0].dia)}.${fz.length>1?` Mais ${fz.length-1} na fila.`:''}`,fz.slice(0,8).map(lin));
+  else if(ra.length)set('duda','wait',`${ra.length} arte(s) esperando você aprovar.`,ra.slice(0,8).map(lin));
+  else set('duda','idle','Sem arte para fazer agora.');
+  // Rui confere o que a Bia e a Duda entregam
+  set('rui',ST.bia==='work'||ST.duda==='work'?'work':'idle',ST.bia==='work'||ST.duda==='work'?'Conferindo as peças antes de irem para você.':'Nada para revisar agora.',['Sem travessão e sem jargão','Limites do Instagram','Palavra-chave igual ao gatilho do Direct','Fiel ao manual de marca']);
+  // Lara
+  const ag=por('agendado').concat(por('publicando'));
+  if(ag.length)set('lara','work',`Próximo post: ${dm(ag[0].dia)} às ${ag[0].horario} (${FMT[ag[0].formato].toLowerCase()}).`,ag.slice(0,8).map(lin));
+  else set('lara','idle','Nada agendado ainda. Publica assim que você aprovar a arte.');
+  // Nina
+  const pub=por('publicado');
+  set('nina','idle',pub.length?`${pub.length} post(s) publicado(s) nos últimos dias.`:'Começa a medir quando os primeiros posts saírem.',pub.slice(-6).map(lin));
+  // Vera
+  const fila=rc.length+ra.length;
+  set('vera',fila?'wait':'work',fila?`${fila} item(ns) na sua fila de aprovação.`:'Acompanhando o time.',[`Começo das postagens: ${c.inicio_em?dm(c.inicio_em):'não definido'}`,`Plano até ${dm(h.ate)}`,`Manual de marca: ${c.marca&&(c.marca.tom||c.marca.regras||c.marca.logo_url)?'carregado':'falta subir'}`]);
+}
+
 /* ================= CANAL INTERNO ================= */
-const ROTEIRO=[
- ['vera','rita','Rita, preciso do relatório da semana até 10h. Foco: estética e odontologia.'],
- ['rita','vera','Entregue. Top 10 referências com nota e motivo, 3 tendências e 5 oportunidades de pauta.',{att:'relatorio-semana.pdf'}],
- ['rui','vera','Pesquisa da Rita conferida: todas as fontes com link e data. Pode subir.'],
- ['vera','kelvin','Relatório de pesquisa na sua fila.',{fila:'pesquisa'}],
- ['rita','teo','Achado forte: carrossel "quanto custa um paciente perdido" teve 3,1x a média na @v4company. Ninguém fez isso para odontologia.'],
- ['teo','rita','Ótimo. Tem dado nosso para sustentar? Preciso de prova para a Bia.'],
- ['rita','teo','Nas conversas da Ana em outubro, 62% das mensagens chegaram fora do horário comercial. Pode citar como "nas clínicas que atendemos".'],
- ['teo','vera','Plano de dezembro fechado: 31 posts, 7 séries fixas, briefing completo de cada um.',{att:'plano-dezembro.xlsx'}],
- ['vera','kelvin','Plano do mês na sua fila. A Bia começa assim que você aprovar.',{fila:'plano'}],
- ['teo','bia','Briefing do post 08/12: objetivo salvamento, tese "o paciente não some, ele é respondido por outro", 3 ganchos sugeridos, prova dos 62%.'],
- ['bia','teo','Dúvida: o público desse post é dono ou recepcionista? Muda o tom inteiro.'],
- ['teo','bia','Dono. Ele paga a conta e sente a perda no faturamento.'],
- ['bia','rui','Copy do carrossel pronta: 7 slides + legenda + CTA AGENDA.'],
- ['rui','bia','Aprovado. Só troquei "agendamentos" por "pacientes" no slide 5, regra do manual.'],
- ['vera','kelvin','Copy do carrossel na sua fila.',{fila:'copy'}],
- ['bia','duda','Copy aprovada pelo Kelvin. Destaque no número 62% do slide 2.'],
- ['duda','rui','Arte v1 do carrossel pronta para revisão.',{att:'carrossel-v1.zip'}],
- ['rui','duda','Slide 4: texto com 22px, ilegível no celular. Sobe para 34px. O resto está aprovado.'],
- ['duda','rui','v2 enviada com o slide 4 corrigido.'],
- ['rui','vera','Arte aprovada no checklist completo.'],
- ['vera','kelvin','Arte final do carrossel na sua fila.',{fila:'arte'}],
- ['lara','vera','Post das 12:00 publicado. Palavra AGENDA testada e respondendo no Direct.'],
- ['nina','teo','Parcial de 24h: o post das 12:00 teve 2,1x mais salvamentos que a média. Reels de demo segue campeão de leads (9 de 14).'],
- ['teo','vera','Com base na Nina, vou colocar mais um reels de demo por semana a partir do dia 15.'],
-];
-let rIdx=0;const COMMS=[];
+const COMMS=[];const CONV={};let GRUPO=[];
+function receberMsg(m,aoVivo){
+  if(m.para==='time'){GRUPO.push({de:m.autor,t:m.texto,h:hhmm(m.created_at)});if(aoVivo)pintarGrupo();return}
+  if(m.autor==='kelvin'||m.para==='kelvin'){const ag=m.autor==='kelvin'?m.para:m.autor;(CONV[ag]=CONV[ag]||[]).push({de:m.autor==='kelvin'?'me':'ag',t:m.texto});if(aoVivo&&atual===ag)pintarChat();if(m.autor!=='vera')return}
+  if(m.autor==='kelvin')return;
+  addComm(m.autor,m.para,m.texto,{h:hhmm(m.created_at),vivo:aoVivo});
+}
 function addComm(de,para,tx,ex={}){
-  COMMS.push({de,para,tx,ex,h:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})});
-  const box=document.getElementById('comms');const c=COMMS[COMMS.length-1];const a=byId(de);
+  COMMS.push({de,para,tx,h:ex.h||hhmm(new Date())});
+  const box=document.getElementById('comms');const c=COMMS[COMMS.length-1];
   const el=document.createElement('div');el.className='cm'+(para==='kelvin'?' sys':'');
-  el.innerHTML=`${mini(de)}<div><div class="who"><b>${a.nome}</b> → <span class="to">${para==='kelvin'?'Kelvin':byId(para).nome}</span> · ${c.h}</div><div class="tx">${tx}</div>${ex.att?`<span class="att">📎 ${ex.att}</span>`:''}</div>`;
+  el.innerHTML=`${mini(de)}<div><div class="who"><b>${esc(nomeDe(de))}</b> → <span class="to">${esc(nomeDe(para))}</span> · ${c.h}</div><div class="tx">${esc(tx)}</div></div>`;
   box.appendChild(el);box.scrollTop=box.scrollHeight;
   document.getElementById('ccount').textContent=COMMS.length+' MENSAGENS';
-  falando(de,para);
-  if(ex.fila)entrarFila(ex.fila);
+  if(ex.vivo)falando(de,para);
 }
-function falando(a,b){[a,b].forEach(id=>{if(id==='kelvin')return;const el=document.getElementById('st-'+id);if(!el)return;el.className='chip c-talk';el.textContent=LB.talk;setTimeout(()=>{el.className='chip c-'+ST[id];el.textContent=LB[ST[id]]},2600)})}
-function proximo(){if(rIdx<ROTEIRO.length){const [d,p,t,e]=ROTEIRO[rIdx++];addComm(d,p,t,e||{})}}
+function falando(a,b){[a,b].forEach(id=>{if(!byId(id))return;const el=document.getElementById('st-'+id);if(!el)return;el.className='chip c-talk';el.textContent=LB.talk;setTimeout(()=>{el.className='chip c-'+ST[id];el.textContent=LB[ST[id]]},2600)})}
 
 /* ================= FILA ================= */
-const ENT={
- pesquisa:{de:'rita',tipo:'Pesquisa',titulo:'Relatório da semana: o que engaja no nicho',body:bodyPesquisa},
- plano:{de:'teo',tipo:'Plano do mês',titulo:'Plano editorial de dezembro (31 posts)',body:bodyPlano},
- copy:{de:'bia',tipo:'Copy',titulo:'Carrossel 08/12 · O paciente não some',body:bodyCopy},
- arte:{de:'duda',tipo:'Arte final',titulo:'Carrossel 08/12 · 7 slides 1080x1350',body:bodyArte},
-};
-const FILA=[];
-function entrarFila(k){if(FILA.find(f=>f.k===k))return;FILA.push({k,em:new Date()});pintarFila();toast(`${byId(ENT[k].de).nome} enviou ${ENT[k].tipo.toLowerCase()} para você`)}
+let FILA_ANTES=null;
 function pintarFila(){
-  const q=document.getElementById('queue');document.getElementById('qcount').textContent=FILA.length;
-  if(!FILA.length){q.innerHTML='<div class="empty">Fila vazia. O time segue trabalhando e manda tudo para cá.</div>';return}
-  q.innerHTML=FILA.map(f=>{const e=ENT[f.k],a=byId(e.de);return `<div class="qi" onclick="abrirEntrega('${f.k}')">${mini(e.de)}<div><div class="k">${e.tipo} · de ${a.nome}</div><div class="t">${e.titulo}</div><div class="m">Revisado pelo Rui · encaminhado pela Vera</div></div><div class="sla">chegou<br>${f.em.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</div></div>`}).join('');
+  const itens=REAL.pautas.filter(p=>p.status==='revisar_copy'||p.status==='revisar_arte');
+  const q=document.getElementById('queue');document.getElementById('qcount').textContent=itens.length;
+  const ids=new Set(itens.map(p=>p.id));
+  if(FILA_ANTES&&REAL.carregou)itens.filter(p=>!FILA_ANTES.has(p.id)).forEach(p=>toast(`${p.status==='revisar_copy'?'Bia enviou uma copy':'Duda enviou uma arte'} de ${dm(p.dia)} para você`));
+  FILA_ANTES=ids;
+  if(!itens.length){q.innerHTML=`<div class="empty">${REAL.carregou||SB?'Fila vazia. O time segue trabalhando e manda tudo para cá.':'Carregando…'}</div>`;return}
+  q.innerHTML=itens.map(p=>{const de=p.status==='revisar_copy'?'bia':'duda';return `<div class="qi" onclick="abrirEntrega('${p.id}')">${mini(de)}<div><div class="k">${p.status==='revisar_copy'?'Copy':p.formato==='reels'?'Vídeo':'Arte'} · ${FMT[p.formato]} · de ${nomeDe(de)}</div><div class="t">${dm(p.dia)} ${p.horario} · ${esc(p.tema)}</div><div class="m">${p.pilar?esc(p.pilar)+' · ':''}${p.palavra_gatilho?'palavra '+esc(p.palavra_gatilho):'sem palavra-chave'}</div></div><div class="sla">abrir</div></div>`}).join('');
 }
-function bodyPesquisa(){return `
- <div class="kpis"><div><b>214</b><span>posts analisados (30 dias)</span></div><div><b>10</b><span>perfis monitorados</span></div><div><b>3,1x</b><span>maior pico de engajamento</span></div><div><b>5</b><span>oportunidades de pauta</span></div></div>
- <div class="sec"><h4>Resumo executivo</h4><p>Carrossel educativo com número no gancho é o formato que mais gera salvamento no nicho. Reels de bastidor gera mais comentário. Os concorrentes falam com "empresas" de forma ampla; ninguém fala direto com o dono de clínica sobre o paciente que manda mensagem fora do horário.</p></div>
- <div class="sec"><h4>Top 5 referências da semana</h4><table class="t"><tr><th>Perfil</th><th>Formato</th><th>Nota</th><th>Por que funcionou</th></tr>
- <tr><td>@v4company</td><td><span class="pill f-car">Carrossel</span></td><td>9,2</td><td>Gancho com número ("R$ 37 mil perdidos"), conta simples slide a slide, CTA de comentário</td></tr>
- <tr><td>@viverdeia</td><td><span class="pill f-ree">Reels</span></td><td>8,6</td><td>Tela gravada da IA respondendo em tempo real; prova visual nos 3 primeiros segundos</td></tr>
- <tr><td>@assessoriaalpha</td><td><span class="pill f-car">Carrossel</span></td><td>8,1</td><td>Lista "5 erros", cada slide com uma dor reconhecível; muito salvamento</td></tr>
- <tr><td>@g4educacao</td><td><span class="pill f-ree">Reels</span></td><td>7,7</td><td>Fundador falando direto para a câmera, frase polêmica no início</td></tr>
- <tr><td>@clinisales</td><td><span class="pill f-est">Estático</span></td><td>6,9</td><td>Print de conversa real com paciente como prova social</td></tr></table></div>
- <div class="sec"><h4>Tendências</h4><ul><li>IA que atende no WhatsApp: busca e conteúdo subindo forte em estética</li><li>Print de conversa real como prova (mais confiança que depoimento)</li><li>"A conta que ninguém faz": quanto custa um paciente perdido</li></ul></div>
- <div class="sec"><h4>Oportunidades para o Téo</h4><ul><li>Dentista e a mensagem das 21h (lacuna total no nicho)</li><li>Série "conta que ninguém faz" com números da Ana</li><li>Demonstração da Ana respondendo um paciente difícil</li><li>Antes e depois da recepção com IA</li><li>Bastidor: como a DemandIA treina a IA para cada clínica</li></ul></div>
- <div class="sec"><h4>Riscos</h4><ul><li>Saturação de "IA vai substituir sua recepção": evitar esse ângulo</li><li>Nova regra da Meta para mensagens automáticas: Lara já conferiu, não afeta o gatilho</li></ul></div>`}
-function bodyPlano(){return `
- <div class="kpis"><div><b>40</b><span>conversas no Direct</span></div><div><b>12</b><span>diagnósticos marcados</span></div><div><b>+25%</b><span>salvamentos vs novembro</span></div><div><b>31</b><span>posts, 1 por dia</span></div></div>
- <div class="kv"><div><b>Público</b>Donos de clínicas de estética, odontologia e academias que faturam acima de R$ 30 mil/mês</div><div><b>Tese do mês</b>"Seu paciente não some. Ele é respondido por outra clínica."</div>
- <div><b>Pilares</b>Dor do dono 30% · Demonstração 30% · Método e bastidor 20% · Prova e oferta 20%</div><div><b>Mix</b>13 carrosséis · 10 reels · 8 estáticos · horários 12:00 e 19:30</div></div>
- <div class="sec" style="margin-top:14px"><h4>Linha editorial e séries fixas</h4><table class="t"><tr><th>Dia</th><th>Série</th><th>Formato</th><th>Função no funil</th></tr>
- <tr><td>Seg</td><td>Raio-x da recepção</td><td><span class="pill f-car">Carrossel</span></td><td>Gera identificação e salvamento</td></tr>
- <tr><td>Ter</td><td>A Ana atendendo</td><td><span class="pill f-ree">Reels</span></td><td>Prova e desejo, palavra DEMO</td></tr>
- <tr><td>Qua</td><td>A conta que ninguém faz</td><td><span class="pill f-car">Carrossel</span></td><td>Mostra o dinheiro perdido</td></tr>
- <tr><td>Qui</td><td>Bastidor DemandIA</td><td><span class="pill f-ree">Reels</span></td><td>Confiança no método</td></tr>
- <tr><td>Sex</td><td>Pergunta do dono</td><td><span class="pill f-est">Estático</span></td><td>Comentário e conversa</td></tr>
- <tr><td>Sáb</td><td>Oferta da semana</td><td><span class="pill f-car">Carrossel</span></td><td>Conversão: diagnóstico gratuito</td></tr>
- <tr><td>Dom</td><td>Número da semana</td><td><span class="pill f-est">Estático</span></td><td>Alcance e lembrança</td></tr></table></div>
- <div class="sec"><h4>Semana 1 (01 a 07/12)</h4><table class="t"><tr><th>Data</th><th>Formato</th><th>Pilar</th><th>Objetivo</th><th>Tema e gancho</th><th>Palavra</th></tr>
- <tr><td>01/12 12:00</td><td><span class="pill f-car">Carrossel</span></td><td>Dor</td><td>Salvamento</td><td>"5 sinais de que sua recepção perde paciente"</td><td>AGENDA</td></tr>
- <tr><td>02/12 19:30</td><td><span class="pill f-ree">Reels</span></td><td>Demo</td><td>Lead</td><td>"Mandei mensagem às 23h para uma clínica. Olha quem respondeu."</td><td>DEMO</td></tr>
- <tr><td>03/12 12:00</td><td><span class="pill f-car">Carrossel</span></td><td>Dor</td><td>Salvamento</td><td>"Quanto custa um paciente que você não respondeu"</td><td>CONTA</td></tr>
- <tr><td>04/12 19:30</td><td><span class="pill f-ree">Reels</span></td><td>Método</td><td>Confiança</td><td>"Como a gente ensina a IA a falar igual sua clínica"</td><td>DEMO</td></tr>
- <tr><td>05/12 12:00</td><td><span class="pill f-est">Estático</span></td><td>Prova</td><td>Comentário</td><td>"Sua recepção responde em quanto tempo? Seja sincero."</td><td>AGENDA</td></tr>
- <tr><td>06/12 19:30</td><td><span class="pill f-car">Carrossel</span></td><td>Oferta</td><td>Conversão</td><td>"Diagnóstico gratuito: 20 vagas para dezembro"</td><td>VAGA</td></tr>
- <tr><td>07/12 12:00</td><td><span class="pill f-est">Estático</span></td><td>Prova</td><td>Alcance</td><td>"62% das mensagens chegam fora do horário"</td><td>AGENDA</td></tr></table></div>
- <div class="brief"><div class="ph" style="margin-bottom:10px"><h2>Exemplo de briefing completo · post 01/12</h2><span class="tag">PARA A BIA E A DUDA</span></div>
- <div class="kv"><div><b>Objetivo</b>Salvamento e comentário com AGENDA</div><div><b>Dor específica</b>Dono acha que o paciente "sumiu", mas ele foi atendido por outra clínica mais rápida</div>
- <div><b>Tese</b>O problema não é falta de paciente, é demora na resposta</div><div><b>Ganchos (escolher 1)</b>1. 5 sinais de que sua recepção perde paciente · 2. Seu paciente não sumiu · 3. A mensagem que você respondeu tarde demais</div>
- <div><b>Estrutura</b>Capa, 5 sinais (1 por slide), slide de virada com a solução, CTA</div><div><b>Prova</b>62% das mensagens fora do horário (dados da Ana, out/26)</div>
- <div><b>Referência</b>@assessoriaalpha "5 erros" (nota 8,1), formato lista</div><div><b>Visual</b>Número grande em lilás, uma ideia por slide, fundo roxo profundo</div>
- <div><b>CTA e Direct</b>Comenta AGENDA que eu te mando no Direct; gatilho envia o diagnóstico gratuito</div><div><b>Não fazer</b>Falar em "agendamento", prometer número sem fonte, culpar a recepcionista</div></div></div>`}
-function bodyCopy(){return `
- <div class="kv"><div><b>Briefing</b>Post 01/12 · Carrossel · Dor do dono · objetivo salvamento</div><div><b>Gancho escolhido</b>Opção 1 de 3 (as outras 2 ficam como teste)</div></div>
- <div class="sec" style="margin-top:14px"><h4>Slides</h4><table class="t">
- <tr><td>1</td><td><b>5 sinais de que sua recepção perde paciente</b><br>(e você nem percebe)</td></tr>
- <tr><td>2</td><td><b>62% das mensagens chegam fora do horário.</b> Quem responde às 21h fica com o paciente.</td></tr>
- <tr><td>3</td><td><b>Sinal 1:</b> você responde no dia seguinte. O paciente já marcou em outro lugar.</td></tr>
- <tr><td>4</td><td><b>Sinal 2:</b> pergunta de preço fica sem resposta. Quem pergunta preço quer comprar.</td></tr>
- <tr><td>5</td><td><b>Sinal 3:</b> ninguém chama de volta quem não respondeu. Paciente que esfriou é dinheiro parado.</td></tr>
- <tr><td>6</td><td><b>Sinais 4 e 5:</b> sua recepção copia e cola a mesma resposta, e você não sabe quantos pacientes perdeu esse mês.</td></tr>
- <tr><td>7</td><td><b>A DemandIA responde em 10 segundos, 24 horas por dia,</b> no tom da sua clínica. Comenta AGENDA que eu te mando no Direct.</td></tr></table></div>
- <div class="sec"><h4>Legenda</h4><p>Você não está perdendo paciente por falta de procura. Está perdendo por demora.<br><br>Quem responde primeiro fica com o paciente. E a maioria das mensagens chega quando sua recepção já foi embora.<br><br>Comenta AGENDA que eu te mando no Direct como a IA da DemandIA responderia os pacientes da sua clínica.<br><br>#clinicadeestetica #odontologia #gestaodeclinica #marketingparaclinicas #iaparaclinicas</p></div>
- <div class="sec"><h4>Checklist do Rui</h4><div class="check"><div>Ortografia e acentos</div><div>Sem travessão</div><div>DemandIA escrito certo</div><div>Prova com fonte</div><div>CTA igual ao gatilho AGENDA</div><div>Gancho com 7 palavras</div><div>Slides até 25 palavras</div><div>Fiel ao briefing do Téo</div></div></div>`}
-function bodyArte(){const s=[
- `<div class="wm">DemandIA</div><div class="t1">5 sinais de que sua recepção perde paciente</div><div class="ft"><span>@demand_ia</span><span>arraste →</span></div>`,
- `<div class="wm">DemandIA</div><div><div class="num">62%</div><div class="x">das mensagens chegam fora do horário. Quem responde às 21h fica com o paciente.</div></div><div class="ft"><span>@demand_ia</span><span>02</span></div>`,
- `<div class="wm">DemandIA</div><div><div class="num">01</div><div class="x">Você responde no dia seguinte. O paciente já marcou em outro lugar.</div></div><div class="ft"><span>@demand_ia</span><span>03</span></div>`,
- `<div class="wm">DemandIA</div><div><div class="num">02</div><div class="x">Pergunta de preço fica sem resposta. Quem pergunta preço quer comprar.</div></div><div class="ft"><span>@demand_ia</span><span>04</span></div>`,
- `<div class="wm">DemandIA</div><div><div class="x">COMENTA</div><div class="kw" style="margin:8px 0">AGENDA</div><div class="x">que eu te mando no Direct.</div></div><div class="ft"><span>A DemandIA trabalha. Você fatura.</span><span>07</span></div>`];
- return `<div class="slides">${s.map(x=>`<div class="slide">${x}</div>`).join('')}</div>
- <div class="kv" style="margin-top:8px"><div><b>Formato</b>7 slides 1080x1350 · margem 90px · título seguro no feed 4:5</div><div><b>Revisão</b>v2 · Rui corrigiu o tamanho do texto do slide 4 (22px para 34px)</div></div>
- <div class="sec" style="margin-top:12px"><h4>Checklist do Rui</h4><div class="check"><div>Paleta e fontes da marca</div><div>Legível no celular</div><div>Uma ideia por slide</div><div>Marca e @demand_ia</div><div>Nada com cara de IA</div><div>Igual à copy aprovada</div></div></div>`}
-
-function abrirEntrega(k){
-  const e=ENT[k],a=byId(e.de);const m=document.getElementById('modal');
-  m.innerHTML=`<div class="mh">${mini(e.de)}<div><div class="k">${e.tipo} · de ${a.nome} · revisado pelo Rui</div><div class="t">${e.titulo}</div></div><button class="x" onclick="fecharTudo()">×</button></div>
-  <div class="mb">${e.body()}</div>
-  <div class="mf"><textarea id="adj" rows="3" placeholder="O que precisa mudar? Seja específico: o ${a.nome} recebe exatamente isso."></textarea>
-  <button class="btn ok" onclick="decidir('${k}','ok')">Aprovar</button><button class="btn" onclick="pedirAjuste('${k}')">Pedir ajuste</button><button class="btn" onclick="fecharTudo();abrirAgente('${e.de}','chat')">Conversar com ${a.nome}</button><span style="flex:1"></span><button class="btn ghost" onclick="decidir('${k}','no')">Descartar</button></div>`;
+async function abrirEntrega(id){
+  const p=REAL.pautas.find(x=>x.id===id);if(!p)return;
+  const m=document.getElementById('modal');const de=p.status==='revisar_copy'?'bia':'duda';
+  m.innerHTML=`<div class="mh">${mini(de)}<div><div class="k">${p.status==='revisar_copy'?'Copy':'Arte final'} · ${FMT[p.formato]} · ${dm(p.dia)} ${p.horario}</div><div class="t">${esc(p.tema)}</div></div><button class="x" onclick="fecharTudo()">×</button></div><div class="mb" id="mbody"><div class="empty">Carregando…</div></div>
+  <div class="mf"><textarea id="adj" rows="3" placeholder="O que precisa mudar? Seja específico: a ${nomeDe(de)} recebe exatamente isso."></textarea>
+  <button class="btn ok" onclick="decidir('${id}','aprovar')">Aprovar</button><button class="btn" onclick="pedirAjuste('${id}')">Pedir ajuste</button><button class="btn" onclick="fecharTudo();abrirAgente('${de}','chat')">Conversar com ${nomeDe(de)}</button><span style="flex:1"></span><button class="btn ghost" onclick="decidir('${id}','descartar')">Descartar</button></div>`;
   m.classList.add('on');document.getElementById('shade').classList.add('on');
+  const {data}=await SB.from('estudio_pecas').select('tipo,versao,conteudo,arquivos').eq('pauta_id',id).order('versao',{ascending:false});
+  const copy=(data||[]).find(x=>x.tipo==='copy'),arte=(data||[]).find(x=>x.tipo==='arte');
+  let h='';
+  if(arte&&p.status==='revisar_arte'){const v=(arte.arquivos||[]).find(u=>/\.(mp4|mov)(\?|$)/i.test(u));
+    h+=v?`<video src="${v}" controls style="max-height:460px;border-radius:12px"></video>`:`<div class="slides">${(arte.arquivos||[]).map(u=>`<a href="${u}" target="_blank"><img src="${u}" style="height:270px;border-radius:12px;border:1px solid var(--line)"></a>`).join('')}</div>`}
+  if(copy){const c=copy.conteudo||{};
+    if(c.slides)h+=`<div class="sec"><h4>Lâminas</h4><table class="t">${c.slides.map((s,i)=>`<tr><td style="width:34px">${i+1}</td><td><b>${esc(s.titulo)}</b>${s.texto?'<br>'+esc(s.texto):''}</td></tr>`).join('')}</table></div>`;
+    if(c.cenas)h+=`<div class="sec"><h4>Cenas do vídeo</h4><table class="t">${c.cenas.map(s=>`<tr><td style="width:60px">${esc(s.tempo)}</td><td><b>${esc(s.texto_tela)}</b>${s.imagem?'<br>destaque: '+esc(s.imagem):''}</td></tr>`).join('')}</table></div>`;
+    if(c.titulo)h+=`<div class="sec"><h4>Imagem</h4><p><b>${esc(c.titulo)}</b>${c.subtitulo?'<br>'+esc(c.subtitulo):''}</p></div>`;
+    if(c.legenda)h+=`<div class="sec"><h4>Legenda</h4><p>${esc(c.legenda).replace(/\n/g,'<br>')}</p>${(c.hashtags||[]).length?`<p style="color:var(--muted)">${c.hashtags.map(x=>'#'+esc(x)).join(' ')}</p>`:''}</div>`;
+    h+=`<div class="kv"><div><b>Versão</b>${copy.versao}${p.comentario?' · ajuste pedido: '+esc(p.comentario):''}</div><div><b>Palavra do Direct</b>${esc(p.palavra_gatilho||'nenhuma')}</div></div>`}
+  document.getElementById('mbody').innerHTML=h||'<div class="empty">Sem peça ainda.</div>';
 }
-function pedirAjuste(k){const t=document.getElementById('adj');if(t.style.display!=='block'){t.style.display='block';t.focus();return}decidir(k,'adj',t.value.trim()||'Refazer')}
-function decidir(k,d,txt){
-  const e=ENT[k],a=byId(e.de);FILA.splice(FILA.findIndex(f=>f.k===k),1);pintarFila();fecharTudo();
-  if(d==='ok'){addComm('vera',e.de,`Kelvin aprovou ${e.tipo.toLowerCase()}: "${e.titulo}". Segue para a próxima etapa.`);if(e.de==='teo'){ST.teo='idle';atualizarNo('teo')}toast(`${e.tipo} aprovado`)}
-  else if(d==='adj'){ST[e.de]='work';atualizarNo(e.de);addComm('vera',e.de,`Kelvin pediu ajuste: "${txt}". Prioridade agora.`);setTimeout(()=>addComm(e.de,'vera',`Recebido. Corrijo e mando de novo para o Rui.`),2200);toast(`Ajuste enviado para ${a.nome}`)}
-  else{addComm('vera',e.de,`Kelvin descartou "${e.titulo}". Vamos substituir no plano.`);toast('Descartado')}
+function pedirAjuste(id){const t=document.getElementById('adj');if(t.style.display!=='block'){t.style.display='block';t.focus();return}decidir(id,'ajuste',t.value.trim()||'Refazer')}
+async function decidir(id,d,txt){
+  const p=REAL.pautas.find(x=>x.id===id);if(!p||!SB)return;
+  const emCopy=p.status==='revisar_copy';
+  const patch=d==='descartar'?{status:'descartado'}:d==='aprovar'?{status:emCopy?'copy_aprovada':'agendado',comentario:null,erro:null}:{status:emCopy?'pauta':'copy_aprovada',comentario:txt,erro:null};
+  const {error}=await SB.from('estudio_pautas').update(patch).eq('id',id);
+  if(error){toast('Não salvou: '+error.message);return}
+  fecharTudo();toast(d==='aprovar'?(emCopy?'Copy aprovada. Agora vem a arte.':'Aprovado. Vai para a agenda.'):d==='ajuste'?'Ajuste enviado.':'Descartado.');
+  carregarTudo();
 }
 function atualizarNo(id){const n=document.getElementById('n-'+id);if(!n)return;n.classList.remove('work','wait','idle');n.classList.add(ST[id]);const s=document.getElementById('st-'+id);if(s){s.className='chip c-'+ST[id];s.textContent=LB[ST[id]]}const w=document.getElementById('now-'+id);if(w)w.textContent=agora(byId(id))}
 
 /* ================= AGENTE ================= */
-const CONV={};let atual=null;
+let atual=null;
 function abrirAgente(id,aba='manual'){
   atual=id;const a=byId(id),d=document.getElementById('drawer');
   d.innerHTML=`<div class="dh">${holo(a,true)}<div><div class="nm">${a.nome}</div><div class="rl">${a.cargo}</div><span class="chip c-${ST[id]}">${LB[ST[id]]}</span></div><button class="x" onclick="fecharTudo()">×</button></div>
@@ -572,61 +588,63 @@ function aba_(t){
    <div class="sec yes"><h4>Aceito</h4><ul>${M.aceito.map(x=>`<li>${x}</li>`).join('')}</ul></div>
    <div class="sec no"><h4>Não aceito</h4><ul>${M.naoaceito.map(x=>`<li>${x}</li>`).join('')}</ul></div>
    <div class="sec"><h4>Como é medido</h4><ul>${M.kpis.map(x=>`<li>${x}</li>`).join('')}</ul></div>
-   <div class="sec"><h4>Segue também</h4><p>Manual de marca da DemandIA · <a href="#" onclick="event.preventDefault();abrirManual()" style="color:var(--holo)">abrir</a></p></div>`}
-  else if(t==='agora'){const hist=COMMS.filter(c=>c.de===atual||c.para===atual).slice(-8).reverse();db.innerHTML=`
-   <div class="sec"><h4>Tarefa atual</h4><p>${agora(a)}</p></div>
-   <div class="sec"><h4>Fila de tarefas</h4><ul>${a.tarefas.map((x,i)=>`<li style="opacity:${i<TI[a.id]?.45:1}">${x}${i===TI[a.id]?' <span class="chip c-work">AGORA</span>':''}</li>`).join('')}</ul></div>
-   <div class="sec"><h4>Últimas conversas no time</h4>${hist.length?hist.map(c=>`<div class="cm">${mini(c.de)}<div><div class="who"><b>${byId(c.de).nome}</b> → <span class="to">${c.para==='kelvin'?'Kelvin':byId(c.para).nome}</span> · ${c.h}</div><div class="tx">${c.tx}</div></div></div>`).join(''):'<p style="color:var(--muted)">Ainda sem conversas.</p>'}</div>`}
-  else{CONV[atual]=CONV[atual]||[{de:'ag',t:`Oi, Kelvin. ${a.manual.objetivo}\n\nAgora: ${agora(a).toLowerCase()}`}];
+   <div class="sec"><h4>Segue também</h4><p>Manual de marca · <a href="#" onclick="event.preventDefault();abrirManual()" style="color:var(--holo)">abrir</a></p></div>`}
+  else if(t==='agora'){const hist=COMMS.filter(c=>c.de===atual||c.para===atual).slice(-8).reverse();const tar=REAL.tarefas[atual]||[];db.innerHTML=`
+   <div class="sec"><h4>Agora</h4><p>${esc(agora(a))}</p></div>
+   <div class="sec"><h4>Na mesa</h4>${tar.length?`<ul>${tar.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:'<p style="color:var(--muted)">Nada pendente.</p>'}</div>
+   <div class="sec"><h4>Últimas conversas no time</h4>${hist.length?hist.map(c=>`<div class="cm">${mini(c.de)}<div><div class="who"><b>${esc(nomeDe(c.de))}</b> → <span class="to">${esc(nomeDe(c.para))}</span> · ${c.h}</div><div class="tx">${esc(c.tx)}</div></div></div>`).join(''):'<p style="color:var(--muted)">Sem conversas ainda.</p>'}</div>`}
+  else{CONV[atual]=CONV[atual]||[];
    db.innerHTML=`<div class="chat"><div class="msgs" id="msgs"></div><div class="sugs">${a.chips.map(c=>`<button onclick='falar(${JSON.stringify(c)})'>${c}</button>`).join('')}</div><form class="send" id="send"><input id="inp" placeholder="Fale com ${a.nome}..." autocomplete="off"><button class="btn pri">Enviar</button></form></div>`;
    document.getElementById('send').onsubmit=e=>{e.preventDefault();const i=document.getElementById('inp');falar(i.value);i.value=''};pintarChat();setTimeout(()=>document.getElementById('inp')?.focus(),250)}
 }
-function pintarChat(extra=''){const m=document.getElementById('msgs');if(!m)return;m.innerHTML=CONV[atual].map(x=>`<div class="m ${x.de}">${x.t.replace(/</g,'&lt;')}</div>`).join('')+extra;m.scrollTop=m.scrollHeight}
-function falar(t){if(!t||!t.trim())return;const id=atual,a=byId(id);CONV[id].push({de:'me',t});salvarMsg('kelvin',id,t);pintarChat(`<div class="typing">${a.nome.toUpperCase()} DIGITANDO...</div>`);
-  const r=(a.resp||[]).find(([re])=>re.test(t.toLowerCase()));
-  setTimeout(()=>{CONV[id].push({de:'ag',t:r?r[1]:'Anotado. Vou aplicar na próxima entrega e aviso a Vera para ajustar o fluxo. Te respondo por aqui quando estiver pronto.'});if(atual===id)pintarChat()},1000+Math.random()*700)}
+function pintarChat(extra=''){const m=document.getElementById('msgs');if(!m||!atual)return;const a=byId(atual);
+  const ini=(CONV[atual]||[]).length?'':`<div class="m ag">Oi, Kelvin. ${esc(a.manual.objetivo)}\n\nAgora: ${esc(agora(a))}</div>`;
+  m.innerHTML=ini+(CONV[atual]||[]).map(x=>`<div class="m ${x.de}">${esc(x.t)}</div>`).join('')+extra;m.scrollTop=m.scrollHeight}
+const ENVIANDO={};
+async function conversarCom(para,texto){
+  if(!SDR)throw new Error('abra pela aba do portal');
+  ENVIANDO[para]=true;
+  try{await SDR('/api/estudio',{acao:'conversar',para,texto})}finally{ENVIANDO[para]=false}
+  await carregarTudo();
+}
+async function falar(t){if(!t||!t.trim()||ENVIANDO[atual])return;const id=atual,a=byId(id);t=t.trim();
+  pintarChat(`<div class="m me">${esc(t)}</div><div class="typing">${a.nome.toUpperCase()} DIGITANDO...</div>`);
+  try{await conversarCom(id,t)}catch(e){(CONV[id]=CONV[id]||[]).push({de:'ag',t:'Não consegui responder agora ('+e.message+'). Tenta de novo em instantes.'})}
+  if(atual===id)pintarChat()}
 
 /* ================= CHAT DO TIME (grupo) ================= */
-/* O portal expõe o cliente do banco (mesma origem). Sem ele, o chat funciona só na tela. */
-const SB=(()=>{try{return (window.parent&&window.parent.__demandSupabase)||null}catch(e){return null}})();
-let GRUPO=[];
-const ACK={vera:'Recebido, Kelvin. Já passei para o time e acompanho nas próximas entregas.',rita:'Anotado. Vou olhar isso nas próximas pesquisas.',teo:'Combinado. Ajusto o plano das próximas semanas com isso.',bia:'Perfeito. Aplico nos próximos textos.',duda:'Fechado. Levo isso para as próximas artes.',rui:'Entra no meu checklist a partir de agora.',lara:'Ok, sigo publicando no horário com esse ajuste.',nina:'Vou medir o efeito disso nos próximos relatórios.'};
-const hhmm=d=>new Date(d).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-async function salvarMsg(autor,para,texto){if(!SB)return;try{await SB.from('estudio_mensagens').insert({autor,para,texto})}catch(e){}}
-async function carregarGrupo(){if(!SB)return;try{const {data}=await SB.from('estudio_mensagens').select('autor,texto,created_at').eq('para','time').order('created_at',{ascending:false}).limit(60);if(data&&data.length)GRUPO=data.reverse().map(m=>({de:m.autor,t:m.texto,h:hhmm(m.created_at)}))}catch(e){}}
 function abrirGrupo(){
-  const d=document.getElementById('drawer');
+  const d=document.getElementById('drawer');atual=null;
   d.innerHTML=`<div class="dh"><div class="grp">${T.slice(0,5).map(a=>mini(a.id)).join('')}</div><div><div class="nm">Chat do time</div><div class="rl">Você e os ${T.length} agentes. O que você escrever aqui vira orientação para as próximas pautas, textos e artes.</div></div><button class="x" onclick="fecharTudo()">×</button></div>
-  <div class="db"><div class="chat"><div class="msgs" id="gmsgs"></div><div class="sugs">${['Foco do mês: lotar a agenda das clínicas','Menos texto nos slides','Mais reels de demonstração'].map(c=>`<button onclick='falarGrupo(${JSON.stringify(c)})'>${c}</button>`).join('')}</div><form class="send" id="gsend"><input id="ginp" placeholder="Fale com o time todo..." autocomplete="off"><button class="btn pri">Enviar</button></form></div></div>`;
+  <div class="db"><div class="chat"><div class="msgs" id="gmsgs"></div><div class="sugs">${['Como está o plano do mês?','O que está esperando por mim?','Prioriza oferta no fim de cada semana'].map(c=>`<button onclick='falarGrupo(${JSON.stringify(c)})'>${c}</button>`).join('')}</div><form class="send" id="gsend"><input id="ginp" placeholder="Fale com o time..." autocomplete="off"><button class="btn pri">Enviar</button></form></div></div>`;
   d.classList.add('on');document.getElementById('shade').classList.add('on');
   document.getElementById('gsend').onsubmit=e=>{e.preventDefault();const i=document.getElementById('ginp');falarGrupo(i.value);i.value=''};
-  pintarGrupo();carregarGrupo().then(()=>pintarGrupo());setTimeout(()=>document.getElementById('ginp')?.focus(),250)}
+  pintarGrupo();setTimeout(()=>document.getElementById('ginp')?.focus(),250)}
 function pintarGrupo(extra=''){const m=document.getElementById('gmsgs');if(!m)return;
   const ini=GRUPO.length?'':`<div class="gm">${mini('vera')}<div><div class="nmz">Vera · coordenação</div><div class="m ag">Oi, Kelvin. Aqui é o grupo do time todo. Passa a visão que eu distribuo e cada um aplica na sua parte.</div></div></div>`;
-  m.innerHTML=ini+GRUPO.map(x=>x.de==='kelvin'?`<div class="m me">${x.t.replace(/</g,'&lt;')}</div>`:`<div class="gm">${mini(x.de)}<div><div class="nmz">${byId(x.de)?.nome??x.de} · ${x.h||''}</div><div class="m ag">${x.t.replace(/</g,'&lt;')}</div></div></div>`).join('')+extra;m.scrollTop=m.scrollHeight}
-function falarGrupo(t){if(!t||!t.trim())return;t=t.trim();GRUPO.push({de:'kelvin',t,h:hhmm(new Date())});salvarMsg('kelvin','time',t);pintarGrupo('<div class="typing">VERA DIGITANDO...</div>');
-  const low=t.toLowerCase();
-  const casam=T.filter(a=>!a.coord&&(a.resp||[]).some(([re])=>re.test(low))).map(a=>a.id);
-  const extras=['teo','bia','duda'].filter(i=>!casam.includes(i)).sort(()=>Math.random()-.5).slice(0,Math.max(0,2-casam.length));
-  const quem=['vera',...casam.slice(0,2),...extras];
-  quem.forEach((id,k)=>setTimeout(()=>{const a=byId(id);const r=(a.resp||[]).find(([re])=>re.test(low));const tx=(r&&id!=='vera')?r[1]:ACK[id];
-    GRUPO.push({de:id,t:tx,h:hhmm(new Date())});salvarMsg(id,'time',tx);
-    pintarGrupo(k<quem.length-1?`<div class="typing">${byId(quem[k+1]).nome.toUpperCase()} DIGITANDO...</div>`:'');
-    if(k===0)addComm('vera','kelvin','Orientação do Kelvin no chat do time: '+t.slice(0,140))},900+k*1300))}
+  m.innerHTML=ini+GRUPO.map(x=>x.de==='kelvin'?`<div class="m me">${esc(x.t)}</div>`:`<div class="gm">${mini(x.de)}<div><div class="nmz">${esc(nomeDe(x.de))} · ${x.h||''}</div><div class="m ag">${esc(x.t)}</div></div></div>`).join('')+extra;m.scrollTop=m.scrollHeight}
+async function falarGrupo(t){if(!t||!t.trim()||ENVIANDO.time)return;t=t.trim();
+  pintarGrupo(`<div class="m me">${esc(t)}</div><div class="typing">VERA DIGITANDO...</div>`);
+  try{await conversarCom('time',t)}catch(e){GRUPO.push({de:'vera',t:'Não consegui responder agora ('+e.message+'). Tenta de novo em instantes.',h:hhmm(new Date())})}
+  pintarGrupo()}
 
 /* ================= MANUAL DE MARCA ================= */
 function abrirManual(){
+  const M=(REAL.cfg&&REAL.cfg.marca)||{},Pf=(REAL.cfg&&REAL.cfg.perfil_padrao)||{};
+  const cores=[['Fundo',M.cores?.fundo],['Brilho',M.cores?.fundo2],['Destaque',M.cores?.destaque],['Destaque claro',M.cores?.destaque2],['Texto',M.cores?.texto]].filter(x=>x[1]);
+  const vazio=!(M.tom||M.regras||M.logo_url||cores.length);
   const m=document.getElementById('modal');
-  m.innerHTML=`<div class="mh"><div class="mini" style="display:grid;place-items:center;font-family:var(--disp);font-weight:700;color:var(--holo)">IA</div><div><div class="k">Todos os agentes seguem</div><div class="t">Manual de marca da DemandIA</div></div><button class="x" onclick="fecharTudo()">×</button></div>
+  m.innerHTML=`<div class="mh"><div class="mini" style="display:grid;place-items:center;font-family:var(--disp);font-weight:700;color:var(--holo)">IA</div><div><div class="k">Todos os agentes seguem</div><div class="t">Manual de marca${M.nome?' · '+esc(M.nome):''}</div></div><button class="x" onclick="fecharTudo()">×</button></div>
   <div class="mb brandbook">
-   <div class="kv"><div><b>Nome</b>Sempre "DemandIA", tudo junto. Nunca "Demand IA" ou "Demandia".</div><div><b>Assinatura</b>A DemandIA trabalha. Você fatura.</div>
-   <div><b>Promessa</b>Mais receita. Sem contratar mais gente.</div><div><b>Para quem</b>Donos de clínicas de estética, odontologia e academias que faturam acima de R$ 30 mil/mês</div></div>
-   <div class="sec" style="margin-top:14px"><h4>Tom de voz</h4><ul><li>Fala direto com o dono, usando "você"</li><li>Vende resultado: receita, faturamento, margem, menos custo e menos dor de cabeça</li><li>Frases curtas, simples, sem jargão técnico</li><li>Confiante, nunca arrogante; prova antes de promessa</li></ul></div>
-   <div class="sec no"><h4>Nunca usar</h4><ul><li>Travessão</li><li>"Revolucionário", "no mundo de hoje", "desbloqueie", "potencialize"</li><li>Falar em "agendamento" ou "lead" como benefício final</li><li>Visual ou texto com cara de feito por IA</li></ul></div>
-   <div class="sec"><h4>Cores</h4><div class="sw">
-    <div><i style="background:#0b0420"></i><span>Roxo noite<br>#0B0420</span></div><div><i style="background:#7c4dff"></i><span>Violeta<br>#7C4DFF</span></div><div><i style="background:#a47bff"></i><span>Lilás<br>#A47BFF</span></div><div><i style="background:#62f3ff"></i><span>Ciano holo<br>#62F3FF</span></div><div><i style="background:#f2eeff"></i><span>Branco<br>#F2EEFF</span></div></div></div>
-   <div class="sec"><h4>Tipografia</h4><p><span style="font-family:Anton;font-size:24px;text-transform:uppercase">Anton para títulos</span><br><span style="font-size:15px">Inter para textos e legendas</span></p></div>
-   <div class="sec"><h4>Regras de conteúdo</h4><ul><li>Todo carrossel e vídeo fecha com palavra-chave: "Comenta PALAVRA que eu te mando no Direct."</li><li>Gancho de vídeo nos 3 primeiros segundos</li><li>Uma ideia por slide; título nunca cortado no feed 4:5</li><li>A Ana é a garota-propaganda nos vídeos</li></ul></div>
+   ${vazio?'<div class="empty">O manual ainda não foi carregado. Suba a logo, as cores e as regras na aba "Manual de marca".</div>':''}
+   ${M.logo_url?`<div class="sec"><h4>Logo</h4><img src="${esc(M.logo_url)}" style="height:56px;background:#0b0420;padding:8px;border-radius:8px"></div>`:''}
+   ${cores.length?`<div class="sec"><h4>Cores</h4><div class="sw">${cores.map(([n,c])=>`<div><i style="background:${esc(c)}"></i><span>${n}<br>${esc(c)}</span></div>`).join('')}</div></div>`:''}
+   ${M.fontes?.titulo||M.fontes?.texto?`<div class="sec"><h4>Tipografia</h4><p>Títulos: ${esc(M.fontes?.titulo||'Anton')} · Textos: ${esc(M.fontes?.texto||'Inter')}</p></div>`:''}
+   ${M.tom?`<div class="sec"><h4>Tom de voz</h4><p>${esc(M.tom).replace(/\n/g,'<br>')}</p></div>`:''}
+   ${M.regras?`<div class="sec"><h4>Regras</h4><p>${esc(M.regras).replace(/\n/g,'<br>')}</p></div>`:''}
+   ${M.assinatura?`<div class="kv"><div><b>Assinatura</b>${esc(M.assinatura)}</div></div>`:''}
+   ${M.manual_url?`<div class="sec"><p><a href="${esc(M.manual_url)}" target="_blank" style="color:var(--holo)">Abrir o manual completo (PDF)</a></p></div>`:''}
+   ${Pf.resumo?`<div class="sec"><h4>Padrão do nosso perfil (@demand_ia)</h4><p>${esc(Pf.resumo)}</p>${Pf.visual?`<p style="color:var(--muted)">${esc(Pf.visual)}</p>`:''}</div>`:''}
   </div>`;
   m.classList.add('on');document.getElementById('shade').classList.add('on');
 }
@@ -642,12 +660,10 @@ function toast(t){const el=document.getElementById('toast');el.textContent='▸ 
 })();
 
 /* ================= RELÓGIO DA OPERAÇÃO ================= */
-setInterval(()=>{T.forEach(a=>{if(a.coord||ST[a.id]!=='work')return;PR[a.id]=Math.min(100,PR[a.id]+Math.random()*8);
-  if(PR[a.id]>=100){PR[a.id]=4;TI[a.id]=(TI[a.id]+1)%a.tarefas.length}
-  const b=document.getElementById('pb-'+a.id),n=document.getElementById('now-'+a.id);if(b)b.style.width=PR[a.id]+'%';if(n)n.textContent=agora(a)})},1400);
-setInterval(proximo,3800);
-addEventListener('resize',()=>{clearTimeout(window._r);window._r=setTimeout(montarFlow,150)});
-montarFlow();pintarFila();proximo();setTimeout(proximo,1200);
+setInterval(()=>{T.forEach(a=>{if(a.coord)return;PR[a.id]=ST[a.id]==='work'?(PR[a.id]+3+Math.random()*6)%100:ST[a.id]==='wait'?100:0;
+  const b=document.getElementById('pb-'+a.id);if(b)b.style.width=PR[a.id]+'%'})},1400);
+addEventListener('resize',()=>{clearTimeout(window._r);window._r=setTimeout(()=>{montarFlow();T.forEach(a=>atualizarNo(a.id))},150)});
+montarFlow();pintarFila();carregarTudo();setInterval(carregarTudo,20000);
 </script>
 </body>
 </html>

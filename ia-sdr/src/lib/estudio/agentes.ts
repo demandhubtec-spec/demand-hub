@@ -1,16 +1,17 @@
 /**
- * Estúdio · os agentes, chamados pelo relógio (cron/tick, a cada 10 minutos) e pelo portal.
+ * Estúdio · os agentes, chamados pelo relógio (cron/estudio, a cada minuto) e pelo portal.
  *   Radar → Curador → Pauteiro → Redator → (aprovação da copy) → Diretor de arte → (aprovação da arte) → Publicador
  * Cada agente pega pouco trabalho por vez, para caber no tempo do relógio, e é ligado/desligado em estudio_config.
  */
 import { db } from "../db.ts";
 import { env } from "../env.ts";
 import { sendText } from "../evolution.ts";
-import { contaPublica, ErroMeta, publicar } from "./graph.ts";
-import { gerarPautas, motivosDasReferencias, redigir, type Copy, type CopyCarrossel, type CopyEstatico, type CopyReels, type RefResumo } from "./ia.ts";
+import { contaPublica, ErroMeta, minhasMidias, publicar } from "./graph.ts";
+import { contextoDaMarca, estudarPerfil, gerarPautas, motivosDasReferencias, redigir, responderNoChat, type Marca, type PerfilPadrao, type Copy, type CopyCarrossel, type CopyEstatico, type CopyReels, type RefResumo } from "./ia.ts";
 import {
   formatoDaMidia,
   hojeBR,
+  horizonteDoPlano,
   momentoBR,
   montarLegenda,
   normalizarPalavra,
@@ -30,6 +31,10 @@ export interface Config {
   pilares: Pilar[];
   mix: Mix;
   ultimo_radar: string | null;
+  inicio_em: string | null;
+  marca: Marca | null;
+  perfil_padrao: PerfilPadrao | null;
+  ultimo_perfil: string | null;
 }
 
 export interface Pauta {
@@ -54,6 +59,14 @@ export async function lerConfig(): Promise<Config> {
 }
 
 const ligado = (c: Config, agente: string) => c.ativo && c.agentes?.[agente] !== false;
+
+/** Cada agente conta o que fez no canal interno do time (a Central mostra isso ao vivo). */
+export async function registrar(autor: string, para: string, texto: string) {
+  await db().from("estudio_mensagens").insert({ autor, para, texto: texto.slice(0, 1000) });
+}
+
+const dm = (dia: string) => `${dia.slice(8, 10)}/${dia.slice(5, 7)}`;
+const NOME_FORMATO: Record<string, string> = { carrossel: "carrossel", estatico: "post estático", reels: "reels" };
 
 /* ---------------- Radar + Curador ---------------- */
 
@@ -127,6 +140,12 @@ export async function rodarRadar(agora = new Date()) {
     for (const [id, motivo] of Object.entries(motivos)) await db().from("estudio_referencias").update({ motivo }).eq("id", id);
   }
   await db().from("estudio_config").update({ ultimo_radar: hojeBR(agora) }).eq("id", 1);
+  const destaque = top?.[0] as RefResumo | undefined;
+  await registrar(
+    "rita",
+    "vera",
+    `Radar de hoje feito: ${coletadas} posts lidos de ${fontes?.length ?? 0} perfis.${destaque ? ` Destaque: @${destaque.conta} (${destaque.formato}).` : ""}${erros.length ? ` ${erros.length} perfil(is) com erro, deixei anotado na aba Radar.` : ""}`,
+  );
   return { contas: fontes?.length ?? 0, coletadas, erros };
 }
 
@@ -141,19 +160,49 @@ async function melhoresReferencias(limite = 15): Promise<RefResumo[]> {
   return (data ?? []) as RefResumo[];
 }
 
+/* ---------------- Padrão do nosso perfil ---------------- */
+
+/** Uma vez por semana a Rita estuda o @demand_ia (texto e imagens) e atualiza o padrão que o time segue. */
+export async function rodarPerfil(agora = new Date()) {
+  const midias = await minhasMidias(30);
+  const posts = midias.map((m) => ({
+    formato: formatoDaMidia(m),
+    legenda: m.caption ?? "",
+    curtidas: m.like_count ?? 0,
+    comentarios: m.comments_count ?? 0,
+    data: (m.timestamp ?? "").slice(0, 10),
+    slides: m.children?.data?.length ?? 1,
+  }));
+  // Imagens dos posts que mais engajaram (capa do carrossel ou do vídeo)
+  const imagens = [...midias]
+    .sort((a, b) => (b.like_count ?? 0) + 3 * (b.comments_count ?? 0) - ((a.like_count ?? 0) + 3 * (a.comments_count ?? 0)))
+    .map((m) => (m.media_type === "VIDEO" ? m.thumbnail_url : m.children?.data?.[0]?.media_url ?? m.media_url))
+    .filter((u): u is string => !!u)
+    .slice(0, 6);
+  const perfil = await estudarPerfil(posts, imagens);
+  await db().from("estudio_config").update({ perfil_padrao: perfil, ultimo_perfil: hojeBR(agora) }).eq("id", 1);
+  await registrar("rita", "teo", `Estudei os últimos ${posts.length} posts do nosso perfil. O plano e as artes seguem esse padrão a partir de agora. ${perfil.resumo?.slice(0, 260) ?? ""}`);
+  return { posts: posts.length, imagens: imagens.length };
+}
+
+/** Bloco de marca + padrão do perfil para os prompts. */
+const contexto = (c: Config) => contextoDaMarca(c.marca, c.perfil_padrao);
+
 /* ---------------- Pauteiro ---------------- */
 
 /** Preenche os dias sem pauta até `dias_a_frente`, no máximo `limite` por vez. */
 export async function rodarPauteiro(c: Config, agora = new Date(), limite = 7) {
   const hoje = hojeBR(agora);
-  const ate = somarDias(hoje, c.dias_a_frente);
+  // Plano por mês: do início escolhido até o fim do mês (do dia 24 em diante, o mês seguinte também)
+  const plano = horizonteDoPlano(hoje, c.inicio_em);
+  const ate = plano.ate;
   const { data: existentes } = await db().from("estudio_pautas").select("dia,status,tema").gte("dia", somarDias(hoje, -30)).lte("dia", ate);
   const ocupados = new Set((existentes ?? []).filter((p) => p.status !== "descartado" && p.dia > hoje).map((p) => p.dia as string));
-  const vagas = vagasDoCalendario({ hoje, diasAFrente: c.dias_a_frente, ocupados, horarios: c.horarios, mix: c.mix, pilares: c.pilares }).slice(0, limite);
+  const vagas = vagasDoCalendario({ hoje, diasAFrente: c.dias_a_frente, de: plano.de, ate, ocupados, horarios: c.horarios, mix: c.mix, pilares: c.pilares }).slice(0, limite);
   if (!vagas.length) return { criadas: 0 };
   const refs = await melhoresReferencias();
   const temas = (existentes ?? []).map((p) => p.tema as string);
-  const geradas = await gerarPautas({ vagas, pilares: c.pilares, refs, temasRecentes: temas });
+  const geradas = await gerarPautas({ vagas, pilares: c.pilares, refs, temasRecentes: temas, contexto: contexto(c) });
   const idsRefs = new Set(refs.map((r) => r.id));
   const linhas = vagas
     .map((v) => {
@@ -175,6 +224,12 @@ export async function rodarPauteiro(c: Config, agora = new Date(), limite = 7) {
   if (linhas.length) {
     const { error } = await db().from("estudio_pautas").insert(linhas);
     if (error) throw new Error(`pautas: ${error.message}`);
+    const faltam = vagasDoCalendario({ hoje, diasAFrente: c.dias_a_frente, de: plano.de, ate, ocupados: new Set([...ocupados, ...linhas.map((l) => l.dia)]), horarios: c.horarios, mix: c.mix, pilares: c.pilares }).length;
+    await registrar(
+      "teo",
+      "vera",
+      `Plano: ${linhas.length} pauta(s) nova(s), de ${dm(linhas[0].dia)} a ${dm(linhas[linhas.length - 1].dia)}. ${faltam ? `Faltam ${faltam} dia(s) até ${dm(ate)}, sigo na próxima rodada.` : `Plano fechado até ${dm(ate)}. Bia, pode escrever.`}`,
+    );
   }
   return { criadas: linhas.length };
 }
@@ -193,7 +248,8 @@ async function refsDaPauta(p: Pauta): Promise<RefResumo[]> {
 }
 
 /** Escreve (ou reescreve, se o Kelvin pediu ajuste) a copy das próximas pautas. */
-export async function rodarRedator(agora = new Date(), limite = 3) {
+export async function rodarRedator(agora = new Date(), limite = 3, c?: Config) {
+  const cfg = c ?? (await lerConfig());
   const hoje = hojeBR(agora);
   const { data } = await db().from("estudio_pautas").select("*").eq("status", "pauta").gte("dia", hoje).order("dia").limit(limite);
   let feitas = 0;
@@ -208,9 +264,11 @@ export async function rodarRedator(agora = new Date(), limite = 3) {
         palavra: p.palavra_gatilho,
         refs: await refsDaPauta(p),
         ajuste: p.comentario && anterior ? { comentario: p.comentario, anterior: anterior.conteudo } : null,
+        contexto: contexto(cfg),
       });
       await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "copy", versao: (anterior?.versao ?? 0) + 1, conteudo: copy, comentario: p.comentario });
       await db().from("estudio_pautas").update({ status: "revisar_copy", comentario: null, erro: null }).eq("id", p.id);
+      await registrar("bia", "vera", `${p.comentario ? "Copy refeita com o seu ajuste" : "Copy pronta"}: ${NOME_FORMATO[p.formato]} de ${dm(p.dia)}, "${p.tema.slice(0, 80)}". Está na fila do Kelvin.`);
       feitas++;
     } catch (e) {
       await db().from("estudio_pautas").update({ erro: `Redator: ${String((e as Error).message).slice(0, 300)}` }).eq("id", p.id);
@@ -222,24 +280,30 @@ export async function rodarRedator(agora = new Date(), limite = 3) {
 /* ---------------- Diretor de arte ---------------- */
 
 /** Monta a arte das pautas com copy aprovada. Reels espera o vídeo (upload no portal). */
-export async function rodarDiretor(limite = 2) {
+export async function rodarDiretor(limite = 2, c?: Config) {
+  const cfg = c ?? (await lerConfig());
   const { data } = await db().from("estudio_pautas").select("*").eq("status", "copy_aprovada").order("dia").limit(limite);
   let feitas = 0;
   for (const p of (data ?? []) as Pauta[]) {
     try {
-      if (p.formato === "reels") {
-        await db().from("estudio_pautas").update({ status: "aguardando_video", comentario: null, erro: null }).eq("id", p.id);
-        continue;
-      }
       const copy = await ultimaPeca(p.id, "copy");
       if (!copy) throw new Error("sem copy");
-      const { imagensCarrossel, imagemEstatico, subirImagens } = await import("./arte.tsx");
-      const imagens = p.formato === "carrossel" ? await imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho) : await imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho);
+      const { imagensCarrossel, imagemEstatico, subirImagens, usarMarca } = await import("./arte.tsx");
+      await usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
-      const links = await subirImagens(p.id, versao, imagens);
-      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: p.formato }, arquivos: links, comentario: p.comentario });
+      let links: string[];
+      if (p.formato === "reels") {
+        const { videoDoReels, subirVideo } = await import("./video.ts");
+        const v = await videoDoReels(copy.conteudo as CopyReels, p.palavra_gatilho);
+        links = await subirVideo(p.id, versao, v.video, v.capa);
+      } else {
+        const imagens = p.formato === "carrossel" ? await imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho) : await imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho);
+        links = await subirImagens(p.id, versao, imagens);
+      }
+      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: p.formato === "reels" ? "video_ia" : p.formato }, arquivos: links, comentario: p.comentario });
       await db().from("estudio_pautas").update({ status: "revisar_arte", comentario: null, erro: null }).eq("id", p.id);
+      await registrar("duda", "vera", `${p.formato === "reels" ? "Vídeo" : "Arte"} pronto: ${NOME_FORMATO[p.formato]} de ${dm(p.dia)}${p.comentario ? ", já com o ajuste pedido" : ""}. Rui conferiu, está na fila do Kelvin.`);
       feitas++;
     } catch (e) {
       await db().from("estudio_pautas").update({ erro: `Diretor: ${String((e as Error).message).slice(0, 300)}` }).eq("id", p.id);
@@ -304,6 +368,7 @@ export async function rodarPublicador(agora = new Date()) {
     const gatilhoId = await criarGatilho(p, pub.id, pub.link, legenda);
     await db().from("estudio_publicacoes").insert({ pauta_id: p.id, ig_media_id: pub.id, link: pub.link, publicado_em: agora.toISOString(), gatilho_id: gatilhoId });
     await db().from("estudio_pautas").update({ status: "publicado", erro: null }).eq("id", p.id);
+    await registrar("lara", "vera", `Publicado agora: ${NOME_FORMATO[p.formato]} de ${dm(p.dia)} às ${p.horario}.${p.palavra_gatilho ? ` Gatilho ${p.palavra_gatilho} ligado no Direct.` : ""}${pub.link ? ` ${pub.link}` : ""}`);
     return { publicadas: 1, link: pub.link };
   } catch (e) {
     const msg = e instanceof ErroMeta && e.semPermissao ? `A Meta recusou: falta a permissão de publicar (instagram_content_publish) no token. ${e.message}` : String((e as Error).message);
@@ -313,6 +378,7 @@ export async function rodarPublicador(agora = new Date()) {
       .from("estudio_pautas")
       .update({ status: desiste ? "erro" : "agendado", erro: msg.slice(0, 500), tentativas })
       .eq("id", p.id);
+    await registrar("lara", "vera", `Não consegui publicar o post de ${dm(p.dia)} (tentativa ${tentativas}). ${msg.slice(0, 200)}`);
     if (desiste) await avisarKelvin(`⚠️ Estúdio: o post de ${p.dia} (${p.tema.slice(0, 60)}) não foi publicado.\n${msg.slice(0, 300)}\nVeja em Marketing › Estúdio.`);
     await db().from("estudio_publicacoes").insert({ pauta_id: p.id, erro: msg.slice(0, 500) });
     return { publicadas: 0, erro: msg };
@@ -321,7 +387,7 @@ export async function rodarPublicador(agora = new Date()) {
 
 /* ---------------- Relógio ---------------- */
 
-/** Chamado pelo cron a cada 10 minutos. Cada etapa falha sozinha, sem derrubar as outras. */
+/** Chamado pelo relógio do Estúdio a cada minuto (uma rodada por vez). Cada etapa falha sozinha, sem derrubar as outras. */
 export async function estudioTick(agora = new Date()) {
   let c: Config;
   try {
@@ -341,8 +407,74 @@ export async function estudioTick(agora = new Date()) {
   };
   if (ligado(c, "publicador")) await etapa("publicador", () => rodarPublicador(agora));
   if (ligado(c, "radar") && c.ultimo_radar !== hojeBR(agora) && horaBR >= 6) await etapa("radar", () => rodarRadar(agora));
-  if (ligado(c, "pauteiro")) await etapa("pauteiro", () => rodarPauteiro(c, agora, 4));
-  if (ligado(c, "redator")) await etapa("redator", () => rodarRedator(agora, 2));
-  if (ligado(c, "diretor")) await etapa("diretor", () => rodarDiretor(2));
+  // Padrão do nosso perfil: revisto uma vez por semana (e logo na primeira rodada)
+  if (ligado(c, "radar") && (!c.ultimo_perfil || c.ultimo_perfil <= somarDias(hojeBR(agora), -7))) await etapa("perfil", () => rodarPerfil(agora));
+  if (ligado(c, "pauteiro")) await etapa("pauteiro", () => rodarPauteiro(c, agora, 7));
+  if (ligado(c, "redator")) await etapa("redator", () => rodarRedator(agora, 2, c));
+  if (ligado(c, "diretor")) await etapa("diretor", () => rodarDiretor(1, c));
   return { ok: true, ...out };
+}
+
+/* ---------------- Chat com o time ---------------- */
+
+/** Estado real do Estúdio em texto, para o time responder sem inventar. */
+async function estadoParaChat(c: Config, agora = new Date()): Promise<string> {
+  const hoje = hojeBR(agora);
+  const plano = horizonteDoPlano(hoje, c.inicio_em);
+  const { data: pautas } = await db()
+    .from("estudio_pautas")
+    .select("dia,horario,formato,pilar,tema,status,palavra_gatilho,erro")
+    .gte("dia", somarDias(hoje, -7))
+    .lte("dia", plano.ate)
+    .neq("status", "descartado")
+    .order("dia");
+  const linhas = ((pautas ?? []) as (Pauta & { erro: string | null })[]).map(
+    (p) => `- ${p.dia} ${p.horario} | ${p.formato} | ${p.pilar ?? "-"} | ${p.status}${p.palavra_gatilho ? ` | ${p.palavra_gatilho}` : ""} | ${p.tema.slice(0, 90)}${p.erro ? ` | erro: ${p.erro.slice(0, 80)}` : ""}`,
+  );
+  const { data: refs } = await db().from("estudio_referencias").select("conta,formato,nota,motivo").order("nota", { ascending: false }).limit(5);
+  const { data: fontes } = await db().from("estudio_fontes").select("valor,erro,ativo").eq("ativo", true);
+  const { data: canal } = await db().from("estudio_mensagens").select("autor,para,texto,created_at").neq("autor", "kelvin").neq("para", "time").order("id", { ascending: false }).limit(8);
+  return [
+    `Hoje: ${hoje}. Começo das postagens: ${c.inicio_em ?? "não definido"}. Plano vai até ${plano.ate}. Um post por dia, horários ${c.horarios.join(" e ")}.`,
+    `Agentes ligados: ${Object.entries(c.agentes ?? {}).filter(([, v]) => v).map(([k]) => k).join(", ") || "nenhum"}.`,
+    `Manual de marca: ${c.marca?.tom || c.marca?.regras ? "carregado" : "ainda não carregado"}. Padrão do perfil estudado em: ${c.ultimo_perfil ?? "ainda não"}.`,
+    `Radar: ${fontes?.length ?? 0} perfis ativos, última rodada ${c.ultimo_radar ?? "nunca"}.${(fontes ?? []).filter((f) => f.erro).length ? ` Com erro: ${(fontes ?? []).filter((f) => f.erro).map((f) => f.valor).join(", ")}.` : ""}`,
+    `Top referências: ${(refs ?? []).map((r) => `@${r.conta} (${r.formato}, nota ${r.nota}${r.motivo ? `: ${r.motivo}` : ""})`).join("; ") || "nenhuma"}.`,
+    `Status possíveis: pauta (Bia escrevendo), revisar_copy (esperando o Kelvin aprovar a copy), copy_aprovada (Duda fazendo arte ou vídeo), revisar_arte (esperando o Kelvin aprovar a arte), agendado (Lara publica no horário), publicado, erro.`,
+    `Calendário:\n${linhas.join("\n") || "- vazio (o Téo ainda vai montar)"}`,
+    `Últimas mensagens do canal interno:\n${((canal ?? []) as { autor: string; para: string; texto: string }[]).reverse().map((m) => `- ${m.autor} → ${m.para}: ${m.texto.slice(0, 160)}`).join("\n") || "- nenhuma"}`,
+  ].join("\n");
+}
+
+/** Kelvin fala com o time (grupo "time" ou um agente). Salva a conversa e aplica os pedidos de mudança. */
+export async function conversar(para: string, texto: string) {
+  const c = await lerConfig();
+  await db().from("estudio_mensagens").insert({ autor: "kelvin", para, texto: texto.slice(0, 2000) });
+  const filtro = para === "time" ? "para.eq.time" : `and(autor.eq.kelvin,para.eq.${para}),and(autor.eq.${para},para.eq.kelvin)`;
+  const { data: hist } = await db().from("estudio_mensagens").select("autor,texto").or(filtro).order("id", { ascending: false }).limit(16);
+  const historico = ((hist ?? []) as { autor: string; texto: string }[])
+    .reverse()
+    .slice(0, -1)
+    .map((m) => `${m.autor === "kelvin" ? "Kelvin" : m.autor}: ${m.texto.slice(0, 400)}`)
+    .join("\n");
+  const r = await responderNoChat({ para, texto, historico, estado: await estadoParaChat(c) });
+  const feitas: string[] = [];
+  for (const a of r.acoes ?? []) {
+    const { data: p } = await db().from("estudio_pautas").select("id,status,dia").eq("dia", a.dia).neq("status", "descartado").limit(1).maybeSingle();
+    if (!p) continue;
+    if (a.tipo === "trocar_tema" && !["publicando", "publicado"].includes(p.status)) {
+      await db().from("estudio_pautas").update({ status: "descartado", comentario: a.comentario.slice(0, 500) }).eq("id", p.id);
+      feitas.push(`${dm(a.dia)}: tema descartado, o Téo planeja outro`);
+    } else if (a.tipo === "ajustar" && ["pauta", "revisar_copy"].includes(p.status)) {
+      await db().from("estudio_pautas").update({ status: "pauta", comentario: a.comentario.slice(0, 500), erro: null }).eq("id", p.id);
+      feitas.push(`${dm(a.dia)}: Bia refaz a copy`);
+    } else if (a.tipo === "ajustar" && ["copy_aprovada", "revisar_arte", "agendado"].includes(p.status)) {
+      await db().from("estudio_pautas").update({ status: "copy_aprovada", comentario: a.comentario.slice(0, 500), erro: null }).eq("id", p.id);
+      feitas.push(`${dm(a.dia)}: Duda refaz a arte`);
+    }
+  }
+  const destino = para === "time" ? "time" : "kelvin";
+  for (const resp of r.respostas) await db().from("estudio_mensagens").insert({ autor: resp.agente, para: destino, texto: resp.texto });
+  if (feitas.length) await registrar("vera", "kelvin", `Mudanças aplicadas pelo chat: ${feitas.join("; ")}.`);
+  return { respostas: r.respostas, feitas };
 }

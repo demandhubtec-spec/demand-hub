@@ -80,7 +80,7 @@ export interface PautaGerada {
 }
 
 /** Pauteiro: uma pauta por vaga do calendário, inspirada nas melhores referências e sem repetir temas. */
-export async function gerarPautas(opts: { vagas: Vaga[]; pilares: Pilar[]; refs: RefResumo[]; temasRecentes: string[] }): Promise<PautaGerada[]> {
+export async function gerarPautas(opts: { vagas: Vaga[]; pilares: Pilar[]; refs: RefResumo[]; temasRecentes: string[]; contexto?: string }): Promise<PautaGerada[]> {
   if (!opts.vagas.length) return [];
   const pilares = opts.pilares.map((p) => `- ${p.nome}: ${p.descricao}`).join("\n");
   const refs = opts.refs
@@ -101,7 +101,9 @@ ${pilares}
 ## Não repita estes temas recentes
 ${opts.temasRecentes.slice(0, 40).map((t) => `- ${t}`).join("\n") || "- (nenhum)"}
 
-Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","palavra_gatilho":"DEMO" ou null,"referencias":["id"]}]}${orientacoes}`,
+O mês precisa ter sequência: os temas conversam entre si (uma semana prepara a outra), sem repetir assunto, e cada semana fecha com um post de oferta.
+
+Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","palavra_gatilho":"DEMO" ou null,"referencias":["id"]}]}${opts.contexto ?? ""}${orientacoes}`,
     `## Vagas\n${vagas}\n\n## Referências que mais engajaram\n${refs || "- (ainda sem referências)"}`,
     6000,
   );
@@ -133,7 +135,7 @@ const FORMATO_PEDIDO: Record<Formato, string> = {
 JSON: {"slides":[{"titulo":"...","texto":"..."}],"legenda":"...","hashtags":["...","..."]}`,
   estatico: `Post estático de uma imagem: titulo forte (até 70 caracteres) e subtitulo (até 120).
 JSON: {"titulo":"...","subtitulo":"...","legenda":"...","hashtags":["..."]}`,
-  reels: `Roteiro de Reels de 20 a 45 segundos, vertical, com cenas curtas. Cada cena: tempo ("0-3s"), texto_tela (curto, em caixa alta funciona), fala (opcional) e imagem (o que aparece, em uma frase). Também: capa_titulo (até 40 caracteres) e prompt_video (descrição em português para gerar o vídeo numa ferramenta de IA: estilo, cenas, ritmo, cores roxo escuro da marca, sem rosto de pessoa real).
+  reels: `Roteiro de Reels de 20 a 40 segundos, vertical. O vídeo é montado pelo nosso sistema com texto animado na tela (sem pessoa, sem narração), então TUDO precisa estar no texto_tela. De 6 a 9 cenas. Cada cena: tempo ("0-3s", de 2 a 5 segundos cada), texto_tela (uma frase curta e forte, até 70 caracteres; a 1ª cena é o gancho e a última é a chamada com a palavra-chave, se houver), fala (deixe vazio) e imagem (palavra ou número de destaque da cena, até 12 caracteres, opcional). Também: capa_titulo (até 40 caracteres) e prompt_video (uma frase sobre o clima do vídeo).
 JSON: {"cenas":[{"tempo":"0-3s","texto_tela":"...","fala":"...","imagem":"..."}],"legenda":"...","capa_titulo":"...","prompt_video":"...","hashtags":["..."]}`,
 };
 
@@ -146,6 +148,7 @@ export async function redigir(opts: {
   palavra: string | null;
   refs: RefResumo[];
   ajuste?: { comentario: string; anterior: unknown } | null;
+  contexto?: string;
 }): Promise<Copy> {
   const refs = opts.refs.map((r) => `- @${r.conta} (${r.formato}): ${r.motivo ?? ""} | "${(r.legenda ?? "").slice(0, 300)}"`).join("\n");
   const ajuste = opts.ajuste
@@ -161,7 +164,7 @@ ${REGRAS_DE_MARCA}
 ${FORMATO_PEDIDO[opts.formato]}
 
 ## Legenda
-Até 1.200 caracteres, parágrafos curtos, começa com o gancho, termina com uma pergunta ou com a chamada da palavra-chave. Hashtags: 3 a 5, do nicho, sem #.${orientacoes}`,
+Até 1.200 caracteres, parágrafos curtos, começa com o gancho, termina com uma pergunta ou com a chamada da palavra-chave. Hashtags: 3 a 5, do nicho, sem #.${opts.contexto ?? ""}${orientacoes}`,
     `Tema: ${opts.tema}
 Gancho sugerido: ${opts.gancho ?? "(crie um)"}
 Pilar: ${opts.pilar ?? "-"}
@@ -171,4 +174,124 @@ Palavra-chave para comentar: ${opts.palavra ?? "nenhuma (não peça comentário 
 ${refs || "- nenhuma"}${ajuste}`,
     5000,
   );
+}
+
+/* ---------------- Marca e padrão do perfil ---------------- */
+
+export interface Marca {
+  nome?: string;
+  cores?: { fundo?: string; fundo2?: string; destaque?: string; destaque2?: string; texto?: string };
+  fontes?: { titulo?: string; texto?: string };
+  logo_url?: string;
+  /** Largura ÷ altura da logo. */
+  logo_proporcao?: number;
+  manual_url?: string;
+  tom?: string;
+  regras?: string;
+  assinatura?: string;
+}
+
+export interface PerfilPadrao {
+  resumo?: string;
+  visual?: string;
+  atualizado_em?: string;
+}
+
+/** Bloco que entra nos prompts do time: manual de marca + o que o nosso perfil já faz. */
+export function contextoDaMarca(marca: Marca | null | undefined, perfil: PerfilPadrao | null | undefined): string {
+  const partes: string[] = [];
+  if (marca && (marca.tom || marca.regras || marca.assinatura)) {
+    partes.push(
+      `## Manual de marca (siga à risca)${marca.nome ? `\nNome da marca: ${marca.nome}` : ""}${marca.tom ? `\nTom de voz: ${marca.tom}` : ""}${marca.regras ? `\nRegras: ${marca.regras}` : ""}${marca.assinatura ? `\nAssinatura: ${marca.assinatura}` : ""}`,
+    );
+  }
+  if (perfil?.resumo) partes.push(`## Padrão do nosso perfil (@demand_ia): continue nessa linha e evolua\n${perfil.resumo}`);
+  return partes.length ? `\n\n${partes.join("\n\n")}` : "";
+}
+
+/** Chamada com imagens (visão), para o time estudar o visual dos nossos posts. */
+async function pedirJsonComImagens<T>(system: string, pedido: string, imagens: string[], maxTokens = 3000): Promise<T> {
+  const { env } = await import("../env.ts");
+  const conteudo = [{ type: "text", text: pedido }, ...imagens.slice(0, 8).map((url) => ({ type: "image_url", image_url: { url, detail: "low" } }))];
+  const r = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.openaiKey}` },
+    body: JSON.stringify({
+      model: env.openaiModel,
+      messages: [{ role: "system", content: system }, { role: "user", content: conteudo }],
+      max_completion_tokens: maxTokens,
+      response_format: { type: "json_object" },
+    }),
+  });
+  if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  const j = (await r.json()) as { choices: { message: { content: string | null } }[] };
+  return jsonDe<T>(j.choices[0]?.message?.content);
+}
+
+/** Estuda os posts do @demand_ia: formatos, ganchos, legendas, visual e o que deu mais resultado. */
+export async function estudarPerfil(posts: { formato: string; legenda: string; curtidas: number; comentarios: number; data: string; slides: number }[], imagens: string[]): Promise<PerfilPadrao> {
+  const lista = posts
+    .map((p, i) => `${i + 1}. ${p.data} | ${p.formato}${p.slides > 1 ? ` (${p.slides} lâminas)` : ""} | ${p.curtidas} curtidas, ${p.comentarios} comentários\nLegenda: ${p.legenda.slice(0, 400)}`)
+    .join("\n\n");
+  const out = await pedirJsonComImagens<{ resumo: string; visual: string }>(
+    `Você é o time de conteúdo da ${SDR_CONFIG.empresa.nome}. Estude os posts do nosso próprio Instagram (@demand_ia) e as imagens de alguns deles.
+Escreva em português do Brasil, sem travessão, de forma prática para o time seguir:
+- resumo: até 900 caracteres. Formatos usados e proporção, tamanho dos carrosséis, como são os ganchos e as legendas, chamadas usadas, temas que mais engajaram e o que evitar.
+- visual: até 600 caracteres. Cores, fundo, tipografia (estilo), onde vai a logo, quantidade de texto por lâmina, elementos que se repetem.
+Responda em JSON: {"resumo":"...","visual":"..."}`,
+    lista || "(sem posts)",
+    imagens,
+  );
+  return { resumo: (out.resumo ?? "").slice(0, 1200), visual: (out.visual ?? "").slice(0, 800), atualizado_em: new Date().toISOString() };
+}
+
+/* ---------------- Chat com o time ---------------- */
+
+export const AGENTES_DO_TIME: Record<string, string> = {
+  vera: "Vera, coordenadora de social media: organiza o time, responde pelo andamento e distribui as orientações do Kelvin",
+  rita: "Rita, pesquisa: roda o Radar nos perfis de referência e explica o que engajou",
+  teo: "Téo, estrategista: monta o plano do mês (temas, pilares, formatos, datas)",
+  bia: "Bia, redatora: escreve carrossel, estático, roteiro de reels e legenda",
+  duda: "Duda, design: faz as artes e os vídeos dos reels seguindo o manual de marca",
+  rui: "Rui, revisor: confere cada peça (ortografia, sem travessão, limites do Instagram, fiel à marca) antes de ir para o Kelvin",
+  lara: "Lara, publicação: agenda e publica no horário, cria o gatilho da palavra-chave no Direct",
+  nina: "Nina, resultados: acompanha o desempenho dos posts publicados",
+};
+
+export interface RespostaChat {
+  respostas: { agente: string; texto: string }[];
+  acoes?: { tipo: "ajustar" | "trocar_tema"; dia: string; comentario: string }[];
+}
+
+/** O time responde ao Kelvin de verdade, com o estado real do Estúdio. */
+export async function responderNoChat(opts: { para: string; texto: string; historico: string; estado: string }): Promise<RespostaChat> {
+  const grupo = opts.para === "time";
+  const quem = grupo
+    ? "Responda como o time: a Vera sempre responde primeiro; se o assunto for de alguém específico, essa pessoa também responde (no máximo 3 respostas no total)."
+    : `Responda só como ${AGENTES_DO_TIME[opts.para] ?? opts.para}.`;
+  const out = await pedirJson<RespostaChat>(
+    `Você é o Time de Marketing IA da ${SDR_CONFIG.empresa.nome} conversando com o Kelvin (o dono) num chat interno.
+${Object.values(AGENTES_DO_TIME).map((a) => `- ${a}`).join("\n")}
+
+${quem}
+Regras:
+- Use SÓ o estado real abaixo. Nunca invente número, post, resultado, prazo ou entrega que não esteja no estado. Se não souber, diga o que vai verificar.
+- Português do Brasil, natural, curto (até 4 frases por resposta), sem travessão, sem jargão.
+- O que o Kelvin orientar vira regra para as próximas pautas, copies e artes: confirme o que muda na prática.
+- Se ele pedir para mudar um post específico, devolva uma ação: "ajustar" (refazer copy ou arte daquele dia com o comentário) ou "trocar_tema" (descartar a pauta do dia para o Téo planejar outra). Use a data AAAA-MM-DD do estado.
+Responda em JSON: {"respostas":[{"agente":"vera","texto":"..."}],"acoes":[{"tipo":"ajustar","dia":"AAAA-MM-DD","comentario":"..."}]}
+
+## Estado real do Estúdio agora
+${opts.estado}`,
+    `## Conversa até aqui\n${opts.historico || "(início)"}\n\n## Kelvin agora\n${opts.texto}`,
+    2500,
+  );
+  const validos = new Set(Object.keys(AGENTES_DO_TIME));
+  return {
+    respostas: (out.respostas ?? [])
+      .filter((r) => validos.has(r.agente) && r.texto)
+      .slice(0, grupo ? 3 : 1)
+      .map((r) => ({ agente: grupo ? r.agente : opts.para, texto: r.texto.replace(/\s*[—–]\s*/g, ", ").slice(0, 900) })),
+    acoes: (out.acoes ?? []).filter((a) => (a.tipo === "ajustar" || a.tipo === "trocar_tema") && /^\d{4}-\d{2}-\d{2}$/.test(a.dia ?? "")).slice(0, 5),
+  };
 }
