@@ -164,3 +164,12 @@ test("foto: o prompt pede foto real, sem texto e no formato certo", async () => 
   assert.match(p, /Sem nenhum texto/);
   assert.match(p, /9:16/);
 });
+
+test("fotos do Kelvin (feitas no ChatGPT dele) têm prioridade; com referência o prompt pede para seguir o estilo", async () => {
+  const { fotosManuais, promptDaFoto } = await import("../src/lib/estudio/fotos.ts");
+  const m = fotosManuais({ slides: [{ titulo: "A" }, { titulo: "B", foto_url: "https://x/foto.jpg" }], legenda: "" });
+  assert.equal(m.get(1), "https://x/foto.jpg");
+  assert.equal(m.size, 1);
+  assert.match(promptDaFoto("dono no balcão", "retrato", true), /referências de posts que funcionaram/);
+  assert.doesNotMatch(promptDaFoto("dono no balcão", "retrato"), /referências/);
+});
