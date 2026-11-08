@@ -27,6 +27,19 @@ import { gerarDirect, gerarSite, semSiteProprio, type SitePreview } from "@/src/
 import { contatosDoSite } from "@/src/lib/enriquecer.ts";
 import { env } from "@/src/lib/env.ts";
 import { carregarPlaybook, manuaisAtuais } from "@/src/lib/playbook.ts";
+import { linkRelatorio, type Diagnosticos } from "@/src/lib/rita.ts";
+
+/** Diagnóstico aprovado da Rita e link do relatório da Duda: a primeira mensagem já entrega valor. */
+function textoDoRelatorio(lead: unknown): string {
+  const l = lead as { relatorio_token?: string | null; diagnosticos?: Diagnosticos | null };
+  if (!l.relatorio_token || !l.diagnosticos) return "";
+  const d = l.diagnosticos;
+  const areas = [["Google", d.google], ["Site", d.site], ["Instagram", d.instagram]]
+    .filter(([, a]) => a)
+    .map(([n, a]) => `- ${n}: nota ${(a as { nota: number }).nota}. Críticos: ${((a as { criticos: string[] }).criticos ?? []).slice(0, 2).join("; ")}`)
+    .join("\n");
+  return `\n\n## Diagnóstico aprovado pelo Kelvin (use os achados reais)\n${d.geral?.frase ?? ""}\n${areas}\nLink do relatório completo (mande no primeiro toque, um link só): ${linkRelatorio(l.relatorio_token)}`;
+}
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -43,7 +56,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em";
+  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em,relatorio_token,diagnosticos";
 const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
@@ -53,7 +66,7 @@ async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null 
     const manual = manuaisAtuais(quem);
     return `${t}${pb ? `\n\n## Playbook comercial do Kelvin (siga sempre)\n${pb}` : ""}${manual ? `\n\n${manual}` : ""}`;
   };
-  const system = comPlaybook(promptSequencia(lead, diag), "bia");
+  const system = comPlaybook(promptSequencia(lead, diag), "bia") + textoDoRelatorio(lead);
   const pedir = async (extra = "") => {
     const res = await callLLM({
       system,
@@ -105,8 +118,8 @@ export async function POST(req: Request) {
   let q = db().from("outreach_leads").select(CAMPOS);
   if (followups) q = q.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`).order("proximo_toque_em").limit(LOTE);
   else if (body.place_ids?.length) q = q.in("place_id", body.place_ids.slice(0, LOTE));
-  // Só escreve para quem o Kelvin aprovou na lista do Léo (Time Comercial IA, 08/11/2026)
-  else q = q.eq("wa_status", "pendente").eq("msg_status", "sem").eq("leo_status", "aprovado").order("prioridade").order("created_at").limit(LOTE);
+  // Só escreve para quem passou pelas aprovações do Kelvin: lista do Léo, diagnóstico da Rita e relatório da Duda
+  else q = q.eq("wa_status", "pendente").eq("msg_status", "sem").eq("duda_status", "aprovado").order("prioridade").order("created_at").limit(LOTE);
   const { data: leads, error } = await q;
   if (error) return json({ error: error.message }, 500);
 
@@ -197,6 +210,6 @@ export async function POST(req: Request) {
   const resto = db().from("outreach_leads").select("place_id", { count: "exact", head: true });
   const { count } = followups
     ? await resto.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`)
-    : await resto.eq("wa_status", "pendente").eq("msg_status", "sem").eq("leo_status", "aprovado");
+    : await resto.eq("wa_status", "pendente").eq("msg_status", "sem").eq("duda_status", "aprovado");
   return json({ gerados, descartados, restantes: count ?? 0, erros });
 }
