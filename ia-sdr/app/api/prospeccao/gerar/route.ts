@@ -29,6 +29,12 @@ import { env } from "@/src/lib/env.ts";
 import { carregarPlaybook, manuaisAtuais } from "@/src/lib/playbook.ts";
 import { linkRelatorio, type Diagnosticos } from "@/src/lib/rita.ts";
 
+/** Empresas reabordadas do zero (08/11/2026): já receberam mensagens da abordagem antiga, pela Ana. */
+function jaFalamos(lead: unknown): string {
+  if (!(lead as { wa_sent_at?: string | null }).wa_sent_at) return "";
+  return "\n\n## Contato anterior\nEssa empresa já recebeu mensagens nossas antes, na abordagem antiga (quem falou foi a Ana, colega da Gabi). Não finja que é o primeiro contato: no toque 1 a Gabi se apresenta, diz com leveza que assumiu o contato e que preparou um diagnóstico completo da empresa. Não peça desculpa nem cobre resposta.";
+}
+
 /** Diagnóstico aprovado da Rita e link do relatório da Duda: a primeira mensagem já entrega valor. */
 function textoDoRelatorio(lead: unknown): string {
   const l = lead as { relatorio_token?: string | null; diagnosticos?: Diagnosticos | null };
@@ -56,7 +62,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em,relatorio_token,diagnosticos";
+  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em,relatorio_token,diagnosticos,wa_sent_at";
 const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
@@ -66,7 +72,7 @@ async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null 
     const manual = manuaisAtuais(quem);
     return `${t}${pb ? `\n\n## Playbook comercial do Kelvin (siga sempre)\n${pb}` : ""}${manual ? `\n\n${manual}` : ""}`;
   };
-  const system = comPlaybook(promptSequencia(lead, diag), "bia") + textoDoRelatorio(lead);
+  const system = comPlaybook(promptSequencia(lead, diag), "bia") + textoDoRelatorio(lead) + jaFalamos(lead);
   const pedir = async (extra = "") => {
     const res = await callLLM({
       system,
