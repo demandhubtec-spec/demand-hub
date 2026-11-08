@@ -33,6 +33,26 @@ async function avisarKelvin(texto: string) {
 
 const nomeDoLead = (l: Pick<Lead, "nome" | "empresa" | "phone">, empresa?: string | null) => empresa ?? l.empresa ?? l.nome ?? `+${l.phone}`;
 
+/**
+ * O áudio do Kelvin às vezes transcreve o nome da empresa errado (em 06/11 saiu "A Temendy trabalha..."
+ * para a IOGM). Antes de propor ou mandar, o nome volta a ser DemandIA.
+ */
+export function corrigirMarca(texto: string): string {
+  return texto.replace(/\b(temendy|temendi|temend[iy]a|demendy|demandy|dimandia|demand[- ]?i\.?a|demandia)(?![\p{L}])/giu, "DemandIA");
+}
+
+const NICHO_CLINICA = /cl[ií]nic|odont|dent|est[ée]tic|m[ée]dic|sa[uú]de|fisio|psic|nutri|veterin|derma|oftalm|ortop|pediat|ginec|labor/i;
+
+/**
+ * Texto ditado como modelo ("a clínica") não pode ir para quem não é clínica (em 05/11 foi para um
+ * escritório de advocacia). Retorna o aviso para a Ana corrigir, ou null se está tudo certo.
+ */
+export function conferirSegmento(texto: string, prosp: { empresa?: string | null; nicho?: string | null } | null): string | null {
+  if (!prosp?.nicho || NICHO_CLINICA.test(prosp.nicho)) return null;
+  if (!/\bcl[ií]nicas?\b/i.test(texto)) return null;
+  return `Não mandei: ${prosp.empresa ?? "esse contato"} é do segmento "${prosp.nicho}", não é clínica. Reescreva o texto com o segmento e o nome certos (ex.: "o escritório", "a ${prosp.empresa ?? "empresa"}") e chame a ferramenta de novo.`;
+}
+
 /** Orientações que a Ana deve seguir: as gerais e as deste lead (as mais novas primeiro). */
 export async function orientacoesPara(leadId: string | null): Promise<string[]> {
   let q = db().from("ana_orientacoes").select("texto,lead_id").eq("ativa", true).order("created_at", { ascending: false }).limit(25);
@@ -56,7 +76,7 @@ export async function pedirOrientacao(leadId: string, pergunta: string, opcoes: 
 /** Retomada de conversa parada: vira proposta no canal e só sai com o ok do Kelvin. */
 export async function proporRetomada(leadId: string, texto: string, motivo: string): Promise<void> {
   const nome = await nomeDe(leadId);
-  const msg = humanizar(texto);
+  const msg = corrigirMarca(humanizar(texto));
   await db().from("ana_canal").update({ status: "descartado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: `Retomada para ${nome} (${motivo}):\n«${msg}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: msg });
   await logEvent(leadId, "retomada_proposta", { motivo });
@@ -155,7 +175,7 @@ async function conversasRecentes(horas: number) {
 /** Envia de verdade para o lead (só com o ok do Kelvin). */
 async function enviarAoLead(leadId: string, texto: string) {
   const lead = await getLead(leadId);
-  const msg = humanizar(texto);
+  const msg = corrigirMarca(humanizar(texto));
   await sendBubbles(destination(lead), msg, async (content, id) => {
     await addMessage({ lead_id: leadId, direction: "out", author: "ia", content, evolution_message_id: id });
   });
@@ -231,10 +251,15 @@ async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos:
       return JSON.stringify(await conversasRecentes(Number(a.horas) > 0 ? Number(a.horas) : 24));
     case "ver_conversa": {
       const msgs = await history(leadId, 15);
-      return JSON.stringify({ nome: await nomeDe(leadId), mensagens: msgs.map((m) => `${m.direction === "in" ? "Lead" : m.author === "humano" ? "Kelvin (manual)" : "Ana"} (${hora(m.created_at)}): ${m.content}`) });
+      const lv = await getLead(leadId);
+      const pv = await prospeccaoDoTelefone(lv.phone).catch(() => null);
+      return JSON.stringify({ nome: await nomeDe(leadId), segmento: pv?.nicho ?? lv.segmento ?? null, cidade: pv?.cidade ?? null, mensagens: msgs.map((m) => `${m.direction === "in" ? "Lead" : m.author === "humano" ? "Kelvin (manual)" : "Ana"} (${hora(m.created_at)}): ${m.content}`) });
     }
     case "propor_mensagem": {
-      const texto = humanizar(String(a.texto ?? ""));
+      const texto = corrigirMarca(humanizar(String(a.texto ?? "")));
+      const lp = await getLead(leadId);
+      const erroSeg = conferirSegmento(texto, await prospeccaoDoTelefone(lp.phone).catch(() => null));
+      if (erroSeg) return erroSeg;
       const nome = await nomeDe(leadId);
       await db().from("ana_canal").update({ status: "descartado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
       await registrar({ lead_id: leadId, autor: "ana", conteudo: `Proposta para ${nome}:\n«${texto}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: texto });
@@ -251,6 +276,9 @@ async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos:
       return `Enviado para ${await nomeDe(r.lead_id)}: «${enviado}»`;
     }
     case "enviar_direto": {
+      const ld = await getLead(leadId);
+      const erroSeg = conferirSegmento(corrigirMarca(String(a.texto ?? "")), await prospeccaoDoTelefone(ld.phone).catch(() => null));
+      if (erroSeg) return erroSeg;
       const enviado = await enviarAoLead(leadId, String(a.texto ?? ""));
       return `Enviado para ${await nomeDe(leadId)}: «${enviado}»`;
     }
@@ -296,6 +324,8 @@ Como agir:
 - Seja proativa: se viu alguém sem resposta, já proponha a mensagem.
 - Sua resposta final é para o Kelvin: curta, direta, dizendo o que você FEZ (e o texto proposto ou enviado). Português, sem travessão, sem markdown.
 - Mensagens para leads seguem o seu estilo de WhatsApp: curtas, humanas, sem travessão, nunca citando o nome do Kelvin.
+- Quando o Kelvin ditar um modelo ("fala que a gente tem um plano pra clínica..."), ADAPTE ao contato: use o segmento e o nome da empresa dele (veja em ver_conversa). Escritório de advocacia é "o escritório", nunca "a clínica".
+- O nome da nossa empresa é DemandIA. O áudio pode transcrever errado (Temendy, Demand IA, Dimandia): escreva sempre DemandIA.
 
 Lead em foco agora: ${foco}
 Rascunhos esperando o ok do Kelvin:

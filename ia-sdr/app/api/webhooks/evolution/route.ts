@@ -11,8 +11,10 @@ import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
 import { demoAtiva, ehPedidoDeDemo, ehSaidaDaDemo, emTesteDoDono, podeRetomarParaDemo, type DemoEncerrada, type DemoIniciada } from "@/src/lib/demo.ts";
 import { env } from "@/src/lib/env.ts";
 import { SDR_CONFIG } from "@/src/config/sdr.ts";
-import { isBlocked } from "@/src/lib/bloqueio.ts";
-import { parseWebhook } from "@/src/lib/evolution.ts";
+import { ehCliente, isBlocked } from "@/src/lib/bloqueio.ts";
+import { limparNomeDoPush } from "@/src/lib/nome.ts";
+import { parseWebhook, sendText, textoDosContatos } from "@/src/lib/evolution.ts";
+import { db } from "@/src/lib/db.ts";
 import { interpretarMidia } from "@/src/lib/midia.ts";
 import { emailsNoTexto, rascunhoDoEmailPassado } from "@/src/lib/rascunho-email.ts";
 import { processarOrientacao, registrar } from "@/src/lib/canal.ts";
@@ -100,10 +102,39 @@ export async function POST(req: Request) {
     return Response.json({ ok: true });
   }
 
-  const lead = await upsertLeadByPhone(msg.phone, msg.jid, msg.pushName);
+  const push = limparNomeDoPush(msg.pushName);
+  const lead = await upsertLeadByPhone(msg.phone, msg.jid, push.nome ?? undefined);
+  if (push.email && !lead.email) await updateLead(lead.id, { email: push.email }).catch(() => null);
   // Áudio, imagem ou documento: a Ana entende o conteúdo (transcrição / leitura) em vez de pedir texto
   const interpretado = !msg.text && msg.media ? await interpretarMidia(msg.media) : null;
-  const content = msg.text ?? interpretado ?? MEDIA_LABEL[msg.messageType] ?? `[${msg.messageType}]`;
+  // Cartão de contato: guarda nome e número (antes ficava só "[contato]" e o número se perdia)
+  const contatos = msg.contatos ?? [];
+  const content = msg.text ?? interpretado ?? textoDosContatos(contatos) ?? MEDIA_LABEL[msg.messageType] ?? `[${msg.messageType}]`;
+
+  // Cliente ativo: a mensagem fica no histórico, a Ana não responde e o Kelvin é avisado
+  if (ehCliente(msg.phone, msg.jid, ...msg.altPhones)) {
+    const salvo = await addMessage({ lead_id: lead.id, direction: "in", author: "lead", content, evolution_message_id: msg.id });
+    if (salvo) {
+      if (!lead.ai_paused || lead.status !== "humano") await updateLead(lead.id, { ai_paused: true, status: "humano", next_followup_at: null });
+      await logEvent(lead.id, "mensagem_de_cliente");
+      const aviso = env.alertPhone || env.ownerPhone;
+      if (aviso) await sendText(aviso, `💬 Cliente ${lead.nome ?? `+${lead.phone}`} mandou mensagem (a Ana não respondeu):\n\n${content.slice(0, 500)}\n\nwa.me/${lead.phone}`).catch(() => null);
+    }
+    return Response.json({ ok: true, ignorado: "cliente" });
+  }
+
+  // Passaram o contato do responsável (prospecção): salva no cadastro da empresa, se ainda não tiver
+  if (contatos.length) {
+    waitUntil(
+      (async () => {
+        const p = await prospeccaoDoTelefone(msg.phone).catch(() => null);
+        if (!p?.place_id || p.responsavel_contato) return;
+        const c = contatos[0];
+        await db().from("outreach_leads").update({ responsavel_contato: [c.nome, c.telefone ? `+${c.telefone}` : null].filter(Boolean).join(" ") }).eq("place_id", p.place_id);
+        await logEvent(lead.id, "contato_compartilhado", { contatos });
+      })().catch((e) => console.error("salvar contato compartilhado falhou", e)),
+    );
+  }
 
   // Prospecção ativa: resposta automática da empresa (boas-vindas, robô, protocolo, menu) não é resposta
   // de verdade. Fica no histórico, mas a cadência segue e a Ana não conversa com o robô.

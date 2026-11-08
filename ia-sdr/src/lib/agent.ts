@@ -103,6 +103,8 @@ async function reply(leadId: string) {
   if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
 
   let finalText = "";
+  // A Ana combinou um dia e horário para retomar: o follow-up padrão não pode passar por cima
+  let retornoCombinado = false;
   for (let step = 0; step < 6; step++) {
     lead = await getLead(leadId);
     const agora = new Date();
@@ -142,6 +144,7 @@ async function reply(leadId: string) {
       }
       try {
         out = await runTool(call.function.name, parseArgs(call), leadId);
+        if (call.function.name === "combinar_retorno" && out.startsWith("Retorno guardado")) retornoCombinado = true;
       } catch (e) {
         console.error(`Erro na ferramenta ${call.function.name}:`, e);
         out = `Erro ao executar ${call.function.name}. Siga a conversa sem essa ação ou use encaminhar_humano.`;
@@ -163,7 +166,8 @@ async function reply(leadId: string) {
   if (lead.status === "novo") patch.status = "em_qualificacao";
   // Agenda o primeiro follow-up caso o lead não responda
   // No teste do Kelvin não tem follow-up
-  if (!doDono && !lead.ai_paused && OPEN_STATUSES.includes(lead.status)) {
+  // (em 06/11 a Ana combinou "domingo à tarde" com um lead e o follow-up jogou para segunda às 8h)
+  if (!doDono && !lead.ai_paused && OPEN_STATUSES.includes(lead.status) && !retornoCombinado) {
     patch.followup_attempts = 0;
     patch.next_followup_at = nextFollowUpAt(now, 0)?.toISOString() ?? null;
   }

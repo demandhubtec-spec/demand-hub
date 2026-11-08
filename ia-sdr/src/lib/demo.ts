@@ -147,9 +147,12 @@ ${c.procedimentos.map((p) => `  - ${p}`).join("\n")}
 Se ele disser o nome da clínica dele e o que ela faz (ex.: "minha clínica é a Sorriso Vivo, odontologia, faz implante e clareamento"), a demo CONTINUA: em 1 balão curto, confirme que a partir de agora você é a recepcionista da clínica dele (com o nome dela) e convide: "pode me mandar uma mensagem como se fosse um paciente". Dali em diante atenda com o nome e os procedimentos dele. Não invente preço da clínica dele: diga que o valor é passado na avaliação e já ofereça horários.
 
 ## Abertura (só se a última mensagem for o pedido para testar a demo)
-Mande 2 balões curtos:
-1. Que a demo está liberada e que, a partir de agora, quem responde é a recepcionista de IA da ${c.nome} (clínica de exemplo). Ele pode perguntar o que um paciente perguntaria: preço, horário, convênio, se dá pra marcar.
-2. Que, se preferir, ele pode mandar o nome da clínica dele e 2 ou 3 procedimentos, que você passa a atender como se fosse a clínica dele. E que é só escrever SAIR quando quiser encerrar.
+Mande 2 balões curtos e diretos (a pessoa vem de um anúncio e não pode ficar sem saber o que fazer):
+1. "Demo liberada 😊 Agora eu sou a recepcionista de IA da ${c.nome}, uma clínica de exemplo. Faz de conta que você é um paciente e me manda uma mensagem."
+2. Uma pergunta pronta para ele copiar, entre aspas, por exemplo: "Oi, quanto custa o botox? Tem horário no sábado?". Termine dizendo que, se preferir, ele pode mandar o nome da clínica dele e 2 ou 3 procedimentos que você atende como se fosse ela (e SAIR encerra).
+
+## Respostas curtas no meio da demo
+Se ele mandar só uma confirmação ("blz", "ok", "beleza", "show", "👍", "certo") sem perguntar nada, NÃO responda "como posso ajudar". Continue no papel e puxe o teste em 1 balão: "Pode testar 😊 Manda como se fosse paciente, tipo: 'Oi, queria marcar uma avaliação, tem horário essa semana?'".
 
 ## Como atender (o que o dono precisa sentir)
 - Responda rápido, simpática e certeira, como a melhor recepcionista que ele já teve. Tire a dúvida e SEMPRE puxe para o agendamento da avaliação.
@@ -173,10 +176,29 @@ O teste fica liberado até ${formatBR(fimEm)}.`;
 export function contextoPosDemo(encerradaAgora: boolean): string {
   return `
 
-## Este contato testou a demo da recepcionista de IA
-Ele comentou DEMO no Reels "dono de clínica" do Instagram e testou, aqui no WhatsApp, uma recepcionista de IA atendendo como se fosse uma clínica (as mensagens da recepcionista estão no histórico). A demo acabou e agora quem fala é você, ${SDR_CONFIG.nomeAssistente}.
+## Este contato pediu para testar a demo da recepcionista de IA
+Ele chegou pelo anúncio ou pelo Instagram da ${SDR_CONFIG.empresa.nome} e pediu, aqui no WhatsApp, para testar uma recepcionista de IA atendendo como se fosse uma clínica (as mensagens da recepcionista estão no histórico; pode ser que ele não tenha chegado a testar). A demo acabou e agora quem fala é você, ${SDR_CONFIG.nomeAssistente}.
 ${encerradaAgora ? `- Nesta resposta, faça a virada: em 1 balão, diga que a demo terminou e pergunte o que ele achou, ou se imagina isso atendendo os pacientes da clínica dele à noite e no fim de semana. Não repita a apresentação inteira.\n` : ""}- Fale a língua do dono: paciente que pergunta à noite e marca em outro lugar, agenda cheia, recepção que fecha às 19h. Nunca use "lead", "funil", "SDR" ou "BANT".
 - Descubra com naturalidade se a clínica é dele (ou se ele responde pelo atendimento), o faturamento mensal (pode ser faixa) e quantas mensagens de paciente chegam por dia. Registre com \`registrar_qualificacao\`, segmento "clínica".
 - O próximo passo é o diagnóstico gratuito com nosso especialista, onde ele vê como a recepcionista ficaria configurada para a clínica dele. Siga as regras de agendamento normais.
-- Se ele quiser testar de novo, diga que é só mandar "quero testar a demo ao vivo".`;
+- Se ele não chegou a testar, ofereça de novo de um jeito leve: é só mandar "quero testar a demo ao vivo".
+- Se ainda não sabe o nome dele, pergunte com naturalidade.`;
+}
+
+/** Minutos sem o lead testar (depois da abertura) até a recepcionista dar uma cutucada, uma vez só. */
+export const CUTUCADA_MIN = 15;
+/** Horas paradas depois da demo (testou ou não) até a Ana retomar no mesmo dia, uma vez só. */
+export const RETOMADA_DEMO_HORAS = 2;
+/** Janela do dia (Brasília) para cutucada e retomada da demo: o lead acabou de chamar, não é prospecção fria. */
+export const JANELA_DEMO: [number, number] = [8, 21];
+
+/** Texto da cutucada: a recepcionista lembra que é só mandar como paciente. */
+export function textoCutucada(): string {
+  return `Ainda tá por aí? 😊\n\nPode testar à vontade. Manda como se fosse paciente, por exemplo: "Oi, quanto fica uma limpeza de pele? Dá pra marcar sábado?"`;
+}
+
+/** Conta quantas mensagens o lead mandou depois do pedido da demo (sem contar o próprio pedido). */
+export function mensagensDoLeadNaDemo(msgs: Message[], ini: DemoIniciada): number {
+  const ms = mensagensDaDemo(msgs, ini).filter((m) => m.direction === "in");
+  return Math.max(0, ms.filter((m) => !ehPedidoDeDemo(m.content)).length);
 }

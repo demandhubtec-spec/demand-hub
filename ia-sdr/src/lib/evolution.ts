@@ -111,6 +111,39 @@ export interface InboundMessage {
   media?: MidiaRecebida;
   /** Dados do anúncio quando a conversa começou pelo botão de um anúncio (clique para WhatsApp). */
   anuncio?: DadosAnuncio | null;
+  /** Cartões de contato compartilhados (ex.: a recepção passando o contato do responsável). */
+  contatos?: ContatoCompartilhado[];
+}
+
+export interface ContatoCompartilhado {
+  nome: string | null;
+  telefone: string | null;
+}
+
+/** Lê o vCard do cartão de contato: nome e o primeiro telefone (de preferência o do WhatsApp, waid=). */
+export function lerVcard(vcard: string | null | undefined, nomePadrao?: string | null): ContatoCompartilhado | null {
+  const v = String(vcard ?? "");
+  const nome = (v.match(/^FN[^:]*:(.+)$/m)?.[1] ?? nomePadrao ?? "").trim() || null;
+  const waid = v.match(/waid=(\d{8,15})/)?.[1];
+  const tel = waid ?? v.match(/^(?:item\d+\.)?TEL[^:]*:([+\d\s().-]{8,})$/m)?.[1]?.replace(/\D/g, "");
+  if (!nome && !tel) return null;
+  return { nome, telefone: tel || null };
+}
+
+/** Cartões de contato da mensagem (um ou vários). */
+export function extrairContatos(m: any): ContatoCompartilhado[] {
+  const um = m?.contactMessage ?? m?.ContactMessage;
+  const varios = m?.contactsArrayMessage ?? m?.ContactsArrayMessage;
+  const lista: any[] = um ? [um] : Array.isArray(varios?.contacts ?? varios?.Contacts) ? (varios.contacts ?? varios.Contacts) : [];
+  return lista
+    .map((c) => lerVcard(c?.vcard ?? c?.Vcard, c?.displayName ?? c?.DisplayName))
+    .filter((c): c is ContatoCompartilhado => !!c);
+}
+
+/** Texto que vai para o histórico no lugar de "[contato]", para a Ana e o Kelvin verem o número. */
+export function textoDosContatos(cs: ContatoCompartilhado[]): string | null {
+  if (!cs.length) return null;
+  return `[contato compartilhado] ${cs.map((c) => [c.nome, c.telefone ? `+${c.telefone}` : null].filter(Boolean).join(" ")).join("; ")}`;
 }
 
 function extractText(m: any): string | null {
@@ -201,6 +234,7 @@ export function parseWebhook(body: any): InboundMessage | null {
       altPhones: altPhonesFrom(info),
       media: extractMedia(m),
       anuncio: dadosDoAnuncio(m),
+      contatos: extrairContatos(m),
     };
   }
 
@@ -223,5 +257,6 @@ export function parseWebhook(body: any): InboundMessage | null {
     messageType: data.messageType || messageKind(m),
     instanceName: body.instance,
     altPhones: [key.remoteJidAlt, key.senderPn].filter(Boolean).map((j: string) => j.split("@")[0].replace(/\D/g, "")),
+    contatos: extrairContatos(m),
   };
 }
