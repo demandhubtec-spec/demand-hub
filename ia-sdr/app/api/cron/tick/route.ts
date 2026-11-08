@@ -9,6 +9,7 @@ import { ensureWhatsAppConnected } from "@/src/lib/whatsapp-health.ts";
 import { lembrarPedidos } from "@/src/lib/canal.ts";
 import { runRetomadas } from "@/src/lib/retomadas.ts";
 import { runDemoAcompanhamento } from "@/src/lib/demo-jobs.ts";
+import { runLeo } from "@/src/lib/leo.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -28,8 +29,10 @@ async function handler(req: Request) {
   const retomadas = await runRetomadas().catch((e) => ({ error: String(e) }));
   // Quem pediu a demo da recepcionista e parou: cutucada (15 min) e retomada da Ana (2 h), no mesmo dia
   const demo = await runDemoAcompanhamento().catch((e) => ({ error: String(e) }));
+  // Léo completa a ficha das empresas da lista (site de verdade, CNPJ, sócios e dono)
+  const leo = await runLeo().catch((e) => ({ error: String(e) }));
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo });
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo });
 }
 
 export const GET = handler;

@@ -27,6 +27,18 @@ export interface OutreachLead {
   linkedin_decisor: string | null;
   cnpj: string | null;
   porte: string | null;
+  // Léo (LDR): ficha completa antes da abordagem
+  razao_social?: string | null;
+  socios?: { nome: string; qualificacao: string | null }[] | null;
+  cnpj_email?: string | null;
+  cnpj_telefone?: string | null;
+  cnpj_situacao?: string | null;
+  cnae?: string | null;
+  dono_instagram?: string | null;
+  site_fonte?: string | null;
+  wa_recado?: string | null;
+  enriquecimento?: { etapa: string; fontes?: Record<string, string> } | null;
+  enriquecido_em?: string | null;
   avaliacoes: number | null;
   observacoes: string | null;
   origem: string | null;
@@ -128,6 +140,7 @@ export interface OutreachConfig {
   exigir_aprovacao: boolean;
   followup_daily_cap: number;
   retomar_dias: number;
+  apify_teto_usd?: number;
   // Prospecção automática
   auto_ativo?: boolean | null;
   auto_uf?: string | null;

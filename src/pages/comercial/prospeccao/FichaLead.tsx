@@ -6,6 +6,7 @@ import { EnvioAvulso, rascunhoDoLog } from "./EnvioAvulso";
 import { icones } from "./AtividadeTab";
 import { ETAPAS, etapaDoLead, resumoCadencia } from "./cadencia";
 import { fmtData, fmtTelefone, linkExterno } from "./shared";
+import { EmpresaEDono } from "../time/EmpresaEDono";
 
 /** Ficha do lead: abre ao clicar no card do Kanban. Mostra a análise da Ana, a sequência e o histórico. */
 export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () => void }) {
@@ -50,6 +51,8 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
             )}
           </div>
         )}
+
+        <EmpresaEDono lead={lead} />
 
         <EnvioAvulso lead={lead} rascunho={rascunhoDoLog(log)} />
 

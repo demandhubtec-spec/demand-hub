@@ -81,6 +81,7 @@ export function ControlesTab() {
         send_end_hour: Number(f.send_end_hour),
         followup_daily_cap: Number(f.followup_daily_cap ?? 40),
         retomar_dias: Number(f.retomar_dias ?? 60),
+        apify_teto_usd: Math.max(0, Number(f.apify_teto_usd ?? 4)),
         optout_words: (f.optout_txt ?? "").split(/[,\n]/).map((w) => w.trim().toLowerCase()).filter(Boolean),
       },
       "Parâmetros de envio atualizados",
@@ -214,6 +215,11 @@ export function ControlesTab() {
             <span className="block text-[11.5px] text-muted">No fim da cadência o lead volta para a aprovação nesse prazo.</span>
           </span>
           {num("retomar_dias")}
+          <span>
+            <b className="font-semibold">Teto do Apify no mês (US$)</b>
+            <span className="block text-[11.5px] text-muted">Vale para a coleta de empresas e para as pesquisas do Léo (CNPJ, Instagram e dono).</span>
+          </span>
+          {num("apify_teto_usd")}
         </div>
 
         <div className="mt-4">
