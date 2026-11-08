@@ -18,6 +18,8 @@ export type Etapa = (typeof ETAPAS)[number]["key"];
 
 export function etapaDoLead(l: OutreachLead): Etapa {
   const sc = l.status_comercial;
+  if (sc === "reuniao_realizada") return "reuniao";
+  if (sc === "qualificacao") return "respondeu";
   if (sc === "ganho" || sc === "proposta" || sc === "reuniao") return sc;
   if (sc === "descartado" || sc === "perdido" || l.wa_status === "optout" || l.cadencia === "parada") return "descartado";
   if (sc === "respondeu" || l.wa_status === "respondeu" || l.cadencia === "respondeu") return "respondeu";
@@ -82,7 +84,7 @@ export function objetivo(l: OutreachLead) {
   return {
     diagnostico: !!l.diag_enviado_em,
     responsavel: !!l.responsavel_contato,
-    reuniao: ["reuniao", "proposta", "ganho"].includes(l.status_comercial),
+    reuniao: ["reuniao", "reuniao_realizada", "proposta", "ganho"].includes(l.status_comercial),
   };
 }
 
@@ -152,9 +154,9 @@ export function funil(leads: OutreachLead[]) {
       l.wa_status === "respondeu" ||
       l.email_status === "respondeu" ||
       l.cadencia === "respondeu" ||
-      ["respondeu", "reuniao", "proposta", "ganho"].includes(l.status_comercial),
+      ["respondeu", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"].includes(l.status_comercial),
   );
-  const reuniao = leads.filter((l) => ["reuniao", "proposta", "ganho"].includes(l.status_comercial));
+  const reuniao = leads.filter((l) => ["reuniao", "reuniao_realizada", "proposta", "ganho"].includes(l.status_comercial));
   const proposta = leads.filter((l) => ["proposta", "ganho"].includes(l.status_comercial));
   const ganho = leads.filter((l) => l.status_comercial === "ganho");
   return [

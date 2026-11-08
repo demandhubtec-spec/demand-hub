@@ -148,7 +148,7 @@ export default function Dashboard() {
           </QuickLink>
           {!isColaborador && (
             <>
-              <QuickLink to="/comercial/crm?aba=prospeccao" icon={Sparkles}>
+              <QuickLink to="/comercial/time?aba=aprovacao" icon={Sparkles}>
                 Prospecção ativa
               </QuickLink>
               <QuickLink to="/comercial/clientes" icon={Contact}>

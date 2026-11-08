@@ -7,7 +7,7 @@ const REFRESH = 12_000;
 export type WaStatus = "pendente" | "enviado" | "erro" | "respondeu" | "optout" | "sem_whatsapp" | "ignorado";
 export type EmailStatus = "pendente" | "enviado" | "erro" | "respondeu" | "optout" | "sem_email" | "ignorado";
 export type StatusComercial =
-  | "novo" | "contatado" | "respondeu" | "reuniao" | "proposta" | "ganho" | "perdido" | "descartado";
+  | "novo" | "contatado" | "respondeu" | "qualificacao" | "reuniao" | "reuniao_realizada" | "proposta" | "ganho" | "perdido" | "descartado";
 
 export interface OutreachLead {
   place_id: string;

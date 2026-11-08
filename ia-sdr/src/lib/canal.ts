@@ -7,6 +7,7 @@
 import { humanizar } from "./estilo.ts";
 import { callLLM, parseArgs, type ChatMessage, type Tool } from "./llm.ts";
 import { addMessage, db, getLead, history, logEvent, updateLead, type Lead } from "./db.ts";
+import { carregarPlaybook, playbookAtual } from "./playbook.ts";
 import { env } from "./env.ts";
 import { destination, sendBubbles, sendText } from "./evolution.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
@@ -55,6 +56,7 @@ export function conferirSegmento(texto: string, prosp: { empresa?: string | null
 
 /** Orientações que a Ana deve seguir: as gerais e as deste lead (as mais novas primeiro). */
 export async function orientacoesPara(leadId: string | null): Promise<string[]> {
+  await carregarPlaybook(); // deixa o playbook pronto para o prompt (todos os fluxos passam por aqui)
   let q = db().from("ana_orientacoes").select("texto,lead_id").eq("ativa", true).order("created_at", { ascending: false }).limit(25);
   q = leadId ? q.or(`lead_id.is.null,lead_id.eq.${leadId}`) : q.is("lead_id", null);
   const { data } = await q;
@@ -69,7 +71,7 @@ export async function pedirOrientacao(leadId: string, pergunta: string, opcoes: 
   const texto = [pergunta.trim(), opcoes.length ? `\nOpções que pensei:\n${opcoes.map((o, i) => `${i + 1}. ${o}`).join("\n")}` : ""].join("");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: texto, origem: "sistema", status: "pendente" });
   await logEvent(leadId, "pediu_orientacao", { pergunta });
-  await avisarKelvin(`🙋 Preciso de você sobre *${nome}*\n\n${texto}\n\nResponda aqui mesmo (texto ou áudio) ou no portal, em CRM > Você e a Ana.`);
+  await avisarKelvin(`🙋 Preciso de você sobre *${nome}*\n\n${texto}\n\nResponda aqui mesmo (texto ou áudio) ou no portal, em Time Comercial IA > Você e a Ana.`);
   return "Pedido de orientação enviado. Responda ao lead com UMA mensagem curta e natural, sem dizer que vai consultar alguém (ex.: \"Boa pergunta, deixa eu confirmar direitinho e já te retorno 😊\"). Não invente a resposta.";
 }
 
@@ -80,7 +82,7 @@ export async function proporRetomada(leadId: string, texto: string, motivo: stri
   await db().from("ana_canal").update({ status: "descartado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: `Retomada para ${nome} (${motivo}):\n«${msg}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: msg });
   await logEvent(leadId, "retomada_proposta", { motivo });
-  await avisarKelvin(`📝 Retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em CRM > Você e a Ana.`);
+  await avisarKelvin(`📝 Retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em Time Comercial IA > Você e a Ana.`);
 }
 
 /** A Ana não conseguiu responder um lead (ex.: WhatsApp fora do ar): avisa o Kelvin para ninguém ficar sem resposta. */
@@ -330,7 +332,7 @@ Como agir:
 Lead em foco agora: ${foco}
 Rascunhos esperando o ok do Kelvin:
 ${rasc.length ? rasc.join("\n") : "nenhum"}
-${regras.length ? `\nRegras que você já segue:\n${regras.map((r) => `- ${r}`).join("\n")}\n` : ""}
+${playbookAtual() ? `\nPlaybook comercial (o Kelvin edita no portal; siga sempre):\n${playbookAtual()}\n` : ""}${regras.length ? `\nRegras que você já segue:\n${regras.map((r) => `- ${r}`).join("\n")}\n` : ""}
 Últimas mensagens deste canal:
 ${historico}`;
 

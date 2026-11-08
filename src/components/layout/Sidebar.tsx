@@ -22,7 +22,7 @@ import { BrandLogo, BrandMark } from "./Logo";
 import { Sparkle } from "@/components/brand/HoloSymbol";
 
 /** A estrela aparece só onde há IA (regra do manual de marca). */
-const IA_PATHS = new Set(["/comercial/sdr", "/comercial/prospeccao"]);
+const IA_PATHS = new Set(["/comercial/time", "/marketing/estudio"]);
 import { navGroups } from "./nav-config";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";

@@ -3,7 +3,7 @@ import type { Departamento } from "@/lib/types";
 export interface NavChild {
   label: string;
   path: string;
-  /** Some children (crm, sdr, clientes) são exclusivos de Comercial e ficam fora do acesso de colaborador. */
+  /** Some children (time comercial, clientes) são exclusivos de Comercial e ficam fora do acesso de colaborador. */
   colaboradorPode?: boolean;
 }
 
@@ -50,8 +50,7 @@ export const navGroups: NavGroup[] = [
     colaboradorPode: false, // colaborador não vê nada do Comercial (CRM, clientes, prospecção)
     children: [
       ...deptChildren("comercial"),
-      { label: "Time comercial", path: "/comercial/time", colaboradorPode: false },
-      { label: "CRM", path: "/comercial/crm", colaboradorPode: false },
+      { label: "Time Comercial IA", path: "/comercial/time", colaboradorPode: false },
       { label: "Clientes", path: "/comercial/clientes", colaboradorPode: false },
     ],
   },
