@@ -26,6 +26,7 @@ import {
 import { gerarDirect, gerarSite, semSiteProprio, type SitePreview } from "@/src/lib/extras.ts";
 import { contatosDoSite } from "@/src/lib/enriquecer.ts";
 import { env } from "@/src/lib/env.ts";
+import { carregarPlaybook } from "@/src/lib/playbook.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -47,7 +48,9 @@ const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
 async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null }, diag: ReturnType<typeof diagnosticar>): Promise<Toque[]> {
-  const system = promptSequencia(lead, diag);
+  const pb = await carregarPlaybook();
+  const comPlaybook = (t: string) => (pb ? `${t}\n\n## Playbook comercial do Kelvin (siga sempre)\n${pb}` : t);
+  const system = comPlaybook(promptSequencia(lead, diag));
   const pedir = async (extra = "") => {
     const res = await callLLM({
       system,
@@ -61,7 +64,7 @@ async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null 
 
   // 2ª etapa: revisor de copy (SPIN, gatilhos, sem repetição, sem cara de IA)
   const revisada = await callLLM({
-    system: promptRevisaoSequencia(lead, diag, rascunho),
+    system: comPlaybook(promptRevisaoSequencia(lead, diag, rascunho)),
     messages: [{ role: "user", content: "Revise e devolva a versão final." }],
     maxTokens: 6000,
     json: true,

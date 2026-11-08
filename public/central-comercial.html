@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DemandIA · Comercial · Central do Time de Vendas</title>
+<title>DemandIA · Comercial · Time Comercial IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;600&family=Anton&display=swap" rel="stylesheet">
 <style>
@@ -274,7 +274,7 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
 <div class="wrap">
   <div class="hud">
     <div class="brand">Demand<b>IA</b></div>
-    <div class="crumb">Comercial / Time de Vendas</div>
+    <div class="crumb">Comercial / Time Comercial IA</div>
     <div class="sp"></div>
     <div class="stat"><span class="blink"></span>OPERAÇÃO <b>AO VIVO</b></div>
     <div class="stat">META <b>12 REUNIÕES/SEMANA</b></div>
@@ -282,7 +282,7 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
     <div class="stat">NA SUA FILA <b id="qcount">0</b></div>
     <button class="btn" onclick="abrirPlaybook()">Playbook comercial</button>
   </div>
-  <h1 class="title">Central do Time Comercial</h1>
+  <h1 class="title">Time Comercial IA</h1>
   <p class="sub">A Ana coordena o time. Antes do primeiro contato, cada lead ganha um pacote de valor: raio-x digital e um site pronto (novo ou otimizado), enviados já na primeira mensagem. O objetivo é um só: reuniões qualificadas na sua agenda.</p>
   <div class="chan" style="margin:-6px 0 16px">
     <span class="ch on"><span class="d"></span>WhatsApp</span><span class="ch on"><span class="d"></span>E-mail</span><span class="ch on"><span class="d"></span>Instagram Direct</span><span class="ch on"><span class="d"></span>LinkedIn</span><span class="ch off"><span class="d"></span>Áudio (em breve)</span><span class="ch off"><span class="d"></span>Ligação (em breve)</span>
@@ -312,7 +312,7 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
       </section>
     </div>
   </div>
-  <p class="foot">PROTÓTIPO VISUAL · agentes, conversas, leads e números de exemplo para validar a experiência antes de construir.</p>
+  <p class="foot">NÚMEROS REAIS DA OPERAÇÃO · atualiza a cada minuto · ligações (Davi) em preparação</p>
 </div>
 
 <div class="shade" id="shade" onclick="fecharTudo()"></div>
@@ -525,7 +525,7 @@ function desenharLinks(){
 /* ================= FUNIL ================= */
 const FUN={lista:132,pacotes:38,contatos:180,respostas:41,qualif:14,reunioes:6,meta:12};
 function funil(){const f=FUN;document.getElementById('funnel').innerHTML=[
- ['Empresas na lista',f.lista,100],['Pacotes de valor prontos',f.pacotes,f.pacotes/f.lista*100],['Contatos feitos',f.contatos,100],['Responderam',f.respostas,f.respostas/f.contatos*100],['Qualificados',f.qualif,f.qualif/f.respostas*100],['Reuniões / meta',`${f.reunioes}/${f.meta}`,f.reunioes/f.meta*100,1]
+ ['Empresas na lista',f.lista,100],['Pacotes de valor prontos',f.pacotes,f.pacotes/f.lista*100],['Contatos feitos',f.contatos,100],['Responderam',f.respostas,f.respostas/f.contatos*100],['Qualificados',f.qualif,f.qualif/f.respostas*100],['Reuniões na semana / meta',`${f.reunioes}/${f.meta}`,f.reunioes/f.meta*100,1]
 ].map(([t,v,p,g])=>`<div class="fs ${g?'gold':''}"><b>${v}</b><span>${t}</span><i style="width:${Math.min(100,p)}%"></i></div>`).join('')}
 
 /* ================= CANAL INTERNO ================= */
@@ -710,7 +710,7 @@ const CONV={};let atual=null;
 function abrirAgente(id,aba='manual'){
   atual=id;const a=byId(id),d=document.getElementById('drawer');
   d.innerHTML=`<div class="dh">${holo(a,true)}<div><div class="nm">${a.nome}</div><div class="rl">${a.cargo}</div><span class="chip c-${ST[id]}">${LB[ST[id]]}</span>${a.shared?`<div class="share">${a.shared}</div>`:''}</div><button class="x" onclick="fecharTudo()">×</button></div>
-  <div class="dt"><button data-t="manual">Manual de trabalho</button><button data-t="agora">Agora</button><button data-t="chat">Conversar</button></div><div class="db" id="db"></div>`;
+  <div class="dt"><button data-t="manual">Manual de trabalho</button><button data-t="agora">Agora</button><button data-t="chat">Falar com o time</button></div><div class="db" id="db"></div>`;
   d.querySelectorAll('.dt button').forEach(b=>b.onclick=()=>aba_(b.dataset.t));
   d.classList.add('on');document.getElementById('shade').classList.add('on');aba_(aba);
 }
@@ -761,12 +761,113 @@ function toast(t){const el=document.getElementById('toast');el.textContent='▸ 
 
 
 /* ================= RELÓGIO ================= */
-setInterval(()=>{T.forEach(a=>{if(a.coord||ST[a.id]!=='work')return;PR[a.id]=Math.min(100,PR[a.id]+Math.random()*8);
-  if(PR[a.id]>=100){PR[a.id]=4;TI[a.id]=(TI[a.id]+1)%a.tarefas.length}
-  const b=document.getElementById('pb-'+a.id),n=document.getElementById('now-'+a.id);if(b)b.style.width=PR[a.id]+'%';if(n)n.textContent=agora(a)})},1400);
-setInterval(proximo,3800);
+/* ================= AO VIVO (dados reais do portal) =================
+   A Central roda dentro do portal (mesma origem) e usa o login dele: window.parent.__demandSupabase.
+   Números: função time_comercial() do banco. Pedidos da Ana: ana_canal. Atualiza a cada minuto. */
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function irAba(aba,lead){try{parent.postMessage({tipo:'time-comercial:ir',aba,lead},location.origin)}catch(e){}}
+function abrirPlaybook(){irAba('playbook')}
+ROTEIRO.length=0;
+function proximo(){}
+Object.assign(FUN,{lista:0,pacotes:0,contatos:0,respostas:0,qualif:0,reunioes:0,meta:12});
+AGENDA.length=0;
+const TXT={};let DADOS=null,ERRO=null;
+function agora(a){if(a.off)return 'Aguardando ativação';return TXT[a.id]||'Carregando…'}
+const pct=(a,b)=>b>0?Math.max(4,Math.min(100,Math.round(a/b*100))):4;
+function aplicar(r,pedidos){
+  const h=r.hoje||{};
+  FUN.lista=r.lista||0;FUN.pacotes=r.com_diagnostico||0;FUN.contatos=r.contatados||0;FUN.respostas=r.responderam||0;FUN.qualif=r.quentes||0;FUN.reunioes=r.reunioes_semana||0;
+  const escritas=(r.aguardando_ok||0)+(r.fila_envio||0);
+  TXT.ana=pedidos?`${pedidos} ${pedidos>1?'pedidos esperando':'pedido esperando'} você`:'Coordenando o time e as conversas';
+  TXT.leo=`${r.lista||0} empresas na lista · ${r.com_whatsapp||0} com WhatsApp`;
+  TXT.rita=`${r.com_diagnostico||0} raio-x prontos`;
+  TXT.bia=`${escritas} sequências escritas na fila`;
+  TXT.duda=`${r.com_site||0} sites de demonstração prontos`;
+  TXT.rui=r.aguardando_ok?`${r.aguardando_ok} esperando o seu ok`:'Nada esperando revisão';
+  TXT.caio=`${r.em_cadencia||0} em cadência`;
+  TXT.gabi=`${h.primeiros||0} contatos hoje`;
+  TXT.marina=`${h.conversas||0} conversas hoje`;
+  Object.assign(ST,{ana:pedidos?'wait':'work',leo:r.lista?'work':'idle',rita:r.com_diagnostico?'work':'idle',bia:escritas?'work':'idle',duda:r.com_site?'work':'idle',
+    rui:r.aguardando_ok?'wait':'idle',caio:r.em_cadencia?'work':'idle',gabi:h.primeiros?'work':'idle',marina:h.conversas?'work':'idle',davi:'off'});
+  Object.assign(PR,{leo:pct(r.com_whatsapp,r.lista),rita:pct(r.com_diagnostico,r.lista),bia:pct(r.fila_envio,escritas),duda:pct(r.com_site,r.lista),
+    rui:pct(r.fila_envio,escritas),caio:pct(r.em_cadencia,r.contatados),gabi:pct(h.primeiros,40),marina:pct(r.reunioes_semana,12)});
+  // Sua fila: o que está esperando você de verdade
+  FILA.length=0;
+  if(r.aguardando_ok)FILA.push({de:'rui',tipo:'Mensagens para aprovar',titulo:`${r.aguardando_ok} ${r.aguardando_ok>1?'empresas com a sequência pronta':'empresa com a sequência pronta'}`,m:'Escrito pela Bia · revisado pelo Rui',aba:'aprovacao'});
+  if(pedidos)FILA.push({de:'ana',tipo:'Pedidos da Ana',titulo:`${pedidos} ${pedidos>1?'conversas precisam':'conversa precisa'} de você`,m:'Responda no canal Você e a Ana',aba:'ana'});
+  // Agenda real
+  const dias=['DOM','SEG','TER','QUA','QUI','SEX','SÁB'];
+  AGENDA.length=0;(r.agenda||[]).forEach(m=>{const d=new Date(m.starts_at);AGENDA.push({dia:dias[d.getDay()]+' '+String(d.getDate()).padStart(2,'0'),hora:d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),emp:m.empresa||m.nome||m.phone,quem:m.nome||'',phone:m.phone,link:m.meet_link,status:m.status})});
+  // Canal interno: o que o time fez de verdade nos últimos 3 dias
+  COMMS.length=0;(r.atividade||[]).slice().reverse().forEach(e=>{const f=FALA(e);if(f)COMMS.push({...f,h:new Date(e.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})})});
+}
+function FALA(e){const q=esc(e.quem||'um contato');switch(e.tipo){
+  case 'envio:sent':return{de:'gabi',para:null,alvo:q,tx:`Primeiro contato enviado para <b>${q}</b>.`};
+  case 'envio:followup':return{de:'caio',para:null,alvo:q,tx:`Toque da cadência enviado para <b>${q}</b>.`};
+  case 'envio:reply':return{de:'gabi',para:'marina',tx:`<b>${q}</b> respondeu. Marina, é com você.`};
+  case 'envio:avulso':return{de:'ana',para:null,alvo:q,tx:`Mensagem avulsa enviada para <b>${q}</b>.`};
+  case 'resposta_automatica':return{de:'gabi',para:'caio',tx:`<b>${q}</b> respondeu com mensagem automática. Sigo a cadência.`};
+  case 'lead_quente':return{de:'marina',para:'ana',tx:`<b>${q}</b> está quente.`};
+  case 'tool:agendar_reuniao':return{de:'marina',para:'kelvin',tx:`Reunião marcada com <b>${q}</b>.`};
+  case 'tool:ver_horarios':return{de:'marina',para:'kelvin',tx:`Olhando sua agenda para marcar com <b>${q}</b>.`};
+  case 'tool:combinar_retorno':return{de:'marina',para:'ana',tx:`Retorno combinado com <b>${q}</b>.`};
+  case 'tool:registrar_objetivo':return{de:'marina',para:'ana',tx:`Objetivo da conversa com <b>${q}</b> registrado.`};
+  case 'tool:encerrar_contato':return{de:'marina',para:'ana',tx:`Conversa com <b>${q}</b> encerrada.`};
+  case 'pediu_orientacao':return{de:'ana',para:'kelvin',tx:`Preciso da sua orientação sobre <b>${q}</b>.`};
+  case 'orientacao_aplicada':return{de:'ana',para:'marina',tx:`Orientação do Kelvin aplicada em <b>${q}</b>.`};
+  case 'retomada_proposta':return{de:'ana',para:'kelvin',tx:`Propus uma retomada para <b>${q}</b>. Espera seu ok.`};
+  default:return null}}
+const quemRecebe=c=>c.para==='kelvin'?'Kelvin':c.para?byId(c.para).nome:(c.alvo||'contato');
+function pintarCanal(){
+  const box=document.getElementById('comms');document.getElementById('ccount').textContent=COMMS.length?COMMS.length+' REGISTROS · 3 DIAS':'';
+  if(!COMMS.length){box.innerHTML=`<div class="empty">${ERRO?esc(ERRO):'Sem movimento nos últimos 3 dias.'}</div>`;return}
+  box.innerHTML=COMMS.slice(-60).map(c=>`<div class="cm${c.para==='kelvin'?' sys':''}">${mini(c.de)}<div><div class="who"><b>${byId(c.de).nome}</b> → <span class="to">${quemRecebe(c)}</span> · ${c.h}</div><div class="tx">${c.tx}</div></div></div>`).join('');
+  box.scrollTop=box.scrollHeight;
+}
+function pintarFila(){
+  const q=document.getElementById('queue');document.getElementById('qcount').textContent=FILA.length;
+  if(!FILA.length){q.innerHTML='<div class="empty">Nada esperando você agora. O time segue trabalhando e manda tudo para cá.</div>';return}
+  q.innerHTML=FILA.map((f,i)=>`<div class="qi" onclick="irAba('${f.aba}')">${mini(f.de)}<div><div class="k">${f.tipo} · de ${byId(f.de).nome}</div><div class="t">${esc(f.titulo)}</div><div class="m">${f.m}</div></div><div class="sla">abrir<br>›</div></div>`).join('');
+}
+function pintarAgenda(){
+  const el=document.getElementById('agenda');
+  el.innerHTML=AGENDA.length?AGENDA.map((r,i)=>`<div class="mt" onclick="abrirReuniao(${i})" style="cursor:pointer"><div class="mdt">${r.dia}<small>${r.hora}</small></div><div><div class="t">${esc(r.emp)}</div><div class="m">${esc(r.quem)}${r.link?' · com link da reunião':''}</div></div><span class="chip c-work">${r.status==='confirmada'?'CONFIRMADA':'MARCADA'}</span></div>`).join('')
+    :'<div class="empty">Nenhuma reunião marcada ainda. Quando a Marina marcar, aparece aqui.</div>';
+  kcount();
+}
+function abrirReuniao(i){const r=AGENDA[i];modalHtml(mini('marina'),'Reunião marcada pela Marina',`${esc(r.emp)} · ${r.dia} ${r.hora}`,
+  `<div class="kv"><div><b>Contato</b>${esc(r.quem||'-')}</div><div><b>WhatsApp</b>${esc(r.phone||'-')}</div></div>${r.link?`<div class="sec" style="margin-top:14px"><h4>Link da reunião</h4><p><a href="${esc(r.link)}" target="_blank" rel="noopener" style="color:var(--holo)">${esc(r.link)}</a></p></div>`:''}`,
+  `<button class="btn" onclick="fecharTudo();irAba('conversas')">Abrir as conversas</button>`)}
+function aba_(t){
+  const a=byId(atual),db=document.getElementById('db');document.querySelectorAll('.dt button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(t==='manual'){const M=a.manual;db.innerHTML=`
+   <div class="sec"><h4>Objetivo</h4><p>${M.objetivo}</p></div>
+   <div class="sec"><h4>Responsável por</h4><ul>${M.resp.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div class="kv sec"><div><b>Recebe de</b>${M.recebe}</div><div><b>Entrega</b>${M.entrega}</div></div>
+   <div class="sec"><h4>Padrões obrigatórios</h4><ul>${M.padroes.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div class="sec yes"><h4>Aceito</h4><ul>${M.aceito.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div class="sec no"><h4>Não aceito</h4><ul>${M.naoaceito.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div class="sec"><h4>Como é medido</h4><ul>${M.kpis.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div class="sec"><h4>Segue também</h4><p>O playbook comercial que você edita no portal · <a href="#" onclick="event.preventDefault();abrirPlaybook()" style="color:var(--holo)">abrir</a></p></div>`}
+  else if(t==='agora'){const hist=COMMS.filter(c=>c.de===atual||c.para===atual).slice(-8).reverse();db.innerHTML=`
+   <div class="sec"><h4>Agora</h4><p>${agora(a)}</p></div>
+   <div class="sec"><h4>O que faz no dia a dia</h4><ul>${a.tarefas.map(x=>`<li>${x}</li>`).join('')}</ul></div>
+   <div class="sec"><h4>Últimos registros</h4>${hist.length?hist.map(c=>`<div class="cm">${mini(c.de)}<div><div class="who"><b>${byId(c.de).nome}</b> → <span class="to">${quemRecebe(c)}</span> · ${c.h}</div><div class="tx">${c.tx}</div></div></div>`).join(''):'<p style="color:var(--muted)">Nada nos últimos 3 dias.</p>'}</div>`}
+  else{db.innerHTML=`<div class="sec"><h4>Falar com o time</h4><p>Quem conversa com você pelo time é a Ana. Mande o pedido para ela no canal Você e a Ana (texto ou áudio): ela repassa e aplica.</p></div>
+   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" onclick="fecharTudo();irAba('ana')">Abrir Você e a Ana</button><button class="btn" onclick="fecharTudo();irAba('playbook')">Editar o playbook</button></div>`}
+}
+async function carregar(){
+  const sb=parent&&parent!==window?parent.__demandSupabase:null;
+  if(!sb){ERRO='Abra pelo portal para ver os números reais.';pintarCanal();return}
+  try{
+    const [{data:r,error},{count}]=await Promise.all([sb.rpc('time_comercial'),sb.from('ana_canal').select('id',{count:'exact',head:true}).in('status',['pendente','aguardando_ok'])]);
+    if(error)throw error;DADOS=r;ERRO=null;aplicar(r||{},count||0);
+  }catch(e){ERRO='Não consegui carregar os números agora. Tento de novo em 1 minuto.';console.error(e)}
+  funil();montarFlow();pintarFila();pintarAgenda();pintarCanal();
+}
+
 addEventListener('resize',()=>{clearTimeout(window._r);window._r=setTimeout(montarFlow,150)});
-funil();montarFlow();pintarFila();pintarAgenda();proximo();setTimeout(proximo,1200);
+funil();montarFlow();pintarFila();pintarAgenda();pintarCanal();carregar();setInterval(carregar,60000);
 </script>
 </body>
 </html>

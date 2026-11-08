@@ -3,12 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { chamarSdr, useOutreachLeads, type OutreachLead } from "@/hooks/useProspeccao";
 
-/** Etapas do funil de oportunidades (as mesmas para prospecção ativa e inbound). */
+/** Etapas do funil inbound (anúncios, site e WhatsApp direto). "proposta" aparece como Negociação. */
 export const ETAPAS_OPORTUNIDADE = [
-  { key: "conversando", label: "Conversando" },
-  { key: "reuniao", label: "Reunião marcada" },
-  { key: "proposta", label: "Proposta" },
-  { key: "ganho", label: "Ganho" },
+  { key: "recebido", label: "Mensagem recebida / cadastro" },
+  { key: "atendimento", label: "Em atendimento" },
+  { key: "qualificacao", label: "Qualificação" },
+  { key: "reuniao", label: "Reunião agendada" },
+  { key: "reuniao_realizada", label: "Reunião realizada" },
+  { key: "proposta", label: "Negociação" },
+  { key: "ganho", label: "Fechamento (venda)" },
   { key: "perdido", label: "Perdido" },
 ] as const;
 export type EtapaOportunidade = (typeof ETAPAS_OPORTUNIDADE)[number]["key"];
