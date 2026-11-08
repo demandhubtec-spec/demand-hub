@@ -145,8 +145,8 @@ export function novoToken() {
   return randomBytes(6).toString("base64url");
 }
 
-export async function gerarSite(lead: LeadPerfil & { endereco?: string | null }, tokenAtual?: string | null): Promise<SitePreview> {
-  const r = await callLLM({ system: comManual(promptSite(lead), "duda"), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 3000, json: true });
+export async function gerarSite(lead: LeadPerfil & { endereco?: string | null }, tokenAtual?: string | null, ajuste?: string | null): Promise<SitePreview> {
+  const r = await callLLM({ system: comManual(promptSite(lead), "duda") + (ajuste ? `\n\nO Kelvin pediu este ajuste na versão anterior: ${ajuste}` : ""), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 3000, json: true });
   return montarSite(lead, r.message.content ?? "", tokenAtual || novoToken());
 }
 
