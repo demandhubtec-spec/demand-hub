@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Segmented } from "@/components/ui/segmented";
 import { useAuth } from "@/hooks/useAuth";
 import { useCanal } from "@/hooks/useCrm";
-import { useOutreachLeads } from "@/hooks/useProspeccao";
+import { chamarSdr, useOutreachLeads } from "@/hooks/useProspeccao";
 import { supabase } from "@/lib/supabase";
 import { NumerosEnvio, StatusOperacao } from "./Prospeccao";
 import { AprovacaoTab } from "./prospeccao/AprovacaoTab";
@@ -19,6 +19,7 @@ import { CanalTab } from "./crm/CanalTab";
 import { PlaybookTab } from "./time/PlaybookTab";
 import { FunilKanban } from "./time/FunilKanban";
 import { ListaDoLeo } from "./time/ListaDoLeo";
+import { EtapaRitaDuda } from "./time/EtapaRitaDuda";
 
 export const ABAS_TIME = ["central", "aprovacao", "envios", "funil", "conversas", "contatos", "ana", "playbook", "config"] as const;
 export type AbaTime = (typeof ABAS_TIME)[number];
@@ -45,6 +46,7 @@ export default function TimeComercial() {
 
   const bruta = params.get("aba") ?? "";
   const aba: AbaTime = (ABAS_TIME as readonly string[]).includes(bruta) ? (bruta as AbaTime) : (ABA_ANTIGA[bruta] ?? "central");
+  const [alturaCentral, setAlturaCentral] = React.useState<number | null>(null);
   const irPara = React.useCallback(
     (a: AbaTime, extra: Record<string, string> = {}) => setParams({ aba: a, ...extra }, { replace: true }),
     [setParams],
@@ -52,10 +54,14 @@ export default function TimeComercial() {
 
   // A Central (HTML na mesma origem) lê os números com o login do portal e pede para abrir as abas daqui
   React.useEffect(() => {
-    (window as unknown as { __demandSupabase?: typeof supabase }).__demandSupabase = supabase;
+    const w = window as unknown as { __demandSupabase?: typeof supabase; __demandChamarSdr?: typeof chamarSdr };
+    w.__demandSupabase = supabase;
+    // A conversa com os agentes (texto ou áudio) vai para o servidor da Ana
+    w.__demandChamarSdr = chamarSdr;
     const ouvir = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
-      const d = e.data as { tipo?: string; aba?: string; lead?: string } | null;
+      const d = e.data as { tipo?: string; aba?: string; lead?: string; h?: number } | null;
+      if (d?.tipo === "time-comercial:altura" && typeof d.h === "number") setAlturaCentral(Math.max(640, d.h));
       if (d?.tipo === "time-comercial:ir" && d.aba && (ABAS_TIME as readonly string[]).includes(d.aba)) {
         irPara(d.aba as AbaTime, d.lead ? { lead: d.lead } : {});
       }
@@ -69,7 +75,8 @@ export default function TimeComercial() {
   const esperando = canal.filter((m) => m.status === "pendente" || m.status === "aguardando_ok").length;
   const paraRevisar =
     leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "rascunho").length +
-    leads.filter((l) => l.wa_status === "pendente" && l.leo_status === "pendente" && ["sem", "gerando"].includes(l.msg_status)).length;
+    leads.filter((l) => l.wa_status === "pendente" && l.leo_status === "pendente" && ["sem", "gerando"].includes(l.msg_status)).length +
+    leads.filter((l) => l.wa_status === "pendente" && (l.rita_status === "pendente" || l.duda_status === "pendente")).length;
   const abrirConversa = (id: string) => irPara("conversas", { lead: id });
 
   return (
@@ -86,14 +93,16 @@ export default function TimeComercial() {
         <TabsTrigger value="config">Configurações</TabsTrigger>
       </TabsList>
 
-      {aba !== "central" && <StatusOperacao />}
+      {["aprovacao", "envios", "config"].includes(aba) && <StatusOperacao />}
 
       <TabsContent value="central">
         <iframe
           src="/central-comercial.html"
           title="Central do Time Comercial IA"
           className="block w-full rounded-[14px] border-0"
-          style={{ height: "calc(100vh - 140px)", minHeight: 640 }}
+          scrolling="no"
+          allow="microphone"
+          style={{ height: alturaCentral ?? "calc(100vh - 140px)", minHeight: 640 }}
         />
       </TabsContent>
       <TabsContent value="aprovacao">
@@ -133,19 +142,25 @@ function Aprovacoes() {
   const { data: leads = [] } = useOutreachLeads();
   const naFila = leads.filter((l) => l.wa_status === "pendente");
   const leo = naFila.filter((l) => l.leo_status === "pendente" && ["sem", "gerando"].includes(l.msg_status)).length;
+  const rita = naFila.filter((l) => l.rita_status === "pendente").length;
+  const duda = naFila.filter((l) => l.duda_status === "pendente").length;
   const msgs = naFila.filter((l) => l.msg_status === "rascunho").length;
-  const [visao, setVisao] = React.useState<"leo" | "mensagens">(leo || !msgs ? "leo" : "mensagens");
+  const primeira = leo ? "leo" : rita ? "rita" : duda ? "duda" : msgs ? "mensagens" : "leo";
+  const [visao, setVisao] = React.useState<"leo" | "rita" | "duda" | "mensagens">(primeira);
+  const n = (x: number) => (x ? ` (${x})` : "");
   return (
     <div>
       <Segmented
         value={visao}
         onChange={setVisao}
         opcoes={[
-          { value: "leo", label: `1. Lista do Léo${leo ? ` (${leo})` : ""}` },
-          { value: "mensagens", label: `2. Raio-x e mensagens · Rita, Bia e Rui${msgs ? ` (${msgs})` : ""}` },
+          { value: "leo", label: `1. Lista · Léo${n(leo)}` },
+          { value: "rita", label: `2. Diagnóstico · Rita${n(rita)}` },
+          { value: "duda", label: `3. Relatório e site · Duda${n(duda)}` },
+          { value: "mensagens", label: `4. Mensagens e cadência · Bia, Rui e Caio${n(msgs)}` },
         ]}
       />
-      {visao === "leo" ? <ListaDoLeo /> : <AprovacaoTab />}
+      {visao === "leo" ? <ListaDoLeo /> : visao === "rita" ? <EtapaRitaDuda etapa="rita" /> : visao === "duda" ? <EtapaRitaDuda etapa="duda" /> : <AprovacaoTab />}
     </div>
   );
 }
