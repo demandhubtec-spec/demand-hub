@@ -710,7 +710,7 @@ const CONV={};let atual=null;
 function abrirAgente(id,aba='manual'){
   atual=id;const a=byId(id),d=document.getElementById('drawer');
   d.innerHTML=`<div class="dh">${holo(a,true)}<div><div class="nm">${a.nome}</div><div class="rl">${a.cargo}</div><span class="chip c-${ST[id]}">${LB[ST[id]]}</span>${a.shared?`<div class="share">${a.shared}</div>`:''}</div><button class="x" onclick="fecharTudo()">×</button></div>
-  <div class="dt"><button data-t="manual">Manual de trabalho</button><button data-t="agora">Agora</button><button data-t="chat">Falar com o time</button></div><div class="db" id="db"></div>`;
+  <div class="dt"><button data-t="manual">Manual de trabalho</button><button data-t="agora">Agora</button><button data-t="chat">Conversar (texto ou áudio)</button></div><div class="db" id="db"></div>`;
   d.querySelectorAll('.dt button').forEach(b=>b.onclick=()=>aba_(b.dataset.t));
   d.classList.add('on');document.getElementById('shade').classList.add('on');aba_(aba);
 }
@@ -857,8 +857,47 @@ function aba_(t){
    <div class="sec"><h4>Agora</h4><p>${agora(a)}</p></div>
    <div class="sec"><h4>O que faz no dia a dia</h4><ul>${a.tarefas.map(x=>`<li>${x}</li>`).join('')}</ul></div>
    <div class="sec"><h4>Últimos registros</h4>${hist.length?hist.map(c=>`<div class="cm">${mini(c.de)}<div><div class="who"><b>${byId(c.de).nome}</b> → <span class="to">${quemRecebe(c)}</span> · ${c.h}</div><div class="tx">${c.tx}</div></div></div>`).join(''):'<p style="color:var(--muted)">Nada nos últimos 3 dias.</p>'}</div>`}
-  else{db.innerHTML=`<div class="sec"><h4>Falar com o time</h4><p>Quem conversa com você pelo time é a Ana. Mande o pedido para ela no canal Você e a Ana (texto ou áudio): ela repassa e aplica.</p></div>
-   <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn pri" onclick="fecharTudo();irAba('ana')">Abrir Você e a Ana</button><button class="btn" onclick="fecharTudo();irAba('playbook')">Editar o playbook</button></div>`}
+  else chatReal(a,db)
+}
+/* Conversa de verdade com cada agente (texto ou áudio). O agente analisa, liga ao contexto e traz solução e hipóteses. */
+const CHAT={};let GRAV=null;
+const escH=t=>String(t??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+async function chatReal(a,db){
+  db.innerHTML=`<div class="chat"><div class="msgs" id="msgs"></div><div class="sugs">${(a.chips||[]).slice(0,3).map(c=>`<button onclick='falarReal(${JSON.stringify(c)})'>${escH(c)}</button>`).join('')}</div>
+   <form class="send" id="send"><input id="inp" placeholder="Escreva ou grave um áudio para ${escH(a.nome)}..." autocomplete="off"><button type="button" class="btn" id="mic" title="Gravar áudio">🎙</button><button class="btn pri">Enviar</button></form>
+   <p style="margin:8px 0 0;font-size:11.5px;color:var(--muted)">${escH(a.nome)} primeiro mostra o que entendeu e o contexto, depois traz a melhor solução e as hipóteses para avançar.</p></div>`;
+  document.getElementById('send').onsubmit=e=>{e.preventDefault();const i=document.getElementById('inp');falarReal(i.value);i.value=''};
+  document.getElementById('mic').onclick=()=>gravarReal();
+  const sb=parent&&parent!==window?parent.__demandSupabase:null;
+  if(!CHAT[a.id]){CHAT[a.id]=[];
+    if(sb){try{const {data}=await sb.from('time_conversas').select('autor,conteudo,tipo').eq('agente',a.id).order('created_at',{ascending:false}).limit(20);
+      CHAT[a.id]=(data||[]).reverse().map(x=>({de:x.autor==='kelvin'?'me':'ag',t:(x.tipo==='audio'?'🎙 ':'')+x.conteudo}))}catch(e){console.error(e)}}
+    if(!CHAT[a.id].length)CHAT[a.id].push({de:'ag',t:`Oi, Kelvin. Pode falar por texto ou áudio. Eu analiso o que você disse, olho a operação e te trago a melhor solução e as hipóteses para avançar.`})}
+  pintarReal();setTimeout(()=>document.getElementById('inp')?.focus(),250);
+}
+function pintarReal(extra=''){const m=document.getElementById('msgs');if(!m||!CHAT[atual])return;m.innerHTML=CHAT[atual].map(x=>`<div class="m ${x.de}" style="white-space:pre-wrap">${escH(x.t)}</div>`).join('')+extra;m.scrollTop=m.scrollHeight}
+async function falarReal(texto,midia){
+  const id=atual,a=byId(id);if(!midia&&(!texto||!texto.trim()))return;
+  const chamar=parent&&parent!==window?parent.__demandChamarSdr:null;
+  if(!chamar){toast('Abra pelo portal para conversar com o time.');return}
+  if(!midia)CHAT[id].push({de:'me',t:texto.trim()});
+  pintarReal(`<div class="typing">${a.nome.toUpperCase()} ${midia?'OUVINDO O ÁUDIO':'ANALISANDO'}...</div>`);
+  try{const r=await chamar('/api/time/conversa',{agente:id,texto:midia?undefined:texto.trim(),midia});
+    if(midia)CHAT[id].push({de:'me',t:'🎙 '+r.pedido});CHAT[id].push({de:'ag',t:r.resposta});
+  }catch(e){CHAT[id].push({de:'ag',t:`Não consegui responder agora (${e.message||e}). Tenta de novo?`})}
+  if(atual===id)pintarReal();
+}
+async function gravarReal(){
+  const b=document.getElementById('mic');
+  if(GRAV){GRAV.stop();return}
+  try{const st=await navigator.mediaDevices.getUserMedia({audio:true});const rec=new MediaRecorder(st);const ped=[];
+    rec.ondataavailable=e=>e.data.size&&ped.push(e.data);
+    rec.onstop=async()=>{st.getTracks().forEach(t=>t.stop());GRAV=null;const mb=document.getElementById('mic');if(mb){mb.textContent='🎙';mb.classList.remove('pri')}
+      const blob=new Blob(ped,{type:rec.mimeType||'audio/webm'});if(blob.size<1500)return;
+      const b64=await new Promise(ok=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).split(',')[1]);fr.readAsDataURL(blob)});
+      falarReal('',{tipo:'audio',base64:b64,mimetype:blob.type})};
+    GRAV=rec;rec.start();if(b){b.textContent='■ Parar';b.classList.add('pri')}
+  }catch(e){toast('Não consegui usar o microfone. Libere o acesso no navegador.')}
 }
 async function carregar(){
   const sb=parent&&parent!==window?parent.__demandSupabase:null;
@@ -873,6 +912,24 @@ async function carregar(){
 
 addEventListener('resize',()=>{clearTimeout(window._r);window._r=setTimeout(montarFlow,150)});
 funil();montarFlow();pintarFila();pintarAgenda();pintarCanal();carregar();setInterval(carregar,60000);
+
+/* ================= DENTRO DO PORTAL: UMA BARRA DE ROLAGEM SÓ =================
+   O portal ajusta a altura do quadro ao conteúdo (só a barra da janela rola). Gaveta, janela e aviso
+   acompanham a parte da tela que está visível. */
+(function(){
+  if(parent===window)return;
+  document.documentElement.style.overflow='hidden';document.body.style.overflow='hidden';
+  let ultima=0;
+  const avisar=()=>{const h=Math.ceil(document.querySelector('.wrap')?.getBoundingClientRect().height||document.body.scrollHeight)+40;if(Math.abs(h-ultima)>2){ultima=h;parent.postMessage({tipo:'time-comercial:altura',h},location.origin)}};
+  new ResizeObserver(avisar).observe(document.body);addEventListener('load',avisar);setInterval(avisar,1500);avisar();
+  const posicionar=()=>{let topo=0,alt=innerHeight;try{const r=frameElement.getBoundingClientRect();topo=Math.max(0,-r.top);alt=Math.min(parent.innerHeight-Math.max(0,r.top),innerHeight-topo)}catch(e){}
+    const d=document.getElementById('drawer'),m=document.getElementById('modal'),t=document.getElementById('toast');
+    if(d){d.style.top=topo+'px';d.style.height=alt+'px'}
+    if(m){m.style.top=(topo+alt*.04)+'px';m.style.maxHeight=(alt*.92)+'px'}
+    if(t){t.style.bottom='auto';t.style.top=(topo+alt-64)+'px'}};
+  try{parent.addEventListener('scroll',posicionar,{passive:true});parent.addEventListener('resize',posicionar)}catch(e){}
+  new MutationObserver(posicionar).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});posicionar();
+})();
 </script>
 </body>
 </html>

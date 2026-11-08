@@ -10,6 +10,7 @@ import { lembrarPedidos } from "@/src/lib/canal.ts";
 import { runRetomadas } from "@/src/lib/retomadas.ts";
 import { runDemoAcompanhamento } from "@/src/lib/demo-jobs.ts";
 import { runLeo } from "@/src/lib/leo.ts";
+import { runRitaEDuda } from "@/src/lib/rita.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -31,8 +32,10 @@ async function handler(req: Request) {
   const demo = await runDemoAcompanhamento().catch((e) => ({ error: String(e) }));
   // Léo completa a ficha das empresas da lista (site de verdade, CNPJ, sócios e dono)
   const leo = await runLeo().catch((e) => ({ error: String(e) }));
+  // Rita (diagnósticos) e Duda (relatório e site) para quem o Kelvin aprovou
+  const rita = await runRitaEDuda().catch((e) => ({ error: String(e) }));
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo });
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita });
 }
 
 export const GET = handler;

@@ -224,7 +224,7 @@ async function custoDoMes(): Promise<{ gasto: number; teto: number; gastoLeo: nu
   const [{ data }, { data: cfg }, { data: leo }] = await Promise.all([
     db().rpc("outreach_orcamento"),
     db().from("outreach_config").select("leo_teto_usd").eq("id", 1).single(),
-    db().from("outreach_coletas").select("custo_usd").like("observacoes", "Léo:%").gte("executada_em", new Date(inicio.getTime() + 3 * 3600e3).toISOString()),
+    db().from("outreach_coletas").select("custo_usd").or("observacoes.like.Léo:%,observacoes.like.Rita:%").gte("executada_em", new Date(inicio.getTime() + 3 * 3600e3).toISOString()),
   ]);
   const o = (data ?? {}) as { gasto_usd?: number; teto_usd?: number };
   return {
