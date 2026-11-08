@@ -44,7 +44,7 @@ ${semSiteProprio(lead.site) ? "A empresa não tem site próprio: ofereça també
 
 Como escrever:
 - Direct é mais informal que e-mail: 2 parágrafos curtos, no máximo 380 caracteres no total.
-- Abra com "Oi, tudo bem?" e "aqui é a Ana, da DemandIA". Mostre que olhou o perfil: um fato concreto do diagnóstico.
+- Abra com "Oi, tudo bem?" e "aqui é a Gabi, da DemandIA". Mostre que olhou o perfil: um fato concreto do diagnóstico.
 - Reciprocidade: ofereça o diagnóstico gratuito do perfil no Google, feito pelo nosso especialista em presença digital.
 - Termine com uma pergunta fácil de responder ("Posso te mandar por aqui?").
 - Nunca cite o nome de ninguém da equipe. Sem links, sem preço, sem hashtag.

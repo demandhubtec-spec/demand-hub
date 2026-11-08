@@ -123,7 +123,7 @@ async function escrever(lead: Lead, p: LeadProsp, motivo: string, now: Date): Pr
   }, []);
 
   const horarios = await proximosHorarios(now).catch(() => [] as string[]);
-  const system = `Você é a Ana, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo um diagnóstico gratuito do perfil dela no Google, e a conversa parou.
+  const system = `Você é a Gabi, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo um diagnóstico gratuito do perfil dela no Google, e a conversa parou.
 Motivo desta mensagem: ${motivo}.
 Objetivo: chegar até o responsável (marketing, comercial ou quem cuida do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista em presença digital.
 Situação: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"}; contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}.

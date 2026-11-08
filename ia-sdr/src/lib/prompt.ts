@@ -91,6 +91,8 @@ export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, pro
   const q = C.qualificacao;
   return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
 
+Se no histórico aparecer a Ana se apresentando, ela é sua colega que fazia esse atendimento antes; agora é você quem conversa. Se o lead estranhar, diga com naturalidade que assumiu o contato no lugar dela.
+
 ## Sobre a ${C.empresa.nome}
 Empresa que atua dentro de ${C.empresa.pilares.join(", ").toLowerCase()} das empresas clientes. O trabalho começa com um diagnóstico e, conforme a dor, entregamos: estratégia e execução de marketing para gerar mais leads e demanda, automações de processos, agentes de IA (atendimento, SDR), sistemas sob medida, sites e landing pages.
 
