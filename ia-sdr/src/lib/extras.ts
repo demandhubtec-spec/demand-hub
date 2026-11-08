@@ -7,8 +7,12 @@
 import { randomBytes } from "node:crypto";
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { callLLM } from "./llm.ts";
+import { manuaisAtuais } from "./playbook.ts";
+
 import { REGRAS_DE_ESTILO, humanizar } from "./estilo.ts";
 import { type Diagnostico, type LeadPerfil, nomeCurto } from "./diagnostico-perfil.ts";
+
+const comManual = (t: string, quem: string) => (manuaisAtuais(quem) ? `${t}\n\n${manuaisAtuais(quem)}` : t);
 
 /** Sites que não são da empresa (diretórios, redes, link na bio): contam como "sem site próprio". */
 const NAO_E_SITE = /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook\.com|instagram\.com|linktr\.ee|wa\.me|whatsapp\.com|negocio\.site|business\.site|google\.com|goo\.gl|ifood|doctoralia|booksy|kiwify)/i;
@@ -51,7 +55,7 @@ Responda só com o texto da mensagem.`;
 }
 
 export async function gerarDirect(lead: LeadPerfil, d: Diagnostico): Promise<string> {
-  const r = await callLLM({ system: promptDirect(lead, d), messages: [{ role: "user", content: "Escreva o Direct." }], maxTokens: 1500 });
+  const r = await callLLM({ system: comManual(promptDirect(lead, d), "bia"), messages: [{ role: "user", content: "Escreva o Direct." }], maxTokens: 1500 });
   return humanizar(r.message.content ?? "").replace(/\n{3,}/g, "\n\n").trim();
 }
 
@@ -142,7 +146,7 @@ export function novoToken() {
 }
 
 export async function gerarSite(lead: LeadPerfil & { endereco?: string | null }, tokenAtual?: string | null): Promise<SitePreview> {
-  const r = await callLLM({ system: promptSite(lead), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 3000, json: true });
+  const r = await callLLM({ system: comManual(promptSite(lead), "duda"), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 3000, json: true });
   return montarSite(lead, r.message.content ?? "", tokenAtual || novoToken());
 }
 

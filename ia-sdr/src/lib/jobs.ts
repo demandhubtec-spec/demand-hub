@@ -3,7 +3,7 @@
  *  - follow-ups com leads parados (só em dia útil, 08–18h de Brasília)
  *  - confirmação e lembrete das reuniões
  */
-import { carregarPlaybook, playbookAtual } from "./playbook.ts";
+import { carregarPlaybook, manuaisAtuais, playbookAtual } from "./playbook.ts";
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { toChat } from "./chat.ts";
 import { callLLM } from "./llm.ts";
@@ -89,7 +89,7 @@ export async function runFollowUps(now = new Date()) {
       }, []);
 
       const pedir = async (extra = "") =>
-        humanizar((await callLLM({ system: followUpPrompt(fresh, attempt, MAX, now) + (playbookAtual() ? `\n\n## Playbook comercial (siga sempre)\n${playbookAtual()}` : "") + extra, messages: merged, maxTokens: 1500 })).message.content ?? "");
+        humanizar((await callLLM({ system: followUpPrompt(fresh, attempt, MAX, now) + (playbookAtual() ? `\n\n## Playbook comercial (siga sempre)\n${playbookAtual()}` : "") + (manuaisAtuais("marina") ? `\n\n${manuaisAtuais("marina")}` : "") + extra, messages: merged, maxTokens: 1500 })).message.content ?? "");
       // Nunca manda de novo uma frase que a Ana já mandou nessa conversa
       const jaMandou = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
       const repetida = (t: string) => t.split(/\n+/).some((l) => jaMandou.has(l.trim().toLowerCase()));

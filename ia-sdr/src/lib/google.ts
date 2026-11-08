@@ -16,13 +16,15 @@ export function redirectUri() {
   return `${env.appUrl}/api/google/callback`;
 }
 
-/** Qual conta Google: "google" = Agenda da IA SDR · "gmail" = envio de e-mails da prospecção */
-export type GoogleKind = "google" | "gmail";
+/** Qual conta Google: "google" = Agenda da IA SDR · "gmail" = envio de e-mails da prospecção · "planilhas" = planilhas do time no Drive */
+export type GoogleKind = "google" | "gmail" | "planilhas";
 
 const SCOPES_BY_KIND: Record<GoogleKind, string[]> = {
   google: SCOPES,
   // send: enviar os e-mails da cadência · readonly: ver quem respondeu (e quem voltou por endereço inválido)
   gmail: ["https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/gmail.readonly"],
+  // drive.file: só mexe nos arquivos que o próprio portal criou (a planilha da lista do Léo)
+  planilhas: ["https://www.googleapis.com/auth/drive.file"],
 };
 
 function sign(payload: string) {
@@ -40,7 +42,7 @@ export function validOauthState(state: string | null): GoogleKind | null {
   if (!state) return null;
   const parts = state.split(".");
   const [kind, ts, sig] = parts.length === 3 ? parts : ["google", parts[0], parts[1]];
-  if (kind !== "google" && kind !== "gmail") return null;
+  if (kind !== "google" && kind !== "gmail" && kind !== "planilhas") return null;
   if (!ts || !sig || Date.now() - Number(ts) > 15 * 60_000) return null;
   const expected = sign(kind === "google" ? ts : `${kind}:${ts}`);
   if (expected.length !== sig.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;

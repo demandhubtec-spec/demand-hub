@@ -27,7 +27,7 @@ export function extrairContatos(html: string, site: string): { emails: string[];
   return { emails, instagram: ig ? `https://www.instagram.com/${ig}/` : null };
 }
 
-async function baixar(url: string): Promise<string> {
+export async function baixar(url: string): Promise<string> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {

@@ -15,7 +15,9 @@ export async function GET(req: Request) {
     const msg =
       kind === "gmail"
         ? `✅ Gmail ${email ?? ""} conectado. Os e-mails da prospecção vão sair por ele. Pode fechar esta aba.`
-        : "✅ Google Agenda conectado à IA SDR. Pode fechar esta aba.";
+        : kind === "planilhas"
+          ? "✅ Google Planilhas conectado. Volte ao portal e clique de novo em Abrir no Google Sheets. Pode fechar esta aba."
+          : "✅ Google Agenda conectado à IA SDR. Pode fechar esta aba.";
     return new Response(msg, { headers: { "Content-Type": "text/plain; charset=utf-8" } });
   } catch (e) {
     return new Response(`Erro ao conectar: ${(e as Error).message}`, { status: 500 });

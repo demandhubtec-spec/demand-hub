@@ -10,7 +10,7 @@ export interface SecaoPlaybook {
   texto: string;
 }
 
-let cache: { em: number; texto: string } | null = null;
+let cache: { em: number; texto: string; manuais: Record<string, string> } | null = null;
 const TTL = 60_000;
 
 /** Seções em texto corrido para entrar no prompt (sem markdown pesado). */
@@ -33,12 +33,19 @@ export function playbookEmTexto(secoes: SecaoPlaybook[]): string {
 export async function carregarPlaybook(agora = Date.now()): Promise<string> {
   if (cache && agora - cache.em < TTL) return cache.texto;
   try {
-    const { data } = await db().from("comercial_playbook").select("secoes").eq("id", "principal").maybeSingle();
+    const [{ data }, { data: ms }] = await Promise.all([
+      db().from("comercial_playbook").select("secoes").eq("id", "principal").maybeSingle(),
+      db().from("agentes_manuais").select("id,nome,cargo,secoes"),
+    ]);
     const secoes = ((data as { secoes?: SecaoPlaybook[] } | null)?.secoes ?? []).filter((s) => s && typeof s.titulo === "string");
-    cache = { em: agora, texto: playbookEmTexto(secoes) };
+    const manuais: Record<string, string> = {};
+    for (const m of (ms ?? []) as { id: string; nome: string; cargo: string; secoes: SecaoPlaybook[] }[]) {
+      manuais[m.id] = `## Manual de trabalho: ${m.nome} (${m.cargo})\n${playbookEmTexto((m.secoes ?? []).filter((s) => s && typeof s.titulo === "string"))}`;
+    }
+    cache = { em: agora, texto: playbookEmTexto(secoes), manuais };
   } catch (e) {
     console.error("playbook não carregou", e);
-    cache = { em: agora, texto: cache?.texto ?? "" };
+    cache = { em: agora, texto: cache?.texto ?? "", manuais: cache?.manuais ?? {} };
   }
   return cache.texto;
 }
@@ -46,6 +53,16 @@ export async function carregarPlaybook(agora = Date.now()): Promise<string> {
 /** Último playbook carregado (para o montador do prompt, que é síncrono). */
 export function playbookAtual(): string {
   return cache?.texto ?? "";
+}
+
+/**
+ * Manuais de trabalho dos agentes (editáveis no portal), em texto para o prompt.
+ * Quem fala com o lead hoje segue os manuais da Gabi (abordagem) e da Marina (qualifica e agenda);
+ * a sequência é da Bia e a revisão do Rui; o site de demonstração é da Duda; o canal com o Kelvin é da Ana.
+ */
+export function manuaisAtuais(...ids: string[]): string {
+  const m = cache?.manuais ?? {};
+  return ids.map((id) => m[id]).filter(Boolean).join("\n\n");
 }
 
 /** Só para testes. */

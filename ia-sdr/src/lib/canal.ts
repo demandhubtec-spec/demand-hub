@@ -7,7 +7,7 @@
 import { humanizar } from "./estilo.ts";
 import { callLLM, parseArgs, type ChatMessage, type Tool } from "./llm.ts";
 import { addMessage, db, getLead, history, logEvent, updateLead, type Lead } from "./db.ts";
-import { carregarPlaybook, playbookAtual } from "./playbook.ts";
+import { carregarPlaybook, manuaisAtuais, playbookAtual } from "./playbook.ts";
 import { env } from "./env.ts";
 import { destination, sendBubbles, sendText } from "./evolution.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
@@ -332,7 +332,7 @@ Como agir:
 Lead em foco agora: ${foco}
 Rascunhos esperando o ok do Kelvin:
 ${rasc.length ? rasc.join("\n") : "nenhum"}
-${playbookAtual() ? `\nPlaybook comercial (o Kelvin edita no portal; siga sempre):\n${playbookAtual()}\n` : ""}${regras.length ? `\nRegras que você já segue:\n${regras.map((r) => `- ${r}`).join("\n")}\n` : ""}
+${playbookAtual() ? `\nPlaybook comercial (o Kelvin edita no portal; siga sempre):\n${playbookAtual()}\n` : ""}${manuaisAtuais("ana") ? `\n${manuaisAtuais("ana")}\n` : ""}${regras.length ? `\nRegras que você já segue:\n${regras.map((r) => `- ${r}`).join("\n")}\n` : ""}
 Últimas mensagens deste canal:
 ${historico}`;
 
