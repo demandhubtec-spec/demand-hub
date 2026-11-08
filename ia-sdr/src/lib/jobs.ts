@@ -6,7 +6,7 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { toChat } from "./chat.ts";
 import { callLLM } from "./llm.ts";
-import { addMessage, db, getLead, history, logEvent, tryLock, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
+import { addMessage, db, getLead, history, logEvent, tryLock, ultimoEvento, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
 import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
 import { isBusinessTime, nextFollowUpAt } from "./followup.ts";
@@ -17,8 +17,25 @@ import { prospeccaoDoTelefone } from "./prospeccao.ts";
 
 const MAX = SDR_CONFIG.followUp.maxTentativas;
 
+/**
+ * O follow-up é o retorno que a Ana combinou com o lead (ferramenta combinar_retorno)?
+ * Esse sai no dia e hora combinados, mesmo em fim de semana (entre 8h e 20h de Brasília).
+ */
+export async function ehRetornoCombinado(lead: Pick<Lead, "id" | "next_followup_at">): Promise<boolean> {
+  if (!lead.next_followup_at) return false;
+  const ev = await ultimoEvento<{ quando?: string }>(lead.id, "tool:combinar_retorno").catch(() => null);
+  if (!ev?.quando) return false;
+  return Math.abs(new Date(ev.quando).getTime() - new Date(lead.next_followup_at).getTime()) < 10 * 60_000;
+}
+
+export function janelaRetornoCombinado(now: Date): boolean {
+  const h = toLocal(now).h;
+  return h >= 8 && h < 20;
+}
+
 export async function runFollowUps(now = new Date()) {
-  if (!isBusinessTime(now)) return { skipped: "fora do horário comercial" };
+  const comercial = isBusinessTime(now);
+  if (!comercial && !janelaRetornoCombinado(now)) return { skipped: "fora do horário comercial" };
 
   const { data } = await db()
     .from("sdr_leads")
@@ -28,7 +45,7 @@ export async function runFollowUps(now = new Date()) {
     .in("status", ["novo", "em_qualificacao", "qualificado"])
     .lt("followup_attempts", MAX)
     .order("next_followup_at")
-    .limit(25);
+    .limit(comercial ? 25 : 100);
 
   let sent = 0;
   for (const lead of (data ?? []) as Lead[]) {
@@ -37,6 +54,9 @@ export async function runFollowUps(now = new Date()) {
       const fresh = await getLead(lead.id);
       // Lead respondeu depois do agendamento? O próprio fluxo de conversa reagenda.
       if (!fresh.next_followup_at || new Date(fresh.next_followup_at) > now) continue;
+      // Fora do horário comercial só sai o retorno combinado com o lead
+      const combinado = await ehRetornoCombinado(fresh);
+      if (!comercial && !combinado) continue;
       if (isBlocked(fresh.phone, fresh.whatsapp_jid)) {
         await updateLead(lead.id, { next_followup_at: null, ai_paused: true });
         continue;
@@ -71,8 +91,11 @@ export async function runFollowUps(now = new Date()) {
       // Nunca manda de novo uma frase que a Ana já mandou nessa conversa
       const jaMandou = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
       const repetida = (t: string) => t.split(/\n+/).some((l) => jaMandou.has(l.trim().toLowerCase()));
-      let text = await pedir();
-      if (text && repetida(text)) text = await pedir("\n\nATENÇÃO: sua última versão repetia uma mensagem que você já mandou. Escreva algo diferente, com outro ângulo.");
+      const extraCombinado = combinado
+        ? "\n\nIMPORTANTE: este é o retorno que você combinou com ele (dia e horário que ele pediu). Abra lembrando com leveza que ficou de falar hoje e retome o assunto de onde parou, com uma pergunta simples. Não diga que ele não respondeu."
+        : "";
+      let text = await pedir(extraCombinado);
+      if (text && repetida(text)) text = await pedir(extraCombinado + "\n\nATENÇÃO: sua última versão repetia uma mensagem que você já mandou. Escreva algo diferente, com outro ângulo.");
       if (!text || repetida(text)) continue;
 
       const id = await sendText(destination(fresh), text);
