@@ -201,6 +201,35 @@ export function useReagendar() {
   });
 }
 
+/**
+ * Troca a foto de uma lâmina (ou cena do reels) pela que o Kelvin fez no ChatGPT dele.
+ * A foto fica gravada na copy (foto_url) e a Duda refaz a arte só com essa troca, sem mexer no texto.
+ */
+export function useTrocarFoto() {
+  const invalidar = useInvalidar();
+  return useMutation({
+    mutationFn: async ({ pauta, copy, indice, arquivo }: { pauta: Pauta; copy: Peca; indice: number; arquivo: File }) => {
+      const ext = (arquivo.name.split(".").pop() || "jpg").toLowerCase();
+      const caminho = `pautas/${pauta.id}/manual-${indice + 1}-${Date.now()}.${ext}`;
+      const up = await supabase.storage.from("estudio").upload(caminho, arquivo, { contentType: arquivo.type || "image/jpeg", upsert: true });
+      if (up.error) throw up.error;
+      const url = supabase.storage.from("estudio").getPublicUrl(caminho).data.publicUrl;
+      const conteudo = structuredClone(copy.conteudo) as { slides?: Record<string, unknown>[]; cenas?: Record<string, unknown>[] };
+      const itens = conteudo.slides ?? conteudo.cenas;
+      if (!itens?.[indice]) throw new Error("lâmina não encontrada na copy");
+      itens[indice].foto_url = url;
+      const r1 = await supabase.from("estudio_pecas").update({ conteudo }).eq("id", copy.id);
+      if (r1.error) throw r1.error;
+      const r2 = await supabase
+        .from("estudio_pautas")
+        .update({ status: "copy_aprovada", comentario: `[fotos] Kelvin trocou a foto ${pauta.formato === "reels" ? "da cena" : "da lâmina"} ${indice + 1} pela que fez no ChatGPT`, erro: null, tentativas: 0 })
+        .eq("id", pauta.id);
+      if (r2.error) throw r2.error;
+    },
+    onSuccess: invalidar,
+  });
+}
+
 /** Reels: sobe o vídeo (e a capa, se tiver) e manda para aprovação da arte. */
 export function useEnviarVideo() {
   const invalidar = useInvalidar();

@@ -34,11 +34,17 @@ test("horário de Brasília vira o instante certo", () => {
 });
 
 test("a semana segue o mix de formatos e não repete formato em dias seguidos", () => {
-  const s = sequenciaDaSemana({ carrossel: 3, estatico: 2, reels: 2 });
+  const s = sequenciaDaSemana({ carrossel: 4, reels: 3 });
   assert.equal(s.length, 7);
-  assert.equal(s.filter((f) => f === "carrossel").length, 3);
-  assert.equal(s.filter((f) => f === "reels").length, 2);
+  assert.equal(s.filter((f) => f === "carrossel").length, 4);
+  assert.equal(s.filter((f) => f === "reels").length, 3);
   for (let i = 1; i < s.length; i++) assert.notEqual(s[i], s[i - 1]);
+});
+
+test("estático não entra mais no calendário: vira carrossel", () => {
+  const s = sequenciaDaSemana({ carrossel: 3, estatico: 2, reels: 2 });
+  assert.equal(s.filter((f) => f === "estatico").length, 0);
+  assert.equal(s.filter((f) => f === "carrossel").length, 5);
 });
 
 test("o calendário só cria vaga nos dias livres, a partir de amanhã", () => {
@@ -140,4 +146,30 @@ test("reels: comando do vídeo encadeia as cenas com transição e áudio mudo",
   assert.ok(filtro.includes("offset=2.60") && filtro.includes("offset=6.20"));
   assert.ok(a.includes("anullsrc=channel_layout=stereo:sample_rate=44100"));
   assert.equal(a[a.length - 1], "out.mp4");
+});
+
+test("fotos: copy nova usa a cena escrita pela Bia; copy antiga ganha cena tirada do texto", async () => {
+  const { cenasDasFotos } = await import("../src/lib/estudio/fotos.ts");
+  const nova = cenasDasFotos({ slides: [{ titulo: "Capa", foto: "recepcionista olhando o celular" }, { titulo: "Dois" }, { titulo: "Fim" }], legenda: "" }, "carrossel");
+  assert.equal(nova[0], "recepcionista olhando o celular");
+  assert.ok(nova[1]?.includes("Dois"));
+  const reels = cenasDasFotos({ cenas: [{ tempo: "0-3s", texto_tela: "Seu *WhatsApp* demora" }, { tempo: "3-6s", texto_tela: "B" }], legenda: "", capa_titulo: "", prompt_video: "" }, "reels");
+  assert.ok(reels[0]?.includes("Seu WhatsApp demora"));
+});
+
+test("foto: o prompt pede foto real, sem texto e no formato certo", async () => {
+  const { promptDaFoto } = await import("../src/lib/estudio/fotos.ts");
+  const p = promptDaFoto("dona de clínica sorrindo com o celular", "vertical");
+  assert.match(p, /dona de clínica sorrindo/);
+  assert.match(p, /Sem nenhum texto/);
+  assert.match(p, /9:16/);
+});
+
+test("fotos do Kelvin (feitas no ChatGPT dele) têm prioridade; com referência o prompt pede para seguir o estilo", async () => {
+  const { fotosManuais, promptDaFoto } = await import("../src/lib/estudio/fotos.ts");
+  const m = fotosManuais({ slides: [{ titulo: "A" }, { titulo: "B", foto_url: "https://x/foto.jpg" }], legenda: "" });
+  assert.equal(m.get(1), "https://x/foto.jpg");
+  assert.equal(m.size, 1);
+  assert.match(promptDaFoto("dono no balcão", "retrato", true), /referências de posts que funcionaram/);
+  assert.doesNotMatch(promptDaFoto("dono no balcão", "retrato"), /referências/);
 });

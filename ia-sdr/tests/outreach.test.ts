@@ -238,7 +238,7 @@ test("e-mail: vai em texto e HTML, com assinatura com foto e sem citar nome da e
   assert.match(mime, /text\/plain/);
   assert.match(mime, /text\/html/);
   const html = emailHtml(corpo);
-  assert.match(html, /<img src="https:\/\/portal\.demandhub\.com\.br\/brand\/ana-email\.jpg"/);
+  assert.match(html, /<img src="https:\/\/portal\.demandhub\.com\.br\/brand\/gabi-email\.jpg"/);
   assert.match(html, /Consultora estratégica de negócios/);
   assert.match(html, /wa\.me\/5519988259883/);
   assert.match(html, /font-size:11px[^>]*>Se não quiser mais receber/);
