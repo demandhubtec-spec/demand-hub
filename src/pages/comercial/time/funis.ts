@@ -1,6 +1,6 @@
 /**
  * Os dois funis do Time Comercial IA, com as etapas definidas pelo Kelvin (08/11/2026).
- *  - Outbound (prospecção ativa): mensagem ou ligação feita → conversa iniciada → qualificação →
+ *  - Outbound (prospecção ativa): disparar (lista aprovada) → mensagem ou ligação feita → conversa iniciada → qualificação →
  *    reunião agendada → reunião realizada → negociação → fechamento.
  *  - Inbound [anúncios]: mensagem recebida ou cadastro → em atendimento → qualificação →
  *    reunião agendada → reunião realizada → negociação → fechamento.
@@ -17,6 +17,7 @@ export interface Coluna<K extends string> {
 }
 
 export const COLUNAS_OUTBOUND = [
+  { key: "disparar", label: "Disparar · mensagem ou ligação", dica: "Lista aprovada, pronta para o primeiro contato" },
   { key: "enviado", label: "Mensagem ou ligação feita", dica: "Já abordado, ainda sem conversa" },
   { key: "conversa", label: "Conversa iniciada", dica: "Respondeu ou atendeu a ligação" },
   { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
@@ -48,7 +49,9 @@ export function etapaOutbound(l: OutreachLead): EtapaOutbound | null {
   if (sc === "respondeu" || l.wa_status === "respondeu" || l.email_status === "respondeu" || l.cadencia === "respondeu") return "conversa";
   const abordado =
     (l.toque_atual ?? 0) > 0 || l.wa_status === "enviado" || l.email_status === "enviado" || ["ativa", "pausada", "concluida"].includes(l.cadencia);
-  return abordado ? "enviado" : null;
+  if (abordado) return "enviado";
+  // Lista aprovada e ainda sem primeiro contato: pronta para disparar
+  return l.wa_status === "pendente" && (l.leo_status === "aprovado" || l.msg_status === "aprovada") ? "disparar" : null;
 }
 
 /** O que gravar quando o card da prospecção vai para outra coluna (null: não dá para mover para lá). */
@@ -56,8 +59,9 @@ export function patchOutbound(l: OutreachLead, para: EtapaOutbound): Partial<Out
   const parar = { proximo_toque_em: null, proximo_canal: null };
   const saiDaCadencia = l.cadencia === "ativa" || l.cadencia === "pausada" ? "respondeu" : l.cadencia;
   switch (para) {
+    case "disparar":
     case "enviado":
-      return null; // voltar para "abordado" não faz sentido: a cadência é que decide
+      return null; // essas duas a cadência é que decide (lista aprovada e envio feito)
     case "conversa":
       return {
         status_comercial: "respondeu",

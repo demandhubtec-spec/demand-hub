@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { ORIGEM_TEXTO, useContatos, useEtapaInbound } from "@/hooks/useCrm";
 import { type OutreachLead, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
+import { useArrastarParaRolar } from "@/hooks/useArrastarParaRolar";
 import { FichaLead } from "../prospeccao/FichaLead";
 import { fmtData } from "../prospeccao/shared";
 import {
@@ -47,6 +48,7 @@ function Quadro<K extends string>({
 }) {
   const [mostrarPerdidos, setMostrarPerdidos] = React.useState(false);
   const [sobre, setSobre] = React.useState<K | null>(null);
+  const quadro = useArrastarParaRolar<HTMLDivElement>();
   const visiveis = colunas.filter((c) => !c.fim || mostrarPerdidos);
   const porColuna = (k: K) => itens.filter((i) => etapa(i.id) === k);
   const perdidos = colunas.filter((c) => c.fim).reduce((n, c) => n + porColuna(c.key).length, 0);
@@ -54,13 +56,13 @@ function Quadro<K extends string>({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-3 text-[12.5px] text-muted">
-        <span>Arraste o card para mudar de etapa. Clique para abrir.</span>
+        <span>Arraste o card para mudar de etapa. Segure em qualquer espaço vazio do quadro para mover a visão.</span>
         <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5">
           <input type="checkbox" checked={mostrarPerdidos} onChange={(e) => setMostrarPerdidos(e.target.checked)} />
           Mostrar perdidos ({perdidos})
         </label>
       </div>
-      <div className="flex gap-3 overflow-x-auto pb-3">
+      <div ref={quadro} className="flex cursor-grab select-none gap-3 overflow-x-auto pb-3 [scrollbar-width:thin]">
         {visiveis.map((col) => {
           const lista = porColuna(col.key);
           return (

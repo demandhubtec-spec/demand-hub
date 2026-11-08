@@ -92,11 +92,11 @@ export function ListaDoLeo() {
     await supabase.from("outreach_log").insert({
       channel: "portal",
       event: "config",
-      detail: { msg: `Lista do Léo: ${ids.length} ${status === "aprovado" ? "aprovada(s), seguem para a Rita e a Bia" : status === "descartado" ? "descartada(s)" : "de volta para análise"}` },
+      detail: { msg: `Lista do Léo: ${ids.length} ${status === "aprovado" ? "aprovada(s), seguem para o diagnóstico da Rita" : status === "descartado" ? "descartada(s)" : "de volta para análise"}` },
     });
     setMarcados(new Set());
     qc.invalidateQueries({ queryKey: ["outreach"] });
-    showToast(status === "aprovado" ? `${ids.length} aprovada(s). A Bia começa a escrever as mensagens.` : status === "descartado" ? `${ids.length} descartada(s)` : "De volta para análise");
+    showToast(status === "aprovado" ? `${ids.length} aprovada(s). A Rita começa o diagnóstico.` : status === "descartado" ? `${ids.length} descartada(s)` : "De volta para análise");
   }
 
   async function abrirSheets() {
@@ -126,8 +126,8 @@ export function ListaDoLeo() {
   return (
     <div>
       <div className="mb-3 text-[13px] text-muted">
-        O Léo confere site (Google, WhatsApp e Instagram), CNPJ, sócios e o dono de cada empresa. Analise e aprove: só o que você aprovar segue para a
-        Rita e a Bia.
+        O Léo confere site (Google, WhatsApp e Instagram), CNPJ, sócios e o dono de cada empresa. Analise e aprove: só o que você aprovar segue para o
+        diagnóstico da Rita.
       </div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Segmented
