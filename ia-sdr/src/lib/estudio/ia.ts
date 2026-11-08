@@ -112,7 +112,8 @@ Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","pa
 
 export interface CopyCarrossel {
   /** foto: o que a imagem da lâmina mostra (vira foto gerada pelo ChatGPT); vazio = lâmina só de texto. */
-  slides: { titulo: string; texto?: string; foto?: string }[];
+  /** foto_url: foto que o Kelvin fez no ChatGPT dele e subiu no portal (tem prioridade). */
+  slides: { titulo: string; texto?: string; foto?: string; foto_url?: string }[];
   legenda: string;
   hashtags?: string[];
 }
@@ -123,7 +124,7 @@ export interface CopyEstatico {
   hashtags?: string[];
 }
 export interface CopyReels {
-  cenas: { tempo: string; texto_tela: string; fala?: string; imagem?: string; foto?: string }[];
+  cenas: { tempo: string; texto_tela: string; fala?: string; imagem?: string; foto?: string; foto_url?: string }[];
   legenda: string;
   capa_titulo: string;
   prompt_video: string;
@@ -134,7 +135,7 @@ export type Copy = CopyCarrossel | CopyEstatico | CopyReels;
 /** Padrão visual pedido pelo Kelvin (08/11/2026): carrossel no estilo da V4 Company, com foto real reforçando a copy. */
 const VISUAL_V4 = `## Visual (padrão V4 Company, pedido do Kelvin)
 - Cada carrossel tem foto real reforçando o que a copy diz: pessoas brasileiras de verdade (dono de clínica, recepcionista, paciente, equipe), cenas do dia a dia do negócio, celular com WhatsApp na mão. Nada de ilustração ou robô.
-- No campo "foto" descreva a cena em uma frase concreta (quem, fazendo o quê, onde, expressão). Ex.: "recepcionista de clínica de estética olhando o celular cheio de mensagens, balcão claro, expressão preocupada".
+- O campo "foto" é a instrução da imagem que vai para o ChatGPT gerar: escreva como um diretor de arte, em 2 ou 3 frases, com quem aparece (idade, roupa, expressão), o que está fazendo, onde, enquadramento (close, meio corpo, de cima), luz e clima, e qual referência da pauta inspira o estilo (ex.: "no estilo da referência @v4company: close de rosto com luz lateral"). Ex.: "Recepcionista de clínica de estética, uns 30 anos, uniforme claro, olhando o celular cheio de mensagens com expressão preocupada. Meio corpo, balcão claro desfocado atrás, luz de janela lateral. Estilo da referência @v4company: foto de bastidor, cores naturais."
 - Títulos curtos e fortes. Marque entre *asteriscos* a palavra ou expressão que vai em destaque de cor (uma por título). Ex.: "Sua recepção está *perdendo paciente*".
 - Nada de texto repetido entre lâminas. A última lâmina não repete a legenda: é só a chamada.`;
 

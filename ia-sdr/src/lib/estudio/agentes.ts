@@ -301,8 +301,9 @@ export async function rodarDiretor(limite = 1, c?: Config) {
       let copy = await ultimaPeca(p.id, "copy");
       if (!copy) throw new Error("sem copy");
       const formato: Formato = p.formato === "estatico" ? "carrossel" : p.formato;
-      // Ajuste pedido na arte: a copy muda junto (texto da capa, lâminas repetidas, estrutura)
-      if (p.comentario) {
+      // Ajuste pedido na arte: a copy muda junto (texto da capa, lâminas repetidas, estrutura).
+      // "[fotos]" é só troca de foto pelo portal: a copy fica como está.
+      if (p.comentario && !p.comentario.startsWith("[fotos]")) {
         const pedidos = await pedidosDeArte(p);
         const nova = await redigir({
           formato,
@@ -314,17 +315,31 @@ export async function rodarDiretor(limite = 1, c?: Config) {
           ajuste: { comentario: `Pedidos do Kelvin na arte (aplique TODOS os que forem de texto, estrutura ou foto):\n${pedidos}`, anterior: copy.conteudo },
           contexto: contexto(cfg),
         });
+        // As fotos que o Kelvin subiu continuam valendo na versão nova
+        const { fotosManuais } = await import("./fotos.ts");
+        const itens = ((nova as CopyCarrossel).slides ?? (nova as CopyReels).cenas ?? []) as { foto_url?: string }[];
+        for (const [i, url] of fotosManuais(copy.conteudo)) if (itens[i]) itens[i].foto_url = url;
         await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "copy", versao: copy.versao + 1, conteudo: nova, comentario: p.comentario });
         await registrar("bia", "duda", `Apliquei no texto o que o Kelvin pediu na arte de ${dm(p.dia)}. Duda, segue com as fotos e a arte.`);
         copy = { ...copy, versao: copy.versao + 1, conteudo: nova };
       }
       const { imagensCarrossel, imagemEstatico, subirImagens, usarMarca } = await import("./arte.tsx");
-      const { gerarFotos, cenasDasFotos } = await import("./fotos.ts");
+      const { gerarFotos, cenasDasFotos, fotosManuais, baixarReferencias, promptDaFoto } = await import("./fotos.ts");
       await usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
       const legado = p.formato === "estatico" && !(copy.conteudo as CopyCarrossel).slides;
-      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenasDasFotos(copy.conteudo, formato), formato === "reels" ? "vertical" : "retrato");
+      // Referências da pauta (posts que funcionaram): a foto segue o estilo delas
+      const { data: refsDb } = p.referencias?.length ? await db().from("estudio_referencias").select("conta,ig_media_id,link").in("id", p.referencias) : { data: [] };
+      const refs = (refsDb ?? []) as { conta: string | null; ig_media_id: string | null; link: string | null }[];
+      const { imagensDasReferencias } = await import("./graph.ts");
+      const referencias = legado ? [] : await baixarReferencias(await imagensDasReferencias(refs).catch(() => []));
+      const cenas = cenasDasFotos(copy.conteudo, formato);
+      const tipoFoto = formato === "reels" ? "vertical" : "retrato";
+      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 5, { referencias, manuais: fotosManuais(copy.conteudo) });
+      // O prompt de cada foto fica salvo para o Kelvin copiar e gerar no ChatGPT dele, se quiser trocar
+      const linksRefs = refs.map((r) => r.link).filter(Boolean) as string[];
+      const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: promptDaFoto(c, tipoFoto, linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
       if (erroFoto) await registrar("duda", "vera", `Não consegui gerar ${fotos.size ? "todas as fotos" : "as fotos"} no ChatGPT para ${dm(p.dia)}: ${erroFoto.slice(0, 200)}`);
       let links: string[];
       if (formato === "reels") {
@@ -335,7 +350,7 @@ export async function rodarDiretor(limite = 1, c?: Config) {
         const imagens = legado ? await imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho) : await imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho, fotos);
         links = await subirImagens(p.id, versao, imagens);
       }
-      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: formato === "reels" ? "video_ia" : formato, fotos: fotos.size }, arquivos: links, comentario: p.comentario });
+      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: formato === "reels" ? "video_ia" : formato, fotos: fotos.size, prompts }, arquivos: links, comentario: p.comentario });
       await db().from("estudio_pautas").update({ status: "revisar_arte", comentario: null, erro: null, tentativas: 0 }).eq("id", p.id);
       await registrar(
         "duda",

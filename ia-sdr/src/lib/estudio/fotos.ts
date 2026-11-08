@@ -3,12 +3,22 @@
  * A copy traz a cena de cada lâmina/cena ("foto"); aqui ela vira uma foto realista, sem texto, no clima da marca.
  * Se a geração falhar (limite, conta sem acesso ao modelo), a peça sai sem foto e o erro aparece no chat do time.
  *
+ * Fotos que o Kelvin faz no ChatGPT dele e sobe no portal (foto_url na copy) têm prioridade e nunca são trocadas.
+ *
  * Ajustes opcionais na Vercel: OPENAI_IMAGE_MODEL (padrão gpt-image-1) e OPENAI_IMAGE_QUALITY (low, medium, high; padrão medium).
  */
 import { env } from "../env.ts";
 import type { Copy, CopyCarrossel, CopyReels } from "./ia.ts";
 
 export type Formato = "retrato" | "vertical";
+
+/** Fotos que o Kelvin fez no ChatGPT dele e subiu no portal (índice da lâmina/cena → link). Têm prioridade sobre a geração. */
+export function fotosManuais(copy: Copy): Map<number, string> {
+  const itens = ((copy as CopyCarrossel).slides ?? (copy as CopyReels).cenas ?? []) as { foto_url?: string }[];
+  const m = new Map<number, string>();
+  itens.forEach((x, i) => x?.foto_url && m.set(i, x.foto_url));
+  return m;
+}
 
 /** Cenas das fotos de cada lâmina/cena. Copy antiga (sem "foto") ganha cenas tiradas do próprio texto. */
 export function cenasDasFotos(copy: Copy, formato: "carrossel" | "reels" | "estatico"): (string | null)[] {
@@ -21,11 +31,12 @@ export function cenasDasFotos(copy: Copy, formato: "carrossel" | "reels" | "esta
   return slides.map((sl, i) => sl.foto?.trim() || (comFoto.has(i) ? `cena real que represente: "${`${sl.titulo} ${sl.texto ?? ""}`.replace(/\*/g, "").trim()}", numa clínica ou pequeno negócio brasileiro` : null));
 }
 
-
-
 /** Prompt final: a cena da copy + o padrão de foto da DemandIA. Puro, para os testes cobrirem. */
-export function promptDaFoto(cena: string, formato: Formato): string {
+export function promptDaFoto(cena: string, formato: Formato, comReferencia = false): string {
   return [
+    comReferencia
+      ? "As imagens enviadas são referências de posts que funcionaram: siga o estilo delas (enquadramento, luz, clima, tipo de cena), mas crie pessoas, lugar e composição novos. Não copie rostos, textos nem logos."
+      : "",
     `Fotografia realista, estilo editorial de revista de negócios brasileira: ${cena.trim().replace(/\s+/g, " ")}.`,
     "Pessoas brasileiras reais, naturais, com textura de pele e expressão verdadeira; roupas e ambiente do dia a dia de clínicas, academias e pequenos negócios do Brasil.",
     "Câmera full frame, lente 50 mm, profundidade de campo rasa, luz natural suave, cores reais com um toque de luz roxa e violeta no ambiente (cores da marca).",
@@ -33,25 +44,15 @@ export function promptDaFoto(cena: string, formato: Formato): string {
       ? "Enquadramento vertical 9:16 com espaço livre no terço de baixo para texto."
       : "Enquadramento vertical 2:3 com o assunto principal no centro e espaço livre na parte de baixo para texto.",
     "Sem nenhum texto, letra, número, logotipo ou marca d'água na imagem. Nada de ilustração, 3D, robô ou aparência de imagem de IA.",
-  ].join(" ");
+  ]
+    .filter(Boolean)
+    .join(" ");
 }
 
-/** Gera uma foto e devolve como data URL (JPEG), pronta para a arte. Lança erro com a mensagem da OpenAI. */
-export async function gerarFoto(cena: string, formato: Formato = "retrato"): Promise<string> {
-  const r = await fetch("https://api.openai.com/v1/images/generations", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${env.openaiKey}` },
-    body: JSON.stringify({
-      model: process.env.OPENAI_IMAGE_MODEL || "gpt-image-1",
-      prompt: promptDaFoto(cena, formato),
-      size: "1024x1536",
-      quality: process.env.OPENAI_IMAGE_QUALITY || "medium",
-      output_format: "jpeg",
-      output_compression: 85,
-      n: 1,
-    }),
-    signal: AbortSignal.timeout(150_000),
-  });
+const modelo = () => process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
+const qualidade = () => process.env.OPENAI_IMAGE_QUALITY || "medium";
+
+async function lerResposta(r: Response): Promise<string> {
   if (!r.ok) throw new Error(`OpenAI imagem ${r.status}: ${(await r.text()).slice(0, 200)}`);
   const j = (await r.json()) as { data?: { b64_json?: string }[] };
   const b64 = j.data?.[0]?.b64_json;
@@ -60,20 +61,87 @@ export async function gerarFoto(cena: string, formato: Formato = "retrato"): Pro
 }
 
 /**
+ * Gera uma foto (modelo de imagem do ChatGPT) e devolve como data URL (JPEG), pronta para a arte.
+ * Com referências, manda as imagens dos posts de referência junto para a foto seguir o estilo delas.
+ */
+export async function gerarFoto(cena: string, formato: Formato = "retrato", referencias: Blob[] = []): Promise<string> {
+  const h = { Authorization: `Bearer ${env.openaiKey}` };
+  if (referencias.length) {
+    try {
+      const f = new FormData();
+      f.append("model", modelo());
+      f.append("prompt", promptDaFoto(cena, formato, true));
+      f.append("size", "1024x1536");
+      f.append("quality", qualidade());
+      f.append("output_format", "jpeg");
+      f.append("n", "1");
+      referencias.forEach((b, i) => f.append("image[]", b, `referencia-${i + 1}.jpg`));
+      return await lerResposta(await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: h, body: f, signal: AbortSignal.timeout(170_000) }));
+    } catch (e) {
+      console.error("Estúdio: foto com referência falhou, gerando sem referência", e);
+    }
+  }
+  const r = await fetch("https://api.openai.com/v1/images/generations", {
+    method: "POST",
+    headers: { ...h, "Content-Type": "application/json" },
+    body: JSON.stringify({ model: modelo(), prompt: promptDaFoto(cena, formato), size: "1024x1536", quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
+    signal: AbortSignal.timeout(150_000),
+  });
+  return lerResposta(r);
+}
+
+/** Baixa as imagens de referência (no máximo 2, até 8 MB cada). */
+export async function baixarReferencias(urls: string[]): Promise<Blob[]> {
+  const out: Blob[] = [];
+  for (const u of urls.slice(0, 2)) {
+    try {
+      const r = await fetch(u, { signal: AbortSignal.timeout(20_000) });
+      if (!r.ok) continue;
+      const b = await r.blob();
+      if (b.size > 0 && b.size < 8_000_000) out.push(new Blob([await b.arrayBuffer()], { type: b.type || "image/jpeg" }));
+    } catch {
+      /* referência fora do ar: segue sem ela */
+    }
+  }
+  return out;
+}
+
+/** Foto que o Kelvin subiu (link público) em data URL, para a arte. */
+async function baixarComoDataUrl(url: string): Promise<string | null> {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+    if (!r.ok) return null;
+    return `data:${r.headers.get("content-type") || "image/jpeg"};base64,${Buffer.from(await r.arrayBuffer()).toString("base64")}`;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Gera as fotos de várias cenas ao mesmo tempo (até `limite`). Devolve um mapa índice → foto
  * e a primeira mensagem de erro, se alguma falhou.
  */
-export async function gerarFotos(cenas: (string | undefined | null)[], formato: Formato, limite = 5): Promise<{ fotos: Map<number, string>; erro: string | null }> {
+export async function gerarFotos(
+  cenas: (string | undefined | null)[],
+  formato: Formato,
+  limite = 5,
+  opts: { referencias?: Blob[]; manuais?: Map<number, string> } = {},
+): Promise<{ fotos: Map<number, string>; erro: string | null }> {
+  const fotos = new Map<number, string>();
+  // Primeiro as fotos que o Kelvin fez no ChatGPT dele: essas nunca são trocadas
+  for (const [i, url] of opts.manuais ?? []) {
+    const d = await baixarComoDataUrl(url);
+    if (d) fotos.set(i, d);
+  }
   const pedidos = cenas
     .map((c, i) => ({ i, c: (c ?? "").trim() }))
-    .filter((x) => x.c.length >= 8)
+    .filter((x) => x.c.length >= 8 && !fotos.has(x.i))
     .slice(0, limite);
-  const fotos = new Map<number, string>();
   let erro: string | null = null;
   await Promise.all(
     pedidos.map(async ({ i, c }) => {
       try {
-        fotos.set(i, await gerarFoto(c, formato));
+        fotos.set(i, await gerarFoto(c, formato, opts.referencias ?? []));
       } catch (e) {
         erro ??= String((e as Error).message);
       }

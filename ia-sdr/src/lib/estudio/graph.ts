@@ -70,6 +70,8 @@ export interface MidiaPublica {
   view_count?: number;
   permalink?: string;
   timestamp?: string;
+  media_url?: string;
+  thumbnail_url?: string;
 }
 
 export interface ContaPublica {
@@ -84,9 +86,30 @@ export interface ContaPublica {
 export async function contaPublica(username: string, limite = 25): Promise<ContaPublica> {
   const { igId } = await credenciais();
   const u = username.replace(/^@/, "").trim().toLowerCase();
-  const campos = `business_discovery.username(${u}){username,name,followers_count,media_count,media.limit(${limite}){id,caption,media_type,media_product_type,like_count,comments_count,view_count,permalink,timestamp}}`;
+  const campos = `business_discovery.username(${u}){username,name,followers_count,media_count,media.limit(${limite}){id,caption,media_type,media_product_type,like_count,comments_count,view_count,permalink,timestamp,media_url,thumbnail_url}}`;
   const r = await chamar<{ business_discovery: ContaPublica }>("GET", `/${igId}`, { fields: campos });
   return r.business_discovery;
+}
+
+/**
+ * Imagem dos posts de referência (concorrentes) para a foto seguir o estilo deles.
+ * O link da imagem do Instagram expira, então buscamos na hora pelo id do post.
+ */
+export async function imagensDasReferencias(refs: { conta: string | null; ig_media_id: string | null }[], max = 2): Promise<string[]> {
+  const out: string[] = [];
+  const porConta = new Map<string, Set<string>>();
+  for (const r of refs) if (r.conta && r.ig_media_id) porConta.set(r.conta, (porConta.get(r.conta) ?? new Set()).add(r.ig_media_id));
+  for (const [conta, ids] of porConta) {
+    if (out.length >= max) break;
+    const c = await contaPublica(conta, 50).catch(() => null);
+    for (const m of c?.media?.data ?? []) {
+      if (!ids.has(m.id)) continue;
+      const url = m.media_type === "VIDEO" ? m.thumbnail_url : m.media_url;
+      if (url) out.push(url);
+      if (out.length >= max) break;
+    }
+  }
+  return out;
 }
 
 export interface MinhaMidia extends MidiaPublica {
