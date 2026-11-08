@@ -41,6 +41,14 @@ export interface OutreachLead {
   enriquecido_em?: string | null;
   leo_status?: "pendente" | "aprovado" | "descartado" | null;
   leo_decidido_em?: string | null;
+  // Rita (diagnósticos) e Duda (relatório e site)
+  diagnosticos?: DiagnosticosLead | null;
+  marca?: { logo?: string | null } | null;
+  relatorio_token?: string | null;
+  rita_status?: "pendente" | "aprovado" | "ajuste" | null;
+  rita_nota?: string | null;
+  duda_status?: "pendente" | "aprovado" | "ajuste" | null;
+  duda_nota?: string | null;
   avaliacoes: number | null;
   observacoes: string | null;
   origem: string | null;
@@ -544,6 +552,26 @@ export function useAprovarEmBloco() {
     onSuccess: invalidate,
   });
 }
+
+export interface AreaDiagnosticoLead {
+  nota: number;
+  aprovado: boolean;
+  resumo: string;
+  positivos: string[];
+  criticos: string[];
+  ganho: string;
+}
+export interface DiagnosticosLead {
+  google: AreaDiagnosticoLead | null;
+  site: (AreaDiagnosticoLead & { tem_site: boolean }) | null;
+  instagram: AreaDiagnosticoLead | null;
+  cliente_oculto: AreaDiagnosticoLead | null;
+  geral: { nota: number; frase: string; solucao: string };
+  gerado_em: string;
+}
+
+/** Link público do relatório do diagnóstico (Rita e Duda). */
+export const linkRelatorio = (token: string) => `${SDR_URL}/relatorio/${token}`;
 
 /** Link público da prévia de site. */
 export const linkPrevia = (token: string) => `${SDR_URL}/previa/${token}`;
