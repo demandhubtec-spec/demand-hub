@@ -22,6 +22,7 @@ import {
   useConfigEstudio,
   useDecidirPauta,
   useEnviarVideo,
+  useTrocarFoto,
   useFonteAcoes,
   useFontes,
   usePautas,
@@ -224,6 +225,7 @@ function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: P
       {pauta.erro && <p className="rounded-[9px] bg-red-500/10 p-2 text-[12.5px] text-red-300">{pauta.erro}</p>}
 
       {emArte && arte && <ArteVisual arte={arte} />}
+      {emArte && arte && copy && <FotosDaArte pauta={pauta} copy={copy} arte={arte} />}
       {copy && <CopyTexto copy={copy} formato={pauta.formato} aberto={!emArte} />}
 
       {pauta.status === "aguardando_video" && (
@@ -282,6 +284,71 @@ function ArteVisual({ arte }: { arte: Peca }) {
         </a>
       ))}
     </div>
+  );
+}
+
+type PromptFoto = { indice: number; prompt: string; referencias?: string[] };
+
+/**
+ * Fotos da peça: o prompt de cada foto (instrução da Bia + referências) para copiar e gerar no ChatGPT,
+ * e o botão para trocar pela foto feita lá. A Duda refaz só a arte, sem mexer no texto.
+ */
+function FotosDaArte({ pauta, copy, arte }: { pauta: Pauta; copy: Peca; arte: Peca }) {
+  const { showToast } = useToast();
+  const trocar = useTrocarFoto();
+  const entrada = React.useRef<HTMLInputElement>(null);
+  const [alvo, setAlvo] = React.useState<number | null>(null);
+  const prompts = ((arte.conteudo as { prompts?: PromptFoto[] }).prompts ?? []).filter((p) => p?.prompt);
+  if (!prompts.length) return null;
+  const nome = pauta.formato === "reels" ? "Cena" : "Lâmina";
+  const copiar = (t: string) =>
+    navigator.clipboard.writeText(t).then(
+      () => showToast("Prompt copiado. Cola no ChatGPT."),
+      () => showToast("Não consegui copiar."),
+    );
+  const subir = (f?: File | null) => {
+    if (!f || alvo === null) return;
+    trocar.mutate(
+      { pauta, copy, indice: alvo, arquivo: f },
+      {
+        onSuccess: () => showToast(`Foto da ${nome.toLowerCase()} ${alvo + 1} trocada. A Duda refaz a arte em alguns minutos.`),
+        onError: (e) => showToast(`Não deu: ${(e as Error).message}`),
+      },
+    );
+  };
+  return (
+    <details className="rounded-[10px] bg-surface-2 p-3 text-[13px] text-ink">
+      <summary className="cursor-pointer font-semibold">Fotos ({prompts.length}): gerar no seu ChatGPT e trocar</summary>
+      <p className="mt-2 text-[12px] text-muted">As fotos já saem geradas pelo modelo de imagem do ChatGPT. Se quiser outra, copie o prompt, gere no seu ChatGPT e suba aqui.</p>
+      <input ref={entrada} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { subir(e.target.files?.[0]); e.target.value = ""; }} />
+      <div className="mt-2 space-y-2">
+        {prompts.map((p) => (
+          <div key={p.indice} className="rounded-[9px] border border-border p-2.5">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold">{nome} {p.indice + 1}</span>
+              <div className="ml-auto flex gap-1.5">
+                <Button size="sm" variant="ghost" onClick={() => copiar(p.prompt + (p.referencias?.length ? `\n\nReferências: ${p.referencias.join(" ")}` : ""))}>
+                  <CopyIcon /> Copiar prompt
+                </Button>
+                <Button size="sm" variant="outline" disabled={trocar.isPending} onClick={() => { setAlvo(p.indice); entrada.current?.click(); }}>
+                  <Upload /> {trocar.isPending && alvo === p.indice ? "Enviando…" : "Trocar foto"}
+                </Button>
+              </div>
+            </div>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{p.prompt}</p>
+            {p.referencias?.length ? (
+              <div className="mt-1 flex flex-wrap gap-2 text-[11.5px]">
+                {p.referencias.map((r) => (
+                  <a key={r} href={r} target="_blank" rel="noreferrer" className="text-primary-bright hover:underline">
+                    referência
+                  </a>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </details>
   );
 }
 
