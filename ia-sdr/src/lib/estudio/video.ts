@@ -1,6 +1,6 @@
 /**
  * Estúdio · vídeo dos reels montado pelo sistema: cada cena do roteiro vira um quadro 1080×1920 no visual
- * da marca, com zoom leve e transição suave entre as cenas, e uma faixa de áudio silenciosa (o Instagram
+ * da marca (com a foto da cena gerada pelo ChatGPT ao fundo), com zoom leve e transição suave entre as cenas, e uma faixa de áudio silenciosa (o Instagram
  * aceita melhor vídeo com áudio). Sobe o MP4 e a capa no bucket público "estudio".
  */
 import { spawn } from "node:child_process";
@@ -31,8 +31,8 @@ function rodar(bin: string, args: string[]): Promise<void> {
 }
 
 /** Monta o MP4 do reels a partir do roteiro aprovado. */
-export async function videoDoReels(c: CopyReels, palavra: string | null): Promise<{ video: Buffer; capa: Buffer }> {
-  const { quadros, duracoes, capa } = await imagensReels(c, palavra);
+export async function videoDoReels(c: CopyReels, palavra: string | null, fotos: Map<number, string> = new Map()): Promise<{ video: Buffer; capa: Buffer }> {
+  const { quadros, duracoes, capa } = await imagensReels(c, palavra, fotos);
   const pasta = await mkdtemp(join(tmpdir(), "reels-"));
   try {
     const arquivos: string[] = [];

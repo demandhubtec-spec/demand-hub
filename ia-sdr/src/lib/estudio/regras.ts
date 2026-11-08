@@ -41,7 +41,8 @@ export function momentoBR(dia: string, horario: string): Date {
 
 /** Sequência de formatos de uma semana, espalhada para não repetir o mesmo formato em dias seguidos. */
 export function sequenciaDaSemana(mix: Mix): Formato[] {
-  const restante: Record<Formato, number> = { carrossel: mix.carrossel ?? 0, estatico: mix.estatico ?? 0, reels: mix.reels ?? 0 };
+  // Só carrossel e reels (decisão do Kelvin, 08/11/2026): estático no mix vira carrossel
+  const restante: Record<Formato, number> = { carrossel: (mix.carrossel ?? 0) + (mix.estatico ?? 0), estatico: 0, reels: mix.reels ?? 0 };
   const total = restante.carrossel + restante.estatico + restante.reels || 1;
   const seq: Formato[] = [];
   let anterior: Formato | null = null;

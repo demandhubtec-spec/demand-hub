@@ -279,31 +279,69 @@ export async function rodarRedator(agora = new Date(), limite = 3, c?: Config) {
 
 /* ---------------- Diretor de arte ---------------- */
 
-/** Monta a arte das pautas com copy aprovada. Reels espera o vídeo (upload no portal). */
-export async function rodarDiretor(limite = 2, c?: Config) {
+/** Todos os pedidos do Kelvin na arte desta pauta (o atual e os das versões anteriores), para nada se perder. */
+async function pedidosDeArte(p: Pauta): Promise<string> {
+  const { data } = await db().from("estudio_pecas").select("versao,comentario").eq("pauta_id", p.id).eq("tipo", "arte").not("comentario", "is", null).order("versao");
+  const antigos = ((data ?? []) as { versao: number; comentario: string }[]).map((x) => `- (versão ${x.versao}) ${x.comentario}`);
+  return [...antigos, p.comentario ? `- (agora) ${p.comentario}` : ""].filter(Boolean).join("\n");
+}
+
+/**
+ * Monta a arte das pautas com copy aprovada (uma por rodada, para caber no tempo do relógio).
+ * Pedido de ajuste na arte: a Bia aplica primeiro o que for de texto e só depois a Duda refaz a arte.
+ * Fotos: geradas pelo ChatGPT a partir da cena de cada lâmina. Se uma pauta travar 3 vezes, ela sai da fila com aviso.
+ */
+export async function rodarDiretor(limite = 1, c?: Config) {
   const cfg = c ?? (await lerConfig());
-  const { data } = await db().from("estudio_pautas").select("*").eq("status", "copy_aprovada").order("dia").limit(limite);
+  const { data } = await db().from("estudio_pautas").select("*").eq("status", "copy_aprovada").lt("tentativas", 3).order("tentativas").order("dia").limit(limite);
   let feitas = 0;
   for (const p of (data ?? []) as Pauta[]) {
+    await db().from("estudio_pautas").update({ tentativas: (p.tentativas ?? 0) + 1 }).eq("id", p.id);
     try {
-      const copy = await ultimaPeca(p.id, "copy");
+      let copy = await ultimaPeca(p.id, "copy");
       if (!copy) throw new Error("sem copy");
+      const formato: Formato = p.formato === "estatico" ? "carrossel" : p.formato;
+      // Ajuste pedido na arte: a copy muda junto (texto da capa, lâminas repetidas, estrutura)
+      if (p.comentario) {
+        const pedidos = await pedidosDeArte(p);
+        const nova = await redigir({
+          formato,
+          tema: p.tema,
+          gancho: p.gancho,
+          pilar: p.pilar,
+          palavra: p.palavra_gatilho,
+          refs: await refsDaPauta(p),
+          ajuste: { comentario: `Pedidos do Kelvin na arte (aplique TODOS os que forem de texto, estrutura ou foto):\n${pedidos}`, anterior: copy.conteudo },
+          contexto: contexto(cfg),
+        });
+        await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "copy", versao: copy.versao + 1, conteudo: nova, comentario: p.comentario });
+        await registrar("bia", "duda", `Apliquei no texto o que o Kelvin pediu na arte de ${dm(p.dia)}. Duda, segue com as fotos e a arte.`);
+        copy = { ...copy, versao: copy.versao + 1, conteudo: nova };
+      }
       const { imagensCarrossel, imagemEstatico, subirImagens, usarMarca } = await import("./arte.tsx");
+      const { gerarFotos, cenasDasFotos } = await import("./fotos.ts");
       await usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
+      const legado = p.formato === "estatico" && !(copy.conteudo as CopyCarrossel).slides;
+      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenasDasFotos(copy.conteudo, formato), formato === "reels" ? "vertical" : "retrato");
+      if (erroFoto) await registrar("duda", "vera", `Não consegui gerar ${fotos.size ? "todas as fotos" : "as fotos"} no ChatGPT para ${dm(p.dia)}: ${erroFoto.slice(0, 200)}`);
       let links: string[];
-      if (p.formato === "reels") {
+      if (formato === "reels") {
         const { videoDoReels, subirVideo } = await import("./video.ts");
-        const v = await videoDoReels(copy.conteudo as CopyReels, p.palavra_gatilho);
+        const v = await videoDoReels(copy.conteudo as CopyReels, p.palavra_gatilho, fotos);
         links = await subirVideo(p.id, versao, v.video, v.capa);
       } else {
-        const imagens = p.formato === "carrossel" ? await imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho) : await imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho);
+        const imagens = legado ? await imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho) : await imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho, fotos);
         links = await subirImagens(p.id, versao, imagens);
       }
-      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: p.formato === "reels" ? "video_ia" : p.formato }, arquivos: links, comentario: p.comentario });
-      await db().from("estudio_pautas").update({ status: "revisar_arte", comentario: null, erro: null }).eq("id", p.id);
-      await registrar("duda", "vera", `${p.formato === "reels" ? "Vídeo" : "Arte"} pronto: ${NOME_FORMATO[p.formato]} de ${dm(p.dia)}${p.comentario ? ", já com o ajuste pedido" : ""}. Rui conferiu, está na fila do Kelvin.`);
+      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: formato === "reels" ? "video_ia" : formato, fotos: fotos.size }, arquivos: links, comentario: p.comentario });
+      await db().from("estudio_pautas").update({ status: "revisar_arte", comentario: null, erro: null, tentativas: 0 }).eq("id", p.id);
+      await registrar(
+        "duda",
+        "vera",
+        `${formato === "reels" ? "Vídeo" : "Carrossel"} pronto: ${dm(p.dia)}${fotos.size ? `, com ${fotos.size} foto(s) geradas no ChatGPT` : ""}${p.comentario ? ", já com o ajuste pedido" : ""}. Rui conferiu, está na fila do Kelvin.`,
+      );
       feitas++;
     } catch (e) {
       await db().from("estudio_pautas").update({ erro: `Diretor: ${String((e as Error).message).slice(0, 300)}` }).eq("id", p.id);
@@ -410,8 +448,10 @@ export async function estudioTick(agora = new Date()) {
   // Padrão do nosso perfil: revisto uma vez por semana (e logo na primeira rodada)
   if (ligado(c, "radar") && (!c.ultimo_perfil || c.ultimo_perfil <= somarDias(hojeBR(agora), -7))) await etapa("perfil", () => rodarPerfil(agora));
   if (ligado(c, "pauteiro")) await etapa("pauteiro", () => rodarPauteiro(c, agora, 7));
-  if (ligado(c, "redator")) await etapa("redator", () => rodarRedator(agora, 2, c));
+  // A arte vem antes da copy: o vídeo e as fotos são o que mais demora, e o Redator só entra se sobrar tempo na rodada
+  const inicio = Date.now();
   if (ligado(c, "diretor")) await etapa("diretor", () => rodarDiretor(1, c));
+  if (ligado(c, "redator") && Date.now() - inicio < 90_000) await etapa("redator", () => rodarRedator(agora, 2, c));
   return { ok: true, ...out };
 }
 
@@ -462,7 +502,10 @@ export async function conversar(para: string, texto: string) {
   for (const a of r.acoes ?? []) {
     const { data: p } = await db().from("estudio_pautas").select("id,status,dia").eq("dia", a.dia).neq("status", "descartado").limit(1).maybeSingle();
     if (!p) continue;
-    if (a.tipo === "trocar_tema" && !["publicando", "publicado"].includes(p.status)) {
+    if (a.tipo === "mudar_formato" && a.formato && !["publicando", "publicado"].includes(p.status)) {
+      await db().from("estudio_pautas").update({ formato: a.formato, status: "pauta", comentario: a.comentario.slice(0, 500), erro: null }).eq("id", p.id);
+      feitas.push(`${dm(a.dia)}: vira ${NOME_FORMATO[a.formato]}, a Bia reescreve`);
+    } else if (a.tipo === "trocar_tema" && !["publicando", "publicado"].includes(p.status)) {
       await db().from("estudio_pautas").update({ status: "descartado", comentario: a.comentario.slice(0, 500) }).eq("id", p.id);
       feitas.push(`${dm(a.dia)}: tema descartado, o Téo planeja outro`);
     } else if (a.tipo === "ajustar" && ["pauta", "revisar_copy"].includes(p.status)) {

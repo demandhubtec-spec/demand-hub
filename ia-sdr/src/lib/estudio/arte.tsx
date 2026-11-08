@@ -95,79 +95,134 @@ function tamanhoTitulo(t: string, max: number): number {
   return Math.round(max * 0.55);
 }
 
-function Moldura(p: { children: ReactNode; pagina?: string; seta?: boolean }) {
+/** Título com destaque: o que vier entre *asteriscos* sai na cor de destaque da marca. */
+function Titulo(p: { texto: string; tamanho: number; cor?: string; caixaAlta?: boolean; centro?: boolean }) {
+  const limpo = limparTexto(p.texto);
+  const partes = limpo.split(/(\*[^*]+\*)/g).filter(Boolean);
+  const palavras: { t: string; d: boolean }[] = [];
+  for (const parte of partes) {
+    const d = parte.startsWith("*") && parte.endsWith("*");
+    for (const w of parte.replace(/\*/g, "").split(" ").filter(Boolean)) palavras.push({ t: p.caixaAlta ? w.toUpperCase() : w, d });
+  }
   return (
-    <div
-      style={{
-        width: W,
-        height: H,
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        padding: 90,
-        backgroundColor: COR.fundo,
-        backgroundImage: `radial-gradient(circle at 80% 15%, ${COR.fundo2} 0%, ${COR.fundo} 60%)`,
-        color: COR.branco,
-        fontFamily: FONTE_TEXTO,
-      }}
-    >
-      {LOGO ? (
-        <img src={LOGO} width={Math.round(56 * LOGO_PROPORCAO)} height={56} style={{ width: Math.round(56 * LOGO_PROPORCAO), height: 56, objectFit: "contain" }} />
+    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: p.centro ? "center" : "flex-start", fontFamily: FONTE_TITULO, fontSize: p.tamanho, lineHeight: 1.06, color: p.cor ?? COR.branco }}>
+      {palavras.map((w, i) => (
+        <span key={i} style={{ color: w.d ? COR.lilas : undefined, marginRight: Math.round(p.tamanho * 0.24) }}>
+          {w.t}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** Tira os asteriscos de destaque (para textos que não usam o componente Titulo). */
+const semMarca = (t: string | null | undefined) => limparTexto(t).replace(/\*/g, "");
+
+function Logo() {
+  return LOGO ? (
+    <img src={LOGO} width={Math.round(72 * LOGO_PROPORCAO)} height={72} style={{ width: Math.round(72 * LOGO_PROPORCAO), height: 72, objectFit: "contain" }} />
+  ) : (
+    <div style={{ display: "flex", alignItems: "center", fontSize: 38, fontWeight: 700, letterSpacing: 0.5 }}>
+      <span style={{ color: COR.branco }}>Demand</span>
+      <span style={{ color: COR.roxo }}>IA</span>
+    </div>
+  );
+}
+
+/** Moldura de toda peça: logo em cima, conteúdo, rodapé. Com foto, ela cobre o fundo e um degradê garante a leitura. */
+function Moldura(p: { children: ReactNode; pagina?: string; seta?: boolean; foto?: string | null; alinhar?: "center" | "flex-end" | "flex-start" }) {
+  return (
+    <div style={{ width: W, height: H, display: "flex", position: "relative", backgroundColor: COR.fundo, color: COR.branco, fontFamily: FONTE_TEXTO }}>
+      {p.foto ? (
+        <img src={p.foto} width={W} height={H} style={{ position: "absolute", top: 0, left: 0, width: W, height: H, objectFit: "cover" }} />
       ) : (
-        <div style={{ display: "flex", alignItems: "center", fontSize: 30, fontWeight: 700, letterSpacing: 0.5 }}>
-          <span style={{ color: COR.branco }}>Demand</span>
-          <span style={{ color: COR.roxo }}>IA</span>
-        </div>
+        <div style={{ position: "absolute", top: 0, left: 0, width: W, height: H, display: "flex", backgroundImage: `radial-gradient(circle at 80% 15%, ${COR.fundo2} 0%, ${COR.fundo} 60%)` }} />
       )}
-      <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, justifyContent: "center" }}>{p.children}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: COR.suave }}>
-        <span>@demand_ia</span>
-        <span>{p.seta ? "arraste para o lado" : p.pagina ?? ""}</span>
+      {p.foto ? (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: W,
+            height: H,
+            display: "flex",
+            backgroundImage: `linear-gradient(180deg, ${COR.fundo}99 0%, ${COR.fundo}00 22%, ${COR.fundo}00 38%, ${COR.fundo}e6 66%, ${COR.fundo} 100%)`,
+          }}
+        />
+      ) : null}
+      <div style={{ position: "relative", width: W, height: H, display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 90 }}>
+        <Logo />
+        <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, justifyContent: p.alinhar ?? "center" }}>{p.children}</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: COR.suave }}>
+          <span>@demand_ia</span>
+          <span>{p.seta ? "arraste para o lado" : p.pagina ?? ""}</span>
+        </div>
       </div>
     </div>
   );
 }
 
-function Capa(p: { titulo: string; texto?: string; pagina?: string; seta?: boolean }) {
-  const titulo = limparTexto(p.titulo).toUpperCase();
+function Capa(p: { titulo: string; texto?: string; pagina?: string; seta?: boolean; foto?: string | null }) {
+  const titulo = limparTexto(p.titulo);
   return (
-    <Moldura pagina={p.pagina} seta={p.seta}>
-      <div style={{ display: "flex", width: 120, height: 10, backgroundColor: COR.roxo, marginBottom: 40 }} />
-      <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: tamanhoTitulo(titulo, 128), lineHeight: 1.05, color: COR.branco }}>{titulo}</div>
+    <Moldura pagina={p.pagina} seta={p.seta} foto={p.foto} alinhar={p.foto ? "flex-end" : "center"}>
+      <div style={{ display: "flex", width: 120, height: 10, backgroundColor: COR.roxo, marginBottom: 36 }} />
+      <Titulo texto={titulo} tamanho={tamanhoTitulo(titulo.replace(/\*/g, ""), p.foto ? 112 : 128)} caixaAlta />
+      {p.texto ? <div style={{ display: "flex", marginTop: 32, fontSize: 40, lineHeight: 1.35, color: p.foto ? COR.branco : COR.lilas }}>{semMarca(p.texto)}</div> : null}
+    </Moldura>
+  );
+}
+
+function Miolo(p: { numero: number; titulo: string; texto?: string; pagina: string; foto?: string | null }) {
+  const titulo = limparTexto(p.titulo);
+  const tam = tamanhoTitulo(titulo.replace(/\*/g, ""), p.foto ? 76 : 92);
+  if (p.foto) {
+    // Foto em cima (cantos arredondados), número, título e texto embaixo: o layout que mais aparece nos carrosséis da V4
+    return (
+      <Moldura pagina={p.pagina} alinhar="flex-start">
+        <div style={{ display: "flex", marginTop: 34, width: W - 180, height: 520, borderRadius: 36, overflow: "hidden" }}>
+          <img src={p.foto} width={W - 180} height={520} style={{ width: W - 180, height: 520, objectFit: "cover" }} />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", marginTop: 40 }}>
+          <div style={{ display: "flex", padding: "6px 22px", borderRadius: 999, backgroundColor: COR.roxo, fontFamily: FONTE_TITULO, fontSize: 40, color: COR.branco }}>{String(p.numero).padStart(2, "0")}</div>
+        </div>
+        <div style={{ display: "flex", marginTop: 22 }}>
+          <Titulo texto={titulo} tamanho={tam} caixaAlta />
+        </div>
+        {p.texto ? <div style={{ display: "flex", marginTop: 20, fontSize: 34, lineHeight: 1.4, color: COR.suave }}>{semMarca(p.texto)}</div> : null}
+      </Moldura>
+    );
+  }
+  return (
+    <Moldura pagina={p.pagina}>
+      <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: 150, color: COR.roxo, lineHeight: 1 }}>{String(p.numero).padStart(2, "0")}</div>
+      <div style={{ display: "flex", marginTop: 30 }}>
+        <Titulo texto={titulo} tamanho={tam} caixaAlta />
+      </div>
       {p.texto ? (
-        <div style={{ display: "flex", marginTop: 40, fontSize: 40, lineHeight: 1.35, color: COR.lilas }}>{limparTexto(p.texto)}</div>
+        <div style={{ display: "flex", marginTop: 40, paddingLeft: 30, borderLeft: `8px solid ${COR.roxo}`, fontSize: 40, lineHeight: 1.4, color: COR.branco }}>{semMarca(p.texto)}</div>
       ) : null}
     </Moldura>
   );
 }
 
-function Miolo(p: { numero: number; titulo: string; texto?: string; pagina: string }) {
-  const titulo = limparTexto(p.titulo).toUpperCase();
+function Chamada(p: { titulo: string; texto?: string; palavra: string | null; pagina?: string; foto?: string | null }) {
   return (
-    <Moldura pagina={p.pagina}>
-      <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: 150, color: COR.roxo, lineHeight: 1 }}>{String(p.numero).padStart(2, "0")}</div>
-      <div style={{ display: "flex", marginTop: 30, fontFamily: FONTE_TITULO, fontSize: tamanhoTitulo(titulo, 92), lineHeight: 1.08, color: COR.branco }}>{titulo}</div>
-      {p.texto ? <div style={{ display: "flex", marginTop: 36, fontSize: 38, lineHeight: 1.4, color: COR.suave }}>{limparTexto(p.texto)}</div> : null}
-    </Moldura>
-  );
-}
-
-function Chamada(p: { titulo: string; texto?: string; palavra: string | null; pagina?: string }) {
-  return (
-    <Moldura pagina={p.pagina}>
+    <Moldura pagina={p.pagina} foto={p.foto} alinhar={p.foto ? "flex-end" : "center"}>
       {p.palavra ? (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
           <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: 64, color: COR.lilas, letterSpacing: 2 }}>COMENTA</div>
-          <div style={{ display: "flex", marginTop: 10, padding: "10px 60px", backgroundColor: COR.roxo, borderRadius: 28, fontFamily: FONTE_TITULO, fontSize: p.palavra.length > 8 ? 130 : 190, color: COR.branco }}>{p.palavra}</div>
-          <div style={{ display: "flex", marginTop: 50, fontSize: 40, lineHeight: 1.35, color: COR.branco, textAlign: "center" }}>{limparTexto(p.texto || p.titulo)}</div>
+          <div style={{ display: "flex", marginTop: 10, padding: "10px 60px", backgroundColor: COR.roxo, borderRadius: 28, fontFamily: FONTE_TITULO, fontSize: p.palavra.length > 8 ? (p.foto ? 100 : 130) : p.foto ? 130 : 190, color: COR.branco }}>{p.palavra}</div>
+          <div style={{ display: "flex", marginTop: 36, fontSize: 38, lineHeight: 1.35, color: COR.branco, textAlign: "center" }}>{semMarca(p.texto || p.titulo)}</div>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: tamanhoTitulo(p.titulo, 110), lineHeight: 1.05 }}>{limparTexto(p.titulo).toUpperCase()}</div>
-          {p.texto ? <div style={{ display: "flex", marginTop: 36, fontSize: 40, lineHeight: 1.35, color: COR.lilas }}>{limparTexto(p.texto)}</div> : null}
+          <Titulo texto={limparTexto(p.titulo)} tamanho={tamanhoTitulo(semMarca(p.titulo), 110)} caixaAlta />
+          {p.texto ? <div style={{ display: "flex", marginTop: 36, fontSize: 40, lineHeight: 1.35, color: COR.lilas }}>{semMarca(p.texto)}</div> : null}
         </div>
       )}
-      <div style={{ display: "flex", marginTop: 70, fontSize: 32, fontWeight: 700, color: COR.roxo, justifyContent: p.palavra ? "center" : "flex-start" }}>{ASSINATURA}</div>
+      <div style={{ display: "flex", marginTop: 60, fontSize: 32, fontWeight: 700, color: COR.lilas, justifyContent: p.palavra ? "center" : "flex-start" }}>{ASSINATURA}</div>
     </Moldura>
   );
 }
@@ -178,17 +233,18 @@ export async function png(el: ReactElement): Promise<Buffer> {
   return Buffer.from(await r.arrayBuffer());
 }
 
-/** As imagens (PNG) de um carrossel: capa, um ponto por lâmina e a chamada final. */
-export async function imagensCarrossel(c: CopyCarrossel, palavra: string | null): Promise<Buffer[]> {
+/** As imagens (PNG) de um carrossel: capa, um ponto por lâmina e a chamada final. `fotos`: índice da lâmina → foto. */
+export async function imagensCarrossel(c: CopyCarrossel, palavra: string | null, fotos: Map<number, string> = new Map()): Promise<Buffer[]> {
   const slides = (c.slides ?? []).filter((s) => s.titulo).slice(0, 10);
   const total = slides.length;
   const out: Buffer[] = [];
   for (let i = 0; i < total; i++) {
     const s = slides[i];
     const pagina = `${i + 1}/${total}`;
-    if (i === 0) out.push(await png(<Capa titulo={s.titulo} texto={s.texto} seta />));
-    else if (i === total - 1) out.push(await png(<Chamada titulo={s.titulo} texto={s.texto} palavra={palavra} pagina={pagina} />));
-    else out.push(await png(<Miolo numero={i} titulo={s.titulo} texto={s.texto} pagina={pagina} />));
+    const foto = fotos.get(i) ?? null;
+    if (i === 0) out.push(await png(<Capa titulo={s.titulo} texto={s.texto} seta foto={foto} />));
+    else if (i === total - 1) out.push(await png(<Chamada titulo={s.titulo} texto={s.texto} palavra={palavra} pagina={pagina} foto={foto} />));
+    else out.push(await png(<Miolo numero={i} titulo={s.titulo} texto={s.texto} pagina={pagina} foto={foto} />));
   }
   return out;
 }
@@ -199,30 +255,30 @@ export async function imagemEstatico(c: CopyEstatico, palavra: string | null): P
   return [await png(<Capa titulo={c.titulo} texto={c.subtitulo} />)];
 }
 
-function CenaReels(p: { texto: string; destaque?: string; numero: number; total: number; final?: boolean; palavra?: string | null }) {
+function CenaReels(p: { texto: string; destaque?: string; numero: number; total: number; final?: boolean; palavra?: string | null; foto?: string | null }) {
   const texto = limparTexto(p.texto);
   return (
-    <Moldura pagina={`${p.numero}/${p.total}`}>
+    <Moldura pagina={`${p.numero}/${p.total}`} foto={p.foto} alinhar={p.foto ? "flex-end" : "center"}>
       {p.final && p.palavra ? (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", marginBottom: p.foto ? 120 : 0 }}>
           <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: 80, color: COR.lilas, letterSpacing: 2 }}>COMENTA</div>
           <div style={{ display: "flex", marginTop: 16, padding: "14px 70px", backgroundColor: COR.roxo, borderRadius: 32, fontFamily: FONTE_TITULO, fontSize: p.palavra.length > 8 ? 140 : 200, color: COR.branco }}>{p.palavra}</div>
-          <div style={{ display: "flex", marginTop: 60, fontSize: 52, lineHeight: 1.3, color: COR.branco, textAlign: "center" }}>{texto}</div>
-          <div style={{ display: "flex", marginTop: 80, fontSize: 38, fontWeight: 700, color: COR.roxo }}>{ASSINATURA}</div>
+          <div style={{ display: "flex", marginTop: 60, fontSize: 52, lineHeight: 1.3, color: COR.branco, textAlign: "center" }}>{semMarca(texto)}</div>
+          <div style={{ display: "flex", marginTop: 80, fontSize: 38, fontWeight: 700, color: COR.lilas }}>{ASSINATURA}</div>
         </div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          {p.destaque ? <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: p.destaque.length > 6 ? 150 : 230, color: COR.roxo, lineHeight: 1 }}>{limparTexto(p.destaque).toUpperCase()}</div> : null}
+        <div style={{ display: "flex", flexDirection: "column", marginBottom: p.foto ? 160 : 0 }}>
+          {p.destaque ? <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: p.destaque.length > 6 ? 150 : 230, color: COR.lilas, lineHeight: 1 }}>{semMarca(p.destaque).toUpperCase()}</div> : null}
           <div style={{ display: "flex", width: 140, height: 12, backgroundColor: COR.roxo, marginTop: p.destaque ? 40 : 0, marginBottom: 44 }} />
-          <div style={{ display: "flex", fontFamily: FONTE_TITULO, fontSize: tamanhoTitulo(texto, 120), lineHeight: 1.08, color: COR.branco }}>{texto.toUpperCase()}</div>
+          <Titulo texto={texto} tamanho={tamanhoTitulo(semMarca(texto), 120)} caixaAlta />
         </div>
       )}
     </Moldura>
   );
 }
 
-/** Quadros do reels (1080×1920): uma imagem por cena, a duração de cada uma e a capa. */
-export async function imagensReels(c: CopyReels, palavra: string | null): Promise<{ quadros: Buffer[]; duracoes: number[]; capa: Buffer }> {
+/** Quadros do reels (1080×1920): uma imagem por cena, a duração de cada uma e a capa. `fotos`: índice da cena → foto. */
+export async function imagensReels(c: CopyReels, palavra: string | null, fotos: Map<number, string> = new Map()): Promise<{ quadros: Buffer[]; duracoes: number[]; capa: Buffer }> {
   const cenas = (c.cenas ?? []).filter((x) => x.texto_tela?.trim()).slice(0, 10);
   if (!cenas.length) throw new Error("roteiro sem cenas");
   usarAltura(1920);
@@ -232,10 +288,11 @@ export async function imagensReels(c: CopyReels, palavra: string | null): Promis
     for (let i = 0; i < cenas.length; i++) {
       const cena = cenas[i];
       const final = i === cenas.length - 1;
-      quadros.push(await png(<CenaReels texto={cena.texto_tela} destaque={!final ? cena.imagem?.trim().slice(0, 12) || undefined : undefined} numero={i + 1} total={cenas.length} final={final} palavra={palavra} />));
+      const foto = fotos.get(i) ?? null;
+      quadros.push(await png(<CenaReels texto={cena.texto_tela} destaque={!final && !foto ? cena.imagem?.trim().slice(0, 12) || undefined : undefined} numero={i + 1} total={cenas.length} final={final} palavra={palavra} foto={foto} />));
       duracoes.push(duracaoDaCena(cena.tempo) + (final ? 1 : 0));
     }
-    const capa = await png(<Capa titulo={c.capa_titulo || cenas[0].texto_tela} />);
+    const capa = await png(<Capa titulo={c.capa_titulo || cenas[0].texto_tela} foto={fotos.get(0) ?? null} />);
     return { quadros, duracoes, capa };
   } finally {
     usarAltura(1350);

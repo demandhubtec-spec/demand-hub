@@ -111,7 +111,8 @@ Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","pa
 }
 
 export interface CopyCarrossel {
-  slides: { titulo: string; texto?: string }[];
+  /** foto: o que a imagem da lâmina mostra (vira foto gerada pelo ChatGPT); vazio = lâmina só de texto. */
+  slides: { titulo: string; texto?: string; foto?: string }[];
   legenda: string;
   hashtags?: string[];
 }
@@ -122,7 +123,7 @@ export interface CopyEstatico {
   hashtags?: string[];
 }
 export interface CopyReels {
-  cenas: { tempo: string; texto_tela: string; fala?: string; imagem?: string }[];
+  cenas: { tempo: string; texto_tela: string; fala?: string; imagem?: string; foto?: string }[];
   legenda: string;
   capa_titulo: string;
   prompt_video: string;
@@ -130,13 +131,23 @@ export interface CopyReels {
 }
 export type Copy = CopyCarrossel | CopyEstatico | CopyReels;
 
+/** Padrão visual pedido pelo Kelvin (08/11/2026): carrossel no estilo da V4 Company, com foto real reforçando a copy. */
+const VISUAL_V4 = `## Visual (padrão V4 Company, pedido do Kelvin)
+- Cada carrossel tem foto real reforçando o que a copy diz: pessoas brasileiras de verdade (dono de clínica, recepcionista, paciente, equipe), cenas do dia a dia do negócio, celular com WhatsApp na mão. Nada de ilustração ou robô.
+- No campo "foto" descreva a cena em uma frase concreta (quem, fazendo o quê, onde, expressão). Ex.: "recepcionista de clínica de estética olhando o celular cheio de mensagens, balcão claro, expressão preocupada".
+- Títulos curtos e fortes. Marque entre *asteriscos* a palavra ou expressão que vai em destaque de cor (uma por título). Ex.: "Sua recepção está *perdendo paciente*".
+- Nada de texto repetido entre lâminas. A última lâmina não repete a legenda: é só a chamada.`;
+
 const FORMATO_PEDIDO: Record<Formato, string> = {
-  carrossel: `Carrossel de 7 a 10 lâminas (Kelvin, 05/11: os de 5 ficaram curtos demais). Lâmina 1 = capa com o gancho (titulo até 60 caracteres, texto opcional até 90). Lâmina 2 = o problema com uma cena real do dono. Lâminas do meio = um ponto por lâmina, com exemplo concreto (titulo até 50, texto de 120 a 240 caracteres). Última lâmina = chamada para ação (com a palavra-chave, se houver).
-JSON: {"slides":[{"titulo":"...","texto":"..."}],"legenda":"...","hashtags":["...","..."]}`,
-  estatico: `Post estático de uma imagem: titulo forte (até 70 caracteres) e subtitulo (até 120).
-JSON: {"titulo":"...","subtitulo":"...","legenda":"...","hashtags":["..."]}`,
-  reels: `Roteiro de Reels de 20 a 40 segundos, vertical. O vídeo é montado pelo nosso sistema com texto animado na tela (sem pessoa, sem narração), então TUDO precisa estar no texto_tela. De 6 a 9 cenas. Cada cena: tempo ("0-3s", de 2 a 5 segundos cada), texto_tela (uma frase curta e forte, até 70 caracteres; a 1ª cena é o gancho e a última é a chamada com a palavra-chave, se houver), fala (deixe vazio) e imagem (palavra ou número de destaque da cena, até 12 caracteres, opcional). Também: capa_titulo (até 40 caracteres) e prompt_video (uma frase sobre o clima do vídeo).
-JSON: {"cenas":[{"tempo":"0-3s","texto_tela":"...","fala":"...","imagem":"..."}],"legenda":"...","capa_titulo":"...","prompt_video":"...","hashtags":["..."]}`,
+  carrossel: `Carrossel de 7 a 9 lâminas. Lâmina 1 = capa com o gancho (titulo até 60 caracteres, texto opcional até 90) e SEMPRE com foto. Lâmina 2 = o problema com uma cena real do dono, com foto. Lâminas do meio = um ponto por lâmina, com exemplo concreto (titulo até 50, texto de 100 a 200 caracteres); pelo menos 2 delas com foto, as outras só texto. Última lâmina = chamada para ação curta (com a palavra-chave, se houver), com foto.
+${VISUAL_V4}
+JSON: {"slides":[{"titulo":"...","texto":"...","foto":"descrição da cena ou vazio"}],"legenda":"...","hashtags":["...","..."]}`,
+  estatico: `Não fazemos mais post estático (decisão do Kelvin em 08/11/2026). Escreva um carrossel curto de 5 lâminas.
+${VISUAL_V4}
+JSON: {"slides":[{"titulo":"...","texto":"...","foto":"..."}],"legenda":"...","hashtags":["..."]}`,
+  reels: `Roteiro de Reels de 20 a 35 segundos, vertical. O vídeo é montado pelo nosso sistema com fotos reais e texto na tela (sem narração), então TUDO precisa estar no texto_tela. De 6 a 8 cenas. Cada cena: tempo ("0-3s", de 2 a 5 segundos cada), texto_tela (uma frase curta e forte, até 70 caracteres; a 1ª cena é o gancho e a última é a chamada com a palavra-chave, se houver), fala (deixe vazio), imagem (palavra ou número de destaque da cena, até 12 caracteres, opcional) e foto (descrição da cena real que aparece ao fundo; obrigatória na 1ª cena e em pelo menos mais 3). Marque entre *asteriscos* a palavra em destaque do texto_tela. Também: capa_titulo (até 40 caracteres) e prompt_video (uma frase sobre o clima do vídeo).
+${VISUAL_V4}
+JSON: {"cenas":[{"tempo":"0-3s","texto_tela":"...","fala":"","imagem":"...","foto":"..."}],"legenda":"...","capa_titulo":"...","prompt_video":"...","hashtags":["..."]}`,
 };
 
 /** Redator: copy completa no formato da pauta. Se veio ajuste do Kelvin, refaz seguindo o comentário. */
@@ -266,7 +277,7 @@ export const AGENTES_DO_TIME: Record<string, string> = {
   vera: "Vera, coordenadora de social media: organiza o time, responde pelo andamento e distribui as orientações do Kelvin",
   rita: "Rita, pesquisa: roda o Radar nos perfis de referência e explica o que engajou",
   teo: "Téo, estrategista: monta o plano do mês (temas, pilares, formatos, datas)",
-  bia: "Bia, redatora: escreve carrossel, estático, roteiro de reels e legenda",
+  bia: "Bia, redatora: escreve carrossel, roteiro de reels e legenda, e descreve as fotos de cada lâmina",
   duda: "Duda, design: faz as artes e os vídeos dos reels seguindo o manual de marca",
   rui: "Rui, revisor: confere cada peça (ortografia, sem travessão, limites do Instagram, fiel à marca) antes de ir para o Kelvin",
   lara: "Lara, publicação: agenda e publica no horário, cria o gatilho da palavra-chave no Direct",
@@ -275,7 +286,7 @@ export const AGENTES_DO_TIME: Record<string, string> = {
 
 export interface RespostaChat {
   respostas: { agente: string; texto: string }[];
-  acoes?: { tipo: "ajustar" | "trocar_tema"; dia: string; comentario: string }[];
+  acoes?: { tipo: "ajustar" | "trocar_tema" | "mudar_formato"; dia: string; comentario: string; formato?: "carrossel" | "reels" }[];
 }
 
 /** O time responde ao Kelvin de verdade, com o estado real do Estúdio. */
@@ -293,8 +304,10 @@ Regras:
 - Use SÓ o estado real abaixo. Nunca invente número, post, resultado, prazo ou entrega que não esteja no estado. Se não souber, diga o que vai verificar.
 - Português do Brasil, natural, curto (até 4 frases por resposta), sem travessão, sem jargão.
 - O que o Kelvin orientar vira regra para as próximas pautas, copies e artes: confirme o que muda na prática.
-- Se ele pedir para mudar um post específico, devolva uma ação: "ajustar" (refazer copy ou arte daquele dia com o comentário) ou "trocar_tema" (descartar a pauta do dia para o Téo planejar outra). Use a data AAAA-MM-DD do estado.
-Responda em JSON: {"respostas":[{"agente":"vera","texto":"..."}],"acoes":[{"tipo":"ajustar","dia":"AAAA-MM-DD","comentario":"..."}]}
+- Se ele pedir para mudar um post específico, devolva uma ação: "ajustar" (refazer copy ou arte daquele dia), "mudar_formato" (trocar o formato do dia para "carrossel" ou "reels"; a Bia reescreve) ou "trocar_tema" (descartar a pauta do dia para o Téo planejar outra). Use a data AAAA-MM-DD do estado.
+- O "comentario" de cada ação é uma instrução completa para quem vai refazer: diga O QUE mudar e COMO (texto exato pedido, estrutura, lâminas, fotos), nunca só "refazer".
+- Só fazemos carrossel e reels. Nunca proponha post estático.
+Responda em JSON: {"respostas":[{"agente":"vera","texto":"..."}],"acoes":[{"tipo":"ajustar","dia":"AAAA-MM-DD","comentario":"...","formato":"carrossel ou reels, só em mudar_formato"}]}
 
 ## Estado real do Estúdio agora
 ${opts.estado}`,
@@ -307,6 +320,8 @@ ${opts.estado}`,
       .filter((r) => validos.has(r.agente) && r.texto)
       .slice(0, grupo ? 3 : 1)
       .map((r) => ({ agente: grupo ? r.agente : opts.para, texto: r.texto.replace(/\s*[—–]\s*/g, ", ").slice(0, 900) })),
-    acoes: (out.acoes ?? []).filter((a) => (a.tipo === "ajustar" || a.tipo === "trocar_tema") && /^\d{4}-\d{2}-\d{2}$/.test(a.dia ?? "")).slice(0, 5),
+    acoes: (out.acoes ?? [])
+      .filter((a) => (a.tipo === "ajustar" || a.tipo === "trocar_tema" || (a.tipo === "mudar_formato" && (a.formato === "carrossel" || a.formato === "reels"))) && /^\d{4}-\d{2}-\d{2}$/.test(a.dia ?? ""))
+      .slice(0, 10),
   };
 }
