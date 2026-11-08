@@ -38,3 +38,40 @@ export function useSalvarPlaybook() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "playbook"] }),
   });
 }
+
+/** Manual de trabalho de um agente do time comercial (editável; o agente segue o que estiver salvo). */
+export interface ManualAgente {
+  id: string;
+  nome: string;
+  cargo: string;
+  secoes: SecaoPlaybook[];
+  ordem: number;
+  atualizado_em: string | null;
+}
+
+export function useManuais() {
+  return useQuery({
+    queryKey: ["comercial", "manuais"],
+    queryFn: async (): Promise<ManualAgente[]> => {
+      const { data, error } = await supabase.from("agentes_manuais").select("id,nome,cargo,secoes,ordem,atualizado_em").order("ordem");
+      if (error) throw error;
+      return (data ?? []) as ManualAgente[];
+    },
+  });
+}
+
+export function useSalvarManual() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, secoes }: { id: string; secoes: SecaoPlaybook[] }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const limpas = secoes.map((s) => ({ titulo: s.titulo.trim(), texto: s.texto.trim() })).filter((s) => s.titulo || s.texto);
+      const { error } = await supabase
+        .from("agentes_manuais")
+        .update({ secoes: limpas, atualizado_em: new Date().toISOString(), atualizado_por: u.user?.id ?? null })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "manuais"] }),
+  });
+}

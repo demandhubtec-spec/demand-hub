@@ -1,6 +1,6 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import type { Lead, Meeting } from "./db.ts";
-import { playbookAtual } from "./playbook.ts";
+import { manuaisAtuais, playbookAtual } from "./playbook.ts";
 import { formatBR } from "./time.ts";
 import { contextoProspeccao, type Prospeccao } from "./prospeccao.ts";
 import { contextoAnuncio, type OrigemAnuncio } from "./anuncio.ts";
@@ -119,7 +119,7 @@ Pedido explícito para falar com uma pessoa, reclamação, assunto de cliente at
 - Só se vier "[áudio]", "[imagem]", "[documento]" ou "[vídeo]" sem conteúdo (não deu para abrir o arquivo), diga com naturalidade que não conseguiu abrir e peça para ele resumir em uma mensagem escrita.
 - Mensagens com "[Equipe respondeu manualmente]" foram escritas por alguém da equipe: mantenha coerência com elas.
 
-${playbookAtual() ? `## Playbook comercial (escrito pelo seu gestor; siga sempre, sem citar que existe)\n${playbookAtual()}\n\n` : ""}${orientacoes.length ? `## Orientações do seu gestor (siga sempre; as mais novas valem mais)\n${orientacoes.map((o) => `- ${o}`).join("\n")}\n\n` : ""}## Agora
+${playbookAtual() ? `## Playbook comercial (escrito pelo seu gestor; siga sempre, sem citar que existe)\n${playbookAtual()}\n\n` : ""}${manuaisAtuais("gabi", "marina") ? `## Seus manuais de trabalho (escritos pelo seu gestor; siga sempre, sem citar que existem)\n${manuaisAtuais("gabi", "marina")}\n\n` : ""}${orientacoes.length ? `## Orientações do seu gestor (siga sempre; as mais novas valem mais)\n${orientacoes.map((o) => `- ${o}`).join("\n")}\n\n` : ""}## Agora
 Data e hora (Brasília): ${formatBR(now)}
 
 ## Ficha do lead

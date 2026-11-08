@@ -771,7 +771,7 @@ ROTEIRO.length=0;
 function proximo(){}
 Object.assign(FUN,{lista:0,pacotes:0,contatos:0,respostas:0,qualif:0,reunioes:0,meta:12});
 AGENDA.length=0;
-const TXT={};let DADOS=null,ERRO=null;
+const TXT={};let DADOS=null,ERRO=null;const MANUAIS={};let LEO_PENDENTES=0;
 function agora(a){if(a.off)return 'Aguardando ativação';return TXT[a.id]||'Carregando…'}
 const pct=(a,b)=>b>0?Math.max(4,Math.min(100,Math.round(a/b*100))):4;
 function aplicar(r,pedidos){
@@ -793,6 +793,7 @@ function aplicar(r,pedidos){
     rui:pct(r.fila_envio,escritas),caio:pct(r.em_cadencia,r.contatados),gabi:pct(h.primeiros,40),marina:pct(r.reunioes_semana,12)});
   // Sua fila: o que está esperando você de verdade
   FILA.length=0;
+  if(LEO_PENDENTES)FILA.push({de:'leo',tipo:'Lista para aprovar',titulo:`${LEO_PENDENTES} ${LEO_PENDENTES>1?'empresas com a ficha pronta':'empresa com a ficha pronta'}`,m:'Site, CNPJ, sócios e dono conferidos pelo Léo',aba:'aprovacao'});
   if(r.aguardando_ok)FILA.push({de:'rui',tipo:'Mensagens para aprovar',titulo:`${r.aguardando_ok} ${r.aguardando_ok>1?'empresas com a sequência pronta':'empresa com a sequência pronta'}`,m:'Escrito pela Bia · revisado pelo Rui',aba:'aprovacao'});
   if(pedidos)FILA.push({de:'ana',tipo:'Pedidos da Ana',titulo:`${pedidos} ${pedidos>1?'conversas precisam':'conversa precisa'} de você`,m:'Responda no canal Você e a Ana',aba:'ana'});
   // Agenda real
@@ -840,6 +841,9 @@ function abrirReuniao(i){const r=AGENDA[i];modalHtml(mini('marina'),'Reunião ma
   `<button class="btn" onclick="fecharTudo();irAba('conversas')">Abrir as conversas</button>`)}
 function aba_(t){
   const a=byId(atual),db=document.getElementById('db');document.querySelectorAll('.dt button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  if(t==='manual'&&MANUAIS[atual]){db.innerHTML=MANUAIS[atual].map(x=>{const itens=String(x.texto||'').split('\n').map(l=>l.trim()).filter(Boolean);
+     return `<div class="sec"><h4>${esc(x.titulo)}</h4>${itens.length>1?`<ul>${itens.map(l=>`<li>${esc(l.replace(/^[-•*]\s*/,''))}</li>`).join('')}</ul>`:`<p>${esc(itens[0]||'')}</p>`}</div>`}).join('')+
+     `<div class="sec"><h4>Editar</h4><p>Este manual é editável no portal e o agente segue o que estiver salvo · <a href="#" onclick="event.preventDefault();fecharTudo();irAba('playbook')" style="color:var(--holo)">editar manual</a></p></div>`;return}
   if(t==='manual'){const M=a.manual;db.innerHTML=`
    <div class="sec"><h4>Objetivo</h4><p>${M.objetivo}</p></div>
    <div class="sec"><h4>Responsável por</h4><ul>${M.resp.map(x=>`<li>${x}</li>`).join('')}</ul></div>
@@ -860,8 +864,9 @@ async function carregar(){
   const sb=parent&&parent!==window?parent.__demandSupabase:null;
   if(!sb){ERRO='Abra pelo portal para ver os números reais.';pintarCanal();return}
   try{
-    const [{data:r,error},{count}]=await Promise.all([sb.rpc('time_comercial'),sb.from('ana_canal').select('id',{count:'exact',head:true}).in('status',['pendente','aguardando_ok'])]);
-    if(error)throw error;DADOS=r;ERRO=null;aplicar(r||{},count||0);
+    const [{data:r,error},{count},{data:ms},{count:leoN}]=await Promise.all([sb.rpc('time_comercial'),sb.from('ana_canal').select('id',{count:'exact',head:true}).in('status',['pendente','aguardando_ok']),
+      sb.from('agentes_manuais').select('id,secoes'),sb.from('outreach_leads').select('place_id',{count:'exact',head:true}).eq('wa_status','pendente').eq('leo_status','pendente').in('msg_status',['sem','gerando'])]);
+    if(error)throw error;DADOS=r;ERRO=null;(ms||[]).forEach(m=>MANUAIS[m.id]=m.secoes||[]);LEO_PENDENTES=leoN||0;aplicar(r||{},count||0);
   }catch(e){ERRO='Não consegui carregar os números agora. Tento de novo em 1 minuto.';console.error(e)}
   funil();montarFlow();pintarFila();pintarAgenda();pintarCanal();
 }

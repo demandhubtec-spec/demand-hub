@@ -39,6 +39,8 @@ export interface OutreachLead {
   wa_recado?: string | null;
   enriquecimento?: { etapa: string; fontes?: Record<string, string> } | null;
   enriquecido_em?: string | null;
+  leo_status?: "pendente" | "aprovado" | "descartado" | null;
+  leo_decidido_em?: string | null;
   avaliacoes: number | null;
   observacoes: string | null;
   origem: string | null;
@@ -141,6 +143,7 @@ export interface OutreachConfig {
   followup_daily_cap: number;
   retomar_dias: number;
   apify_teto_usd?: number;
+  leo_teto_usd?: number;
   // Prospecção automática
   auto_ativo?: boolean | null;
   auto_uf?: string | null;

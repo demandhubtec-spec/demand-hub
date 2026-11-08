@@ -58,6 +58,17 @@ test("consultas do Léo: só busca o que falta", () => {
   const base = { place_id: "p", empresa: "Sorriso Feliz", cidade: "Indaiatuba", whatsapp: null, site: null, instagram: null, email: null, linkedin_empresa: null, cnpj: null, socios: null, decisor: null, enriquecimento: null };
   assert.deepEqual(consultasPara("busca", base), ['"Sorriso Feliz" Indaiatuba CNPJ', "Sorriso Feliz Indaiatuba instagram"]);
   assert.deepEqual(consultasPara("busca", { ...base, cnpj: "1", instagram: "https://www.instagram.com/x/" }), []);
+  assert.deepEqual(consultasPara("busca", { ...base, site: "https://sorrisofeliz.com.br" }), ['"Sorriso Feliz" Indaiatuba CNPJ']);
   assert.deepEqual(consultasPara("perfil", { ...base, instagram: "https://www.instagram.com/sorrisofeliz/" }), ["sorrisofeliz"]);
-  assert.deepEqual(consultasPara("dono", { ...base, socios: [{ nome: "Maria Souza", qualificacao: "Sócio-Administrador" }] }), ['"Maria Souza" linkedin', '"Maria Souza" Indaiatuba instagram']);
+  assert.deepEqual(consultasPara("dono", { ...base, socios: [{ nome: "Maria Souza", qualificacao: "Sócio-Administrador" }] }), ['"Maria Souza" Indaiatuba linkedin instagram']);
+});
+
+test("planilha do Léo: cabeçalho e aspas onde precisa", async () => {
+  const { listaEmCsv } = await import("../src/lib/leo-planilha.ts");
+  const csv = listaEmCsv([{ empresa: 'Clínica "Boa", Saúde', leo_status: "pendente", cnpj: "11222333000181", socios: [{ nome: "Maria Souza" }], site_fonte: "instagram", site: "https://x.com.br" }]);
+  const [cab, linha] = csv.split("\n");
+  assert.match(cab, /^Situação na lista,Empresa,/);
+  assert.match(linha, /^Aguardando sua aprovação,"Clínica ""Boa"", Saúde",/);
+  assert.match(linha, /11\.222\.333\/0001-81/);
+  assert.match(linha, /Bio do Instagram/);
 });

@@ -18,6 +18,7 @@ import { ConversasTab } from "./crm/ConversasTab";
 import { CanalTab } from "./crm/CanalTab";
 import { PlaybookTab } from "./time/PlaybookTab";
 import { FunilKanban } from "./time/FunilKanban";
+import { ListaDoLeo } from "./time/ListaDoLeo";
 
 export const ABAS_TIME = ["central", "aprovacao", "envios", "funil", "conversas", "contatos", "ana", "playbook", "config"] as const;
 export type AbaTime = (typeof ABAS_TIME)[number];
@@ -66,7 +67,9 @@ export default function TimeComercial() {
   if (isColaborador || (perfil && perfil.papel !== "dono")) return <Navigate to="/" replace />;
 
   const esperando = canal.filter((m) => m.status === "pendente" || m.status === "aguardando_ok").length;
-  const paraRevisar = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "rascunho").length;
+  const paraRevisar =
+    leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "rascunho").length +
+    leads.filter((l) => l.wa_status === "pendente" && l.leo_status === "pendente" && ["sem", "gerando"].includes(l.msg_status)).length;
   const abrirConversa = (id: string) => irPara("conversas", { lead: id });
 
   return (
@@ -94,7 +97,7 @@ export default function TimeComercial() {
         />
       </TabsContent>
       <TabsContent value="aprovacao">
-        <AprovacaoTab />
+        <Aprovacoes />
       </TabsContent>
       <TabsContent value="envios">
         <NumerosEnvio />
@@ -119,6 +122,31 @@ export default function TimeComercial() {
         <Configuracoes />
       </TabsContent>
     </Tabs>
+  );
+}
+
+/**
+ * Aprovações por etapa do time: primeiro a lista do Léo, depois o raio-x e as mensagens (Rita, Bia e Rui).
+ * Nada segue para a próxima etapa sem o seu ok.
+ */
+function Aprovacoes() {
+  const { data: leads = [] } = useOutreachLeads();
+  const naFila = leads.filter((l) => l.wa_status === "pendente");
+  const leo = naFila.filter((l) => l.leo_status === "pendente" && ["sem", "gerando"].includes(l.msg_status)).length;
+  const msgs = naFila.filter((l) => l.msg_status === "rascunho").length;
+  const [visao, setVisao] = React.useState<"leo" | "mensagens">(leo || !msgs ? "leo" : "mensagens");
+  return (
+    <div>
+      <Segmented
+        value={visao}
+        onChange={setVisao}
+        opcoes={[
+          { value: "leo", label: `1. Lista do Léo${leo ? ` (${leo})` : ""}` },
+          { value: "mensagens", label: `2. Raio-x e mensagens · Rita, Bia e Rui${msgs ? ` (${msgs})` : ""}` },
+        ]}
+      />
+      {visao === "leo" ? <ListaDoLeo /> : <AprovacaoTab />}
+    </div>
   );
 }
 

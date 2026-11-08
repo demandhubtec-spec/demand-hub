@@ -51,6 +51,7 @@ interface LeadLeo {
   place_id: string;
   empresa: string;
   cidade: string | null;
+  wa_status?: string | null;
   whatsapp: string | null;
   site: string | null;
   instagram: string | null;
@@ -70,7 +71,7 @@ interface ColetaLeo {
   iniciada_em: string;
 }
 
-const CAMPOS = "place_id,empresa,cidade,whatsapp,site,instagram,email,linkedin_empresa,cnpj,socios,decisor,enriquecimento";
+const CAMPOS = "place_id,empresa,cidade,wa_status,whatsapp,site,instagram,email,linkedin_empresa,cnpj,socios,decisor,enriquecimento";
 const apifyToken = () => process.env.APIFY_TOKEN || "";
 
 async function apify<T>(caminho: string, init?: RequestInit): Promise<T> {
@@ -85,6 +86,9 @@ const log = (msg: string, extra: Record<string, unknown> = {}) => db().from("out
 async function salvar(placeId: string, patch: Record<string, unknown>) {
   await db().from("outreach_leads").update(patch).eq("place_id", placeId);
 }
+
+/** Ficha completa: vai para a aprovação do Kelvin (lista do Léo). */
+const fichaPronta = () => ({ enriquecido_em: new Date().toISOString(), leo_status: "pendente" });
 
 /** Receita Federal pela BrasilAPI (gratuita). */
 export async function consultarCnpj(cnpj: string): Promise<DadosCnpj | null> {
@@ -183,9 +187,11 @@ async function passosGratuitos(lead: LeadLeo): Promise<void> {
   const temInstagram = !!(lead.instagram || patch.instagram);
   const temSocios = !!receita?.socios.length || !!lead.socios?.length;
   estado.etapa = !receita || (!site && !temInstagram) ? "busca" : !site && temInstagram ? "perfil" : temSocios ? "dono" : "ok";
+  // Pesquisa paga só para quem ainda vai ser abordado; quem já está em conversa fica com o que os passos gratuitos acharam
+  if (lead.wa_status && lead.wa_status !== "pendente") estado.etapa = "ok";
   patch.site_fonte = estado.fontes!.site ?? null;
   patch.enriquecimento = estado;
-  if (estado.etapa === "ok") patch.enriquecido_em = new Date().toISOString();
+  if (estado.etapa === "ok") Object.assign(patch, fichaPronta());
   await salvar(lead.place_id, patch);
 }
 
@@ -196,7 +202,8 @@ export function consultasPara(tipo: ColetaLeo["tipo"], lead: LeadLeo): string[] 
   if (tipo === "busca") {
     const q: string[] = [];
     if (!lead.cnpj) q.push(`"${nome}" ${cidade} CNPJ`);
-    if (!lead.instagram) q.push(`${nome} ${cidade} instagram`);
+    // Instagram só quando falta site e Instagram (quem tem site quase sempre mostra o Instagram nele)
+    if (!lead.instagram && semSiteProprio(lead.site)) q.push(`${nome} ${cidade} instagram`);
     return q;
   }
   if (tipo === "perfil") {
@@ -205,13 +212,27 @@ export function consultasPara(tipo: ColetaLeo["tipo"], lead: LeadLeo): string[] 
   }
   const dono = donoDoQsa(lead.socios ?? []);
   if (!dono) return [];
-  return [`"${dono.nome}" linkedin`, `"${dono.nome}" ${cidade} instagram`];
+  // Uma pesquisa só: os resultados trazem LinkedIn e Instagram juntos
+  return [`"${dono.nome}" ${cidade} linkedin instagram`];
 }
 
-async function custoDoMes(): Promise<{ gasto: number; teto: number }> {
-  const { data } = await db().rpc("outreach_orcamento");
+/** Gasto do mês no Apify: total (coleta + Léo) e só do Léo, com os dois tetos. */
+async function custoDoMes(): Promise<{ gasto: number; teto: number; gastoLeo: number; tetoLeo: number }> {
+  const inicio = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  inicio.setDate(1);
+  inicio.setHours(0, 0, 0, 0);
+  const [{ data }, { data: cfg }, { data: leo }] = await Promise.all([
+    db().rpc("outreach_orcamento"),
+    db().from("outreach_config").select("leo_teto_usd").eq("id", 1).single(),
+    db().from("outreach_coletas").select("custo_usd").like("observacoes", "Léo:%").gte("executada_em", new Date(inicio.getTime() + 3 * 3600e3).toISOString()),
+  ]);
   const o = (data ?? {}) as { gasto_usd?: number; teto_usd?: number };
-  return { gasto: Number(o.gasto_usd ?? 0), teto: Number(o.teto_usd ?? 4) };
+  return {
+    gasto: Number(o.gasto_usd ?? 0),
+    teto: Number(o.teto_usd ?? 4),
+    gastoLeo: ((leo ?? []) as { custo_usd: number }[]).reduce((a, x) => a + Number(x.custo_usd ?? 0), 0),
+    tetoLeo: Number((cfg as { leo_teto_usd?: number } | null)?.leo_teto_usd ?? 1.5),
+  };
 }
 
 /** Começa a próxima coleta do Apify (uma por vez). */
@@ -222,6 +243,7 @@ async function iniciarColeta(): Promise<string | null> {
       .from("outreach_leads")
       .select(CAMPOS)
       .eq("enriquecimento->>etapa", tipo)
+      .eq("wa_status", "pendente") // pesquisa paga só para quem ainda vai ser abordado
       .order("created_at", { ascending: false })
       .limit(POR_COLETA);
     const leads = (data ?? []) as LeadLeo[];
@@ -234,10 +256,12 @@ async function iniciarColeta(): Promise<string | null> {
     const total = Object.values(consultas).flat();
     if (!total.length) continue;
 
-    const { gasto, teto } = await custoDoMes();
+    const { gasto, teto, gastoLeo, tetoLeo } = await custoDoMes();
     const estimativa = total.length * (tipo === "perfil" ? CUSTO_PERFIL : CUSTO_BUSCA);
-    if (gasto + estimativa > teto) {
-      await log(`Léo parou de pesquisar: teto do Apify do mês atingido (US$ ${gasto.toFixed(2)} de ${teto})`);
+    if (gasto + estimativa > teto || gastoLeo + estimativa > tetoLeo) {
+      await log(`Léo pausou as pesquisas pagas: teto do mês (Léo US$ ${gastoLeo.toFixed(2)} de ${tetoLeo}; Apify US$ ${gasto.toFixed(2)} de ${teto}). Os passos gratuitos continuam.`);
+      // sem pesquisa paga: segue com o que tem, para a lista não travar
+      for (const l of leads.filter((x) => consultas[x.place_id])) await avancar(l, tipo, {});
       return null;
     }
     const input =
@@ -267,7 +291,7 @@ async function avancar(lead: LeadLeo, de: ColetaLeo["tipo"], patch: Record<strin
   if (de === "busca") proxima = !site && instagram ? "perfil" : socios.length ? "dono" : "ok";
   else if (de === "perfil") proxima = socios.length ? "dono" : "ok";
   atual.etapa = proxima;
-  await salvar(lead.place_id, { ...patch, enriquecimento: atual, ...(proxima === "ok" ? { enriquecido_em: new Date().toISOString() } : {}) });
+  await salvar(lead.place_id, { ...patch, enriquecimento: atual, ...(proxima === "ok" ? fichaPronta() : {}) });
 }
 
 /** Lê a coleta que terminou e aplica nos leads. */

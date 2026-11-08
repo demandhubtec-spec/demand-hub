@@ -26,7 +26,7 @@ import {
 import { gerarDirect, gerarSite, semSiteProprio, type SitePreview } from "@/src/lib/extras.ts";
 import { contatosDoSite } from "@/src/lib/enriquecer.ts";
 import { env } from "@/src/lib/env.ts";
-import { carregarPlaybook } from "@/src/lib/playbook.ts";
+import { carregarPlaybook, manuaisAtuais } from "@/src/lib/playbook.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -49,8 +49,11 @@ const LOTE = 5;
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
 async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null }, diag: ReturnType<typeof diagnosticar>): Promise<Toque[]> {
   const pb = await carregarPlaybook();
-  const comPlaybook = (t: string) => (pb ? `${t}\n\n## Playbook comercial do Kelvin (siga sempre)\n${pb}` : t);
-  const system = comPlaybook(promptSequencia(lead, diag));
+  const comPlaybook = (t: string, quem: string) => {
+    const manual = manuaisAtuais(quem);
+    return `${t}${pb ? `\n\n## Playbook comercial do Kelvin (siga sempre)\n${pb}` : ""}${manual ? `\n\n${manual}` : ""}`;
+  };
+  const system = comPlaybook(promptSequencia(lead, diag), "bia");
   const pedir = async (extra = "") => {
     const res = await callLLM({
       system,
@@ -64,7 +67,7 @@ async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null 
 
   // 2ª etapa: revisor de copy (SPIN, gatilhos, sem repetição, sem cara de IA)
   const revisada = await callLLM({
-    system: comPlaybook(promptRevisaoSequencia(lead, diag, rascunho)),
+    system: comPlaybook(promptRevisaoSequencia(lead, diag, rascunho), "rui"),
     messages: [{ role: "user", content: "Revise e devolva a versão final." }],
     maxTokens: 6000,
     json: true,
@@ -102,7 +105,8 @@ export async function POST(req: Request) {
   let q = db().from("outreach_leads").select(CAMPOS);
   if (followups) q = q.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`).order("proximo_toque_em").limit(LOTE);
   else if (body.place_ids?.length) q = q.in("place_id", body.place_ids.slice(0, LOTE));
-  else q = q.eq("wa_status", "pendente").eq("msg_status", "sem").order("prioridade").order("created_at").limit(LOTE);
+  // Só escreve para quem o Kelvin aprovou na lista do Léo (Time Comercial IA, 08/11/2026)
+  else q = q.eq("wa_status", "pendente").eq("msg_status", "sem").eq("leo_status", "aprovado").order("prioridade").order("created_at").limit(LOTE);
   const { data: leads, error } = await q;
   if (error) return json({ error: error.message }, 500);
 
@@ -193,6 +197,6 @@ export async function POST(req: Request) {
   const resto = db().from("outreach_leads").select("place_id", { count: "exact", head: true });
   const { count } = followups
     ? await resto.eq("cadencia", "ativa").eq("wa_status", "enviado").or(`msg_gerada_em.is.null,msg_gerada_em.lt.${desde}`)
-    : await resto.eq("wa_status", "pendente").eq("msg_status", "sem");
+    : await resto.eq("wa_status", "pendente").eq("msg_status", "sem").eq("leo_status", "aprovado");
   return json({ gerados, descartados, restantes: count ?? 0, erros });
 }
