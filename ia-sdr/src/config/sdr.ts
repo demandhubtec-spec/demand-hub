@@ -16,10 +16,10 @@ export const SDR_CONFIG = {
   },
 
   /** Nome que a IA usa ao se apresentar. */
-  nomeAssistente: "Ana",
+  nomeAssistente: "Gabi", // quem fala com o lead (08/11/2026: a Ana virou coordenadora interna)
   /** Cargo que aparece na assinatura de e-mail. */
   cargoAssistente: "Consultora estratégica de negócios",
-  /** WhatsApp da Ana (o número da instância que envia as mensagens). */
+  /** WhatsApp da Gabi (o número da instância que envia as mensagens). */
   whatsapp: { numero: "5519988259883", exibicao: "(19) 98825-9883" },
 
   /** Qualificação BANT */
