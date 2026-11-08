@@ -90,7 +90,7 @@ export function buildMime(to: string, subject: string, body: string, from?: stri
 
 export const REMETENTE_NOME = `${SDR_CONFIG.nomeAssistente} da DemandIA`;
 /** Foto da assinatura (hospedada no portal; troque o arquivo para mudar a foto). */
-export const FOTO_ASSINATURA = "https://portal.demandhub.com.br/brand/ana-email.jpg";
+export const FOTO_ASSINATURA = "https://portal.demandhub.com.br/brand/gabi-email.jpg";
 export const CARGO_ASSINATURA = SDR_CONFIG.cargoAssistente;
 export const SITE_ASSINATURA = "demandhub.com.br";
 const WA = SDR_CONFIG.whatsapp;
