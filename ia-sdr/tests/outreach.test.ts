@@ -150,29 +150,29 @@ test("cadência padrão: 6 toques em 10 dias, alternando WhatsApp e e-mail", () 
 test("montar sequência: junta a resposta da IA com a cadência e limpa o texto", () => {
   const resp = JSON.stringify({
     toques: [
-      { texto: "Tudo bem? Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil — 3º em avaliações.\n\nPosso te mandar?" },
+      { texto: "Tudo bem? Aqui é a Gabi, da DemandIA 🙂\n\nVi o perfil — 3º em avaliações.\n\nPosso te mandar?" },
       { assunto: "Perfil da X no Google", texto: "Diego, mandei mensagem no WhatsApp mais cedo." },
-      { texto: "Tudo bem? Aqui é a Ana de novo, da DemandIA.\n\nVi que falta o site no perfil.\n\nConseguiu ver?" },
+      { texto: "Tudo bem? Aqui é a Gabi de novo, da DemandIA.\n\nVi que falta o site no perfil.\n\nConseguiu ver?" },
       { assunto: "Uma coisa no perfil", texto: "Texto do segundo e-mail." },
-      { texto: "Tudo bem? Aqui é a Ana, da DemandIA. Separei uma dica rápida.\n\nResponda as avaliações.\n\nQuer o diagnóstico completo?" },
-      { texto: "Tudo bem? É a Ana, da DemandIA, de novo.\n\nNão vou insistir mais.\n\nPosso te procurar mais para frente?" },
+      { texto: "Tudo bem? Aqui é a Gabi, da DemandIA. Separei uma dica rápida.\n\nResponda as avaliações.\n\nQuer o diagnóstico completo?" },
+      { texto: "Tudo bem? É a Gabi, da DemandIA, de novo.\n\nNão vou insistir mais.\n\nPosso te procurar mais para frente?" },
     ],
   });
   const seq = montarSequencia("```json\n" + resp + "\n```");
   assert.equal(seq.length, 6);
-  assert.equal(seq[0].texto, "Tudo bem? Aqui é a Ana, da DemandIA 🙂\n\nVi o perfil, 3º em avaliações.\n\nPosso te mandar?");
+  assert.equal(seq[0].texto, "Tudo bem? Aqui é a Gabi, da DemandIA 🙂\n\nVi o perfil, 3º em avaliações.\n\nPosso te mandar?");
   assert.equal(seq[1].canal, "email");
   assert.equal(seq[1].assunto, "Perfil da X no Google");
   assert.equal(seq[5].dia, 10);
   assert.deepEqual(problemasDaSequencia(seq), []);
-  const comOi = seq.map((t, i) => (i === 0 ? { ...t, texto: "Oi, Diego, tudo bem? Aqui é a Ana." } : t));
+  const comOi = seq.map((t, i) => (i === 0 ? { ...t, texto: "Oi, Diego, tudo bem? Aqui é a Gabi." } : t));
   assert.ok(problemasDaSequencia(comOi).some((p) => p.includes("não repita oi")));
   const semPergunta = seq.map((t, i) => (i === 2 ? { ...t, texto: "Vi que falta o site no perfil. Conseguiu ver?" } : t));
   assert.ok(problemasDaSequencia(semPergunta).some((p) => p.includes("pergunta tem que ir sozinha")));
   const diretoAoPonto = seq.map((t, i) => (i === 4 ? { ...t, texto: "Uma dica: responda as avaliações.\n\nQuer o diagnóstico completo?" } : t));
   const probs = problemasDaSequencia(diretoAoPonto);
   assert.ok(probs.some((p) => p.includes("toque 5: precisa de exatamente 3 balões")));
-  assert.ok(probs.some((p) => p.includes("toque 5: o primeiro balão precisa ter a Ana")));
+  assert.ok(probs.some((p) => p.includes("toque 5: o primeiro balão precisa ter a Gabi")));
   assert.throws(() => montarSequencia('{"toques":[{"texto":"a"}]}'), /1 toques/);
 });
 
@@ -280,15 +280,15 @@ test("extras: prévia de site monta com dados reais e sem travessão", () => {
   assert.match(linkPrevia("abc12345", "https://x.app/"), /^https:\/\/x\.app\/previa\/abc12345$/);
 });
 
-test("extras: Direct apresenta a Ana e não cita o Kelvin", () => {
+test("extras: Direct apresenta a Gabi e não cita o Kelvin", () => {
   const p = promptDirect(base, diagnosticar(base, concs));
-  assert.match(p, /aqui é a Ana, da DemandIA/);
+  assert.match(p, /aqui é a Gabi, da DemandIA/);
   assert.doesNotMatch(p, /Kelvin/);
 });
 
 test("sequência: toque 1 sem apresentação vira problema", () => {
   const seq = montarSequencia(JSON.stringify({ toques: [1, 2, 3, 4, 5, 6].map((n) => ({ assunto: `A${n}`, texto: `Texto ${n}` })) }));
-  assert.ok(problemasDaSequencia(seq).some((p) => p.includes("toque 1: o primeiro balão precisa ter a Ana")));
+  assert.ok(problemasDaSequencia(seq).some((p) => p.includes("toque 1: o primeiro balão precisa ter a Gabi")));
 });
 
 import { pareceRespostaAutomatica } from "../src/lib/prospeccao.ts";

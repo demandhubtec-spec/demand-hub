@@ -1,5 +1,5 @@
 /**
- * Copywriting da Ana: SPIN Selling adaptado para a primeira conversa fria e gatilhos mentais usados
+ * Copywriting da Gabi: SPIN Selling adaptado para a primeira conversa fria e gatilhos mentais usados
  * com honestidade (nada de pressão falsa). Entra no prompt de quem escreve e no de quem revisa.
  */
 
@@ -34,9 +34,9 @@ export const ANGULOS = [
   "Despedida (break-up): avise que vai parar de escrever, deixe a porta aberta com uma pergunta de sim fácil. Costuma ser a mensagem mais respondida.",
 ];
 
-/** Instruções para a segunda etapa: revisar e melhorar a sequência que a Ana escreveu. */
+/** Instruções para a segunda etapa: revisar e melhorar a sequência que a Gabi escreveu. */
 export function promptRevisao(contexto: string, sequenciaJson: string): string {
-  return `Você é um revisor sênior de copywriting de vendas B2B no Brasil. Recebeu uma sequência de prospecção escrita pela Ana, da DemandIA, e vai devolver a versão final, melhorada.
+  return `Você é um revisor sênior de copywriting de vendas B2B no Brasil. Recebeu uma sequência de prospecção escrita pela Gabi, da DemandIA, e vai devolver a versão final, melhorada.
 
 ${GUIA_COPY}
 
@@ -53,9 +53,9 @@ ${ANGULOS.map((a, i) => `${i + 1}. ${a}`).join("\n")}
 4. Nenhum dado inventado; números iguais aos do diagnóstico.
 5. Soa como uma pessoa real escrevendo no WhatsApp ou num e-mail curto: natural, acentuação correta, pausas certas. Sem travessão, sem markdown, sem frases prontas, no máximo um ponto de exclamação. No WhatsApp, no máximo 1 emoji leve; no e-mail, nenhum.
 6. Termina com uma pergunta fácil de responder.
-7. Nenhum toque de WhatsApp repete "oi"/"bom dia" (a saudação vai sozinha antes de cada um): todos começam com "Tudo bem?" e a Ana se apresentando com o motivo do contato, nunca direto ao assunto. Sem nome de pessoa no texto do WhatsApp. No WhatsApp, a pergunta vai SEMPRE sozinha no último balão. Respeita os limites: toque 1 com exatamente 3 balões (apresentação e motivo, pré-análise, pergunta) e até 480 caracteres; toques 3, 5 e 6 também com exatamente 3 balões (a Ana se apresenta com contexto, o conteúdo, a pergunta), até 340, 440 e 300 caracteres; e-mails entre 60 e 140 palavras, sem assinatura.
+7. Nenhum toque de WhatsApp repete "oi"/"bom dia" (a saudação vai sozinha antes de cada um): todos começam com "Tudo bem?" e a Gabi se apresentando com o motivo do contato, nunca direto ao assunto. Sem nome de pessoa no texto do WhatsApp. No WhatsApp, a pergunta vai SEMPRE sozinha no último balão. Respeita os limites: toque 1 com exatamente 3 balões (apresentação e motivo, pré-análise, pergunta) e até 480 caracteres; toques 3, 5 e 6 também com exatamente 3 balões (a Gabi se apresenta com contexto, o conteúdo, a pergunta), até 340, 440 e 300 caracteres; e-mails entre 60 e 140 palavras, sem assinatura.
 8. A empresa é chamada pelo nome curto na primeira menção; depois "vocês".
-9. O toque 1 se apresenta no balão 1 ("Tudo bem? Aqui é a Ana, da DemandIA"), de forma simpática e enxuta.
+9. O toque 1 se apresenta no balão 1 ("Tudo bem? Aqui é a Gabi, da DemandIA"), de forma simpática e enxuta.
 10. Ninguém da equipe é citado pelo nome: quem faz o diagnóstico é "nosso especialista em presença digital".
 11. Se a sequência oferece uma prévia gratuita de site, mantenha essa oferta.
 12. E-mails: assunto de 3 a 7 palavras que desperta curiosidade com algo específico (nome da empresa ou número real), sem cara de propaganda; corpo enxuto; termina com UMA chamada para ação clara (responder o e-mail ou chamar no WhatsApp). Se faltar CTA, escreva.

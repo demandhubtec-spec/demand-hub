@@ -31,7 +31,7 @@ export type EtapaOutbound = (typeof COLUNAS_OUTBOUND)[number]["key"];
 
 export const COLUNAS_INBOUND = [
   { key: "recebido", label: "Mensagem recebida / cadastro", dica: "Chegou pelo anúncio, site ou WhatsApp" },
-  { key: "atendimento", label: "Em atendimento", dica: "A Ana já está conversando" },
+  { key: "atendimento", label: "Em atendimento", dica: "A Gabi já está conversando" },
   { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
   { key: "reuniao", label: "Reunião agendada", dica: "Está na sua agenda" },
   { key: "reuniao_realizada", label: "Reunião realizada", dica: "Conversou com você" },

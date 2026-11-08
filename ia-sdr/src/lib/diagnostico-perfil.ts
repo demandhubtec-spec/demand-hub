@@ -147,17 +147,17 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 0, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Primeira abordagem no WhatsApp, como uma pessoa simpática e carismática escreveria. A saudação (\"Oi, {nome}, boa tarde! 🙂\") já vai sozinha antes e a Ana espera uns segundos, então NÃO repita \"oi\" nem \"boa tarde\". Exatamente 3 balões separados por uma linha em branco. Balão 1 (curto, uma ou duas frases): \"Tudo bem? Aqui é a Ana, da DemandIA 😊\" e o motivo do contato de forma bem enxuta (ex.: \"A gente ajuda empresas de {cidade} a atrair mais clientes pelo Google, e fiz uma análise rápida da presença digital de vocês.\"). Balão 2 (uma ou duas frases, objetivo): o que a pré-análise mostrou, com números do Google Meu Negócio (posição frente aos concorrentes, avaliações) e, se couber, site ou Instagram: 1 ponto forte e 1 oportunidade. Balão 3: SÓ a pergunta, curta e fácil de responder. Quem lê costuma ser a recepção, então dê os dois caminhos numa pergunta só (ex.: \"Consegue me passar pra quem cuida do marketing aí, ou prefere que eu mande a análise por aqui mesmo?\"). Sem quebras de linha dentro de um balão. Máximo de 480 caracteres no total.",
+      "Primeira abordagem no WhatsApp, como uma pessoa simpática e carismática escreveria. A saudação (\"Oi, {nome}, boa tarde! 🙂\") já vai sozinha antes e a Gabi espera uns segundos, então NÃO repita \"oi\" nem \"boa tarde\". Exatamente 3 balões separados por uma linha em branco. Balão 1 (curto, uma ou duas frases): \"Tudo bem? Aqui é a Gabi, da DemandIA 😊\" e o motivo do contato de forma bem enxuta (ex.: \"A gente ajuda empresas de {cidade} a atrair mais clientes pelo Google, e fiz uma análise rápida da presença digital de vocês.\"). Balão 2 (uma ou duas frases, objetivo): o que a pré-análise mostrou, com números do Google Meu Negócio (posição frente aos concorrentes, avaliações) e, se couber, site ou Instagram: 1 ponto forte e 1 oportunidade. Balão 3: SÓ a pergunta, curta e fácil de responder. Quem lê costuma ser a recepção, então dê os dois caminhos numa pergunta só (ex.: \"Consegue me passar pra quem cuida do marketing aí, ou prefere que eu mande a análise por aqui mesmo?\"). Sem quebras de linha dentro de um balão. Máximo de 480 caracteres no total.",
   },
   {
     dia: 0, periodo: "tarde", canal: "email",
     objetivo:
-      "Primeiro e-mail, no mesmo dia do WhatsApp. Bem enxuto e direto ao ponto: 1 frase de apresentação (\"Sou a Ana, da DemandIA. Te chamei no WhatsApp hoje cedo.\"), depois o achado mais forte do diagnóstico com o número exato e o que ele causa na prática (clientes escolhendo o concorrente no Google), depois a oferta: diagnóstico gratuito de 30 minutos com um dos nossos especialistas, sem compromisso. Termine com UMA chamada para ação clara e fácil, por exemplo: \"Quer que eu reserve um horário? É só responder este e-mail com um sim ou me chamar no WhatsApp {whatsapp}.\" Entre 50 e 100 palavras, parágrafos de no máximo 2 linhas. ASSUNTO: chama atenção pela curiosidade e pela especificidade, com 3 a 7 palavras, com o nome curto da empresa ou um número real do diagnóstico (ex.: \"{empresa} x concorrentes no Google\", \"O que separa a {empresa} do 1º lugar\"). Sem cara de propaganda, sem ponto de exclamação, sem as palavras grátis, promoção ou oferta no assunto. Não assine: a assinatura entra sozinha.",
+      "Primeiro e-mail, no mesmo dia do WhatsApp. Bem enxuto e direto ao ponto: 1 frase de apresentação (\"Sou a Gabi, da DemandIA. Te chamei no WhatsApp hoje cedo.\"), depois o achado mais forte do diagnóstico com o número exato e o que ele causa na prática (clientes escolhendo o concorrente no Google), depois a oferta: diagnóstico gratuito de 30 minutos com um dos nossos especialistas, sem compromisso. Termine com UMA chamada para ação clara e fácil, por exemplo: \"Quer que eu reserve um horário? É só responder este e-mail com um sim ou me chamar no WhatsApp {whatsapp}.\" Entre 50 e 100 palavras, parágrafos de no máximo 2 linhas. ASSUNTO: chama atenção pela curiosidade e pela especificidade, com 3 a 7 palavras, com o nome curto da empresa ou um número real do diagnóstico (ex.: \"{empresa} x concorrentes no Google\", \"O que separa a {empresa} do 1º lugar\"). Sem cara de propaganda, sem ponto de exclamação, sem as palavras grátis, promoção ou oferta no assunto. Não assine: a assinatura entra sozinha.",
   },
   {
     dia: 2, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Follow-up no WhatsApp, com jogo de cintura. A saudação (\"Oi, boa tarde! 🙂\") já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões. Balão 1: \"Tudo bem? Aqui é a Ana de novo, da DemandIA 😊\" e uma frase leve que retoma o contato, sem cobrar (ex.: \"Te chamei esses dias sobre o perfil de vocês no Google e fiquei pensando numa coisa.\"). Balão 2: um fato do diagnóstico diferente do toque 1, ou o efeito prático dele para quem procura {nicho_plural} em {cidade}, em uma ou duas frases. Balão 3: SÓ uma pergunta simples. Até 340 caracteres no total. Não diga \"só para lembrar\" nem \"não tive retorno\".",
+      "Follow-up no WhatsApp, com jogo de cintura. A saudação (\"Oi, boa tarde! 🙂\") já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões. Balão 1: \"Tudo bem? Aqui é a Gabi de novo, da DemandIA 😊\" e uma frase leve que retoma o contato, sem cobrar (ex.: \"Te chamei esses dias sobre o perfil de vocês no Google e fiquei pensando numa coisa.\"). Balão 2: um fato do diagnóstico diferente do toque 1, ou o efeito prático dele para quem procura {nicho_plural} em {cidade}, em uma ou duas frases. Balão 3: SÓ uma pergunta simples. Até 340 caracteres no total. Não diga \"só para lembrar\" nem \"não tive retorno\".",
   },
   {
     dia: 4, periodo: "manha", canal: "email",
@@ -167,12 +167,12 @@ export const CADENCIA: PassoCadencia[] = [
   {
     dia: 7, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Follow-up no WhatsApp com UMA dica de presente. A saudação já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões. Balão 1: \"Tudo bem? Aqui é a Ana, da DemandIA\" e que está passando para deixar uma dica rápida para o perfil de vocês no Google, de presente (ex.: \"Tudo bem? Aqui é a Ana, da DemandIA. Olhando o perfil de vocês de novo, separei uma dica rápida que dá pra aplicar hoje 😊\"). Balão 2: a dica prática, específica e gratuita, ligada a uma oportunidade do diagnóstico (ex.: pedir avaliação ao fim do atendimento com o link direto, responder as avaliações recentes, subir fotos novas, completar a descrição). Nada genérico como \"mantenha o perfil atualizado\". Balão 3: SÓ a pergunta oferecendo o diagnóstico completo. Até 440 caracteres.",
+      "Follow-up no WhatsApp com UMA dica de presente. A saudação já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões. Balão 1: \"Tudo bem? Aqui é a Gabi, da DemandIA\" e que está passando para deixar uma dica rápida para o perfil de vocês no Google, de presente (ex.: \"Tudo bem? Aqui é a Gabi, da DemandIA. Olhando o perfil de vocês de novo, separei uma dica rápida que dá pra aplicar hoje 😊\"). Balão 2: a dica prática, específica e gratuita, ligada a uma oportunidade do diagnóstico (ex.: pedir avaliação ao fim do atendimento com o link direto, responder as avaliações recentes, subir fotos novas, completar a descrição). Nada genérico como \"mantenha o perfil atualizado\". Balão 3: SÓ a pergunta oferecendo o diagnóstico completo. Até 440 caracteres.",
   },
   {
     dia: 10, periodo: "manha", canal: "whatsapp",
     objetivo:
-      "Despedida educada no WhatsApp. A saudação já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões curtos. Balão 1: \"Tudo bem? É a Ana, da DemandIA, de novo\" e uma frase gentil que entende a correria (ex.: \"Imagino que a rotina aí esteja corrida.\"). Balão 2: diga que não vai mais insistir e deixe a porta aberta para o diagnóstico quando fizer sentido. Balão 3: SÓ a pergunta se pode procurar mais para frente. Até 300 caracteres. Sem drama e sem culpa.",
+      "Despedida educada no WhatsApp. A saudação já vai sozinha antes, então NÃO repita oi nem bom dia. Exatamente 3 balões curtos. Balão 1: \"Tudo bem? É a Gabi, da DemandIA, de novo\" e uma frase gentil que entende a correria (ex.: \"Imagino que a rotina aí esteja corrida.\"). Balão 2: diga que não vai mais insistir e deixe a porta aberta para o diagnóstico quando fizer sentido. Balão 3: SÓ a pergunta se pode procurar mais para frente. Até 300 caracteres. Sem drama e sem culpa.",
   },
 ];
 
@@ -223,7 +223,7 @@ ${REGRAS_DE_ESTILO}
 - Não trate como ponto forte algo que está em "oportunidades" (ex.: se o número de avaliações está abaixo da média, não diga "já tem X avaliações" como elogio).
 - Os toques precisam ser diferentes entre si: não repita a mesma frase, o mesmo fato com as mesmas palavras ou a mesma abertura.
 - No WhatsApp, quando quiser mais de um balão, separe por uma linha em branco.
-- Em TODO toque de WhatsApp a saudação ("Oi, boa tarde! 🙂") vai sozinha antes, então nenhum deles começa com oi, olá, bom dia ou boa tarde: o balão 1 começa com "Tudo bem?" e a Ana se apresenta ("Aqui é a Ana, da DemandIA", ou "a Ana de novo" nos seguintes), com o motivo do contato. Nunca vá direto ao assunto sem esse contexto.
+- Em TODO toque de WhatsApp a saudação ("Oi, boa tarde! 🙂") vai sozinha antes, então nenhum deles começa com oi, olá, bom dia ou boa tarde: o balão 1 começa com "Tudo bem?" e a Gabi se apresenta ("Aqui é a Gabi, da DemandIA", ou "a Gabi de novo" nos seguintes), com o motivo do contato. Nunca vá direto ao assunto sem esse contexto.
 - Não use o nome de pessoa nos textos de WhatsApp: a saudação já cuida disso, e muitas vezes quem lê é a recepção.
 - No WhatsApp, a pergunta (chamada para ação) vai SEMPRE sozinha no último balão, curta.
 - E-mails: assunto que dá vontade de abrir (curioso e específico, nunca genérico como "Perfil da empresa no Google"), corpo enxuto e SEMPRE uma chamada para ação clara no fim (responder o e-mail ou chamar no WhatsApp ${C.whatsapp.exibicao}).${semSite ? `
@@ -270,7 +270,7 @@ export function problemasDaSequencia(seq: Toque[]): string[] {
     if (b.length < 2 || !ultimo.includes("?") || ultimo.length > 140) out.push(`toque ${t.n + 1}: a pergunta tem que ir sozinha no último balão, curta`);
     if (b.length !== 3) out.push(`toque ${t.n + 1}: precisa de exatamente 3 balões (apresentação e contexto, conteúdo, pergunta)`);
     if (/^\s*(oi|olá|ola|bom dia|boa tarde|boa noite)\b/i.test(t.texto)) out.push(`toque ${t.n + 1}: não repita oi/bom dia, a saudação já vai sozinha antes; comece com "Tudo bem?"`);
-    if (!/\bAna\b/.test(b[0] ?? "")) out.push(`toque ${t.n + 1}: o primeiro balão precisa ter a Ana se apresentando ("Aqui é a Ana, da DemandIA")`);
+    if (!/\bGabi\b/.test(b[0] ?? "")) out.push(`toque ${t.n + 1}: o primeiro balão precisa ter a Gabi se apresentando ("Aqui é a Gabi, da DemandIA")`);
   }
   for (const t of seq) if (t.canal === "email" && /\p{Extended_Pictographic}/u.test(`${t.assunto ?? ""} ${t.texto}`)) out.push(`toque ${t.n + 1}: e-mail sem emoji`);
   return out;
@@ -279,7 +279,7 @@ export function problemasDaSequencia(seq: Toque[]): string[] {
 const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
 
 /**
- * Quando a IA escreve o WhatsApp num bloco só, separa em 3 balões: a Ana se apresentando (com o contexto),
+ * Quando a IA escreve o WhatsApp num bloco só, separa em 3 balões: a Gabi se apresentando (com o contexto),
  * o conteúdo e a pergunta final sozinha.
  */
 export function separarEmBaloes(texto: string): string {
@@ -296,7 +296,7 @@ export function separarEmBaloes(texto: string): string {
   const frases = frasesDe(b.join(" "));
   if (frases.length < 3 || !frases[frases.length - 1].includes("?")) return texto;
   const pergunta = frases.pop() as string;
-  let i = frases.findIndex((f) => /\bAna\b/.test(f));
+  let i = frases.findIndex((f) => /\b(Ana|Gabi)\b/.test(f));
   if (i < 0) i = 0;
   while (i + 1 < frases.length - 1 && CONTEXTO.test(frases[i + 1])) i++;
   return [frases.slice(0, i + 1).join(" "), frases.slice(i + 1).join(" "), pergunta].filter(Boolean).join("\n\n");
