@@ -151,7 +151,8 @@ test("reels: comando do vídeo encadeia as cenas com transição e áudio mudo",
 test("fotos: copy nova usa a cena escrita pela Bia; copy antiga ganha cena tirada do texto", async () => {
   const { cenasDasFotos } = await import("../src/lib/estudio/fotos.ts");
   const nova = cenasDasFotos({ slides: [{ titulo: "Capa", foto: "recepcionista olhando o celular" }, { titulo: "Dois" }, { titulo: "Fim" }], legenda: "" }, "carrossel");
-  assert.equal(nova[0], "recepcionista olhando o celular");
+  assert.ok(nova[0]?.startsWith("recepcionista olhando o celular"));
+  assert.match(nova[0] ?? "", /situação desta lâmina: "Capa"/);
   assert.ok(nova[1]?.includes("Dois"));
   const reels = cenasDasFotos({ cenas: [{ tempo: "0-3s", texto_tela: "Seu *WhatsApp* demora" }, { tempo: "3-6s", texto_tela: "B" }], legenda: "", capa_titulo: "", prompt_video: "" }, "reels");
   assert.ok(reels[0]?.includes("Seu WhatsApp demora"));
@@ -162,7 +163,17 @@ test("foto: o prompt pede foto real, sem texto e no formato certo", async () => 
   const p = promptDaFoto("dona de clínica sorrindo com o celular", "vertical");
   assert.match(p, /dona de clínica sorrindo/);
   assert.match(p, /Sem nenhum texto/);
-  assert.match(p, /9:16/);
+  assert.match(p, /Enquadramento vertical com o assunto no centro/);
+  assert.match(promptDaFoto("dono no balcão", "paisagem"), /horizontal 3:2/);
+  assert.match(promptDaFoto("dono no balcão", "retrato"), /Nada cortado/);
+});
+
+test("carrossel: modelo de cada lâmina e formato da foto que não corta", async () => {
+  const { modelosDasLaminas, formatoDaFoto } = await import("../src/lib/estudio/fotos.ts");
+  const m = modelosDasLaminas(7, (i) => i !== 3);
+  assert.deepEqual(m, ["capa", "foto", "imersiva", "destaque", "foto", "imersiva", "chamada"]);
+  assert.equal(formatoDaFoto("foto"), "paisagem");
+  assert.equal(formatoDaFoto("capa"), "retrato");
 });
 
 test("fotos do Kelvin (feitas no ChatGPT dele) têm prioridade; com referência o prompt pede para seguir o estilo", async () => {
