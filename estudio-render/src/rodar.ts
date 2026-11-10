@@ -37,6 +37,12 @@ export function marcaDaArte(m: Marca | null | undefined): MarcaArte {
   };
 }
 
+/** Uma das trilhas do Manual de marca, sorteada por vídeo (sem trilha cadastrada, sai só com a narração). */
+export function sortearTrilha(m: Marca | null | undefined): string | null {
+  const lista = (m?.trilhas ?? []).map((t) => t?.trim()).filter((t): t is string => !!t && /^https?:\/\//.test(t));
+  return lista.length ? lista[Math.floor(Math.random() * lista.length)] : null;
+}
+
 const render: Renderizador = {
   async carrossel(c: CopyCarrossel, palavra, fotos, m) {
     const marca = marcaDaArte(m);
@@ -68,7 +74,7 @@ const render: Renderizador = {
     return renderReels({
       palavra,
       marca: marcaDaArte(m),
-      trilha: (m as (Marca & { trilha_url?: string }) | null | undefined)?.trilha_url?.trim() || null,
+      trilha: sortearTrilha(m),
       cenas: cenas.map((x, i) => {
         const fim = i === cenas.length - 1 ? 1.5 : 0.4;
         const voz = vozes[i];

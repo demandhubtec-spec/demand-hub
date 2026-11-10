@@ -887,7 +887,7 @@ function ManualDeMarca() {
   const rodar = useRodarAgente();
   const { showToast } = useToast();
   const [m, setM] = React.useState<Marca>({});
-  const [subindo, setSubindo] = React.useState<"logo" | "manual" | null>(null);
+  const [subindo, setSubindo] = React.useState<"logo" | "manual" | "trilha" | null>(null);
   React.useEffect(() => {
     if (config) setM(config.marca ?? {});
   }, [config]);
@@ -909,6 +909,27 @@ function ManualDeMarca() {
     } finally {
       setSubindo(null);
     }
+  };
+  const subirTrilhas = async (arquivos: FileList | null) => {
+    const lista = Array.from(arquivos ?? []);
+    if (!lista.length) return;
+    setSubindo("trilha");
+    try {
+      const links: string[] = [];
+      for (const a of lista) links.push(await subirArquivoDaMarca(a, "trilha"));
+      const nova: Marca = { ...m, trilhas: [...(m.trilhas ?? []), ...links] };
+      setM(nova);
+      gravar(nova, links.length > 1 ? `${links.length} trilhas salvas. Entram nos próximos reels.` : "Trilha salva. Entra nos próximos reels.");
+    } catch (e) {
+      showToast(`Não subiu: ${(e as Error).message}`);
+    } finally {
+      setSubindo(null);
+    }
+  };
+  const tirarTrilha = (url: string) => {
+    const nova: Marca = { ...m, trilhas: (m.trilhas ?? []).filter((t) => t !== url) };
+    setM(nova);
+    gravar(nova, "Trilha removida.");
   };
   const perfil = config.perfil_padrao ?? {};
 
@@ -944,6 +965,27 @@ function ManualDeMarca() {
               </label>
             </div>
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Trilhas do reels (MP3, instrumental)</Label>
+          <p className="text-[12.5px] text-muted">Cada reels sorteia uma destas e toca baixinho por baixo da narração. Pode gerar no Kairogen (Estúdio de Áudio, aba Trilha) e subir aqui.</p>
+          <div className="space-y-2">
+            {(m.trilhas ?? []).map((t, i) => (
+              <div key={t} className="flex items-center gap-3">
+                <span className="w-16 text-[12.5px] text-muted">Trilha {i + 1}</span>
+                <audio src={t} controls preload="none" className="h-8 max-w-[320px] flex-1" />
+                <button type="button" onClick={() => tirarTrilha(t)} className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-ink" aria-label="Remover trilha">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ))}
+            {!(m.trilhas ?? []).length ? <span className="text-[12.5px] text-muted">Sem trilha ainda. Os reels saem só com a narração.</span> : null}
+          </div>
+          <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface-2">
+            <Upload className="h-3.5 w-3.5" /> {subindo === "trilha" ? "Subindo…" : "Subir trilhas"}
+            <input type="file" multiple accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/aac,.mp3,.wav,.m4a" className="hidden" onChange={(e) => subirTrilhas(e.target.files)} />
+          </label>
         </div>
 
         <div>

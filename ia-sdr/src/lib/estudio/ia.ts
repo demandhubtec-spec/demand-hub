@@ -203,6 +203,8 @@ export interface Marca {
   tom?: string;
   regras?: string;
   assinatura?: string;
+  /** Trilhas de fundo do reels (links de MP3). O estúdio sorteia uma por vídeo. */
+  trilhas?: string[];
 }
 
 export interface PerfilPadrao {
