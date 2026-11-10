@@ -7,7 +7,7 @@
  *
  * Modelo: tenta o OPENAI_IMAGE_MODEL (se estiver na Vercel) e depois gpt-image-2, gpt-image-1.5, gpt-image-1 e gpt-image-1-mini,
  * guardando o primeiro que a conta aceitar (em 09/11 a conta respondeu que o gpt-image-1 "não existe").
- * Qualidade: OPENAI_IMAGE_QUALITY (low, medium, high; padrão medium).
+ * Qualidade: OPENAI_IMAGE_QUALITY (low, medium, high; padrão medium). Chave própria das fotos: OPENAI_IMAGE_KEY (opcional).
  */
 import { env } from "../env.ts";
 import type { Copy, CopyCarrossel, CopyReels } from "./ia.ts";
@@ -99,7 +99,8 @@ export async function gerarFoto(cena: string, formato: Formato = "retrato", refe
 }
 
 async function gerarFotoCom(modelo: string, cena: string, formato: Formato, referencias: Blob[]): Promise<string> {
-  const h = { Authorization: `Bearer ${env.openaiKey}` };
+  // Chave só das fotos (conta do Kelvin na OpenAI), se estiver na Vercel; senão a chave de sempre
+  const h = { Authorization: `Bearer ${process.env.OPENAI_IMAGE_KEY || env.openaiKey}` };
   if (referencias.length) {
     try {
       const f = new FormData();
