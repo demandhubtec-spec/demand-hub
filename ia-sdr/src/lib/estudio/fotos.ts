@@ -12,7 +12,30 @@
 import { env } from "../env.ts";
 import type { Copy, CopyCarrossel, CopyReels } from "./ia.ts";
 
-export type Formato = "retrato" | "vertical";
+/** retrato 2:3 (lâmina com foto cheia), paisagem 3:2 (lâmina com foto em cima), vertical (reels). */
+export type Formato = "retrato" | "paisagem" | "vertical";
+
+export type ModeloLamina = "capa" | "foto" | "imersiva" | "destaque" | "chamada";
+
+/**
+ * Modelo de cada lâmina do carrossel (usado pelo estúdio de produção): capa, miolo alternando foto em cima
+ * e foto cheia (ou destaque quando não tem foto) e a chamada no fim. Fica aqui para a foto já nascer no formato certo.
+ */
+export function modelosDasLaminas(total: number, temFoto: (i: number) => boolean): ModeloLamina[] {
+  let comFoto = 0;
+  return Array.from({ length: total }, (_, i) => {
+    if (i === 0) return "capa";
+    if (i === total - 1) return "chamada";
+    if (!temFoto(i)) return "destaque";
+    return comFoto++ % 2 === 0 ? "foto" : "imersiva";
+  });
+}
+
+/** Formato da foto pelo modelo da lâmina: a foto em cima é horizontal; as de fundo são em pé. Assim nada corta. */
+export const formatoDaFoto = (m: ModeloLamina): Formato => (m === "foto" ? "paisagem" : "retrato");
+
+const tamanho = (f: Formato) => (f === "paisagem" ? "1536x1024" : "1024x1536");
+const semAst = (t: string | null | undefined) => (t ?? "").replace(/\*/g, "").replace(/\s+/g, " ").trim();
 
 /** Fotos que o Kelvin fez no ChatGPT dele e subiu no portal (índice da lâmina/cena → link). Têm prioridade sobre a geração. */
 export function fotosManuais(copy: Copy): Map<number, string> {
@@ -26,11 +49,18 @@ export function fotosManuais(copy: Copy): Map<number, string> {
 export function cenasDasFotos(copy: Copy, formato: "carrossel" | "reels" | "estatico"): (string | null)[] {
   if (formato === "reels") {
     const cenas = ((copy as CopyReels).cenas ?? []).filter((x) => x.texto_tela?.trim()).slice(0, 10);
-    return cenas.map((c, i) => c.foto?.trim() || (i === 0 || i % 2 === 1 ? `cena real que represente: "${c.texto_tela.replace(/\*/g, "")}", numa clínica ou pequeno negócio brasileiro` : null));
+    return cenas.map((c, i) => {
+      const cena = c.foto?.trim() || (i === 0 || i % 2 === 1 ? "cena real numa clínica ou pequeno negócio brasileiro" : null);
+      return cena ? `${cena}. A foto precisa mostrar a situação desta frase do vídeo: "${semAst(c.texto_tela)}"` : null;
+    });
   }
   const slides = ((copy as CopyCarrossel).slides ?? []).filter((x) => x.titulo).slice(0, 10);
   const comFoto = new Set([0, 1, 3, 5, slides.length - 1]);
-  return slides.map((sl, i) => sl.foto?.trim() || (comFoto.has(i) ? `cena real que represente: "${`${sl.titulo} ${sl.texto ?? ""}`.replace(/\*/g, "").trim()}", numa clínica ou pequeno negócio brasileiro` : null));
+  return slides.map((sl, i) => {
+    const cena = sl.foto?.trim() || (comFoto.has(i) ? "cena real numa clínica ou pequeno negócio brasileiro" : null);
+    // A mensagem da lâmina vai junto: a foto tem que contar o que o título e o texto dizem (pedido do Kelvin, 10/11)
+    return cena ? `${cena}. A foto precisa mostrar a situação desta lâmina: "${semAst(sl.titulo)}${sl.texto ? `. ${semAst(sl.texto)}` : ""}"` : null;
+  });
 }
 
 /** Prompt final: a cena da copy + o padrão de foto da DemandIA. Puro, para os testes cobrirem. */
@@ -43,8 +73,11 @@ export function promptDaFoto(cena: string, formato: Formato, comReferencia = fal
     "Pessoas brasileiras reais, naturais, com textura de pele e expressão verdadeira; roupas e ambiente do dia a dia de clínicas, academias e pequenos negócios do Brasil.",
     "Câmera full frame, lente 50 mm, profundidade de campo rasa, luz natural suave, cores reais com um toque de luz roxa e violeta no ambiente (cores da marca).",
     formato === "vertical"
-      ? "Enquadramento vertical 9:16 com espaço livre no terço de baixo para texto."
-      : "Enquadramento vertical 2:3 com o assunto principal no centro e espaço livre na parte de baixo para texto.",
+      ? "Enquadramento vertical com o assunto no centro e espaço livre no terço de baixo para texto; as laterais podem ser recortadas, então nada importante perto das bordas."
+      : formato === "paisagem"
+        ? "Enquadramento horizontal 3:2, assunto principal inteiro e centralizado, com folga em todas as bordas."
+        : "Enquadramento vertical 2:3, assunto principal no centro e no terço de cima, espaço livre na parte de baixo para texto; o topo e a base podem ser recortados, então a cabeça fica com folga em cima.",
+    "Nada cortado: cabeça, mãos e celular inteiros dentro do quadro. A cena tem que ilustrar com clareza a mensagem descrita.",
     "Sem nenhum texto, letra, número, logotipo ou marca d'água na imagem. Nada de ilustração, 3D, robô ou aparência de imagem de IA.",
   ]
     .filter(Boolean)
@@ -106,7 +139,7 @@ async function gerarFotoCom(modelo: string, cena: string, formato: Formato, refe
       const f = new FormData();
       f.append("model", modelo);
       f.append("prompt", promptDaFoto(cena, formato, true));
-      f.append("size", "1024x1536");
+      f.append("size", tamanho(formato));
       f.append("quality", qualidade());
       f.append("output_format", "jpeg");
       f.append("n", "1");
@@ -120,7 +153,7 @@ async function gerarFotoCom(modelo: string, cena: string, formato: Formato, refe
   const r = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { ...h, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: modelo, prompt: promptDaFoto(cena, formato), size: "1024x1536", quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
+    body: JSON.stringify({ model: modelo, prompt: promptDaFoto(cena, formato), size: tamanho(formato), quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
     signal: AbortSignal.timeout(150_000),
   });
   return lerResposta(r);
@@ -159,7 +192,7 @@ async function baixarComoDataUrl(url: string): Promise<string | null> {
  */
 export async function gerarFotos(
   cenas: (string | undefined | null)[],
-  formato: Formato,
+  formato: Formato | ((indice: number) => Formato),
   limite = 5,
   opts: { referencias?: Blob[]; manuais?: Map<number, string> } = {},
 ): Promise<{ fotos: Map<number, string>; erro: string | null }> {
@@ -177,7 +210,7 @@ export async function gerarFotos(
   await Promise.all(
     pedidos.map(async ({ i, c }) => {
       try {
-        fotos.set(i, await gerarFoto(c, formato, opts.referencias ?? []));
+        fotos.set(i, await gerarFoto(c, typeof formato === "function" ? formato(i) : formato, opts.referencias ?? []));
       } catch (e) {
         erro ??= String((e as Error).message);
       }

@@ -9,7 +9,9 @@ import { lerConfig, rodarDiretor, type Renderizador } from "../../ia-sdr/src/lib
 import type { CopyCarrossel, CopyReels, Marca } from "../../ia-sdr/src/lib/estudio/ia.ts";
 import { duracaoDaCena } from "../../ia-sdr/src/lib/estudio/video-args.ts";
 import { renderLamina, renderReels } from "./render.ts";
-import { MARCA_PADRAO, type MarcaArte, type PropsLamina, type TipoLamina } from "./remotion/tipos.ts";
+import { modelosDasLaminas } from "../../ia-sdr/src/lib/estudio/fotos.ts";
+import { narrar } from "./voz.ts";
+import { MARCA_PADRAO, type MarcaArte, type PropsLamina } from "./remotion/tipos.ts";
 
 const hex = (c: string | undefined) => (c && /^#[0-9a-f]{3,8}$/i.test(c.trim()) ? c.trim() : undefined);
 /** "Montserrat Bold" → "montserrat" (nome no Fontsource). */
@@ -33,17 +35,6 @@ export function marcaDaArte(m: Marca | null | undefined): MarcaArte {
     assinatura: m?.assinatura?.trim() || p.assinatura,
     arroba: p.arroba,
   };
-}
-
-/** Qual modelo cada lâmina usa: capa, miolo alternando foto em cima e foto cheia (ou destaque sem foto), chamada. */
-export function modelosDasLaminas(total: number, temFoto: (i: number) => boolean): TipoLamina[] {
-  let comFoto = 0;
-  return Array.from({ length: total }, (_, i) => {
-    if (i === 0) return "capa";
-    if (i === total - 1) return "chamada";
-    if (!temFoto(i)) return "destaque";
-    return comFoto++ % 2 === 0 ? "foto" : "imersiva";
-  });
 }
 
 const render: Renderizador = {
@@ -70,15 +61,25 @@ const render: Renderizador = {
   async reels(c: CopyReels, palavra, fotos, m) {
     const cenas = (c.cenas ?? []).filter((x) => x.texto_tela?.trim()).slice(0, 10);
     if (!cenas.length) throw new Error("roteiro sem cenas");
+    // Narração: a fala de cada cena (ou o texto da tela) vira voz; a cena dura pelo menos o tempo da fala
+    const lote = Date.now();
+    const vozes = await Promise.all(cenas.map((x, i) => narrar(x.fala?.trim() || x.texto_tela, `${lote}-${String(i + 1).padStart(2, "0")}`)));
+    if (!vozes.some(Boolean)) console.error("Reels sem narração: a voz da OpenAI não respondeu");
     return renderReels({
       palavra,
       marca: marcaDaArte(m),
-      cenas: cenas.map((x, i) => ({
-        texto: x.texto_tela,
-        destaque: x.imagem?.trim().slice(0, 12) || undefined,
-        foto: fotos.get(i) ?? null,
-        segundos: duracaoDaCena(x.tempo) + (i === cenas.length - 1 ? 1.5 : 0.4),
-      })),
+      trilha: (m as (Marca & { trilha_url?: string }) | null | undefined)?.trilha_url?.trim() || null,
+      cenas: cenas.map((x, i) => {
+        const fim = i === cenas.length - 1 ? 1.5 : 0.4;
+        const voz = vozes[i];
+        return {
+          texto: x.texto_tela,
+          destaque: x.imagem?.trim().slice(0, 12) || undefined,
+          foto: fotos.get(i) ?? null,
+          voz: voz?.url ?? null,
+          segundos: Math.max(duracaoDaCena(x.tempo), voz ? voz.segundos + 0.5 : 0) + fim,
+        };
+      }),
     });
   },
 };

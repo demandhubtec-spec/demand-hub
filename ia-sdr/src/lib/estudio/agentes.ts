@@ -4,6 +4,7 @@
  * Cada agente pega pouco trabalho por vez, para caber no tempo do relógio, e é ligado/desligado em estudio_config.
  */
 import { db } from "../db.ts";
+import type { Formato as FormatoFoto } from "./fotos.ts";
 import { env } from "../env.ts";
 import { sendText } from "../evolution.ts";
 import { contaPublica, ErroMeta, minhasMidias, publicar } from "./graph.ts";
@@ -362,7 +363,7 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
       }
       // O estúdio de produção (Remotion) não carrega o next/og: só a Vercel usa os modelos antigos
       const arte = render ? null : await import("./arte.tsx");
-      const { gerarFotos, cenasDasFotos, fotosManuais, baixarReferencias, promptDaFoto } = await import("./fotos.ts");
+      const { gerarFotos, cenasDasFotos, fotosManuais, baixarReferencias, promptDaFoto, modelosDasLaminas, formatoDaFoto } = await import("./fotos.ts");
       if (arte) await arte.usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
@@ -373,11 +374,13 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
       const { imagensDasReferencias } = await import("./graph.ts");
       const referencias = legado ? [] : await baixarReferencias(await imagensDasReferencias(refs).catch(() => []));
       const cenas = cenasDasFotos(copy.conteudo, formato);
-      const tipoFoto = formato === "reels" ? "vertical" : "retrato";
-      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 5, { referencias, manuais: fotosManuais(copy.conteudo) });
+      // Cada foto já nasce no formato do espaço dela na arte (foto em cima = horizontal, fundo = em pé): nada corta
+      const modelos = modelosDasLaminas(cenas.length, (i) => !!cenas[i]);
+      const tipoFoto = (i: number): FormatoFoto => (formato === "reels" ? "vertical" : render ? formatoDaFoto(modelos[i]) : "retrato");
+      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 6, { referencias, manuais: fotosManuais(copy.conteudo) });
       // O prompt de cada foto fica salvo para o Kelvin copiar e gerar no ChatGPT dele, se quiser trocar
       const linksRefs = refs.map((r) => r.link).filter(Boolean) as string[];
-      const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: promptDaFoto(c, tipoFoto, linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
+      const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: promptDaFoto(c, tipoFoto(i), linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
       if (erroFoto) await registrar("duda", "vera", `Não consegui gerar ${fotos.size ? "todas as fotos" : "as fotos"} no ChatGPT para ${dm(p.dia)}: ${erroFoto.slice(0, 200)}`);
       // Sem nenhuma foto a peça não vai para o Kelvin: carrossel e reels só de texto não servem (pedido dele, 10/11)
       if (!legado && !fotos.size && cenas.some(Boolean)) throw new Error(`sem fotos: ${(erroFoto ?? "nenhuma foto gerada").slice(0, 250)}`);
