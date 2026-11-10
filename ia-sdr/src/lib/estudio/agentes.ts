@@ -291,7 +291,44 @@ async function pedidosDeArte(p: Pauta): Promise<string> {
  * Pedido de ajuste na arte: a Bia aplica primeiro o que for de texto e só depois a Duda refaz a arte.
  * Fotos: geradas pelo ChatGPT a partir da cena de cada lâmina. Se uma pauta travar 3 vezes, ela sai da fila com aviso.
  */
-export async function rodarDiretor(limite = 1, c?: Config) {
+/**
+ * Quem monta a peça. Na Vercel é o padrão (imagens pelo next/og, vídeo pelo ffmpeg); o estúdio de produção
+ * no GitHub (pasta estudio-render) passa o dele, com o Remotion e sem limite de tempo. `fotos`: índice → link público.
+ */
+export interface Renderizador {
+  carrossel(c: CopyCarrossel, palavra: string | null, fotos: Map<number, string>, marca: Marca | null | undefined): Promise<Buffer[]>;
+  reels(c: CopyReels, palavra: string | null, fotos: Map<number, string>, marca: Marca | null | undefined): Promise<{ video: Buffer; capa: Buffer }>;
+}
+
+/** Guarda as fotos cruas (sem texto) da versão: servem para remontar a arte sem gerar foto de novo. */
+async function subirFotos(pautaId: string, versao: number, fotos: Map<number, string>): Promise<Map<number, string>> {
+  const links = new Map<number, string>();
+  for (const [i, dataUrl] of fotos) {
+    const m = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!m) continue;
+    const ext = m[1].includes("png") ? "png" : m[1].includes("webp") ? "webp" : "jpg";
+    const caminho = `pautas/${pautaId}/fotos/v${versao}-${String(i + 1).padStart(2, "0")}.${ext}`;
+    const { error } = await db().storage.from("estudio").upload(caminho, Buffer.from(m[2], "base64"), { contentType: m[1], upsert: true });
+    if (!error) links.set(i, db().storage.from("estudio").getPublicUrl(caminho).data.publicUrl);
+  }
+  return links;
+}
+
+/** Sobe um arquivo no bucket público "estudio" (sem carregar o next/og, que só a Vercel usa). */
+async function subirArquivo(caminho: string, corpo: Buffer, tipo: string): Promise<string> {
+  const { error } = await db().storage.from("estudio").upload(caminho, corpo, { contentType: tipo, upsert: true });
+  if (error) throw new Error(`upload da arte: ${error.message}`);
+  return db().storage.from("estudio").getPublicUrl(caminho).data.publicUrl;
+}
+
+/** Sobe as lâminas (PNG), igual ao subirImagens da arte.tsx. */
+async function subirPngs(pautaId: string, versao: number, imagens: Buffer[]): Promise<string[]> {
+  const links: string[] = [];
+  for (let i = 0; i < imagens.length; i++) links.push(await subirArquivo(`pautas/${pautaId}/v${versao}-${String(i + 1).padStart(2, "0")}.png`, imagens[i], "image/png"));
+  return links;
+}
+
+export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador) {
   const cfg = c ?? (await lerConfig());
   const { data } = await db().from("estudio_pautas").select("*").eq("status", "copy_aprovada").lt("tentativas", 3).order("tentativas").order("dia").limit(limite);
   let feitas = 0;
@@ -323,9 +360,10 @@ export async function rodarDiretor(limite = 1, c?: Config) {
         await registrar("bia", "duda", `Apliquei no texto o que o Kelvin pediu na arte de ${dm(p.dia)}. Duda, segue com as fotos e a arte.`);
         copy = { ...copy, versao: copy.versao + 1, conteudo: nova };
       }
-      const { imagensCarrossel, imagemEstatico, subirImagens, usarMarca } = await import("./arte.tsx");
+      // O estúdio de produção (Remotion) não carrega o next/og: só a Vercel usa os modelos antigos
+      const arte = render ? null : await import("./arte.tsx");
       const { gerarFotos, cenasDasFotos, fotosManuais, baixarReferencias, promptDaFoto } = await import("./fotos.ts");
-      await usarMarca(cfg.marca);
+      if (arte) await arte.usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
       const legado = p.formato === "estatico" && !(copy.conteudo as CopyCarrossel).slides;
@@ -343,16 +381,23 @@ export async function rodarDiretor(limite = 1, c?: Config) {
       if (erroFoto) await registrar("duda", "vera", `Não consegui gerar ${fotos.size ? "todas as fotos" : "as fotos"} no ChatGPT para ${dm(p.dia)}: ${erroFoto.slice(0, 200)}`);
       // Sem nenhuma foto a peça não vai para o Kelvin: carrossel e reels só de texto não servem (pedido dele, 10/11)
       if (!legado && !fotos.size && cenas.some(Boolean)) throw new Error(`sem fotos: ${(erroFoto ?? "nenhuma foto gerada").slice(0, 250)}`);
+      const fotosLinks = await subirFotos(p.id, versao, fotos).catch(() => new Map<number, string>());
       let links: string[];
-      if (formato === "reels") {
+      if (render && formato === "reels") {
+        const v = await render.reels(copy.conteudo as CopyReels, p.palavra_gatilho, fotosLinks, cfg.marca);
+        links = [await subirArquivo(`pautas/${p.id}/v${versao}-reels.mp4`, v.video, "video/mp4"), await subirArquivo(`pautas/${p.id}/v${versao}-capa.png`, v.capa, "image/png")];
+      } else if (render && !legado) {
+        links = await subirPngs(p.id, versao, await render.carrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho, fotosLinks, cfg.marca));
+      } else if (formato === "reels") {
         const { videoDoReels, subirVideo } = await import("./video.ts");
         const v = await videoDoReels(copy.conteudo as CopyReels, p.palavra_gatilho, fotos);
         links = await subirVideo(p.id, versao, v.video, v.capa);
       } else {
-        const imagens = legado ? await imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho) : await imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho, fotos);
-        links = await subirImagens(p.id, versao, imagens);
+        if (!arte) throw new Error("estúdio de produção sem modelo para post estático antigo");
+        const imagens = legado ? await arte.imagemEstatico(copy.conteudo as CopyEstatico, p.palavra_gatilho) : await arte.imagensCarrossel(copy.conteudo as CopyCarrossel, p.palavra_gatilho, fotos);
+        links = await arte.subirImagens(p.id, versao, imagens);
       }
-      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: formato === "reels" ? "video_ia" : formato, fotos: fotos.size, prompts }, arquivos: links, comentario: p.comentario });
+      await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "arte", versao, conteudo: { modelo: formato === "reels" ? "video_ia" : formato, estudio: render ? "remotion" : "vercel", fotos: fotos.size, fotos_links: Object.fromEntries(fotosLinks), prompts }, arquivos: links, comentario: p.comentario });
       await db().from("estudio_pautas").update({ status: "revisar_arte", comentario: null, erro: null, tentativas: 0 }).eq("id", p.id);
       await registrar(
         "duda",
@@ -467,7 +512,8 @@ export async function estudioTick(agora = new Date()) {
   if (ligado(c, "pauteiro")) await etapa("pauteiro", () => rodarPauteiro(c, agora, 7));
   // A arte vem antes da copy: o vídeo e as fotos são o que mais demora, e o Redator só entra se sobrar tempo na rodada
   const inicio = Date.now();
-  if (ligado(c, "diretor")) await etapa("diretor", () => rodarDiretor(1, c));
+  // Com o estúdio de produção ligado (GitHub, a cada 10 min), a arte sai de lá; a Vercel só cuida do resto
+  if (ligado(c, "diretor") && c.agentes?.estudio_externo !== true) await etapa("diretor", () => rodarDiretor(1, c));
   if (ligado(c, "redator") && Date.now() - inicio < 90_000) await etapa("redator", () => rodarRedator(agora, 2, c));
   return { ok: true, ...out };
 }
