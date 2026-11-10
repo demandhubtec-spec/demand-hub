@@ -112,8 +112,11 @@ Responda em JSON: {"pautas":[{"dia":"AAAA-MM-DD","tema":"...","gancho":"...","pa
 
 export interface CopyCarrossel {
   /** foto: o que a imagem da lâmina mostra (vira foto gerada pelo ChatGPT); vazio = lâmina só de texto. */
-  /** foto_url: foto que o Kelvin fez no ChatGPT dele e subiu no portal (tem prioridade). */
-  slides: { titulo: string; texto?: string; foto?: string; foto_url?: string }[];
+  /**
+   * foto_url: foto que o Kelvin subiu (ou mandou manter) no portal, tem prioridade.
+   * foto_prompt: prompt que ele escreveu para gerar uma foto nova. pedido: o ajuste que ele pediu nesta lâmina.
+   */
+  slides: { titulo: string; texto?: string; foto?: string; foto_url?: string; foto_prompt?: string; pedido?: string; foto_fixa?: boolean }[];
   legenda: string;
   hashtags?: string[];
 }
@@ -124,7 +127,7 @@ export interface CopyEstatico {
   hashtags?: string[];
 }
 export interface CopyReels {
-  cenas: { tempo: string; texto_tela: string; fala?: string; imagem?: string; foto?: string; foto_url?: string }[];
+  cenas: { tempo: string; texto_tela: string; fala?: string; imagem?: string; foto?: string; foto_url?: string; foto_prompt?: string; pedido?: string; foto_fixa?: boolean }[];
   legenda: string;
   capa_titulo: string;
   prompt_video: string;

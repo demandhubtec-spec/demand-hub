@@ -3,10 +3,12 @@
  *   POST { acao: "verificar", username }  → confere o @ na Meta e salva como fonte do Radar
  *   POST { acao: "rodar", etapa }         → roda um agente agora (radar | perfil | pauteiro | redator | diretor | publicador)
  *   POST { acao: "conversar", para, texto } → o Kelvin fala com o time ("time") ou com um agente; devolve as respostas
+ *   POST { acao: "kairogen", passo }       → conexão com o Kairogen: status | conectar | verificar | sincronizar | modelo | desconectar
  */
 import { db } from "@/src/lib/db.ts";
 import { conversar, lerConfig, rodarDiretor, rodarPauteiro, rodarPerfil, rodarPublicador, rodarRadar, rodarRedator, verificarConta } from "@/src/lib/estudio/agentes.ts";
 import { AGENTES_DO_TIME } from "@/src/lib/estudio/ia.ts";
+import { desconectar, escolherModelo, iniciarConexao, infoKairogen, sincronizar, verificarConexao } from "@/src/lib/kairogen.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -36,7 +38,7 @@ export async function POST(req: Request) {
   const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
   if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
 
-  const body = (await req.json().catch(() => ({}))) as { acao?: string; username?: string; etapa?: string; para?: string; texto?: string };
+  const body = (await req.json().catch(() => ({}))) as { acao?: string; username?: string; etapa?: string; para?: string; texto?: string; passo?: string; modelo?: string };
   try {
     if (body.acao === "verificar") {
       if (!body.username?.trim()) return json({ error: "informe o @" }, 400);
@@ -47,6 +49,25 @@ export async function POST(req: Request) {
       const texto = (body.texto ?? "").trim();
       if (!para || !texto) return json({ error: "informe para (time ou um agente) e texto" }, 400);
       return json({ ok: true, ...(await conversar(para, texto)) });
+    }
+    if (body.acao === "kairogen") {
+      switch (body.passo) {
+        case "status":
+          return json({ ok: true, info: await infoKairogen() });
+        case "conectar":
+          return json({ ok: true, ...(await iniciarConexao()) });
+        case "verificar":
+          return json({ ok: true, ...(await verificarConexao()) });
+        case "sincronizar":
+          return json({ ok: true, info: await sincronizar() });
+        case "modelo":
+          return json({ ok: true, info: await escolherModelo(body.modelo ?? "") });
+        case "desconectar":
+          await desconectar();
+          return json({ ok: true, info: await infoKairogen() });
+        default:
+          return json({ error: "passo inválido" }, 400);
+      }
     }
     if (body.acao === "rodar") {
       const c = await lerConfig();
