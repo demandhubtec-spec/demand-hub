@@ -1,6 +1,17 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
-import { Check, ChevronDown, MessageSquare, RefreshCw, Send } from "lucide-react";
+import {
+  BadgeCheck,
+  Check,
+  ChevronDown,
+  FlaskConical,
+  Hammer,
+  MessageSquare,
+  PartyPopper,
+  RefreshCw,
+  Send,
+  Wrench,
+} from "lucide-react";
 import { BrandLogo } from "@/components/layout/Logo";
 import {
   useAcompanhamentoPublico,
@@ -8,11 +19,13 @@ import {
   type ComentarioCliente,
   type EntregaPublica,
 } from "@/hooks/useAcompanhamento";
-import { FASES, faseIndice, faseLabel, faseProgresso } from "@/lib/fases";
+import { FASES, faseIndice, faseLabel } from "@/lib/fases";
+import { AREAS, OUTRAS, areaInfo, ehDefinicao, rotuloEntrega, type AreaInfo } from "@/lib/areas";
 import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Página pública de acompanhamento (sem login): portal.demandhub.com.br/acompanhar/<token>
+// Entregas agrupadas por área (departamento do portal do cliente), com as atividades de cada uma.
 // ---------------------------------------------------------------------------
 
 const hojeISO = () => new Date().toLocaleDateString("en-CA");
@@ -34,8 +47,10 @@ type Situacao = "concluida" | "andamento" | "atrasada" | "proxima";
 
 function situacao(e: EntregaPublica): Situacao {
   if (e.status === "concluido" || e.fase === "concluido") return "concluida";
+  const total = e.atividades.length;
+  if (total && e.atividades.every((a) => a.status === "concluido")) return "concluida";
   if (e.fim && e.fim < hojeISO()) return "atrasada";
-  if (e.fase || e.status === "andamento") return "andamento";
+  if (e.fase || e.status === "andamento" || e.atividades.some((a) => a.status === "andamento")) return "andamento";
   return "proxima";
 }
 
@@ -46,12 +61,62 @@ const situacaoInfo: Record<Situacao, { label: string; cls: string }> = {
   proxima: { label: "Próxima", cls: "bg-surface-2 text-muted" },
 };
 
+const FASE_TEXTO: Record<string, { texto: string; icone: typeof Hammer }> = {
+  implementacao: { texto: "A gente constrói.", icone: Hammer },
+  teste: { texto: "A equipe usa com dados reais.", icone: FlaskConical },
+  correcao: { texto: "Ajustamos o que apareceu no teste.", icone: Wrench },
+  aprovacao: { texto: "O cliente confere e aprova.", icone: BadgeCheck },
+  concluido: { texto: "Entregue e em uso.", icone: PartyPopper },
+};
+
 const CHAVE_NOME = "demandia-acompanhar-nome";
+
+interface Grupo {
+  area: AreaInfo;
+  entregas: EntregaPublica[];
+}
+
+function agrupar(entregas: EntregaPublica[]): Grupo[] {
+  const temArea = entregas.some((e) => e.area);
+  if (!temArea) return [{ area: OUTRAS, entregas }];
+  const grupos: Grupo[] = [];
+  for (const e of entregas) {
+    const info = areaInfo(e.area);
+    let g = grupos.find((x) => x.area.id === info.id);
+    if (!g) {
+      g = { area: info, entregas: [] };
+      grupos.push(g);
+    }
+    g.entregas.push(e);
+  }
+  const ordem = (id: string) => {
+    const i = AREAS.findIndex((a) => a.id === id);
+    return i < 0 ? 99 : i;
+  };
+  return grupos.sort((a, b) => ordem(a.area.id) - ordem(b.area.id));
+}
+
+function contar(entregas: EntregaPublica[]) {
+  let total = 0;
+  let feitas = 0;
+  for (const e of entregas) {
+    total += e.atividades.length;
+    feitas += e.atividades.filter((a) => a.status === "concluido").length;
+  }
+  return { total, feitas, pct: total ? Math.round((feitas / total) * 100) : 0 };
+}
+
+/** Número da entrega no contrato (09.1 conta como parte da 09). */
+function numeroBase(e: EntregaPublica) {
+  return e.rotulo ? e.rotulo.split(".")[0] : String(e.numero).padStart(2, "0");
+}
 
 export default function Acompanhar() {
   const { token = "" } = useParams<{ token: string }>();
   const { data, isLoading, isError, dataUpdatedAt, refetch, isFetching } = useAcompanhamentoPublico(token);
   const [filtro, setFiltro] = React.useState<"todas" | Situacao>("todas");
+  const [areaSel, setAreaSel] = React.useState<string>("todas");
+  const listaRef = React.useRef<HTMLDivElement>(null);
   const [nome, setNome] = React.useState(() => {
     try {
       return localStorage.getItem(CHAVE_NOME) ?? "";
@@ -85,22 +150,43 @@ export default function Acompanhar() {
     );
 
   const entregas = data.entregas;
+  const grupos = agrupar(entregas);
+  const porArea = grupos.length > 1;
+  const geral = contar(entregas);
   const comSit = entregas.map((e) => ({ e, s: situacao(e) }));
-  const total = entregas.length;
-  const concluidas = comSit.filter((x) => x.s === "concluida").length;
-  const emAndamento = comSit.filter((x) => x.s === "andamento" || x.s === "atrasada").length;
-  const progressoGeral = total ? Math.round(entregas.reduce((s, e) => s + faseProgresso(e.fase), 0) / total) : 0;
+  const nAndamento = comSit.filter((x) => x.s === "andamento" || x.s === "atrasada").length;
+  const nConcluidas = comSit.filter((x) => x.s === "concluida").length;
+  const nProximas = comSit.filter((x) => x.s === "proxima").length;
+  const nContrato = new Set(entregas.map(numeroBase)).size;
   const abertas = entregas.filter((e) => situacao(e) !== "concluida" && e.fim).sort((a, b) => a.fim!.localeCompare(b.fim!));
   const proximaEntrega = abertas[0];
   const fimPrevisto = entregas.reduce<string | null>((m, e) => (e.fim && (!m || e.fim > m) ? e.fim : m), null);
-  const visiveis = comSit
-    .filter((x) => filtro === "todas" || x.s === filtro || (filtro === "andamento" && x.s === "atrasada"))
-    .sort((a, b) => ordemSituacao(a.s) - ordemSituacao(b.s) || (a.e.fim ?? "9").localeCompare(b.e.fim ?? "9"));
   const gerais = data.comentarios.filter((c) => !c.projeto_id);
+  const paineis = entregas.filter((e) => e.painel);
+
+  const grupoSel = grupos.find((g) => g.area.id === areaSel) ?? null;
+  const gruposVisiveis = grupoSel ? [grupoSel] : grupos;
+  const base = gruposVisiveis.flatMap((g) => g.entregas);
+  const cont = {
+    todas: base.length,
+    andamento: base.filter((e) => ["andamento", "atrasada"].includes(situacao(e))).length,
+    proxima: base.filter((e) => situacao(e) === "proxima").length,
+    concluida: base.filter((e) => situacao(e) === "concluida").length,
+  };
+  const passa = (e: EntregaPublica) => {
+    const s = situacao(e);
+    return filtro === "todas" || s === filtro || (filtro === "andamento" && s === "atrasada");
+  };
+
+  function escolherArea(id: string) {
+    setAreaSel((atual) => (atual === id ? "todas" : id));
+    setFiltro("todas");
+    setTimeout(() => listaRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 30);
+  }
 
   return (
-    <div className="min-h-screen">
-      <div className="mx-auto max-w-[980px] px-4 pb-16 pt-6 sm:px-6">
+    <div className="min-h-screen bg-[radial-gradient(900px_500px_at_85%_-10%,rgba(110,58,255,.28),transparent_60%)]">
+      <div className="mx-auto max-w-[1040px] px-4 pb-16 pt-6 sm:px-6">
         {/* Topo */}
         <header className="mb-7 flex flex-wrap items-center justify-between gap-3">
           <BrandLogo height={28} />
@@ -121,87 +207,213 @@ export default function Acompanhar() {
         <div className="mb-2 font-mono text-[11px] uppercase tracking-[.12em] text-primary-bright">
           Acompanhamento do projeto
         </div>
-        <h1 className="text-[34px] leading-none sm:text-[44px]">{data.cliente.nome}</h1>
+        <h1 className="text-[34px] leading-none sm:text-[46px]">{data.cliente.nome}</h1>
         <p className="mt-3 max-w-[620px] text-[14px] text-muted">
-          Aqui você acompanha todas as entregas do escopo, em que fase cada uma está e os prazos previstos. A página se
-          atualiza sozinha. Se tiver alguma dúvida, é só comentar na entrega.
+          {porArea
+            ? "O projeto separado por departamento: cada entrega mostra o que já foi feito e o que vem a seguir."
+            : "Cada entrega mostra o que já foi feito e o que vem a seguir."}
         </p>
 
         {/* Resumo */}
         <div className="mt-7 grid grid-cols-2 gap-3 md:grid-cols-4">
-          <Numero rotulo="Entregas concluídas" valor={`${concluidas}/${total}`} />
-          <Numero rotulo="Em andamento" valor={String(emAndamento)} />
+          <Numero
+            rotulo="Atividades feitas"
+            valor={`${geral.feitas}/${geral.total}`}
+            detalhe={porArea ? `${nContrato} entregas · ${grupos.length} áreas` : `${entregas.length} entregas`}
+          />
+          <Numero rotulo="Em andamento" valor={String(nAndamento)} detalhe={`${nConcluidas} concluídas · ${nProximas} próximas`} />
           <Numero
             rotulo="Próximo prazo"
             valor={proximaEntrega ? dataCurta(proximaEntrega.fim) : "—"}
-            detalhe={proximaEntrega ? `${String(proximaEntrega.numero).padStart(2, "0")} · ${proximaEntrega.nome}` : undefined}
+            detalhe={proximaEntrega ? `${rotuloEntrega(proximaEntrega.numero, proximaEntrega.rotulo).replace("Entrega ", "")} · ${proximaEntrega.nome}` : undefined}
           />
           <Numero rotulo="Conclusão prevista" valor={fimPrevisto ? dataCurta(fimPrevisto) : "—"} detalhe={fimPrevisto?.slice(0, 4)} />
         </div>
 
-        <div className="mt-4 rounded-2xl border border-border bg-surface p-4">
+        <div className="mt-3 rounded-2xl border border-border bg-surface p-4">
           <div className="mb-2 flex items-center justify-between text-[12.5px]">
             <span className="font-semibold">Andamento geral</span>
-            <span className="font-mono text-primary-bright">{progressoGeral}%</span>
+            <span className="font-mono text-primary-bright">{geral.pct}%</span>
           </div>
-          <div className="h-2 overflow-hidden rounded-full bg-surface-2">
-            <div
-              className="h-full rounded-full bg-gradient-to-r from-[#5A28E0] via-[#8B5BFF] to-[#C9B0FF] transition-[width] duration-700"
-              style={{ width: `${progressoGeral}%` }}
-            />
+          <Barra pct={geral.pct} />
+        </div>
+
+        {/* Fases */}
+        <div className="mt-3 rounded-2xl border border-border bg-surface p-4">
+          <div className="mb-3 font-mono text-[11px] uppercase tracking-[.12em] text-primary-bright">As fases de cada entrega</div>
+          <ol className="grid grid-cols-2 gap-2.5 md:grid-cols-5">
+            {FASES.map((f, i) => {
+              const info = FASE_TEXTO[f.value];
+              const Icone = info?.icone ?? Check;
+              return (
+                <li key={f.value} className="rounded-xl border border-border bg-surface-2 p-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="font-mono text-[12px] font-bold text-primary-bright">{i + 1}.</span>
+                    <span className="text-[13px] font-semibold">{f.label}</span>
+                    <Icone className="ml-auto h-3.5 w-3.5 text-primary-bright" />
+                  </div>
+                  <div className="text-[12px] leading-snug text-muted">{info?.texto}</div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+
+        {/* Como o portal é montado */}
+        {porArea && (
+          <div className="mt-8 grid items-center gap-5 overflow-hidden rounded-2xl border border-border bg-surface p-5 md:grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)]">
+            <div>
+              <div className="mb-1.5 font-mono text-[11px] uppercase tracking-[.12em] text-primary-bright">Como o portal é montado</div>
+              <h3 className="text-[21px] leading-tight">Uma base e um painel por área</h3>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] text-muted">
+                <li>
+                  A <b className="font-semibold text-ink">base</b> é igual para todos: acesso, menu e integrações.
+                </li>
+                <li>
+                  Cada <b className="font-semibold text-ink">departamento</b> tem as suas telas e o seu painel de indicadores.
+                </li>
+                <li>
+                  Os indicadores de cada painel são <b className="font-semibold text-ink">definidos com vocês</b> antes de construir.
+                </li>
+              </ul>
+            </div>
+            <div className="flex min-w-0 flex-col gap-1.5">
+              {grupos
+                .filter((g) => g.area.id !== "portal")
+                .map((g) => {
+                  const Icone = g.area.icone;
+                  const painel = g.entregas.find((e) => e.painel);
+                  return (
+                    <div key={g.area.id} className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border bg-surface-2 px-3 py-2 text-[12.5px]">
+                      <IconeArea Icone={Icone} pequeno />
+                      {g.area.nome}
+                      <span className="ml-auto min-w-0 truncate font-mono text-[10.5px] text-muted">
+                        {painel ? (/^painel/i.test(painel.nome) ? painel.nome : `Painel ${g.area.nome.toLowerCase()}`) : "telas da área"}
+                      </span>
+                    </div>
+                  );
+                })}
+              <div className="flex items-center gap-2.5 rounded-xl border border-[rgba(110,58,255,.5)] bg-gradient-to-r from-[rgba(110,58,255,.35)] to-[rgba(110,58,255,.1)] px-3 py-2 text-[12.5px]">
+                <IconeArea Icone={areaInfo("portal").icone} pequeno />
+                <b className="shrink-0">Base do portal</b>
+                <span className="ml-auto min-w-0 truncate font-mono text-[10.5px] text-muted">
+                  {paineis.some((e) => e.area === "portal") ? "acesso · menu · integrações · painel geral" : "acesso · menu · integrações"}
+                </span>
+              </div>
+            </div>
           </div>
-          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[11.5px] text-muted">
-            <span>Toda entrega passa por:</span>
-            {FASES.map((f, i) => (
-              <span key={f.value} className="font-mono">
-                {i + 1}. {f.label}
-              </span>
+        )}
+
+        {/* Departamentos */}
+        {porArea && (
+          <>
+            <div className="mb-2.5 mt-8 font-mono text-[11px] uppercase tracking-[.12em] text-primary-bright">Departamentos do portal</div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {grupos.map((g) => {
+                const c = contar(g.entregas);
+                const ativo = areaSel === g.area.id;
+                return (
+                  <button
+                    key={g.area.id}
+                    type="button"
+                    onClick={() => escolherArea(g.area.id)}
+                    className={cn(
+                      "rounded-2xl border bg-surface p-4 text-left transition-all hover:-translate-y-px hover:border-[rgba(164,123,255,.45)]",
+                      ativo ? "border-primary shadow-[0_0_0_1px_var(--primary),0_10px_30px_-12px_rgba(110,58,255,.6)]" : "border-border",
+                    )}
+                  >
+                    <div className="flex items-center gap-2.5 text-[13.5px] font-semibold leading-tight">
+                      <IconeArea Icone={g.area.icone} />
+                      {g.area.nome}
+                    </div>
+                    <div className="mb-2 mt-3 flex justify-between font-mono text-[11px] text-muted">
+                      <span>
+                        {g.entregas.length} {g.entregas.length === 1 ? "entrega" : "entregas"}
+                      </span>
+                      <span>{c.pct}%</span>
+                    </div>
+                    <Barra pct={c.pct} fina />
+                  </button>
+                );
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Lista */}
+        <div ref={listaRef} className="mb-3 mt-10 flex scroll-mt-4 flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 className="flex items-center gap-3 text-[26px] leading-tight">
+              {grupoSel && <IconeArea Icone={grupoSel.area.icone} grande />}
+              {grupoSel ? grupoSel.area.nome : "Todas as entregas"}
+            </h2>
+            <p className="mt-1.5 max-w-[640px] text-[13px] text-muted">
+              {grupoSel ? grupoSel.area.desc : porArea ? "Agrupadas pelo departamento do portal. Toque em um departamento acima para ver só ele." : "Todas as entregas do escopo."}
+              {grupoSel && (
+                <>
+                  {" "}
+                  <button type="button" onClick={() => setAreaSel("todas")} className="text-primary-bright underline">
+                    Ver todos os departamentos
+                  </button>
+                </>
+              )}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ["todas", `Todas (${cont.todas})`],
+                ["andamento", `Em andamento (${cont.andamento})`],
+                ["proxima", `Próximas (${cont.proxima})`],
+                ["concluida", `Concluídas (${cont.concluida})`],
+              ] as const
+            ).map(([v, l]) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setFiltro(v)}
+                className={cn(
+                  "rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors",
+                  filtro === v ? "border-primary bg-primary text-white" : "border-border bg-surface text-muted hover:text-ink",
+                )}
+              >
+                {l}
+              </button>
             ))}
           </div>
         </div>
 
-        {/* Filtro */}
-        <div className="mb-3 mt-8 flex flex-wrap gap-2">
-          {(
-            [
-              ["todas", `Todas (${total})`],
-              ["andamento", `Em andamento (${emAndamento})`],
-              ["proxima", `Próximas (${comSit.filter((x) => x.s === "proxima").length})`],
-              ["concluida", `Concluídas (${concluidas})`],
-            ] as const
-          ).map(([v, l]) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setFiltro(v)}
-              className={cn(
-                "rounded-full border px-3.5 py-1.5 text-[12.5px] font-medium transition-colors",
-                filtro === v ? "border-primary bg-primary text-white" : "border-border bg-surface text-muted hover:text-ink",
-              )}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-
-        {/* Entregas */}
-        <div className="space-y-3">
-          {visiveis.length === 0 && (
-            <div className="rounded-2xl border border-border bg-surface p-6 text-center text-sm text-muted">
-              Nenhuma entrega neste filtro.
-            </div>
+        <div>
+          {gruposVisiveis.every((g) => g.entregas.filter(passa).length === 0) && (
+            <div className="rounded-2xl border border-border bg-surface p-6 text-center text-sm text-muted">Nenhuma entrega neste filtro.</div>
           )}
-          {visiveis.map(({ e, s }) => (
-            <CardEntrega
-              key={e.numero}
-              e={e}
-              s={s}
-              token={token}
-              nome={nome}
-              onNome={salvarNome}
-              comentarios={data.comentarios.filter((c) => e.projeto_id && c.projeto_id === e.projeto_id)}
-            />
-          ))}
+          {gruposVisiveis.map((g) => {
+            const lista = g.entregas.filter(passa);
+            if (!lista.length) return null;
+            return (
+              <div key={g.area.id}>
+                {porArea && !grupoSel && (
+                  <div className="mb-2.5 mt-6 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[.1em] text-primary-bright">
+                    <IconeArea Icone={g.area.icone} pequeno />
+                    {g.area.nome}
+                  </div>
+                )}
+                <div className="space-y-2.5">
+                  {lista.map((e) => (
+                    <CardEntrega
+                      key={e.numero}
+                      e={e}
+                      s={situacao(e)}
+                      token={token}
+                      nome={nome}
+                      onNome={salvarNome}
+                      comentarios={data.comentarios.filter((c) => e.projeto_id && c.projeto_id === e.projeto_id)}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Comentários gerais */}
@@ -223,16 +435,36 @@ export default function Acompanhar() {
   );
 }
 
-function ordemSituacao(s: Situacao) {
-  return { atrasada: 0, andamento: 1, proxima: 2, concluida: 3 }[s];
-}
-
 function Tela({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-6 text-center text-[14px] text-muted">
       <BrandLogo height={30} />
       <div>{children}</div>
     </div>
+  );
+}
+
+function Barra({ pct, fina }: { pct: number; fina?: boolean }) {
+  return (
+    <div className={cn("overflow-hidden rounded-full bg-surface-2", fina ? "h-1.5" : "h-2")}>
+      <div
+        className="h-full rounded-full bg-gradient-to-r from-[#5A28E0] via-[#8B5BFF] to-[#C9B0FF] transition-[width] duration-700"
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+function IconeArea({ Icone, pequeno, grande }: { Icone: AreaInfo["icone"]; pequeno?: boolean; grande?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center bg-primary-tint text-primary-bright",
+        pequeno ? "h-6 w-6 rounded-[7px]" : grande ? "h-10 w-10 rounded-xl" : "h-8 w-8 rounded-[10px]",
+      )}
+    >
+      <Icone className={pequeno ? "h-3.5 w-3.5" : grande ? "h-5 w-5" : "h-4 w-4"} />
+    </span>
   );
 }
 
@@ -294,20 +526,29 @@ function CardEntrega({
   const [aberto, setAberto] = React.useState(false);
   const info = situacaoInfo[s];
   const feitas = e.atividades.filter((a) => a.status === "concluido").length;
+  const definir = e.atividades.some((a) => a.status !== "concluido" && ehDefinicao(a.titulo));
 
   return (
     <article
       className={cn(
         "rounded-2xl border bg-surface transition-colors",
-        aberto ? "border-primary/50" : "border-border hover:border-primary/40",
+        aberto ? "border-[rgba(110,58,255,.55)]" : "border-border hover:border-[rgba(164,123,255,.45)]",
       )}
     >
       <button type="button" onClick={() => setAberto((v) => !v)} className="w-full p-4 text-left sm:p-5">
         <div className="flex flex-wrap items-start gap-x-4 gap-y-3">
           <div className="min-w-0 flex-1">
             <div className="mb-1 flex flex-wrap items-center gap-2">
-              <span className="font-mono text-[11px] text-muted">Entrega {String(e.numero).padStart(2, "0")}</span>
+              <span className="font-mono text-[11px] text-muted">{rotuloEntrega(e.numero, e.rotulo)}</span>
               <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", info.cls)}>{info.label}</span>
+              {e.painel && (
+                <span className="rounded-full border border-[rgba(164,123,255,.45)] px-2 py-0.5 text-[11px] font-semibold text-primary-bright">
+                  Painel de indicadores
+                </span>
+              )}
+              {definir && (
+                <span className="rounded-full bg-attention-tint px-2 py-0.5 text-[11px] font-semibold text-attention">Definir juntos</span>
+              )}
               {comentarios.length > 0 && (
                 <span className="inline-flex items-center gap-1 font-mono text-[11px] text-muted">
                   <MessageSquare className="h-3 w-3" />
@@ -320,9 +561,7 @@ function CardEntrega({
           </div>
           <div className="text-right">
             <div className="font-mono text-[11px] text-muted">Prazo</div>
-            <div className="text-[13px] font-semibold">
-              {dataCurta(e.inicio)} a {dataCurta(e.fim)}
-            </div>
+            <div className="text-[13px] font-semibold">{e.inicio || e.fim ? `${dataCurta(e.inicio)} a ${dataCurta(e.fim)}` : "a definir"}</div>
           </div>
         </div>
 
@@ -339,11 +578,10 @@ function CardEntrega({
               ))}
             </div>
             <div className="mt-1.5 flex justify-between font-mono text-[10.5px] text-muted sm:mt-2">
-              <span className="sm:hidden">{e.fase ? `Fase: ${faseLabel[e.fase]}` : "Ainda não iniciada"}</span>
-              <span className="hidden sm:inline">{e.fase ? "" : "Ainda não iniciada"}</span>
+              <span>{e.fase ? `Fase: ${faseLabel[e.fase]}` : "Ainda não iniciada"}</span>
               {e.atividades.length > 0 && (
                 <span>
-                  {feitas}/{e.atividades.length} etapas
+                  {feitas}/{e.atividades.length} atividades feitas
                 </span>
               )}
             </div>
@@ -354,31 +592,53 @@ function CardEntrega({
 
       {aberto && (
         <div className="border-t border-border px-4 pb-5 pt-4 sm:px-5">
+          {e.aviso && (
+            <div className="mb-4 rounded-xl border border-[rgba(255,179,92,.25)] bg-attention-tint px-3 py-2.5 text-[12.5px] leading-relaxed text-attention">
+              {e.aviso}
+            </div>
+          )}
           {e.briefing && <p className="mb-4 text-[13px] leading-relaxed text-ink/90">{e.briefing}</p>}
 
           {e.atividades.length > 0 && (
-            <ul className="mb-5 space-y-1.5">
-              {e.atividades.map((a) => (
-                <li key={a.id} className="flex items-start gap-2.5 text-[13px]">
-                  <span
-                    className={cn(
-                      "mt-[2px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
-                      a.status === "concluido"
-                        ? "border-positive bg-positive text-[#0b0420]"
-                        : a.status === "andamento"
-                          ? "border-primary-bright"
-                          : "border-muted/50",
-                    )}
-                  >
-                    {a.status === "concluido" && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
-                    {a.status === "andamento" && <span className="h-1.5 w-1.5 rounded-full bg-primary-bright" />}
-                  </span>
-                  <span className={cn("flex-1", a.status === "concluido" && "text-muted")}>{a.titulo}</span>
-                  <span className="shrink-0 font-mono text-[11px] text-muted">
-                    {a.status === "concluido" ? "feito" : dataCurta(a.prazo)}
-                  </span>
-                </li>
-              ))}
+            <ul className="mb-5">
+              {e.atividades.map((a) => {
+                const def = a.status !== "concluido" && ehDefinicao(a.titulo);
+                const feito = a.status === "concluido";
+                const futuro = a.prazo && a.prazo > hojeISO();
+                return (
+                  <li key={a.id} className="flex items-start gap-2.5 border-b border-dashed border-border py-1.5 text-[13px] last:border-b-0">
+                    <span
+                      className={cn(
+                        "mt-[2px] flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
+                        feito
+                          ? "border-positive bg-positive text-[#0b0420]"
+                          : a.status === "andamento"
+                            ? "border-primary-bright"
+                            : def
+                              ? "border-attention"
+                              : "border-muted/50",
+                      )}
+                    >
+                      {feito && <Check className="h-2.5 w-2.5" strokeWidth={3.5} />}
+                      {a.status === "andamento" && <span className="h-1.5 w-1.5 rounded-full bg-primary-bright" />}
+                    </span>
+                    <span className={cn("flex-1", feito && "text-muted")}>{a.titulo}</span>
+                    <span className="shrink-0 font-mono text-[11px] text-muted">
+                      {feito
+                        ? futuro || !a.prazo
+                          ? "feito"
+                          : `feito · ${dataCurta(a.prazo)}`
+                        : def
+                          ? a.prazo
+                            ? `conversa · ${dataCurta(a.prazo)}`
+                            : "conversa a marcar"
+                          : a.status === "andamento"
+                            ? `em andamento${a.prazo ? ` · ${dataCurta(a.prazo)}` : ""}`
+                            : dataCurta(a.prazo)}
+                    </span>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
@@ -409,7 +669,7 @@ function Conversa({ comentarios }: { comentarios: ComentarioCliente[] }) {
           key={c.id}
           className={cn(
             "rounded-xl px-3 py-2.5 text-[13px]",
-            c.autor_tipo === "equipe" ? "mr-6 border border-primary/30 bg-primary-tint" : "ml-6 bg-surface-2",
+            c.autor_tipo === "equipe" ? "mr-6 border border-[rgba(110,58,255,.3)] bg-primary-tint" : "ml-6 bg-surface-2",
           )}
         >
           <div className="mb-0.5 flex justify-between gap-2">

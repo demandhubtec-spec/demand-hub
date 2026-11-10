@@ -39,6 +39,11 @@ export interface EscopoEntrega {
   numero: number;
   nome: string;
   resumo: string | null;
+  rotulo?: string | null;
+  area?: string | null;
+  ordem?: number | null;
+  painel?: boolean;
+  aviso?: string | null;
 }
 
 export interface Projeto {

@@ -17,6 +17,7 @@ import { AcompanhamentoCliente } from "@/components/shared/AcompanhamentoCliente
 import { faseLabel } from "@/lib/fases";
 import { diaMes, estaAtrasada } from "@/lib/prazo";
 import { AtrasadaBadge } from "@/components/shared/AtrasadaBadge";
+import { areaInfo, rotuloEntrega } from "@/lib/areas";
 
 const statusLabels: Record<string, string> = {
   "a-fazer": "A fazer",
@@ -30,8 +31,8 @@ function dataBR(iso: string | null) {
   return iso ? new Date(iso + "T00:00:00").toLocaleDateString("pt-BR") : null;
 }
 
-function numeroEntrega(n: number) {
-  return `Entrega ${String(n).padStart(2, "0")}`;
+function numeroEntrega(n: number, rotulo?: string | null) {
+  return rotuloEntrega(n, rotulo);
 }
 
 function clicavel(onOpen: () => void) {
@@ -130,7 +131,7 @@ function LinhaTravada({ e }: { e: EscopoEntrega }) {
   return (
     <div className={`flex flex-col gap-1 border-b border-border px-[18px] py-3.5 opacity-50 last:border-b-0 ${COLS}`}>
       <div className="min-w-0">
-        <div className="mb-0.5 font-mono text-[11px] text-muted">{numeroEntrega(e.numero)}</div>
+        <div className="mb-0.5 font-mono text-[11px] text-muted">{numeroEntrega(e.numero, e.rotulo)}</div>
         <div className="text-[14px] font-semibold leading-tight">{e.nome}</div>
         {e.resumo && <div className="mt-0.5 truncate text-[12.5px] text-muted">{e.resumo}</div>}
       </div>
@@ -195,16 +196,32 @@ export default function ProjetosCliente() {
     return { total: ativs.length, feitas: ativs.filter((a) => a.status === "concluido").length };
   };
 
-  const sub = [
-    cliente.segmento,
-    escopo.length ? cliente.contrato_resumo : null,
-    escopo.length ? cliente.mensalidade : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  // Só o segmento: tipo de contrato e valor não aparecem na ficha (ela é mostrada ao cliente).
+  const sub = cliente.segmento ?? "";
 
-  // Ordem do PDF: entregas iniciadas primeiro (pela numeração), depois os outros projetos.
-  const projetosPdf = [...projetos].sort((a, b) => (a.entregaNumero ?? 999) - (b.entregaNumero ?? 999));
+  // Entregas agrupadas pela área do cliente (quando o escopo tem área definida).
+  const escopoPorNumero = new Map(escopo.map((e) => [e.numero, e] as [number, EscopoEntrega]));
+  const gruposEscopo: { area: string | null; itens: EscopoEntrega[] }[] = [];
+  for (const e of escopo) {
+    const area = e.area ?? null;
+    const g = gruposEscopo.find((x) => x.area === area);
+    if (g) g.itens.push(e);
+    else gruposEscopo.push({ area, itens: [e] });
+  }
+  const temAreas = escopo.some((e) => e.area);
+  const rotuloDe = (n: number | null) => {
+    if (!n) return "";
+    const e = escopoPorNumero.get(n);
+    return numeroEntrega(n, e?.rotulo);
+  };
+
+  // Ordem do PDF: a mesma do escopo (por área), depois os outros projetos.
+  const ordemPdf = (p: ProjetoView) => {
+    if (!p.entregaNumero) return 9999;
+    const e = escopoPorNumero.get(p.entregaNumero);
+    return e?.ordem ?? p.entregaNumero;
+  };
+  const projetosPdf = [...projetos].sort((a, b) => ordemPdf(a) - ordemPdf(b));
 
   return (
     <section>
@@ -229,27 +246,45 @@ export default function ProjetosCliente() {
         <EmptyState>Nenhum projeto cadastrado ainda para este cliente.</EmptyState>
       ) : (
         <>
-          {escopo.length > 0 && (
-            <Card className="overflow-hidden p-0">
-              <Cabecalho />
-              {escopo.map((e) => {
-                const p = porNumero.get(e.numero);
-                return p ? (
-                  <LinhaProjeto
-                    key={e.id}
-                    p={p}
-                    rotulo={numeroEntrega(e.numero)}
-                    subtitulo={p.subtitulo ?? e.resumo ?? ""}
-                    feitas={contar(p.id).feitas}
-                    total={contar(p.id).total}
-                    onOpen={() => setAbertoId(p.id)}
-                  />
-                ) : (
-                  <LinhaTravada key={e.id} e={e} />
-                );
-              })}
-            </Card>
-          )}
+          {gruposEscopo.map((g, gi) => (
+            <React.Fragment key={g.area ?? "sem-area"}>
+              {temAreas && (
+                <div className={`mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[.04em] text-muted ${gi ? "mt-7" : ""}`}>
+                  {(() => {
+                    const info = areaInfo(g.area);
+                    const Icone = info.icone;
+                    return (
+                      <>
+                        <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-primary-tint text-primary-bright">
+                          <Icone className="h-3.5 w-3.5" />
+                        </span>
+                        {info.nome}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+              <Card className="overflow-hidden p-0">
+                <Cabecalho />
+                {g.itens.map((e) => {
+                  const p = porNumero.get(e.numero);
+                  return p ? (
+                    <LinhaProjeto
+                      key={e.id}
+                      p={p}
+                      rotulo={numeroEntrega(e.numero, e.rotulo)}
+                      subtitulo={p.subtitulo ?? e.resumo ?? ""}
+                      feitas={contar(p.id).feitas}
+                      total={contar(p.id).total}
+                      onOpen={() => setAbertoId(p.id)}
+                    />
+                  ) : (
+                    <LinhaTravada key={e.id} e={e} />
+                  );
+                })}
+              </Card>
+            </React.Fragment>
+          ))}
 
           {outros.length > 0 && (
             <>
@@ -313,7 +348,7 @@ export default function ProjetosCliente() {
               return (
                 <div className="print-section" key={p.id}>
                   <h3>
-                    {p.entregaNumero ? `${numeroEntrega(p.entregaNumero)} · ` : ""}
+                    {p.entregaNumero ? `${rotuloDe(p.entregaNumero)} · ` : ""}
                     {p.nome} — {p.fase ? faseLabel[p.fase] : statusLabels[p.status] ?? p.status}
                     {prazo}
                   </h3>

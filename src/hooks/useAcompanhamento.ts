@@ -170,6 +170,13 @@ export function useMarcarLidos() {
 
 export interface EntregaPublica {
   numero: number;
+  /** Rótulo próprio (ex.: "09.1"); vazio = usa o número. */
+  rotulo?: string | null;
+  /** Área do cliente (portal, estoque, comercial, financeiro, expedicao...). */
+  area?: string | null;
+  ordem?: number | null;
+  painel?: boolean;
+  aviso?: string | null;
   nome: string;
   resumo: string | null;
   projeto_id: string | null;

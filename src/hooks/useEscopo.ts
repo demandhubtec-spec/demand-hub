@@ -12,6 +12,7 @@ export function useEscopo(clienteId: string | null) {
         .from("escopo_entregas")
         .select("*")
         .eq("cliente_id", clienteId!)
+        .order("ordem", { ascending: true, nullsFirst: false })
         .order("numero", { ascending: true });
       if (error) throw error;
       return (data ?? []) as EscopoEntrega[];
