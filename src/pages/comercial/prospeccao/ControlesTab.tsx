@@ -208,7 +208,7 @@ export function ControlesTab() {
         <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 text-[12.5px]">
           <span>
             <b className="font-semibold">Follow-ups de WhatsApp por dia</b>
-            <span className="block text-[11.5px] text-muted">Separado do teto acima, que vale só para as primeiras mensagens.</span>
+            <span className="block text-[11.5px] text-muted">Separado do teto acima, que vale só para as primeiras mensagens. Coloque 0 para desligar todos os follow-ups e retomadas automáticas.</span>
           </span>
           {num("followup_daily_cap")}
           <span>
