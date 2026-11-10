@@ -15,6 +15,35 @@ export function segundosDoWav(wav: Buffer): number {
   return (wav.length - (dados + 8)) / byteRate;
 }
 
+/**
+ * Deixa a voz no volume de rede social: leva o volume médio para perto de -18 dB (fala clara no celular),
+ * sem passar do teto (nada estoura). Só mexe em WAV de 16 bits, que é o que a OpenAI devolve.
+ */
+export function normalizarWav(wav: Buffer, alvo = 0.12, teto = 0.97): Buffer {
+  const dados = wav.indexOf("data");
+  if (dados < 0 || wav.readUInt16LE(34) !== 16) return wav;
+  const ini = dados + 8;
+  const n = Math.floor((wav.length - ini) / 2);
+  if (n < 100) return wav;
+  let soma = 0;
+  let pico = 0;
+  for (let i = 0; i < n; i++) {
+    const v = wav.readInt16LE(ini + i * 2) / 32768;
+    soma += v * v;
+    if (Math.abs(v) > pico) pico = Math.abs(v);
+  }
+  const rms = Math.sqrt(soma / n);
+  if (!rms || !pico) return wav;
+  const ganho = Math.min(alvo / rms, teto / pico);
+  if (ganho <= 1.05) return wav;
+  const out = Buffer.from(wav);
+  for (let i = 0; i < n; i++) {
+    const v = Math.round(wav.readInt16LE(ini + i * 2) * ganho);
+    out.writeInt16LE(Math.max(-32768, Math.min(32767, v)), ini + i * 2);
+  }
+  return out;
+}
+
 async function falar(texto: string): Promise<Buffer> {
   const chave = process.env.OPENAI_IMAGE_KEY || process.env.OPENAI_API_KEY;
   const tentativas = [
@@ -41,7 +70,7 @@ export async function narrar(texto: string, nome: string): Promise<{ url: string
   const limpo = texto.replace(/\*/g, "").replace(/\s+/g, " ").trim();
   if (!limpo) return null;
   try {
-    const wav = await falar(limpo);
+    const wav = normalizarWav(await falar(limpo));
     const caminho = `audio/${nome}.wav`;
     const { error } = await db().storage.from("estudio").upload(caminho, wav, { contentType: "audio/wav", upsert: true });
     if (error) throw new Error(error.message);
