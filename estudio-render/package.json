@@ -1,0 +1,25 @@
+{
+  "name": "estudio-render",
+  "private": true,
+  "type": "commonjs",
+  "description": "Estúdio de produção da DemandIA: monta carrosséis e reels (Remotion) fora da Vercel, sem limite de tempo.",
+  "scripts": {
+    "rodar": "tsx src/rodar.ts"
+  },
+  "dependencies": {
+    "@fontsource/anton": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@remotion/bundler": "4.0.529",
+    "@remotion/fonts": "4.0.529",
+    "@remotion/renderer": "4.0.529",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "remotion": "4.0.529",
+    "tsx": "4.20.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}
