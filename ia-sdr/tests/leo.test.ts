@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { acharCnpjs, cnpjValido, donoDoQsa, escolherCnpj, instagramNaBusca, lerBrasilApi, linksDoTexto, perfilDaPessoa, titulo } from "../src/lib/leo-pistas.ts";
+import { acharCnpjs, cnpjValido, donoDoQsa, escolherCnpj, instagramNaBusca, lerBrasilApi, linksDoTexto, normalizarTelefone, perfilDaPessoa, telefonesDoTexto, titulo } from "../src/lib/leo-pistas.ts";
 import { consultasPara } from "../src/lib/leo.ts";
 
 test("CNPJ: aceita com e sem pontuação e confere os dígitos", () => {
@@ -58,7 +58,7 @@ test("consultas do Léo: só busca o que falta", () => {
   const base = { place_id: "p", empresa: "Sorriso Feliz", cidade: "Indaiatuba", whatsapp: null, site: null, instagram: null, email: null, linkedin_empresa: null, cnpj: null, socios: null, decisor: null, enriquecimento: null };
   assert.deepEqual(consultasPara("busca", base), ['"Sorriso Feliz" Indaiatuba CNPJ', "Sorriso Feliz Indaiatuba instagram"]);
   assert.deepEqual(consultasPara("busca", { ...base, cnpj: "1", instagram: "https://www.instagram.com/x/" }), []);
-  assert.deepEqual(consultasPara("busca", { ...base, site: "https://sorrisofeliz.com.br" }), ['"Sorriso Feliz" Indaiatuba CNPJ']);
+  assert.deepEqual(consultasPara("busca", { ...base, site: "https://sorrisofeliz.com.br", enriquecimento: { etapa: "busca", whats: "ok" } }), ['"Sorriso Feliz" Indaiatuba CNPJ']);
   assert.deepEqual(consultasPara("perfil", { ...base, instagram: "https://www.instagram.com/sorrisofeliz/" }), ["sorrisofeliz"]);
   assert.deepEqual(consultasPara("dono", { ...base, socios: [{ nome: "Maria Souza", qualificacao: "Sócio-Administrador" }] }), ['"Maria Souza" Indaiatuba linkedin instagram']);
 });
@@ -71,4 +71,19 @@ test("planilha do Léo: cabeçalho e aspas onde precisa", async () => {
   assert.match(linha, /^Aguardando sua aprovação,"Clínica ""Boa"", Saúde",/);
   assert.match(linha, /11\.222\.333\/0001-81/);
   assert.match(linha, /Bio do Instagram/);
+});
+
+test("WhatsApp: acha no texto do site, link do WhatsApp primeiro, depois celular e fixo", () => {
+  const html = 'Fixo (19) 3875-1234 · cel 19 99123-4567 · <a href="https://wa.me/5519998765432?text=oi">WhatsApp</a> · CNPJ 11.222.333/0001-81';
+  assert.deepEqual(telefonesDoTexto(html), ["5519998765432", "5519991234567", "551938751234"]);
+  assert.deepEqual(telefonesDoTexto("api.whatsapp.com/send?phone=5519991112222&text=x"), ["5519991112222"]);
+  assert.equal(normalizarTelefone("019 99123 4567"), "5519991234567");
+  assert.equal(normalizarTelefone("+55 (19) 3875-1234"), "551938751234");
+  assert.equal(normalizarTelefone("12345"), null);
+});
+
+test("Léo: sem WhatsApp, procura o Instagram mesmo quando tem site", () => {
+  const base = { place_id: "x", empresa: "Clínica Boa", cidade: "Indaiatuba", whatsapp: null, site: "https://clinicaboa.com.br", instagram: null, email: null, linkedin_empresa: null, cnpj: "11222333000181", socios: null, decisor: null };
+  assert.deepEqual(consultasPara("busca", { ...base, enriquecimento: { etapa: "busca", whats: "buscando" } }), ["Clínica Boa Indaiatuba instagram"]);
+  assert.deepEqual(consultasPara("busca", { ...base, enriquecimento: { etapa: "busca", whats: "ok" } }), []);
 });
