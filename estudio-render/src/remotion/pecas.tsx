@@ -124,7 +124,7 @@ export function FotoCheia(p: { foto: string; marca: MarcaArte; zoom?: number; x?
   const forca = p.forca ?? 1;
   return (
     <div style={{ position: "absolute", inset: 0, overflow: "hidden", backgroundColor: f }}>
-      <Img src={p.foto} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", transform: `scale(${p.zoom ?? 1}) translateX(${p.x ?? 0}px)` }} />
+      <Img src={p.foto} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", objectPosition: "50% 28%", transform: `scale(${p.zoom ?? 1}) translateX(${p.x ?? 0}px)` }} />
       <div
         style={{
           position: "absolute",

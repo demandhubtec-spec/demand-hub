@@ -79,7 +79,7 @@ function Numero(p: { n: number; marca: MarcaArte; grande?: boolean }) {
 
 function ComFoto(p: PropsLamina) {
   const c = p.marca.cores;
-  const alturaFoto = 640;
+  const alturaFoto = 608; // 912 × 608 = 3:2, o mesmo formato da foto horizontal: nada corta
   return (
     <AbsoluteFill>
       <FundoMarca marca={p.marca} />

@@ -3,7 +3,7 @@
  * o texto entrando palavra por palavra, barra de progresso no topo e transição suave entre as cenas.
  * A última cena é a chamada: "Comenta PALAVRA" com o botão pulsando.
  */
-import { AbsoluteFill, Easing, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Easing, Sequence, interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
 import { carregarFontes } from "./fontes";
 import { Corpo, FotoCheia, FundoMarca, Logo, Titulo, semAsterisco, tamanhoTitulo } from "./pecas";
 import type { CenaVideo, MarcaArte, PropsReels } from "./tipos";
@@ -106,9 +106,11 @@ export function Reels(p: PropsReels) {
         return (
           <Sequence key={i} from={de} durationInFrames={quadros}>
             <Cena cena={cena} indice={i} total={p.cenas.length} final={i === p.cenas.length - 1} palavra={p.palavra} marca={p.marca} quadros={quadros} />
+            {cena.voz ? <Audio src={cena.voz} volume={1} /> : null}
           </Sequence>
         );
       })}
+      {p.trilha ? <Audio src={p.trilha} loop volume={(f) => interpolate(f, [0, 15, total - 30, total], [0, 0.14, 0.14, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" })} /> : null}
       <Moldura marca={p.marca} total={total} />
     </AbsoluteFill>
   );

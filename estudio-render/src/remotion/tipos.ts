@@ -25,6 +25,8 @@ export type CenaVideo = {
   texto: string;
   destaque?: string;
   foto?: string | null;
+  /** Narração da cena (link do áudio). */
+  voz?: string | null;
   segundos: number;
 };
 
@@ -32,6 +34,8 @@ export type PropsReels = {
   cenas: CenaVideo[];
   palavra: string | null;
   marca: MarcaArte;
+  /** Trilha de fundo (link), tocando baixinho por baixo da narração. */
+  trilha?: string | null;
 };
 
 export const MARCA_PADRAO: MarcaArte = {
