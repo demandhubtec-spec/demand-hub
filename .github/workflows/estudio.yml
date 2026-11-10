@@ -1,0 +1,54 @@
+# Estúdio de produção da DemandIA: monta carrosséis e reels (Remotion) fora da Vercel, sem limite de tempo.
+# Roda de 30 em 30 minutos das 8h às 20h (Brasília) e também pelo botão "Run workflow" na aba Actions.
+# Só instala e monta quando tem copy aprovada esperando arte: rodada vazia termina em segundos.
+name: Estúdio de produção
+
+on:
+  schedule:
+    - cron: "*/30 11-23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: estudio-producao
+  cancel-in-progress: false
+
+jobs:
+  estudio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    steps:
+      - name: Tem peça na fila?
+        id: fila
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ] || [ -z "$OPENAI_API_KEY" ]; then
+            echo "Faltam os secrets SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY ou OPENAI_API_KEY"; exit 1
+          fi
+          r=$(curl -s "$SUPABASE_URL/rest/v1/estudio_pautas?select=id&status=eq.copy_aprovada&tentativas=lt.3&limit=1" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY")
+          if [ "$r" = "[]" ]; then echo "tem=nao" >> "$GITHUB_OUTPUT"; echo "Fila vazia"; else echo "tem=sim" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: actions/checkout@v4
+        if: steps.fila.outputs.tem == 'sim'
+
+      - uses: actions/setup-node@v4
+        if: steps.fila.outputs.tem == 'sim'
+        with:
+          node-version: 22
+
+      - name: Instalar
+        if: steps.fila.outputs.tem == 'sim'
+        run: |
+          npm install --prefix ia-sdr --omit=dev --no-audit --no-fund
+          npm install --prefix estudio-render --no-audit --no-fund
+          # Bibliotecas que o Chrome do Remotion usa no Ubuntu
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq --no-install-recommends libnss3 libdbus-1-3 libatk1.0-0 libgbm-dev libasound2t64 libxrandr2 libxkbcommon-dev libxfixes3 libxcomposite1 libxdamage1 libatk-bridge2.0-0 libpango-1.0-0 libcairo2 libcups2 fonts-noto-color-emoji > /dev/null
+
+      - name: Montar as peças
+        if: steps.fila.outputs.tem == 'sim'
+        working-directory: estudio-render
+        run: npm run rodar
