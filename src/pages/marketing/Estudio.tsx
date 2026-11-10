@@ -22,7 +22,9 @@ import {
   useConfigEstudio,
   useDecidirPauta,
   useEnviarVideo,
-  useTrocarFoto,
+  useAjustarPorLamina,
+  useKairogen,
+  kairogen,
   useFonteAcoes,
   useFontes,
   usePautas,
@@ -32,10 +34,13 @@ import {
   useRodarAgente,
   useSalvarConfig,
   subirArquivoDaMarca,
+  type AjusteLamina,
   type Marca,
+  type ModoFoto,
   type Pauta,
   type Peca,
 } from "@/hooks/useEstudio";
+import { useQueryClient } from "@tanstack/react-query";
 
 /**
  * Marketing · Time de Marketing IA (antes "Estúdio"): social media no automático.
@@ -225,7 +230,7 @@ function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: P
       {pauta.erro && <p className="rounded-[9px] bg-red-500/10 p-2 text-[12.5px] text-red-300">{pauta.erro}</p>}
 
       {emArte && arte && <ArteVisual arte={arte} />}
-      {emArte && arte && copy && <FotosDaArte pauta={pauta} copy={copy} arte={arte} />}
+      {emArte && arte && copy && <AjustesPorCriativo pauta={pauta} copy={copy} arte={arte} onDone={onDone} />}
       {copy && <CopyTexto copy={copy} formato={pauta.formato} aberto={!emArte} />}
 
       {pauta.status === "aguardando_video" && (
@@ -288,65 +293,125 @@ function ArteVisual({ arte }: { arte: Peca }) {
 }
 
 type PromptFoto = { indice: number; prompt: string; referencias?: string[] };
+type Rascunho = { pedido: string; modo: ModoFoto; prompt: string; arquivo: File | null };
+
+const MODOS: { chave: ModoFoto; nome: string }[] = [
+  { chave: "manter", nome: "Manter foto" },
+  { chave: "nova", nome: "Nova foto (IA)" },
+  { chave: "minha", nome: "Minha foto" },
+];
 
 /**
- * Fotos da peça: o prompt de cada foto (instrução da Bia + referências) para copiar e gerar no ChatGPT,
- * e o botão para trocar pela foto feita lá. A Duda refaz só a arte, sem mexer no texto.
+ * Ajustes criativo por criativo: em cada lâmina (ou cena) o Kelvin escreve o que mudar e escolhe a foto:
+ * manter, gerar outra com o prompt pronto (editável) ou subir a dele (feita no ChatGPT, por exemplo).
+ * Tudo vai junto para a Bia e a Duda; o que ele não marcou fica igual.
  */
-function FotosDaArte({ pauta, copy, arte }: { pauta: Pauta; copy: Peca; arte: Peca }) {
+function AjustesPorCriativo({ pauta, copy, arte, onDone }: { pauta: Pauta; copy: Peca; arte: Peca; onDone?: () => void }) {
   const { showToast } = useToast();
-  const trocar = useTrocarFoto();
-  const entrada = React.useRef<HTMLInputElement>(null);
-  const [alvo, setAlvo] = React.useState<number | null>(null);
-  const prompts = ((arte.conteudo as { prompts?: PromptFoto[] }).prompts ?? []).filter((p) => p?.prompt);
-  if (!prompts.length) return null;
-  const nome = pauta.formato === "reels" ? "Cena" : "Lâmina";
+  const ajustar = useAjustarPorLamina();
+  const { data: kg } = useKairogen();
+  const { data: config } = useConfigEstudio();
+  const reels = pauta.formato === "reels";
+  const nome = reels ? "Cena" : "Lâmina";
+  const c = copy.conteudo as { slides?: { titulo?: string; texto?: string }[]; cenas?: { texto_tela?: string; fala?: string }[] };
+  const itens = (reels ? (c.cenas ?? []).map((x) => ({ titulo: x.texto_tela ?? "", texto: x.fala ?? "" })) : c.slides ?? []).slice(0, 10);
+  const prompts = new Map(((arte.conteudo as { prompts?: PromptFoto[] }).prompts ?? []).filter((p) => p?.prompt).map((p) => [p.indice, p.prompt]));
+  const fotos = ((arte.conteudo as { fotos_links?: Record<string, string> }).fotos_links ?? {}) as Record<string, string>;
+  const [r, setR] = React.useState<Record<number, Rascunho>>({});
+  if (!itens.length) return null;
+
+  const pegar = (i: number): Rascunho => r[i] ?? { pedido: "", modo: "manter", prompt: prompts.get(i) ?? "", arquivo: null };
+  const mudar = (i: number, patch: Partial<Rascunho>) => setR((x) => ({ ...x, [i]: { ...pegar(i), ...patch } }));
+  const mudados = Object.entries(r).filter(([, v]) => v.pedido.trim() || v.modo !== "manter");
+  const motor = config?.agentes?.fotos_kairogen && kg?.conectado ? `Kairogen${kg.modelo_imagem ? ` (${kg.modelo_imagem})` : ""}` : "ChatGPT (OpenAI)";
   const copiar = (t: string) =>
     navigator.clipboard.writeText(t).then(
       () => showToast("Prompt copiado. Cola no ChatGPT."),
       () => showToast("Não consegui copiar."),
     );
-  const subir = (f?: File | null) => {
-    if (!f || alvo === null) return;
-    trocar.mutate(
-      { pauta, copy, indice: alvo, arquivo: f },
+  const enviar = () => {
+    const ajustes: AjusteLamina[] = mudados.map(([k, v]) => ({ indice: Number(k), pedido: v.pedido, modo: v.modo, prompt: v.prompt, arquivo: v.arquivo }));
+    ajustar.mutate(
+      { pauta, copy, arte, ajustes },
       {
-        onSuccess: () => showToast(`Foto da ${nome.toLowerCase()} ${alvo + 1} trocada. A Duda refaz a arte em alguns minutos.`),
+        onSuccess: () => {
+          setR({});
+          showToast(`Ajustes enviados (${ajustes.length} ${nome.toLowerCase()}${ajustes.length > 1 ? "s" : ""}). A Duda refaz em alguns minutos.`);
+          onDone?.();
+        },
         onError: (e) => showToast(`Não deu: ${(e as Error).message}`),
       },
     );
   };
+
   return (
-    <details className="rounded-[10px] bg-surface-2 p-3 text-[13px] text-ink">
-      <summary className="cursor-pointer font-semibold">Fotos ({prompts.length}): gerar no seu ChatGPT e trocar</summary>
-      <p className="mt-2 text-[12px] text-muted">As fotos já saem geradas pelo modelo de imagem do ChatGPT. Se quiser outra, copie o prompt, gere no seu ChatGPT e suba aqui.</p>
-      <input ref={entrada} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => { subir(e.target.files?.[0]); e.target.value = ""; }} />
-      <div className="mt-2 space-y-2">
-        {prompts.map((p) => (
-          <div key={p.indice} className="rounded-[9px] border border-border p-2.5">
-            <div className="flex items-center gap-2">
-              <span className="font-semibold">{nome} {p.indice + 1}</span>
-              <div className="ml-auto flex gap-1.5">
-                <Button size="sm" variant="ghost" onClick={() => copiar(p.prompt + (p.referencias?.length ? `\n\nReferências: ${p.referencias.join(" ")}` : ""))}>
-                  <CopyIcon /> Copiar prompt
-                </Button>
-                <Button size="sm" variant="outline" disabled={trocar.isPending} onClick={() => { setAlvo(p.indice); entrada.current?.click(); }}>
-                  <Upload /> {trocar.isPending && alvo === p.indice ? "Enviando…" : "Trocar foto"}
-                </Button>
+    <details className="rounded-[10px] bg-surface-2 p-3 text-[13px] text-ink" open={mudados.length > 0 || undefined}>
+      <summary className="cursor-pointer font-semibold">Ajustar criativo por criativo ({itens.length} {nome.toLowerCase()}s)</summary>
+      <p className="mt-2 text-[12px] text-muted">
+        Em cada {nome.toLowerCase()}, escreva o que mudar e escolha a foto. O que você não mexer fica exatamente igual. Fotos novas saem no {motor}.
+      </p>
+      <div className="mt-3 space-y-3">
+        {itens.map((it, i) => {
+          const v = pegar(i);
+          const miniatura = reels ? fotos[String(i)] : arte.arquivos[i];
+          const prompt = v.prompt || `Foto realista, estilo editorial, que mostre: ${(it.titulo ?? "").replace(/\*/g, "")}. ${(it.texto ?? "").replace(/\*/g, "")}`.trim();
+          return (
+            <div key={i} className={cn("flex gap-3 rounded-[9px] border p-2.5", v.pedido.trim() || v.modo !== "manter" ? "border-amber-400/50" : "border-border")}>
+              {miniatura ? (
+                <a href={miniatura} target="_blank" rel="noreferrer" className="shrink-0">
+                  <img src={miniatura} alt={`${nome} ${i + 1}`} className="h-[150px] w-auto rounded-[8px] border border-border" loading="lazy" />
+                </a>
+              ) : (
+                <div className="flex h-[150px] w-[110px] shrink-0 items-center justify-center rounded-[8px] border border-dashed border-border text-[11.5px] text-muted">sem foto</div>
+              )}
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="text-[12.5px]">
+                  <span className="font-semibold">{nome} {i + 1}:</span> <span className="text-muted">{(it.titulo ?? "").replace(/\*/g, "")}</span>
+                </div>
+                <Textarea rows={2} value={v.pedido} onChange={(e) => mudar(i, { pedido: e.target.value })} placeholder="O que mudar aqui? Ex.: título mais curto, trocar o texto, foto com o dono no balcão" />
+                <div className="flex flex-wrap gap-1.5">
+                  {MODOS.map((m) => (
+                    <button
+                      key={m.chave}
+                      type="button"
+                      onClick={() => mudar(i, { modo: m.chave, prompt: v.prompt || prompt })}
+                      className={cn("rounded-full border px-3 py-1 text-[12px]", v.modo === m.chave ? "border-primary bg-primary/15 text-ink" : "border-border text-muted hover:text-ink")}
+                    >
+                      {m.chave === "manter" && !miniatura ? "Sem mudança" : m.nome}
+                    </button>
+                  ))}
+                </div>
+                {v.modo !== "manter" && (
+                  <div className="space-y-1.5">
+                    <Textarea rows={3} value={v.prompt || prompt} onChange={(e) => mudar(i, { prompt: e.target.value })} className="text-[12px]" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="ghost" onClick={() => copiar(v.prompt || prompt)}>
+                        <CopyIcon /> Copiar prompt
+                      </Button>
+                      {v.modo === "minha" && (
+                        <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface">
+                          <Upload className="h-3.5 w-3.5" /> {v.arquivo ? v.arquivo.name.slice(0, 28) : "Escolher foto"}
+                          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => mudar(i, { arquivo: e.target.files?.[0] ?? null })} />
+                        </label>
+                      )}
+                      {v.modo === "nova" && <span className="text-[11.5px] text-muted">A Duda gera com este prompt.</span>}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-muted">{p.prompt}</p>
-            {p.referencias?.length ? (
-              <div className="mt-1 flex flex-wrap gap-2 text-[11.5px]">
-                {p.referencias.map((r) => (
-                  <a key={r} href={r} target="_blank" rel="noreferrer" className="text-primary-bright hover:underline">
-                    referência
-                  </a>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        ))}
+          );
+        })}
+      </div>
+      <div className="mt-3 flex items-center gap-2">
+        <Button size="sm" disabled={!mudados.length || ajustar.isPending} onClick={enviar}>
+          <Pencil /> {ajustar.isPending ? "Enviando…" : `Mandar ajustes para a Duda${mudados.length ? ` (${mudados.length})` : ""}`}
+        </Button>
+        {mudados.length ? (
+          <Button size="sm" variant="ghost" onClick={() => setR({})}>
+            Limpar
+          </Button>
+        ) : null}
       </div>
     </details>
   );
@@ -773,9 +838,145 @@ function Configuracoes() {
         </p>
       </Card>
 
+      <Kairogen />
       <Pilares />
       <Fontes />
     </div>
+  );
+}
+
+/**
+ * Kairogen ligado no portal pelo MCP deles: conecta com um código (sem chave), escolhe o modelo de imagem
+ * e liga as fotos automáticas por lá. Os créditos saem da conta do Kairogen.
+ */
+function Kairogen() {
+  const { data: info, isLoading } = useKairogen();
+  const { data: config } = useConfigEstudio();
+  const salvar = useSalvarConfig();
+  const qc = useQueryClient();
+  const { showToast } = useToast();
+  const [codigo, setCodigo] = React.useState<{ codigo: string; link: string } | null>(null);
+  const [ocupado, setOcupado] = React.useState(false);
+  const atualizar = () => qc.invalidateQueries({ queryKey: ["kairogen"] });
+
+  // Enquanto o código está na tela, pergunta a cada 5 s se o Kelvin já autorizou no Kairogen
+  React.useEffect(() => {
+    if (!codigo) return;
+    const t = setInterval(async () => {
+      try {
+        const r = await kairogen("verificar");
+        if (r.estado === "aguardando") return;
+        setCodigo(null);
+        atualizar();
+        showToast(r.estado === "conectado" ? "Kairogen conectado." : r.estado === "negado" ? "Conexão recusada no Kairogen." : "O código venceu. Gere outro.");
+      } catch (e) {
+        setCodigo(null);
+        showToast(`Não deu: ${(e as Error).message}`);
+      }
+    }, 5000);
+    return () => clearInterval(t);
+  }, [codigo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const passo = async (p: "conectar" | "sincronizar" | "desconectar" | "modelo", extra: Record<string, unknown> = {}) => {
+    setOcupado(true);
+    try {
+      const r = await kairogen(p, extra);
+      if (p === "conectar" && r.codigo && r.link) {
+        setCodigo({ codigo: r.codigo, link: r.link });
+        window.open(r.link, "_blank", "noopener");
+      } else {
+        atualizar();
+        showToast(p === "desconectar" ? "Kairogen desconectado." : "Atualizado.");
+      }
+    } catch (e) {
+      showToast(`Não deu: ${(e as Error).message}`);
+    } finally {
+      setOcupado(false);
+    }
+  };
+  const usar = config?.agentes?.fotos_kairogen === true;
+
+  return (
+    <Card className="space-y-3 p-5">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h3 className="text-[15px] font-semibold text-ink">Kairogen</h3>
+          <p className="text-[12.5px] text-muted">Gera as fotos das peças nos modelos do Kairogen (Nano Banana, GPT Image, Seedream, Flux), direto do portal. Os créditos saem da sua conta lá.</p>
+        </div>
+        {isLoading ? null : info?.conectado ? (
+          <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[12px] text-emerald-300">Conectado</span>
+        ) : (
+          <Button size="sm" disabled={ocupado || !!codigo} onClick={() => passo("conectar")}>
+            Conectar Kairogen
+          </Button>
+        )}
+      </div>
+      {info?.erro ? <p className="rounded-[9px] bg-red-500/10 p-2 text-[12.5px] text-red-300">{info.erro}</p> : null}
+      {codigo && (
+        <div className="rounded-[10px] border border-amber-400/40 p-3 text-[13px] text-ink">
+          Abri o Kairogen numa aba nova. Confira se o código lá é <span className="font-mono text-[15px] font-semibold">{codigo.codigo}</span> e clique em autorizar.
+          <div className="mt-1 text-[12px] text-muted">
+            Não abriu?{" "}
+            <a href={codigo.link} target="_blank" rel="noreferrer" className="text-primary-bright underline">
+              Abrir o Kairogen
+            </a>
+            . Assim que autorizar, aqui muda sozinho.
+          </div>
+        </div>
+      )}
+      {info?.conectado && (
+        <div className="space-y-3 border-t border-border pt-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <Switch checked={usar} onCheckedChange={(v) => salvar.mutate({ agentes: { ...config?.agentes, fotos_kairogen: v } }, { onSuccess: () => showToast(v ? "As fotos agora saem no Kairogen." : "As fotos voltam para o ChatGPT (OpenAI).") })} />
+            <div className="text-[13px] text-ink">Gerar as fotos das peças no Kairogen</div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Label className="mb-0">Modelo de imagem</Label>
+            {info.modelos_imagem?.length ? (
+              <select
+                value={info.modelo_imagem ?? ""}
+                onChange={(e) => passo("modelo", { modelo: e.target.value })}
+                className="rounded-md border border-border bg-surface px-2 py-1.5 text-[12.5px] text-ink"
+              >
+                {info.modelos_imagem.map((m) => (
+                  <option key={m} value={m}>
+                    {m}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <Input
+                defaultValue={info.modelo_imagem ?? ""}
+                placeholder="ex.: nano-banana-pro"
+                className="max-w-[240px]"
+                onBlur={(e) => e.target.value !== (info.modelo_imagem ?? "") && passo("modelo", { modelo: e.target.value })}
+              />
+            )}
+          </div>
+          {info.creditos ? <p className="text-[12.5px] text-muted">Créditos: {info.creditos}</p> : null}
+          {info.ferramentas?.length ? (
+            <details className="text-[12.5px] text-muted">
+              <summary className="cursor-pointer">O que o Kairogen libera para o portal ({info.ferramentas.length})</summary>
+              <ul className="mt-1 space-y-0.5">
+                {info.ferramentas.map((f) => (
+                  <li key={f.nome}>
+                    <span className="font-mono text-ink">{f.nome}</span> {f.descricao}
+                  </li>
+                ))}
+              </ul>
+            </details>
+          ) : null}
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" disabled={ocupado} onClick={() => passo("sincronizar")}>
+              Atualizar créditos e modelos
+            </Button>
+            <Button size="sm" variant="ghost" disabled={ocupado} onClick={() => passo("desconectar")}>
+              Desconectar
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 }
 
