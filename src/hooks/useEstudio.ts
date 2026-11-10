@@ -304,3 +304,96 @@ export async function subirArquivoDaMarca(arquivo: File, nome: "logo" | "manual"
   if (up.error) throw up.error;
   return supabase.storage.from("estudio").getPublicUrl(caminho).data.publicUrl;
 }
+
+/* ---------------- Ajustes criativo por criativo ---------------- */
+
+/** O que fazer com a foto de uma lâmina: manter a atual, gerar uma nova (prompt editável) ou usar a do Kelvin. */
+export type ModoFoto = "manter" | "nova" | "minha";
+export interface AjusteLamina {
+  indice: number;
+  pedido: string;
+  modo: ModoFoto;
+  prompt?: string;
+  arquivo?: File | null;
+}
+
+/**
+ * Manda os ajustes da peça, lâmina por lâmina, para a Bia (texto) e a Duda (foto e arte).
+ * Fotos "manter" ficam travadas (foto_url), "nova" vai com o prompt do Kelvin, "minha" sobe o arquivo dele.
+ * Só as lâminas com pedido mudam de texto; o resto fica idêntico.
+ */
+export function useAjustarPorLamina() {
+  const invalidar = useInvalidar();
+  return useMutation({
+    mutationFn: async ({ pauta, copy, arte, ajustes }: { pauta: Pauta; copy: Peca; arte: Peca; ajustes: AjusteLamina[] }) => {
+      const conteudo = structuredClone(copy.conteudo) as { slides?: Record<string, unknown>[]; cenas?: Record<string, unknown>[] };
+      const itens = conteudo.slides ?? conteudo.cenas;
+      if (!itens?.length) throw new Error("peça sem lâminas na copy");
+      const atuais = ((arte.conteudo as { fotos_links?: Record<string, string> }).fotos_links ?? {}) as Record<string, string>;
+      const nome = pauta.formato === "reels" ? "cena" : "lâmina";
+      const resumo: string[] = [];
+      for (let i = 0; i < itens.length; i++) {
+        const item = itens[i];
+        const a = ajustes.find((x) => x.indice === i);
+        delete item.pedido;
+        delete item.foto_prompt;
+        if (!a || a.modo === "manter") {
+          // Trava a foto que já está na arte (se a lâmina tem foto). "foto_fixa": só vale para este ajuste
+          if (atuais[String(i)] && item.foto_url !== atuais[String(i)]) {
+            item.foto_url = atuais[String(i)];
+            item.foto_fixa = true;
+          }
+        } else if (a.modo === "nova") {
+          delete item.foto_url;
+          delete item.foto_fixa;
+          if (a.prompt?.trim()) item.foto_prompt = a.prompt.trim();
+          resumo.push(`foto nova na ${nome} ${i + 1}`);
+        } else if (a.modo === "minha") {
+          if (!a.arquivo) throw new Error(`Escolha a foto da ${nome} ${i + 1}`);
+          const ext = (a.arquivo.name.split(".").pop() || "jpg").toLowerCase();
+          const caminho = `pautas/${pauta.id}/manual-${i + 1}-${Date.now()}.${ext}`;
+          const up = await supabase.storage.from("estudio").upload(caminho, a.arquivo, { contentType: a.arquivo.type || "image/jpeg", upsert: true });
+          if (up.error) throw up.error;
+          item.foto_url = supabase.storage.from("estudio").getPublicUrl(caminho).data.publicUrl;
+          delete item.foto_fixa;
+          resumo.push(`foto do Kelvin na ${nome} ${i + 1}`);
+        }
+        if (a?.pedido.trim()) {
+          item.pedido = a.pedido.trim().slice(0, 800);
+          resumo.push(`${nome} ${i + 1}: ${a.pedido.trim().slice(0, 160)}`);
+        }
+      }
+      if (!resumo.length) throw new Error("Nenhum ajuste marcado");
+      const temTexto = ajustes.some((a) => a.pedido.trim());
+      const r1 = await supabase.from("estudio_pecas").update({ conteudo }).eq("id", copy.id);
+      if (r1.error) throw r1.error;
+      const r2 = await supabase
+        .from("estudio_pautas")
+        .update({ status: "copy_aprovada", comentario: `${temTexto ? "[lâminas]" : "[fotos]"} ${resumo.join("; ")}`.slice(0, 1500), erro: null, tentativas: 0 })
+        .eq("id", pauta.id);
+      if (r2.error) throw r2.error;
+    },
+    onSuccess: invalidar,
+  });
+}
+
+/* ---------------- Kairogen ---------------- */
+
+export interface InfoKairogen {
+  conectado: boolean;
+  conectado_em?: string;
+  creditos?: string | null;
+  ferramentas?: { nome: string; descricao: string }[];
+  modelos_imagem?: string[];
+  modelo_imagem?: string | null;
+  erro?: string | null;
+}
+
+type RespostaKairogen = { ok: boolean; info?: InfoKairogen; codigo?: string; link?: string; expira_em?: number; estado?: "conectado" | "aguardando" | "expirado" | "negado" };
+
+export const kairogen = (passo: "status" | "conectar" | "verificar" | "sincronizar" | "modelo" | "desconectar", extra: Record<string, unknown> = {}) =>
+  chamarSdr<RespostaKairogen>("/api/estudio", { acao: "kairogen", passo, ...extra });
+
+export function useKairogen() {
+  return useQuery({ queryKey: ["kairogen"], queryFn: async () => (await kairogen("status")).info ?? { conectado: false }, staleTime: 60_000 });
+}
