@@ -193,3 +193,20 @@ test("fotos: tenta os modelos de imagem em ordem e pula o que a conta não tem",
   assert.equal(semModelo(400, "Invalid size"), false);
   assert.equal(semModelo(429, "rate limit"), false);
 });
+
+test("Kairogen: argumentos do generate_image pelo esquema, links e modelos", async () => {
+  const { argsDeImagem, linksDeImagem, modelosDeImagem: modelosKg, escolherPadrao } = await import("../src/lib/kairogen.ts");
+  const sch = {
+    properties: { prompt: { type: "string" }, model: { type: "string" }, aspect_ratio: { type: "string", enum: ["1:1", "3:4", "4:3", "9:16", "16:9"] }, num_images: { type: "number" }, quality: { type: "string", enum: ["standard", "hd"] } },
+    required: ["prompt", "model", "quality"],
+  };
+  assert.deepEqual(argsDeImagem(sch, "foto", "nano-banana-pro", "2:3"), { prompt: "foto", model: "nano-banana-pro", aspect_ratio: "3:4", num_images: 1, quality: "standard" });
+  assert.equal(argsDeImagem(sch, "x", null, "3:2").aspect_ratio, "4:3");
+  assert.equal(argsDeImagem(sch, "x", null, "9:16").aspect_ratio, "9:16");
+  assert.deepEqual(argsDeImagem(undefined, "x", "m", "2:3"), { prompt: "x" });
+  assert.deepEqual(linksDeImagem({ content: [{ type: "text", text: '{"status":"done","outputs":["https://cdn.kairogen.ai/out/abc.png"],"docs":"https://kairogen.ai/docs/mcp"}' }] }), ["https://cdn.kairogen.ai/out/abc.png"]);
+  const lista = modelosKg({ content: [{ type: "text", text: JSON.stringify({ models: [{ id: "nano-banana-pro", type: "image" }, { id: "veo-3-1", type: "video" }, { id: "topaz", type: "upscale" }, { id: "gpt-image-2", type: "image" }] }) }] });
+  assert.deepEqual(lista, ["nano-banana-pro", "gpt-image-2"]);
+  assert.equal(escolherPadrao(["flux-2-pro", "gpt-image-2"]), "gpt-image-2");
+  assert.equal(escolherPadrao([]), null);
+});
