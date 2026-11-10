@@ -160,6 +160,7 @@ async function estoque(): Promise<number> {
     .from("outreach_leads")
     .select("place_id", { count: "exact", head: true })
     .eq("wa_status", "pendente")
+    .not("whatsapp", "is", null) // só conta quem tem WhatsApp: sem número não dá para abordar
     .in("msg_status", ["sem", "gerando", "rascunho", "aprovada"]);
   return count ?? 0;
 }
