@@ -1,11 +1,13 @@
 /**
  * Estúdio · fotos geradas pelo ChatGPT (API de imagens da OpenAI, mesma chave do resto do sistema).
  * A copy traz a cena de cada lâmina/cena ("foto"); aqui ela vira uma foto realista, sem texto, no clima da marca.
- * Se a geração falhar (limite, conta sem acesso ao modelo), a peça sai sem foto e o erro aparece no chat do time.
+ * Se nenhuma foto sair (limite, conta sem acesso ao modelo), a peça não vai para o Kelvin: o erro aparece no chat do time e na pauta.
  *
  * Fotos que o Kelvin faz no ChatGPT dele e sobe no portal (foto_url na copy) têm prioridade e nunca são trocadas.
  *
- * Ajustes opcionais na Vercel: OPENAI_IMAGE_MODEL (padrão gpt-image-1) e OPENAI_IMAGE_QUALITY (low, medium, high; padrão medium).
+ * Modelo: tenta o OPENAI_IMAGE_MODEL (se estiver na Vercel) e depois gpt-image-2, gpt-image-1.5, gpt-image-1 e gpt-image-1-mini,
+ * guardando o primeiro que a conta aceitar (em 09/11 a conta respondeu que o gpt-image-1 "não existe").
+ * Qualidade: OPENAI_IMAGE_QUALITY (low, medium, high; padrão medium).
  */
 import { env } from "../env.ts";
 import type { Copy, CopyCarrossel, CopyReels } from "./ia.ts";
@@ -49,11 +51,26 @@ export function promptDaFoto(cena: string, formato: Formato, comReferencia = fal
     .join(" ");
 }
 
-const modelo = () => process.env.OPENAI_IMAGE_MODEL || "gpt-image-1";
 const qualidade = () => process.env.OPENAI_IMAGE_QUALITY || "medium";
+let modeloQueFunciona: string | null = null;
+
+/** Modelos de imagem, na ordem: o que já funcionou, o da Vercel e os atuais da OpenAI. */
+export function modelosDeImagem(daVercel = process.env.OPENAI_IMAGE_MODEL, ok = modeloQueFunciona): string[] {
+  return [...new Set([ok, daVercel, "gpt-image-2", "gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"].filter(Boolean) as string[])];
+}
+
+/** A conta não tem esse modelo (ou ele saiu do ar)? Aí tenta o próximo. */
+export const semModelo = (status: number, corpo: string) =>
+  status === 404 || ((status === 400 || status === 403) && /model|does not exist|not found|verif/i.test(corpo));
+
+class ErroModelo extends Error {}
 
 async function lerResposta(r: Response): Promise<string> {
-  if (!r.ok) throw new Error(`OpenAI imagem ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  if (!r.ok) {
+    const corpo = (await r.text()).slice(0, 300);
+    if (semModelo(r.status, corpo)) throw new ErroModelo(`OpenAI imagem ${r.status}: ${corpo}`);
+    throw new Error(`OpenAI imagem ${r.status}: ${corpo}`);
+  }
   const j = (await r.json()) as { data?: { b64_json?: string }[] };
   const b64 = j.data?.[0]?.b64_json;
   if (!b64) throw new Error("OpenAI imagem: resposta sem foto");
@@ -65,11 +82,28 @@ async function lerResposta(r: Response): Promise<string> {
  * Com referências, manda as imagens dos posts de referência junto para a foto seguir o estilo delas.
  */
 export async function gerarFoto(cena: string, formato: Formato = "retrato", referencias: Blob[] = []): Promise<string> {
+  let ultimo: unknown = null;
+  for (const m of modelosDeImagem()) {
+    try {
+      const foto = await gerarFotoCom(m, cena, formato, referencias);
+      modeloQueFunciona = m;
+      return foto;
+    } catch (e) {
+      ultimo = e;
+      if (!(e instanceof ErroModelo)) throw e;
+    }
+  }
+  throw new Error(
+    `nenhum modelo de imagem liberado nesta chave da OpenAI (${modelosDeImagem().join(", ")}). Pode ser preciso verificar a organização em platform.openai.com > Settings > Organization. Último erro: ${String((ultimo as Error)?.message ?? ultimo).slice(0, 160)}`,
+  );
+}
+
+async function gerarFotoCom(modelo: string, cena: string, formato: Formato, referencias: Blob[]): Promise<string> {
   const h = { Authorization: `Bearer ${env.openaiKey}` };
   if (referencias.length) {
     try {
       const f = new FormData();
-      f.append("model", modelo());
+      f.append("model", modelo);
       f.append("prompt", promptDaFoto(cena, formato, true));
       f.append("size", "1024x1536");
       f.append("quality", qualidade());
@@ -78,13 +112,14 @@ export async function gerarFoto(cena: string, formato: Formato = "retrato", refe
       referencias.forEach((b, i) => f.append("image[]", b, `referencia-${i + 1}.jpg`));
       return await lerResposta(await fetch("https://api.openai.com/v1/images/edits", { method: "POST", headers: h, body: f, signal: AbortSignal.timeout(170_000) }));
     } catch (e) {
+      if (e instanceof ErroModelo) throw e;
       console.error("Estúdio: foto com referência falhou, gerando sem referência", e);
     }
   }
   const r = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { ...h, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: modelo(), prompt: promptDaFoto(cena, formato), size: "1024x1536", quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
+    body: JSON.stringify({ model: modelo, prompt: promptDaFoto(cena, formato), size: "1024x1536", quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
     signal: AbortSignal.timeout(150_000),
   });
   return lerResposta(r);

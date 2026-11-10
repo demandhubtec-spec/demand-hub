@@ -341,6 +341,8 @@ export async function rodarDiretor(limite = 1, c?: Config) {
       const linksRefs = refs.map((r) => r.link).filter(Boolean) as string[];
       const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: promptDaFoto(c, tipoFoto, linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
       if (erroFoto) await registrar("duda", "vera", `Não consegui gerar ${fotos.size ? "todas as fotos" : "as fotos"} no ChatGPT para ${dm(p.dia)}: ${erroFoto.slice(0, 200)}`);
+      // Sem nenhuma foto a peça não vai para o Kelvin: carrossel e reels só de texto não servem (pedido dele, 10/11)
+      if (!legado && !fotos.size && cenas.some(Boolean)) throw new Error(`sem fotos: ${(erroFoto ?? "nenhuma foto gerada").slice(0, 250)}`);
       let links: string[];
       if (formato === "reels") {
         const { videoDoReels, subirVideo } = await import("./video.ts");
