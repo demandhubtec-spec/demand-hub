@@ -13,6 +13,11 @@
  *   dono   → Google pelo Apify: LinkedIn e Instagram do dono
  *   ok
  * Só uma coleta do Apify por vez; o resultado é lido na rodada seguinte. Respeita o teto do mês.
+ *
+ * WhatsApp é obrigatório (pedido do Kelvin, 10/11/2026): sem um número que existe no WhatsApp a empresa não entra
+ * na lista. O Léo procura nesta ordem: telefone do Google, site (link do WhatsApp e telefones), Receita e Instagram
+ * (telefone comercial, bio e link da bio). Cada número é conferido no WhatsApp sem mandar mensagem.
+ * Quem já conversou com a gente (mesmo número) também não entra: vira follow-up, não primeiro contato.
  */
 import { db } from "./db.ts";
 import { env } from "./env.ts";
@@ -25,7 +30,9 @@ import {
   instagramNaBusca,
   lerBrasilApi,
   linksDoTexto,
+  normalizarTelefone,
   perfilDaPessoa,
+  telefonesDoTexto,
   type DadosCnpj,
   type ResultadoBusca,
 } from "./leo-pistas.ts";
@@ -45,6 +52,8 @@ export interface EstadoLeo {
   fontes?: Record<string, string>; // de onde veio cada dado (site, whatsapp, instagram, google, receita)
   candidatos_cnpj?: string[];
   notas?: string[];
+  /** WhatsApp: ok (achou e conferiu), buscando (ainda vai olhar o Instagram), conferir (o WhatsApp não respondeu), nao_achou */
+  whats?: "ok" | "buscando" | "conferir" | "nao_achou";
 }
 
 interface LeadLeo {
@@ -53,6 +62,8 @@ interface LeadLeo {
   cidade: string | null;
   wa_status?: string | null;
   whatsapp: string | null;
+  telefone?: string | null;
+  cnpj_telefone?: string | null;
   site: string | null;
   instagram: string | null;
   email: string | null;
@@ -71,7 +82,7 @@ interface ColetaLeo {
   iniciada_em: string;
 }
 
-const CAMPOS = "place_id,empresa,cidade,wa_status,whatsapp,site,instagram,email,linkedin_empresa,cnpj,socios,decisor,enriquecimento";
+const CAMPOS = "place_id,empresa,cidade,wa_status,whatsapp,telefone,cnpj_telefone,site,instagram,email,linkedin_empresa,cnpj,socios,decisor,enriquecimento";
 const apifyToken = () => process.env.APIFY_TOKEN || "";
 
 async function apify<T>(caminho: string, init?: RequestInit): Promise<T> {
@@ -87,8 +98,83 @@ async function salvar(placeId: string, patch: Record<string, unknown>) {
   await db().from("outreach_leads").update(patch).eq("place_id", placeId);
 }
 
-/** Ficha completa: vai para a aprovação do Kelvin (lista do Léo). */
-const fichaPronta = () => ({ enriquecido_em: new Date().toISOString(), leo_status: "pendente" });
+/** Ainda vai ser abordado (primeiro contato)? Só esses entram na lista do Léo. */
+const paraAbordar = (l: Pick<LeadLeo, "wa_status">) => !l.wa_status || ["pendente", "sem_whatsapp"].includes(l.wa_status);
+const fim8 = (n: string) => n.replace(/\D/g, "").slice(-8);
+
+/** Já falamos com esse WhatsApp (conversa no SDR ou outra empresa da lista já abordada com o mesmo número)? */
+async function jaFalamosCom(numero: string, placeId: string): Promise<boolean> {
+  const f = fim8(numero);
+  const [{ count: conversa }, { count: abordado }] = await Promise.all([
+    db().from("sdr_leads").select("id", { count: "exact", head: true }).ilike("phone", `%${f}`),
+    db().from("outreach_leads").select("place_id", { count: "exact", head: true }).ilike("whatsapp", `%${f}`).neq("place_id", placeId).not("wa_sent_at", "is", null),
+  ]);
+  return (conversa ?? 0) > 0 || (abordado ?? 0) > 0;
+}
+
+/**
+ * Ficha completa. Só vai para a aprovação do Kelvin (lista do Léo) quem tem WhatsApp conferido e ainda não falou com a gente.
+ * Sem WhatsApp: sai da lista (wa_status sem_whatsapp). Já conversou: sai da lista, porque é follow-up.
+ */
+async function fichaPronta(lead: LeadLeo, estado: EstadoLeo, patch: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const agora = { enriquecido_em: new Date().toISOString() };
+  if (!paraAbordar(lead)) return agora;
+  const wa = (patch.whatsapp as string | undefined) ?? (estado.whats === "ok" ? lead.whatsapp : null);
+  if (!wa) {
+    estado.whats = "nao_achou";
+    return { ...agora, leo_status: null, wa_status: "sem_whatsapp", whatsapp: null };
+  }
+  if (await jaFalamosCom(wa, lead.place_id)) {
+    (estado.notas ??= []).push("Já falamos com esse WhatsApp antes: não entra como primeiro contato.");
+    return { ...agora, leo_status: null, wa_status: "ignorado", retorno_nota: "Léo: já falamos com esse WhatsApp antes. Tratar como follow-up, não como primeiro contato." };
+  }
+  return { ...agora, leo_status: "pendente", wa_status: "pendente" };
+}
+
+type Numero = { num: string; fonte: string };
+
+/**
+ * Confere no WhatsApp (sem mandar mensagem) quais números existem e devolve o primeiro, na ordem de preferência.
+ * erro = o WhatsApp não respondeu agora (tenta de novo na próxima rodada).
+ */
+export async function primeiroComWhatsApp(nums: Numero[]): Promise<{ achado: Numero | null; erro: boolean }> {
+  const vistos = new Set<string>();
+  const lista = nums
+    .map((n) => ({ ...n, num: normalizarTelefone(n.num) ?? "" }))
+    .filter((n) => n.num && !vistos.has(n.num) && vistos.add(n.num))
+    .slice(0, 8);
+  if (!lista.length) return { achado: null, erro: false };
+  try {
+    const r = await fetch(`${env.evolutionUrl}/user/check`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
+      body: JSON.stringify({ number: lista.map((n) => n.num) }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!r.ok) return { achado: null, erro: true };
+    const j = (await r.json()) as { data?: { Users?: { Query?: string; IsInWhatsapp?: boolean; JID?: string }[] } };
+    const users = j.data?.Users ?? [];
+    for (const [i, n] of lista.entries()) {
+      const u = users.find((x) => (x.Query ?? "").replace(/\D/g, "") === n.num) ?? (users.length === lista.length ? users[i] : undefined);
+      if (u?.IsInWhatsapp) return { achado: { num: (u.JID ?? n.num).split("@")[0].split(":")[0].replace(/\D/g, "") || n.num, fonte: n.fonte }, erro: false };
+    }
+    return { achado: null, erro: false };
+  } catch {
+    return { achado: null, erro: true };
+  }
+}
+
+/** Aplica o WhatsApp achado (ou não) no patch e no estado. */
+async function acharWhatsApp(nums: Numero[], estado: EstadoLeo, patch: Record<string, unknown>): Promise<void> {
+  if (estado.whats === "ok") return;
+  const { achado, erro } = await primeiroComWhatsApp(nums);
+  if (achado) {
+    patch.whatsapp = achado.num;
+    estado.whats = "ok";
+    estado.fontes = { ...(estado.fontes ?? {}), whatsapp: achado.fonte };
+  } else if (erro) estado.whats = "conferir";
+  else if (estado.whats !== "conferir") estado.whats = "buscando";
+}
 
 /** Receita Federal pela BrasilAPI (gratuita). */
 export async function consultarCnpj(cnpj: string): Promise<DadosCnpj | null> {
@@ -143,6 +229,8 @@ async function passosGratuitos(lead: LeadLeo): Promise<void> {
   let candidatos: string[] = [];
   let site = semSiteProprio(lead.site) ? null : lead.site;
   if (site) estado.fontes!.site = "google";
+  // WhatsApp: primeiro o que veio do Google (celular ou fixo com WhatsApp Business), depois o site, a Receita e o Instagram
+  const numeros: Numero[] = [lead.whatsapp, lead.telefone].filter(Boolean).map((num) => ({ num: num!, fonte: "google" }));
 
   // 1) Site: CNPJ no rodapé, Instagram, LinkedIn da empresa e e-mail
   if (site) {
@@ -154,6 +242,7 @@ async function passosGratuitos(lead: LeadLeo): Promise<void> {
       if (acharCnpjs(texto).length) break;
     }
     const l = linksDoTexto(texto);
+    numeros.push(...telefonesDoTexto(texto).map((num) => ({ num, fonte: "site" })));
     candidatos = acharCnpjs(texto);
     if (!lead.instagram && l.instagrams[0]) patch.instagram = `https://www.instagram.com/${l.instagrams[0]}/`;
     const lkEmpresa = l.linkedins.find((x) => /\/company\//.test(x));
@@ -183,15 +272,20 @@ async function passosGratuitos(lead: LeadLeo): Promise<void> {
   const dados = (await Promise.all([...new Set(candidatos)].slice(0, 3).map(consultarCnpj))).filter(Boolean) as DadosCnpj[];
   receita = escolherCnpj(dados, lead.empresa, lead.cidade);
   if (receita) Object.assign(patch, patchDaReceita(receita, lead));
+  const telReceita = receita?.telefone ?? lead.cnpj_telefone;
+  if (telReceita) numeros.push({ num: telReceita, fonte: "receita" });
+  if (paraAbordar(lead)) await acharWhatsApp(numeros, estado, patch);
 
   const temInstagram = !!(lead.instagram || patch.instagram);
   const temSocios = !!receita?.socios.length || !!lead.socios?.length;
-  estado.etapa = !receita || (!site && !temInstagram) ? "busca" : !site && temInstagram ? "perfil" : temSocios ? "dono" : "ok";
+  const semWa = paraAbordar(lead) && estado.whats !== "ok";
+  estado.etapa =
+    !receita || (!site && !temInstagram) || (semWa && !temInstagram) ? "busca" : (!site || semWa) && temInstagram ? "perfil" : temSocios ? "dono" : "ok";
   // Pesquisa paga só para quem ainda vai ser abordado; quem já está em conversa fica com o que os passos gratuitos acharam
-  if (lead.wa_status && lead.wa_status !== "pendente") estado.etapa = "ok";
+  if (!paraAbordar(lead)) estado.etapa = "ok";
   patch.site_fonte = estado.fontes!.site ?? null;
+  if (estado.etapa === "ok") Object.assign(patch, await fichaPronta(lead, estado, patch));
   patch.enriquecimento = estado;
-  if (estado.etapa === "ok") Object.assign(patch, fichaPronta());
   await salvar(lead.place_id, patch);
 }
 
@@ -202,8 +296,8 @@ export function consultasPara(tipo: ColetaLeo["tipo"], lead: LeadLeo): string[] 
   if (tipo === "busca") {
     const q: string[] = [];
     if (!lead.cnpj) q.push(`"${nome}" ${cidade} CNPJ`);
-    // Instagram só quando falta site e Instagram (quem tem site quase sempre mostra o Instagram nele)
-    if (!lead.instagram && semSiteProprio(lead.site)) q.push(`${nome} ${cidade} instagram`);
+    // Instagram quando falta site ou WhatsApp (é onde costuma estar o WhatsApp de quem não tem site)
+    if (!lead.instagram && (semSiteProprio(lead.site) || lead.enriquecimento?.whats !== "ok")) q.push(`${nome} ${cidade} instagram`);
     return q;
   }
   if (tipo === "perfil") {
@@ -243,7 +337,7 @@ async function iniciarColeta(): Promise<string | null> {
       .from("outreach_leads")
       .select(CAMPOS)
       .eq("enriquecimento->>etapa", tipo)
-      .eq("wa_status", "pendente") // pesquisa paga só para quem ainda vai ser abordado
+      .in("wa_status", ["pendente", "sem_whatsapp"]) // pesquisa paga só para quem ainda vai ser abordado
       .order("created_at", { ascending: false })
       .limit(POR_COLETA);
     const leads = (data ?? []) as LeadLeo[];
@@ -287,11 +381,13 @@ async function avancar(lead: LeadLeo, de: ColetaLeo["tipo"], patch: Record<strin
   const site = (patch.site as string | undefined) ?? (semSiteProprio(lead.site) ? null : lead.site);
   const instagram = (patch.instagram as string | undefined) ?? lead.instagram;
   const socios = (patch.socios as DadosCnpj["socios"] | undefined) ?? lead.socios ?? [];
+  const semWa = paraAbordar(lead) && atual.whats !== "ok";
   let proxima: EtapaLeo = "ok";
-  if (de === "busca") proxima = !site && instagram ? "perfil" : socios.length ? "dono" : "ok";
+  if (de === "busca") proxima = (!site || semWa) && instagram ? "perfil" : socios.length ? "dono" : "ok";
   else if (de === "perfil") proxima = socios.length ? "dono" : "ok";
   atual.etapa = proxima;
-  await salvar(lead.place_id, { ...patch, enriquecimento: atual, ...(proxima === "ok" ? fichaPronta() : {}) });
+  const fim = proxima === "ok" ? await fichaPronta(lead, atual, patch) : {};
+  await salvar(lead.place_id, { ...patch, ...fim, enriquecimento: atual });
 }
 
 /** Lê a coleta que terminou e aplica nos leads. */
@@ -330,6 +426,18 @@ async function lerColeta(c: ColetaLeo): Promise<string> {
         }
         const email = p.businessEmail || p.publicEmail || l.emails[0];
         if (email && !lead.email) patch.email = String(email).toLowerCase();
+        // WhatsApp no Instagram: telefone comercial, bio e a página do link da bio (linktree, site)
+        if (paraAbordar(lead) && lead.enriquecimento?.whats !== "ok") {
+          const est: EstadoLeo = { ...(lead.enriquecimento ?? { etapa: "perfil" }) };
+          const nums: Numero[] = [p.businessPhoneNumber, p.publicPhoneNumber, p.contactPhoneNumber]
+            .filter(Boolean)
+            .map((num: string) => ({ num: String(num), fonte: "instagram" }));
+          nums.push(...telefonesDoTexto(bio).map((num) => ({ num, fonte: "instagram" })));
+          if (!nums.length) for (const u of links.slice(0, 2)) nums.push(...telefonesDoTexto(await baixar(/^https?:/i.test(u) ? u : `https://${u}`)).map((num) => ({ num, fonte: "instagram" })));
+          await acharWhatsApp(nums, est, patch);
+          lead.enriquecimento = est;
+          if (est.whats === "ok") achados++;
+        }
         if (!lead.cnpj) {
           const d = (await Promise.all(acharCnpjs(bio).slice(0, 2).map(consultarCnpj))).filter(Boolean) as DadosCnpj[];
           const r = escolherCnpj(d, lead.empresa, lead.cidade);
@@ -373,7 +481,7 @@ async function lerColeta(c: ColetaLeo): Promise<string> {
       }
     }
     /* eslint-enable @typescript-eslint/no-explicit-any */
-    await avancar({ ...lead, enriquecimento: { ...(lead.enriquecimento ?? { etapa: c.tipo }), fontes } }, c.tipo, patch);
+    await avancar({ ...lead, enriquecimento: { ...(lead.enriquecimento ?? { etapa: c.tipo }), fontes: { ...(lead.enriquecimento?.fontes ?? {}), ...fontes } } }, c.tipo, patch);
   }
   await db().from("outreach_config").update({ leo_coleta: null }).eq("id", 1);
   await log(`Léo terminou (${c.tipo}): ${leads.length} empresas, ${achados} com dado novo${custo ? `, US$ ${custo.toFixed(3)}` : ""}`);
@@ -393,8 +501,8 @@ export async function runLeo(): Promise<Record<string, unknown>> {
   const { data } = await db()
     .from("outreach_leads")
     .select(CAMPOS)
-    .is("enriquecimento", null)
-    .in("wa_status", ["pendente", "enviado", "respondeu"])
+    .or("enriquecimento.is.null,enriquecimento->>whats.eq.conferir")
+    .in("wa_status", ["pendente", "sem_whatsapp", "enviado", "respondeu"])
     .order("created_at", { ascending: false })
     .limit(POR_RODADA_GRATUITA);
   let feitos = 0;

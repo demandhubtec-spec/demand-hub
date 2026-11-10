@@ -179,3 +179,35 @@ export function perfilDaPessoa(res: ResultadoBusca[], nome: string, rede: "linke
   }
   return null;
 }
+
+/**
+ * Telefone brasileiro no formato do WhatsApp (55 + DDD + número), ou null.
+ * Aceita com ou sem 55, com zero do DDD, com pontuação. Celular (9 dígitos) ou fixo (8).
+ */
+export function normalizarTelefone(t: string | null | undefined): string | null {
+  let d = (t ?? "").replace(/\D/g, "").replace(/^0+/, "");
+  if (d.length === 10 || d.length === 11) d = `55${d}`;
+  if (!/^55[1-9][1-9]\d{8,9}$/.test(d)) return null;
+  const n = d.slice(4);
+  if (n.length === 9 && n[0] !== "9") return null; // 9 dígitos só se for celular
+  if (n.length === 8 && !/^[2-5]/.test(n)) return null; // fixo começa com 2 a 5
+  return d;
+}
+
+export const ehCelular = (t: string) => /^55\d{2}9\d{8}$/.test(t);
+
+/**
+ * Números de telefone num texto (HTML do site, bio do Instagram, recado do WhatsApp).
+ * Ordem de preferência: link direto do WhatsApp (wa.me, api.whatsapp.com), depois celulares, depois fixos.
+ */
+export function telefonesDoTexto(texto: string): string[] {
+  const t = (texto ?? "").replace(/&nbsp;|\u00a0/g, " ");
+  const doWhats = [...t.matchAll(/(?:wa\.me\/|whatsapp\.com\/send\/?\?(?:[^"'\s<>]*&(?:amp;)?)?phone=|whatsapp:\/\/send\?phone=)\+?(\d{10,13})/gi)].map((m) => normalizarTelefone(m[1]));
+  const soltos = [...t.matchAll(/(?<![\d/.-])(?:\+?55[\s.-]?)?\(?0?([1-9]\d)\)?[\s.-]?(9[\s.]?\d{4}|[2-5]\d{3})[\s.-]?(\d{4})(?![\d/-])/g)].map((m) =>
+    normalizarTelefone(`${m[1]}${m[2].replace(/\D/g, "")}${m[3]}`),
+  );
+  const unicos = (xs: (string | null)[]) => [...new Set(xs.filter(Boolean) as string[])];
+  const whats = unicos(doWhats);
+  const resto = unicos(soltos).filter((x) => !whats.includes(x));
+  return [...whats, ...resto.filter(ehCelular), ...resto.filter((x) => !ehCelular(x))].slice(0, 8);
+}

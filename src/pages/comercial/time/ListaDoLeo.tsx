@@ -126,8 +126,8 @@ export function ListaDoLeo() {
   return (
     <div>
       <div className="mb-3 text-[13px] text-muted">
-        O Léo confere site (Google, WhatsApp e Instagram), CNPJ, sócios e o dono de cada empresa. Analise e aprove: só o que você aprovar segue para o
-        diagnóstico da Rita.
+        O Léo confere site (Google, WhatsApp e Instagram), CNPJ, sócios e o dono de cada empresa. Só entra na lista quem tem WhatsApp conferido (ele procura
+        no Google, no site, na Receita e no Instagram) e nunca falou com a gente. Analise e aprove: só o que você aprovar segue para o diagnóstico da Rita.
       </div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Segmented
