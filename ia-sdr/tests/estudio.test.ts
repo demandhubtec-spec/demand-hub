@@ -173,3 +173,12 @@ test("fotos do Kelvin (feitas no ChatGPT dele) têm prioridade; com referência 
   assert.match(promptDaFoto("dono no balcão", "retrato", true), /referências de posts que funcionaram/);
   assert.doesNotMatch(promptDaFoto("dono no balcão", "retrato"), /referências/);
 });
+
+test("fotos: tenta os modelos de imagem em ordem e pula o que a conta não tem", async () => {
+  const { modelosDeImagem, semModelo } = await import("../src/lib/estudio/fotos.ts");
+  assert.deepEqual(modelosDeImagem(undefined, null), ["gpt-image-2", "gpt-image-1.5", "gpt-image-1", "gpt-image-1-mini"]);
+  assert.deepEqual(modelosDeImagem("gpt-image-1", "gpt-image-2").slice(0, 2), ["gpt-image-2", "gpt-image-1"]);
+  assert.equal(semModelo(400, "The model 'gpt-image-1' does not exist."), true);
+  assert.equal(semModelo(400, "Invalid size"), false);
+  assert.equal(semModelo(429, "rate limit"), false);
+});
