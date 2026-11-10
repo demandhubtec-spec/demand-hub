@@ -78,6 +78,8 @@ export interface Marca {
   tom?: string;
   regras?: string;
   assinatura?: string;
+  /** Trilhas de fundo do reels (links de MP3). O estúdio sorteia uma por vídeo. */
+  trilhas?: string[];
 }
 
 export const STATUS_TEXTO: Record<StatusPauta, string> = {
@@ -294,8 +296,8 @@ export function useRodarAgente() {
   });
 }
 
-/** Sobe um arquivo da marca (logo ou manual) no bucket do Estúdio e devolve o link público. */
-export async function subirArquivoDaMarca(arquivo: File, nome: "logo" | "manual"): Promise<string> {
+/** Sobe um arquivo da marca (logo, manual ou trilha) no bucket do Estúdio e devolve o link público. */
+export async function subirArquivoDaMarca(arquivo: File, nome: "logo" | "manual" | "trilha"): Promise<string> {
   const ext = (arquivo.name.split(".").pop() || "bin").toLowerCase();
   const caminho = `marca/${nome}-${Date.now()}.${ext}`;
   const up = await supabase.storage.from("estudio").upload(caminho, arquivo, { contentType: arquivo.type || undefined, upsert: true });
