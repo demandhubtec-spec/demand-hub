@@ -329,6 +329,50 @@ async function subirPngs(pautaId: string, versao: number, imagens: Buffer[]): Pr
   return links;
 }
 
+/**
+ * Ajustes por lâmina (ou cena) pedidos no portal: a Bia reescreve só as lâminas com pedido e as outras ficam
+ * exatamente como estavam. A foto de cada lâmina segue a escolha do Kelvin (manter, nova ou a dele).
+ */
+async function ajustarPorLamina(p: Pauta, conteudo: Copy, formato: Formato, cfg: Config): Promise<Copy> {
+  type Item = { pedido?: string; foto_url?: string; foto_prompt?: string; foto_fixa?: boolean } & Record<string, unknown>;
+  const chave = (conteudo as CopyCarrossel).slides ? "slides" : "cenas";
+  const itens = ((conteudo as unknown as Record<string, Item[]>)[chave] ?? []) as Item[];
+  const nome = formato === "reels" ? "Cena" : "Lâmina";
+  const pedidos = itens.map((x, i) => (x.pedido?.trim() ? `${nome} ${i + 1}: ${x.pedido.trim()}` : null)).filter(Boolean) as string[];
+  const limpo = (x: Item): Item => {
+    const { pedido: _p, ...resto } = x;
+    return resto as Item;
+  };
+  if (!pedidos.length) return { ...conteudo, [chave]: itens.map(limpo) } as Copy;
+  const nova = await redigir({
+    formato,
+    tema: p.tema,
+    gancho: p.gancho,
+    pilar: p.pilar,
+    palavra: p.palavra_gatilho,
+    refs: await refsDaPauta(p),
+    ajuste: {
+      comentario: `Ajustes que o Kelvin pediu, criativo por criativo. Mude SÓ o que foi pedido nestas ${nome.toLowerCase()}s e mantenha todas as outras exatamente iguais, na mesma ordem:\n${pedidos.join("\n")}`,
+      anterior: { ...conteudo, [chave]: itens.map(limpo) } as Copy,
+    },
+    contexto: contexto(cfg),
+  });
+  const novos = ((nova as unknown as Record<string, Item[]>)[chave] ?? []) as Item[];
+  const final = itens.map((x, i) => {
+    if (!x.pedido?.trim() || !novos[i]) return limpo(x);
+    // Texto novo da Bia, mas a foto continua do jeito que o Kelvin escolheu no portal
+    const n = limpo({ ...novos[i] });
+    delete n.foto_url;
+    delete n.foto_prompt;
+    delete n.foto_fixa;
+    if (x.foto_url) n.foto_url = x.foto_url;
+    if (x.foto_prompt) n.foto_prompt = x.foto_prompt;
+    if (x.foto_fixa) n.foto_fixa = x.foto_fixa;
+    return n;
+  });
+  return { ...conteudo, [chave]: final } as Copy;
+}
+
 export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador) {
   const cfg = c ?? (await lerConfig());
   const { data } = await db().from("estudio_pautas").select("*").eq("status", "copy_aprovada").lt("tentativas", 3).order("tentativas").order("dia").limit(limite);
@@ -341,7 +385,12 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
       const formato: Formato = p.formato === "estatico" ? "carrossel" : p.formato;
       // Ajuste pedido na arte: a copy muda junto (texto da capa, lâminas repetidas, estrutura).
       // "[fotos]" é só troca de foto pelo portal: a copy fica como está.
-      if (p.comentario && !p.comentario.startsWith("[fotos]")) {
+      if (p.comentario?.startsWith("[lâminas]")) {
+        // Ajuste criativo por criativo (portal): a Bia mexe só nas lâminas com pedido; o resto fica idêntico
+        copy = { ...copy, versao: copy.versao + 1, conteudo: await ajustarPorLamina(p, copy.conteudo, formato, cfg) };
+        await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "copy", versao: copy.versao, conteudo: copy.conteudo, comentario: p.comentario });
+        await registrar("bia", "duda", `Apliquei os ajustes por lâmina que o Kelvin pediu em ${dm(p.dia)}. Duda, segue com as fotos e a arte.`);
+      } else if (p.comentario && !p.comentario.startsWith("[fotos]")) {
         const pedidos = await pedidosDeArte(p);
         const nova = await redigir({
           formato,
@@ -353,17 +402,18 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
           ajuste: { comentario: `Pedidos do Kelvin na arte (aplique TODOS os que forem de texto, estrutura ou foto):\n${pedidos}`, anterior: copy.conteudo },
           contexto: contexto(cfg),
         });
-        // As fotos que o Kelvin subiu continuam valendo na versão nova
+        // As fotos que o Kelvin subiu continuam valendo na versão nova (as só "mantidas" num ajuste por lâmina, não)
         const { fotosManuais } = await import("./fotos.ts");
         const itens = ((nova as CopyCarrossel).slides ?? (nova as CopyReels).cenas ?? []) as { foto_url?: string }[];
-        for (const [i, url] of fotosManuais(copy.conteudo)) if (itens[i]) itens[i].foto_url = url;
+        const antigos = ((copy.conteudo as CopyCarrossel).slides ?? (copy.conteudo as CopyReels).cenas ?? []) as { foto_fixa?: boolean }[];
+        for (const [i, url] of fotosManuais(copy.conteudo)) if (itens[i] && !antigos[i]?.foto_fixa) itens[i].foto_url = url;
         await db().from("estudio_pecas").insert({ pauta_id: p.id, tipo: "copy", versao: copy.versao + 1, conteudo: nova, comentario: p.comentario });
         await registrar("bia", "duda", `Apliquei no texto o que o Kelvin pediu na arte de ${dm(p.dia)}. Duda, segue com as fotos e a arte.`);
         copy = { ...copy, versao: copy.versao + 1, conteudo: nova };
       }
       // O estúdio de produção (Remotion) não carrega o next/og: só a Vercel usa os modelos antigos
       const arte = render ? null : await import("./arte.tsx");
-      const { gerarFotos, cenasDasFotos, fotosManuais, baixarReferencias, promptDaFoto, modelosDasLaminas, formatoDaFoto } = await import("./fotos.ts");
+      const { gerarFotos, cenasDasFotos, fotosManuais, promptsManuais, baixarReferencias, promptDaFoto, modelosDasLaminas, formatoDaFoto } = await import("./fotos.ts");
       if (arte) await arte.usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
@@ -373,14 +423,15 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
       const refs = (refsDb ?? []) as { conta: string | null; ig_media_id: string | null; link: string | null }[];
       const { imagensDasReferencias } = await import("./graph.ts");
       const referencias = legado ? [] : await baixarReferencias(await imagensDasReferencias(refs).catch(() => []));
-      const cenas = cenasDasFotos(copy.conteudo, formato);
+      const prontos = promptsManuais(copy.conteudo);
+      const cenas = cenasDasFotos(copy.conteudo, formato).map((c, i) => c ?? (prontos.has(i) ? prontos.get(i)! : null));
       // Cada foto já nasce no formato do espaço dela na arte (foto em cima = horizontal, fundo = em pé): nada corta
       const modelos = modelosDasLaminas(cenas.length, (i) => !!cenas[i]);
       const tipoFoto = (i: number): FormatoFoto => (formato === "reels" ? "vertical" : render ? formatoDaFoto(modelos[i]) : "retrato");
-      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 6, { referencias, manuais: fotosManuais(copy.conteudo) });
+      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 6, { referencias, manuais: fotosManuais(copy.conteudo), prontos, motor: cfg.agentes?.fotos_kairogen ? "kairogen" : "openai" });
       // O prompt de cada foto fica salvo para o Kelvin copiar e gerar no ChatGPT dele, se quiser trocar
       const linksRefs = refs.map((r) => r.link).filter(Boolean) as string[];
-      const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: promptDaFoto(c, tipoFoto(i), linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
+      const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: prontos.get(i) ?? promptDaFoto(c, tipoFoto(i), linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
       if (erroFoto) await registrar("duda", "vera", `Não consegui gerar ${fotos.size ? "todas as fotos" : "as fotos"} no ChatGPT para ${dm(p.dia)}: ${erroFoto.slice(0, 200)}`);
       // Sem nenhuma foto a peça não vai para o Kelvin: carrossel e reels só de texto não servem (pedido dele, 10/11)
       if (!legado && !fotos.size && cenas.some(Boolean)) throw new Error(`sem fotos: ${(erroFoto ?? "nenhuma foto gerada").slice(0, 250)}`);

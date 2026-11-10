@@ -114,11 +114,11 @@ async function lerResposta(r: Response): Promise<string> {
  * Gera uma foto (modelo de imagem do ChatGPT) e devolve como data URL (JPEG), pronta para a arte.
  * Com referências, manda as imagens dos posts de referência junto para a foto seguir o estilo delas.
  */
-export async function gerarFoto(cena: string, formato: Formato = "retrato", referencias: Blob[] = []): Promise<string> {
+export async function gerarFoto(cena: string, formato: Formato = "retrato", referencias: Blob[] = [], pronto?: string): Promise<string> {
   let ultimo: unknown = null;
   for (const m of modelosDeImagem()) {
     try {
-      const foto = await gerarFotoCom(m, cena, formato, referencias);
+      const foto = await gerarFotoCom(m, cena, formato, referencias, pronto);
       modeloQueFunciona = m;
       return foto;
     } catch (e) {
@@ -131,14 +131,14 @@ export async function gerarFoto(cena: string, formato: Formato = "retrato", refe
   );
 }
 
-async function gerarFotoCom(modelo: string, cena: string, formato: Formato, referencias: Blob[]): Promise<string> {
+async function gerarFotoCom(modelo: string, cena: string, formato: Formato, referencias: Blob[], pronto?: string): Promise<string> {
   // Chave só das fotos (conta do Kelvin na OpenAI), se estiver na Vercel; senão a chave de sempre
   const h = { Authorization: `Bearer ${process.env.OPENAI_IMAGE_KEY || env.openaiKey}` };
   if (referencias.length) {
     try {
       const f = new FormData();
       f.append("model", modelo);
-      f.append("prompt", promptDaFoto(cena, formato, true));
+      f.append("prompt", pronto || promptDaFoto(cena, formato, true));
       f.append("size", tamanho(formato));
       f.append("quality", qualidade());
       f.append("output_format", "jpeg");
@@ -153,7 +153,7 @@ async function gerarFotoCom(modelo: string, cena: string, formato: Formato, refe
   const r = await fetch("https://api.openai.com/v1/images/generations", {
     method: "POST",
     headers: { ...h, "Content-Type": "application/json" },
-    body: JSON.stringify({ model: modelo, prompt: promptDaFoto(cena, formato), size: tamanho(formato), quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
+    body: JSON.stringify({ model: modelo, prompt: pronto || promptDaFoto(cena, formato), size: tamanho(formato), quality: qualidade(), output_format: "jpeg", output_compression: 85, n: 1 }),
     signal: AbortSignal.timeout(150_000),
   });
   return lerResposta(r);
@@ -194,27 +194,54 @@ export async function gerarFotos(
   cenas: (string | undefined | null)[],
   formato: Formato | ((indice: number) => Formato),
   limite = 5,
-  opts: { referencias?: Blob[]; manuais?: Map<number, string> } = {},
+  opts: {
+    referencias?: Blob[];
+    manuais?: Map<number, string>;
+    /** Prompt escrito (ou editado) pelo Kelvin no portal para uma lâmina: vai do jeito que está. */
+    prontos?: Map<number, string>;
+    /** Onde gerar: OpenAI (padrão) ou Kairogen (conta do Kelvin, conectada no portal). Se o Kairogen falhar, cai na OpenAI. */
+    motor?: "openai" | "kairogen";
+  } = {},
 ): Promise<{ fotos: Map<number, string>; erro: string | null }> {
   const fotos = new Map<number, string>();
-  // Primeiro as fotos que o Kelvin fez no ChatGPT dele: essas nunca são trocadas
+  // Primeiro as fotos que o Kelvin fez no ChatGPT dele (ou mandou manter): essas nunca são trocadas
   for (const [i, url] of opts.manuais ?? []) {
     const d = await baixarComoDataUrl(url);
     if (d) fotos.set(i, d);
   }
+  const prontos = opts.prontos ?? new Map<number, string>();
   const pedidos = cenas
-    .map((c, i) => ({ i, c: (c ?? "").trim() }))
+    .map((c, i) => ({ i, c: (c ?? "").trim() || prontos.get(i)?.trim() || "" }))
     .filter((x) => x.c.length >= 8 && !fotos.has(x.i))
     .slice(0, limite);
   let erro: string | null = null;
   await Promise.all(
     pedidos.map(async ({ i, c }) => {
+      const f = typeof formato === "function" ? formato(i) : formato;
+      const pronto = prontos.get(i)?.trim() || undefined;
       try {
-        fotos.set(i, await gerarFoto(c, typeof formato === "function" ? formato(i) : formato, opts.referencias ?? []));
+        if (opts.motor === "kairogen") {
+          try {
+            const { gerarImagemKairogen } = await import("../kairogen.ts");
+            fotos.set(i, await gerarImagemKairogen(pronto || promptDaFoto(c, f), f === "paisagem" ? "3:2" : f === "vertical" ? "9:16" : "2:3"));
+            return;
+          } catch (e) {
+            erro ??= `Kairogen: ${String((e as Error).message).slice(0, 160)} (gerei na OpenAI)`;
+          }
+        }
+        fotos.set(i, await gerarFoto(c, f, opts.referencias ?? [], pronto));
       } catch (e) {
         erro ??= String((e as Error).message);
       }
     }),
   );
   return { fotos, erro };
+}
+
+/** Prompts que o Kelvin deixou no portal, por lâmina/cena (foto_prompt na copy). */
+export function promptsManuais(copy: Copy): Map<number, string> {
+  const itens = ((copy as CopyCarrossel).slides ?? (copy as CopyReels).cenas ?? []) as { foto_prompt?: string }[];
+  const m = new Map<number, string>();
+  itens.forEach((x, i) => x?.foto_prompt?.trim() && m.set(i, x.foto_prompt.trim()));
+  return m;
 }
