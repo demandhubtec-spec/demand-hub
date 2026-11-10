@@ -4,7 +4,7 @@
   "type": "commonjs",
   "description": "Estúdio de produção da DemandIA: monta carrosséis e reels (Remotion) fora da Vercel, sem limite de tempo.",
   "scripts": {
-    "rodar": "tsx src/rodar.ts"
+    "rodar": "node src/iniciar.cjs"
   },
   "dependencies": {
     "@fontsource/anton": "^5.3.0",
