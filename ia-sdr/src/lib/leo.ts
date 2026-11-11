@@ -550,3 +550,21 @@ export async function runLeo(): Promise<Record<string, unknown>> {
   out.gratuitos = feitos;
   return out;
 }
+
+/**
+ * Rodada do Léo com vez marcada: roda a cada minuto (relógio do Estúdio) e no relógio de 10 minutos,
+ * mas só uma rodada por vez. A vez fica em ig_config ("leo_vez") e vence sozinha em 4 minutos.
+ */
+export async function rodarLeoComVez(): Promise<Record<string, unknown>> {
+  const { data } = await db().from("ig_config").select("valor").eq("chave", "leo_vez").maybeSingle();
+  const desde = Number((data as { valor?: string } | null)?.valor ?? 0);
+  if (desde && Date.now() - desde < 240_000) return { ocupado: true };
+  const minha = String(Date.now());
+  await db().from("ig_config").upsert({ chave: "leo_vez", valor: minha }, { onConflict: "chave" });
+  try {
+    return await runLeo();
+  } finally {
+    const { data: agora } = await db().from("ig_config").select("valor").eq("chave", "leo_vez").maybeSingle();
+    if ((agora as { valor?: string } | null)?.valor === minha) await db().from("ig_config").delete().eq("chave", "leo_vez");
+  }
+}
