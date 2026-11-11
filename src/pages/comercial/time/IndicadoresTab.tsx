@@ -77,7 +77,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
       sub: "Leads que vieram dos anúncios",
       icone: Megaphone,
       itens: contatos
-        .filter((c) => c.tipo === "inbound" && !fonesLista.has(fim8(c.phone)))
+        .filter((c) => c.tipo === "inbound" && !c.lixeira_em && !fonesLista.has(fim8(c.phone)))
         .map((c) => ({ nivel: nivelInbound(c), nicho: c.segmento, quando: c.created_at })),
     },
   ];
@@ -100,7 +100,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
   const inicioMes = new Date(mes.getFullYear(), mes.getMonth(), 1).toISOString();
   const vendasMes =
     leads.filter((l) => l.status_comercial === "ganho" && (l.updated_at ?? "") >= inicioMes).length +
-    contatos.filter((c) => c.tipo === "inbound" && (c.funil_etapa === "ganho" || c.status === "cliente") && (c.updated_at ?? "") >= inicioMes).length +
+    contatos.filter((c) => c.tipo === "inbound" && !c.lixeira_em && (c.funil_etapa === "ganho" || c.status === "cliente") && (c.updated_at ?? "") >= inicioMes).length +
     listas.filter((l) => l.etapa === "ganho" && l.atualizado_em >= inicioMes).length;
   const valorMes = listas.filter((l) => l.etapa === "ganho" && l.atualizado_em >= inicioMes).reduce((s, l) => s + Number(l.valor ?? 0), 0);
   const chegou = (key: string) =>

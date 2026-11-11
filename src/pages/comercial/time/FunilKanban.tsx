@@ -1,8 +1,8 @@
 import * as React from "react";
-import { Instagram, Linkedin, MapPin, Megaphone, MessageCircle, Phone } from "lucide-react";
+import { Instagram, Linkedin, MapPin, Megaphone, MessageCircle, Phone, RotateCcw, Trash2 } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { ORIGEM_TEXTO, useContatos, useEtapaInbound } from "@/hooks/useCrm";
+import { ORIGEM_TEXTO, useContatos, useEtapaInbound, useLixeira } from "@/hooks/useCrm";
 import { type OutreachLead, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
 import { useArrastarParaRolar } from "@/hooks/useArrastarParaRolar";
@@ -45,7 +45,9 @@ export function Quadro<K extends string>({
   mover,
   abrir,
   abrirConversa,
+  paraLixeira,
 }: {
+  paraLixeira?: (id: string) => void;
   colunas: readonly Coluna<K>[];
   itens: CardItem[];
   etapa: (id: string) => K | null;
@@ -136,6 +138,18 @@ export function Quadro<K extends string>({
                     {it.aviso && <div className="mt-1 text-[11.5px] text-attention">{it.aviso}</div>}
                     <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted">
                       {it.quando && <span>{fmtData(it.quando)}</span>}
+                      {paraLixeira && (
+                        <button
+                          title="Mover para a lixeira"
+                          className="inline-flex items-center text-muted hover:text-negative"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            paraLixeira(it.id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
                       {it.conversa && (
                         <button
                           className="ml-auto inline-flex items-center gap-1 text-primary-bright hover:underline"
@@ -217,8 +231,11 @@ function FunilOutbound({ abrirConversa }: { abrirConversa: (id: string) => void 
 function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }) {
   const { contatos, isLoading } = useContatos();
   const mudar = useEtapaInbound();
+  const lixeira = useLixeira();
   const { showToast } = useToast();
-  const inbound = contatos.filter((c) => c.tipo === "inbound");
+  const [verLixeira, setVerLixeira] = React.useState(false);
+  const naLixeira = contatos.filter((c) => c.tipo === "inbound" && c.lixeira_em);
+  const inbound = contatos.filter((c) => c.tipo === "inbound" && !c.lixeira_em);
   const porId = new Map(inbound.map((c) => [c.id, c]));
   const itens: CardItem[] = inbound.map((c) => ({
     id: c.id,
@@ -239,10 +256,69 @@ function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }
     );
   }
 
+  const mandar = (ids: string[], para: boolean) =>
+    lixeira.mutate(
+      { ids, lixeira: para },
+      {
+        onSuccess: () => showToast(para ? (ids.length > 1 ? `${ids.length} cards foram para a lixeira` : "Card foi para a lixeira") : "Card restaurado"),
+        onError: (e) => showToast(`Erro: ${(e as Error).message}`),
+      },
+    );
+
   if (isLoading) return <div className="text-[13px] text-muted">Carregando o funil…</div>;
-  if (!inbound.length) return <EmptyState>Nenhum contato inbound ainda. Quem chega pelo anúncio, site ou WhatsApp entra aqui.</EmptyState>;
+  const barra = (
+    <div className="mb-3 flex flex-wrap items-center gap-2">
+      <button
+        onClick={() => setVerLixeira((v) => !v)}
+        className={cn(
+          "inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[13px]",
+          verLixeira ? "border-primary-bright bg-primary-tint text-ink" : "border-border bg-surface text-muted hover:text-ink",
+        )}
+      >
+        <Trash2 className="h-3.5 w-3.5" /> Lixeira ({naLixeira.length})
+      </button>
+      {verLixeira && naLixeira.length > 0 && (
+        <button className="text-[12.5px] text-primary-bright hover:underline" onClick={() => mandar(naLixeira.map((c) => c.id), false)}>
+          Restaurar todos
+        </button>
+      )}
+    </div>
+  );
+  if (verLixeira)
+    return (
+      <div>
+        {barra}
+        {!naLixeira.length ? (
+          <EmptyState>A lixeira está vazia.</EmptyState>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {naLixeira.map((c) => (
+              <div key={c.id} className="flex items-center gap-3 rounded-[11px] border border-border bg-surface p-3">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-semibold">{c.nomeExibicao}</div>
+                  <div className="text-[11.5px] text-muted">na lixeira desde {fmtData(c.lixeira_em!)}</div>
+                </div>
+                <button className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline" onClick={() => mandar([c.id], false)}>
+                  <RotateCcw className="h-3.5 w-3.5" /> Restaurar
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  if (!inbound.length)
+    return (
+      <div>
+        {barra}
+        <EmptyState>Nenhum contato inbound ainda. Quem chega pelo anúncio, site ou WhatsApp entra aqui.</EmptyState>
+      </div>
+    );
   return (
+    <div>
+    {barra}
     <Quadro
+      paraLixeira={(id) => mandar([id], true)}
       colunas={COLUNAS_INBOUND}
       itens={itens}
       etapa={(id) => {
@@ -253,6 +329,7 @@ function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }
       abrir={abrirConversa}
       abrirConversa={abrirConversa}
     />
+    </div>
   );
 }
 
@@ -272,7 +349,7 @@ export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => 
     instagram: listas.filter((l) => l.lista === "instagram").length,
     linkedin: listas.filter((l) => l.lista === "linkedin").length,
     ligacoes: listas.filter((l) => l.lista === "ligacoes").length,
-    inbound: contatos.filter((c) => c.tipo === "inbound").length,
+    inbound: contatos.filter((c) => c.tipo === "inbound" && !c.lixeira_em).length,
   };
   const opcoes: { k: ListaFunil; nome: string; icone: React.ComponentType<{ className?: string }> }[] = [
     { k: "google", nome: "Google Meu Negócio · Lista", icone: MapPin },
