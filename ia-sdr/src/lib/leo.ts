@@ -497,7 +497,13 @@ export async function runLeo(): Promise<Record<string, unknown>> {
   // 1) Coleta do Apify em andamento: lê se terminou
   if (coleta) out.coleta = await lerColeta(coleta).catch((e) => `erro ao ler coleta: ${String(e).slice(0, 160)}`);
 
-  // 2) Passos gratuitos para quem ainda não passou pelo Léo (quem vai ser abordado primeiro)
+  // 2) Sem coleta rodando: começa a próxima (ou, no teto do mês, segue sem pesquisa paga).
+  // Vem antes dos passos gratuitos para nunca deixar de rodar quando o relógio aperta.
+  const { data: cfg2 } = await db().from("outreach_config").select("leo_coleta").eq("id", 1).single();
+  if (!(cfg2 as { leo_coleta: ColetaLeo | null } | null)?.leo_coleta) out.iniciada = await iniciarColeta().catch((e) => `erro: ${String(e).slice(0, 160)}`);
+
+  // 3) Passos gratuitos para quem ainda não passou pelo Léo (quem vai ser abordado primeiro), com limite de tempo
+  const inicio = Date.now();
   const { data } = await db()
     .from("outreach_leads")
     .select(CAMPOS)
@@ -507,13 +513,12 @@ export async function runLeo(): Promise<Record<string, unknown>> {
     .limit(POR_RODADA_GRATUITA);
   let feitos = 0;
   for (const l of (data ?? []) as LeadLeo[]) {
-    await passosGratuitos(l).catch((e) => console.error("Léo: passos gratuitos falharam", l.place_id, e));
+    if (Date.now() - inicio > 120_000) break; // o resto fica para o próximo relógio
+    await Promise.race([passosGratuitos(l), new Promise((_, nao) => setTimeout(() => nao(new Error("demorou mais de 45 s")), 45_000))]).catch((e) =>
+      console.error("Léo: passos gratuitos falharam", l.place_id, e),
+    );
     feitos++;
   }
   out.gratuitos = feitos;
-
-  // 3) Sem coleta rodando: começa a próxima
-  const { data: cfg2 } = await db().from("outreach_config").select("leo_coleta").eq("id", 1).single();
-  if (!(cfg2 as { leo_coleta: ColetaLeo | null } | null)?.leo_coleta) out.iniciada = await iniciarColeta().catch((e) => `erro: ${String(e).slice(0, 160)}`);
   return out;
 }
