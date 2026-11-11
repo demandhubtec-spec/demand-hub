@@ -116,7 +116,19 @@ export interface CopyCarrossel {
    * foto_url: foto que o Kelvin subiu (ou mandou manter) no portal, tem prioridade.
    * foto_prompt: prompt que ele escreveu para gerar uma foto nova. pedido: o ajuste que ele pediu nesta lâmina.
    */
-  slides: { titulo: string; texto?: string; foto?: string; foto_url?: string; foto_prompt?: string; pedido?: string; foto_fixa?: boolean }[];
+  slides: {
+    titulo: string;
+    texto?: string;
+    foto?: string;
+    /** Lâmina de lista: 3 ou 4 pontos curtos (vira cartões). */
+    itens?: string[];
+    /** Lâmina de conversa: a IA atendendo (vira o celular com o chat). */
+    conversa?: { quem: "cliente" | "ia"; texto: string }[];
+    foto_url?: string;
+    foto_prompt?: string;
+    pedido?: string;
+    foto_fixa?: boolean;
+  }[];
   legenda: string;
   hashtags?: string[];
 }
@@ -142,12 +154,20 @@ const VISUAL_V4 = `## Visual (padrão V4 Company, pedido do Kelvin)
 - A foto precisa CONTAR a mensagem da lâmina dela, não ser uma cena genérica de clínica. Leia o título e o texto da lâmina e mostre a situação concreta que eles descrevem. Ex.: lâmina "O horário chega sem pressa" → paciente sorrindo ao ver no celular a confirmação do horário; lâmina "Se travar, a IA segura" → recepcionista atendendo um paciente no balcão enquanto o celular ao lado mostra a conversa andando sozinha. Duas lâminas nunca têm a mesma cena.
 - Enquadramento que não corta: a pessoa inteira no quadro até a cintura ou o peito, cabeça, mãos e celular inteiros, com folga nas bordas (a arte recorta um pouco as laterais e o topo).
 - Títulos curtos e fortes. Marque entre *asteriscos* a palavra ou expressão que vai em destaque de cor (uma por título). Ex.: "Sua recepção está *perdendo paciente*".
-- Nada de texto repetido entre lâminas. A última lâmina não repete a legenda: é só a chamada.`;
+- Nada de texto repetido entre lâminas. A última lâmina não repete a legenda: é só a chamada.
+- A pessoa da capa é o rosto do post: descreva sempre a mesma pessoa, e as fotos das cenas mostram outras situações reais.`;
 
 const FORMATO_PEDIDO: Record<Formato, string> = {
-  carrossel: `Carrossel de 7 a 9 lâminas. Lâmina 1 = capa com o gancho (titulo até 60 caracteres, texto opcional até 90) e SEMPRE com foto. Lâmina 2 = o problema com uma cena real do dono, com foto. Lâminas do meio = um ponto por lâmina, com exemplo concreto (titulo até 50, texto de 100 a 200 caracteres); pelo menos 2 delas com foto, as outras só texto. Última lâmina = chamada para ação curta (com a palavra-chave, se houver), com foto.
+  carrossel: `Carrossel de 7 a 9 lâminas, contando uma história do começo ao fim. Cada lâmina tem um papel e o estúdio monta um layout diferente para cada um:
+- Lâmina 1 (capa): o gancho. titulo até 50 caracteres, com 2 a 4 palavras entre *asteriscos* (viram o título gigante); texto opcional até 80. "foto" = a pessoa da capa, que sai recortada na frente do título gigante: quem é, idade, roupa, expressão e gesto (ex.: "dona de clínica de estética, uns 38 anos, blazer bege, sorriso confiante, segurando o celular na altura do peito").
+- Lâmina 2: o problema, com foto da cena real (campo "foto").
+- Pelo menos 1 lâmina de conversa: mostra na prática a IA atendendo no WhatsApp. Preencha "conversa" com 4 a 6 mensagens curtas (até 90 caracteres cada) alternando "cliente" e "ia", exemplo plausível e humano. Sem foto.
+- Pelo menos 1 lâmina de lista: "itens" com 3 ou 4 pontos curtos (até 60 caracteres cada). Sem foto.
+- As outras lâminas do meio: um ponto por lâmina, com exemplo concreto (titulo até 50, texto de 100 a 200 caracteres) e foto da cena.
+- Última lâmina: chamada curta com a palavra-chave. Sem "foto" (sai a mesma pessoa da capa).
+- Nunca faça lâmina só com texto solto nem número gigante. Cada lâmina puxa a próxima.
 ${VISUAL_V4}
-JSON: {"slides":[{"titulo":"...","texto":"...","foto":"descrição da cena ou vazio"}],"legenda":"...","hashtags":["...","..."]}`,
+JSON: {"slides":[{"titulo":"...","texto":"...","foto":"descrição da cena ou vazio","itens":["só na lâmina de lista"],"conversa":[{"quem":"cliente","texto":"só na lâmina de conversa"}]}],"legenda":"...","hashtags":["...","..."]}`,
   estatico: `Não fazemos mais post estático (decisão do Kelvin em 08/11/2026). Escreva um carrossel curto de 5 lâminas.
 ${VISUAL_V4}
 JSON: {"slides":[{"titulo":"...","texto":"...","foto":"..."}],"legenda":"...","hashtags":["..."]}`,

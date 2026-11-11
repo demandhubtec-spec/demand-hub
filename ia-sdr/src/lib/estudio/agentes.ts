@@ -413,7 +413,7 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
       }
       // O estúdio de produção (Remotion) não carrega o next/og: só a Vercel usa os modelos antigos
       const arte = render ? null : await import("./arte.tsx");
-      const { gerarFotos, cenasDasFotos, fotosManuais, promptsManuais, baixarReferencias, promptDaFoto, modelosDasLaminas, formatoDaFoto } = await import("./fotos.ts");
+      const { gerarFotos, cenasDasFotos, fotosManuais, promptsManuais, baixarReferencias, promptDaFoto, planoDoCarrossel, formatoDaFoto } = await import("./fotos.ts");
       if (arte) await arte.usarMarca(cfg.marca);
       const anterior = await ultimaPeca(p.id, "arte");
       const versao = (anterior?.versao ?? 0) + 1;
@@ -426,9 +426,9 @@ export async function rodarDiretor(limite = 1, c?: Config, render?: Renderizador
       const prontos = promptsManuais(copy.conteudo);
       const cenas = cenasDasFotos(copy.conteudo, formato).map((c, i) => c ?? (prontos.has(i) ? prontos.get(i)! : null));
       // Cada foto já nasce no formato do espaço dela na arte (foto em cima = horizontal, fundo = em pé): nada corta
-      const modelos = modelosDasLaminas(cenas.length, (i) => !!cenas[i]);
+      const modelos = planoDoCarrossel(((copy.conteudo as CopyCarrossel).slides ?? []).filter((x) => x.titulo).slice(0, 10));
       const tipoFoto = (i: number): FormatoFoto => (formato === "reels" ? "vertical" : render ? formatoDaFoto(modelos[i]) : "retrato");
-      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 6, { referencias, manuais: fotosManuais(copy.conteudo), prontos, motor: cfg.agentes?.fotos_kairogen ? "kairogen" : "openai" });
+      const { fotos, erro: erroFoto } = legado ? { fotos: new Map<number, string>(), erro: null } : await gerarFotos(cenas, tipoFoto, 8, { referencias, manuais: fotosManuais(copy.conteudo), prontos, motor: cfg.agentes?.fotos_kairogen ? "kairogen" : "openai" });
       // O prompt de cada foto fica salvo para o Kelvin copiar e gerar no ChatGPT dele, se quiser trocar
       const linksRefs = refs.map((r) => r.link).filter(Boolean) as string[];
       const prompts = cenas.map((c, i) => (c ? { indice: i, prompt: prontos.get(i) ?? promptDaFoto(c, tipoFoto(i), linksRefs.length > 0), referencias: linksRefs } : null)).filter(Boolean);
