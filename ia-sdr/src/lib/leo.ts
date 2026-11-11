@@ -330,6 +330,26 @@ async function custoDoMes(): Promise<{ gasto: number; teto: number; gastoLeo: nu
 }
 
 /** Começa a próxima coleta do Apify (uma por vez). */
+/**
+ * Sem pesquisa paga (teto do mês ou Apify recusando): as fichas seguem com o que já têm.
+ * Vai tudo de uma vez (até 400 por rodada), para a lista do Kelvin encher na hora e não 8 por rodada.
+ */
+async function seguirSemPesquisa(tipo: ColetaLeo["tipo"], primeiros: LeadLeo[]) {
+  const inicio = Date.now();
+  for (const l of primeiros) await avancar(l, tipo, {});
+  const { data } = await db()
+    .from("outreach_leads")
+    .select(CAMPOS)
+    .eq("enriquecimento->>etapa", tipo)
+    .in("wa_status", ["pendente", "sem_whatsapp"])
+    .order("created_at", { ascending: false })
+    .limit(400);
+  for (const l of (data ?? []) as LeadLeo[]) {
+    if (Date.now() - inicio > 150_000) break; // o resto vai no próximo relógio
+    await avancar(l, tipo, {}).catch((e) => console.error("Léo: avançar sem pesquisa falhou", l.place_id, e));
+  }
+}
+
 async function iniciarColeta(): Promise<string | null> {
   if (!apifyToken()) return null;
   for (const tipo of ["busca", "perfil", "dono"] as const) {
@@ -355,7 +375,7 @@ async function iniciarColeta(): Promise<string | null> {
     if (gasto + estimativa > teto || gastoLeo + estimativa > tetoLeo) {
       await log(`Léo pausou as pesquisas pagas: teto do mês (Léo US$ ${gastoLeo.toFixed(2)} de ${tetoLeo}; Apify US$ ${gasto.toFixed(2)} de ${teto}). Os passos gratuitos continuam.`);
       // sem pesquisa paga: segue com o que tem, para a lista não travar
-      for (const l of leads.filter((x) => consultas[x.place_id])) await avancar(l, tipo, {});
+      await seguirSemPesquisa(tipo, leads);
       return null;
     }
     const input =
@@ -372,7 +392,7 @@ async function iniciarColeta(): Promise<string | null> {
     } catch (e) {
       // Apify recusou (limite da conta, chave, fora do ar): segue sem a pesquisa paga para a lista não travar
       await log(`Léo: a pesquisa paga falhou (${String((e as Error).message ?? e).slice(0, 160)}). Segui sem ela para a lista não travar.`);
-      for (const l of leads.filter((x) => consultas[x.place_id])) await avancar(l, tipo, {});
+      await seguirSemPesquisa(tipo, leads);
       return null;
     }
     const coleta: ColetaLeo = { id: run.data.id, tipo, leads: Object.keys(consultas), consultas, iniciada_em: new Date().toISOString() };
