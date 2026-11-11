@@ -1,5 +1,6 @@
 /**
- * Os dois funis do Time Comercial IA, com as etapas definidas pelo Kelvin (08/11/2026).
+ * Funis do Time Comercial IA, com as etapas definidas pelo Kelvin (08/11/2026; nomes revistos em 11/11/2026).
+ * Google Meu Negócio · Lista e Inbound · Anúncios ficam aqui; Instagram, LinkedIn e Ligações · Lista também (COLUNAS_LISTA e COLUNAS_LIGACOES).
  *  - Outbound (prospecção ativa): disparar (lista aprovada) → mensagem ou ligação feita → conversa iniciada → qualificação →
  *    reunião agendada → reunião realizada → negociação → fechamento.
  *  - Inbound [anúncios]: mensagem recebida ou cadastro → em atendimento → qualificação →
@@ -8,6 +9,7 @@
  */
 import type { OutreachLead } from "@/hooks/useProspeccao";
 import type { Contato, EtapaOportunidade } from "@/hooks/useCrm";
+import type { EtapaLista } from "@/hooks/useComercial";
 
 export interface Coluna<K extends string> {
   key: K;
@@ -17,26 +19,26 @@ export interface Coluna<K extends string> {
 }
 
 export const COLUNAS_OUTBOUND = [
-  { key: "disparar", label: "Disparar · mensagem ou ligação", dica: "Lista aprovada, pronta para o primeiro contato" },
-  { key: "enviado", label: "Mensagem ou ligação feita", dica: "Já abordado, ainda sem conversa" },
+  { key: "disparar", label: "Na lista", dica: "Lista aprovada, pronta para o primeiro contato" },
+  { key: "enviado", label: "Mensagem ou ligação", dica: "Já abordado, ainda sem conversa" },
   { key: "conversa", label: "Conversa iniciada", dica: "Respondeu ou atendeu a ligação" },
   { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
   { key: "reuniao", label: "Reunião agendada", dica: "Está na sua agenda" },
   { key: "reuniao_realizada", label: "Reunião realizada", dica: "Conversou com você" },
   { key: "proposta", label: "Negociação", dica: "Proposta enviada" },
-  { key: "ganho", label: "Fechamento", dica: "Venda feita" },
+  { key: "ganho", label: "Venda", dica: "Venda feita" },
   { key: "perdido", label: "Perdido", dica: "Pediu para sair, sem perfil ou desistiu", fim: true },
 ] as const satisfies readonly Coluna<string>[];
 export type EtapaOutbound = (typeof COLUNAS_OUTBOUND)[number]["key"];
 
 export const COLUNAS_INBOUND = [
-  { key: "recebido", label: "Mensagem recebida / cadastro", dica: "Chegou pelo anúncio, site ou WhatsApp" },
-  { key: "atendimento", label: "Em atendimento", dica: "A Gabi já está conversando" },
+  { key: "recebido", label: "Leads do anúncio", dica: "Chegou pelo anúncio, site ou WhatsApp" },
+  { key: "atendimento", label: "Conversa iniciada", dica: "A Gabi já está conversando" },
   { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
   { key: "reuniao", label: "Reunião agendada", dica: "Está na sua agenda" },
   { key: "reuniao_realizada", label: "Reunião realizada", dica: "Conversou com você" },
   { key: "proposta", label: "Negociação", dica: "Proposta enviada" },
-  { key: "ganho", label: "Fechamento", dica: "Venda feita" },
+  { key: "ganho", label: "Venda", dica: "Venda feita" },
   { key: "perdido", label: "Perdido", dica: "Sem perfil, sumiu ou desistiu", fim: true },
 ] as const satisfies readonly Coluna<string>[];
 export type EtapaInbound = (typeof COLUNAS_INBOUND)[number]["key"];
@@ -89,3 +91,30 @@ export function etapaInbound(c: Pick<Contato, "funil_etapa" | "status" | "last_o
 }
 
 export const etapaInboundParaBanco = (e: EtapaInbound): EtapaOportunidade => e;
+
+/** Instagram · Lista e LinkedIn · Lista (tabela comercial_lista_leads). */
+export const COLUNAS_LISTA = [
+  { key: "na_lista", label: "Na lista", dica: "Coletado, ainda sem contato" },
+  { key: "contato", label: "Mensagem ou ligação", dica: "Abordado por DM ou WhatsApp" },
+  { key: "conversa", label: "Conversa iniciada", dica: "Respondeu" },
+  { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
+  { key: "reuniao", label: "Reunião agendada", dica: "Está na sua agenda" },
+  { key: "reuniao_realizada", label: "Reunião realizada", dica: "Conversou com você" },
+  { key: "proposta", label: "Negociação", dica: "Proposta enviada" },
+  { key: "ganho", label: "Venda", dica: "Venda feita" },
+  { key: "perdido", label: "Perdido", dica: "Sem interesse, sem perfil ou desistiu", fim: true },
+] as const satisfies readonly Coluna<EtapaLista>[];
+
+/** Ligações · Lista (empresa parceira, dados pelo webhook). */
+export const COLUNAS_LIGACOES = [
+  { key: "na_lista", label: "Na lista", dica: "Ainda não ligaram" },
+  { key: "contato", label: "Ligações feitas", dica: "Ligaram, ainda sem atender" },
+  { key: "atendida", label: "Atendidas", dica: "A pessoa atendeu" },
+  { key: "conversa", label: "Conversa", dica: "Conversou de verdade" },
+  { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
+  { key: "reuniao", label: "Reunião agendada", dica: "Está na sua agenda" },
+  { key: "reuniao_realizada", label: "Reunião realizada", dica: "Conversou com você" },
+  { key: "proposta", label: "Negociação", dica: "Proposta enviada" },
+  { key: "ganho", label: "Venda", dica: "Venda feita" },
+  { key: "perdido", label: "Perdido", dica: "Sem interesse ou número errado", fim: true },
+] as const satisfies readonly Coluna<EtapaLista>[];
