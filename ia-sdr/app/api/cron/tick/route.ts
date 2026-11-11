@@ -20,25 +20,30 @@ async function handler(req: Request) {
   if (req.headers.get("authorization") !== `Bearer ${env.cronSecret}`) {
     return new Response("unauthorized", { status: 401 });
   }
-  // Primeiro garante que o WhatsApp está conectado; depois manda lembretes e follow-ups.
-  const whatsapp = await ensureWhatsAppConnected().catch((e) => ({ ok: false, error: String(e) }));
+  // Cada etapa tem limite de tempo e erro próprio: uma etapa travada ou com erro não derruba as outras
+  // (antes, um erro nos lembretes parava o relógio inteiro e o Léo nunca rodava).
+  const etapa = <T,>(fn: () => Promise<T>, ms: number) =>
+    Promise.race([fn(), new Promise<never>((_, nao) => setTimeout(() => nao(new Error(`passou de ${ms / 1000} s`)), ms))]).catch((e) => ({
+      error: String((e as Error)?.message ?? e).slice(0, 200),
+    }));
+  // Léo (ficha das empresas) e Rita/Duda (diagnósticos) começam já, em paralelo com o resto
+  const fichas = Promise.all([etapa(runLeo, 200_000), etapa(runRitaEDuda, 200_000)]);
+  // Garante que o WhatsApp está conectado; depois manda lembretes e follow-ups.
+  const whatsapp = await etapa(ensureWhatsAppConnected, 40_000);
   // Follow-ups ligados? O Kelvin desliga tudo colocando 0 em "Follow-ups de WhatsApp por dia" (Prospecção > Controles)
   const { data: cfg } = await db().from("outreach_config").select("followup_daily_cap").eq("id", 1).maybeSingle();
   const followupsLigados = ((cfg as { followup_daily_cap?: number } | null)?.followup_daily_cap ?? 40) > 0;
   const desligado = { skipped: "follow-ups desligados pelo Kelvin" };
   const [reminders, followups, pedidos] = await Promise.all([
-    runMeetingReminders(),
-    followupsLigados ? runFollowUps() : desligado,
-    lembrarPedidos().catch(() => 0), // orientação que a Ana pediu e ainda não teve resposta
+    etapa(runMeetingReminders, 60_000),
+    followupsLigados ? etapa(runFollowUps, 120_000) : desligado,
+    etapa(lembrarPedidos, 30_000), // orientação que a Ana pediu e ainda não teve resposta
   ]);
   // Conversas da prospecção que pararam: a Ana propõe a retomada e espera o ok
-  const retomadas = followupsLigados ? await runRetomadas().catch((e) => ({ error: String(e) })) : desligado;
+  const retomadas = followupsLigados ? await etapa(runRetomadas, 60_000) : desligado;
   // Quem pediu a demo da recepcionista e parou: cutucada (15 min) e retomada da Ana (2 h), no mesmo dia
-  const demo = followupsLigados ? await runDemoAcompanhamento().catch((e) => ({ error: String(e) })) : desligado;
-  // Léo completa a ficha das empresas da lista (site de verdade, CNPJ, sócios e dono)
-  const leo = await runLeo().catch((e) => ({ error: String(e) }));
-  // Rita (diagnósticos) e Duda (relatório e site) para quem o Kelvin aprovou
-  const rita = await runRitaEDuda().catch((e) => ({ error: String(e) }));
+  const demo = followupsLigados ? await etapa(runDemoAcompanhamento, 60_000) : desligado;
+  const [leo, rita] = await fichas;
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
   return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita });
 }
