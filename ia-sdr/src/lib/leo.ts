@@ -332,7 +332,7 @@ async function custoDoMes(): Promise<{ gasto: number; teto: number; gastoLeo: nu
 /** Começa a próxima coleta do Apify (uma por vez). */
 /**
  * Sem pesquisa paga (teto do mês ou Apify recusando): as fichas seguem com o que já têm.
- * Vai em lotes maiores, para a lista do Kelvin encher no mesmo dia e não 8 por rodada.
+ * Vai tudo de uma vez (até 400 por rodada), para a lista do Kelvin encher na hora e não 8 por rodada.
  */
 async function seguirSemPesquisa(tipo: ColetaLeo["tipo"], primeiros: LeadLeo[]) {
   const inicio = Date.now();
@@ -343,9 +343,9 @@ async function seguirSemPesquisa(tipo: ColetaLeo["tipo"], primeiros: LeadLeo[]) 
     .eq("enriquecimento->>etapa", tipo)
     .in("wa_status", ["pendente", "sem_whatsapp"])
     .order("created_at", { ascending: false })
-    .limit(80);
+    .limit(400);
   for (const l of (data ?? []) as LeadLeo[]) {
-    if (Date.now() - inicio > 90_000) break; // o resto vai no próximo relógio
+    if (Date.now() - inicio > 150_000) break; // o resto vai no próximo relógio
     await avancar(l, tipo, {}).catch((e) => console.error("Léo: avançar sem pesquisa falhou", l.place_id, e));
   }
 }
