@@ -71,6 +71,8 @@ export function ListaDoLeo() {
   const { showToast } = useToast();
   const [visao, setVisao] = React.useState<Visao>("pendente");
   const [busca, setBusca] = React.useState("");
+  // Filtro por nicho (pedido do Kelvin, 11/11): aprovar nicho por nicho, na ordem de prioridade dele
+  const [nicho, setNicho] = React.useState("");
   const [marcados, setMarcados] = React.useState<Set<string>>(new Set());
   const [aberto, setAberto] = React.useState<OutreachLead | null>(null);
   const [abrindoSheets, setAbrindoSheets] = React.useState(false);
@@ -78,8 +80,11 @@ export function ListaDoLeo() {
   // Só quem ainda vai ser abordado e já passou (ou está passando) pelo Léo
   const daLista = leads.filter((l) => l.wa_status === "pendente" && (l.enriquecimento || l.leo_status) && ["sem", "gerando"].includes(l.msg_status));
   const cont = (v: Visao) => daLista.filter((l) => visaoDo(l) === v).length;
-  const lista = daLista
-    .filter((l) => visaoDo(l) === visao)
+  const nichoDe = (l: OutreachLead) => (l.nicho ?? "").trim() || "Sem nicho";
+  const daVisao = daLista.filter((l) => visaoDo(l) === visao);
+  const nichos = [...daVisao.reduce((m, l) => m.set(nichoDe(l), (m.get(nichoDe(l)) ?? 0) + 1), new Map<string, number>())].sort((a, b) => b[1] - a[1]);
+  const lista = daVisao
+    .filter((l) => !nicho || nichoDe(l) === nicho)
     .filter((l) => !busca.trim() || `${l.empresa} ${l.nicho ?? ""} ${l.cidade ?? ""} ${l.decisor ?? ""}`.toLowerCase().includes(busca.trim().toLowerCase()));
 
   async function decidir(ids: string[], status: "aprovado" | "descartado" | null) {
@@ -135,6 +140,7 @@ export function ListaDoLeo() {
           value={visao}
           onChange={(v) => {
             setVisao(v);
+            setNicho("");
             setMarcados(new Set());
           }}
           opcoes={[
@@ -154,6 +160,24 @@ export function ListaDoLeo() {
         </div>
       </div>
 
+      {nichos.length > 1 && (
+        <div className="mb-3 flex flex-wrap items-center gap-1.5">
+          <span className="mr-1 text-[12.5px] text-muted">Nichos:</span>
+          {[["", daVisao.length] as [string, number], ...nichos].map(([n, q]) => (
+            <button
+              key={n || "todos"}
+              type="button"
+              onClick={() => {
+                setNicho(n);
+                setMarcados(new Set());
+              }}
+              className={`rounded-full border px-3 py-1 text-[12.5px] ${nicho === n ? "border-primary bg-primary/15 text-ink" : "border-border text-muted hover:text-ink"}`}
+            >
+              {n || "Todos"} ({q})
+            </button>
+          ))}
+        </div>
+      )}
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa, nicho, cidade ou dono" className="max-w-[320px]" />
         {marcados.size > 0 && (
