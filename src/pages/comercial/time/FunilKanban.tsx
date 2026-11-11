@@ -1,6 +1,5 @@
 import * as React from "react";
-import { MessageCircle } from "lucide-react";
-import { Segmented } from "@/components/ui/segmented";
+import { Instagram, Linkedin, MapPin, Megaphone, MessageCircle, Phone } from "lucide-react";
 import { useToast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ORIGEM_TEXTO, useContatos, useEtapaInbound } from "@/hooks/useCrm";
@@ -15,23 +14,31 @@ import {
   type Coluna,
   type EtapaInbound,
   type EtapaOutbound,
+  COLUNAS_LIGACOES,
+  COLUNAS_LISTA,
   etapaInbound,
   etapaInboundParaBanco,
   etapaOutbound,
   patchOutbound,
 } from "./funis";
+import { useListaLeads } from "@/hooks/useComercial";
+import { FunilLista } from "./FunilLista";
 
-interface CardItem {
+export interface CardItem {
   id: string;
   titulo: string;
   sub: string;
   quando: string | null;
   conversa?: string | null;
   aviso?: string | null;
+  /** Listas Instagram, LinkedIn e Ligações: nota do lead e etiqueta da rodada ou canal. */
+  nota?: "Quente" | "Morno" | "Frio" | null;
+  etiqueta?: string | null;
+  valor?: number | null;
 }
 
 /** Quadro genérico: colunas, cards e arrastar entre colunas. Usado pelos dois funis. */
-function Quadro<K extends string>({
+export function Quadro<K extends string>({
   colunas,
   itens,
   etapa,
@@ -98,10 +105,34 @@ function Quadro<K extends string>({
                     draggable
                     onDragStart={(e) => e.dataTransfer.setData("text/plain", it.id)}
                     onClick={() => abrir(it.id)}
-                    className="cursor-pointer rounded-[11px] border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary-bright/50"
+                    className={cn(
+                      "cursor-pointer rounded-[11px] border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary-bright/50",
+                      it.nota === "Quente" && "border-l-[3px] border-l-positive",
+                      it.aviso && "border-l-[3px] border-l-attention",
+                    )}
                   >
                     <div className="text-[13px] font-semibold leading-snug">{it.titulo}</div>
                     {it.sub && <div className="mt-0.5 text-[11.5px] text-muted">{it.sub}</div>}
+                    {(it.nota || it.etiqueta) && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                        {it.nota && (
+                          <span
+                            className={cn(
+                              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              it.nota === "Quente" && "bg-positive-tint text-positive",
+                              it.nota === "Morno" && "bg-attention-tint text-attention",
+                              it.nota === "Frio" && "bg-surface-2 text-muted",
+                            )}
+                          >
+                            {it.nota}
+                          </span>
+                        )}
+                        {it.etiqueta && <span className="rounded-[5px] bg-primary-tint px-1.5 py-0.5 font-mono text-[10px] uppercase text-[#d9cbff]">{it.etiqueta}</span>}
+                      </div>
+                    )}
+                    {it.valor != null && it.valor > 0 && (
+                      <div className="mt-1 text-[14px] font-semibold text-positive">{it.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
+                    )}
                     {it.aviso && <div className="mt-1 text-[11.5px] text-attention">{it.aviso}</div>}
                     <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted">
                       {it.quando && <span>{fmtData(it.quando)}</span>}
@@ -225,20 +256,61 @@ function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }
   );
 }
 
-/** Aba Funil: outbound (prospecção ativa) e inbound [anúncios], cada um com o seu Kanban. */
+type ListaFunil = "google" | "instagram" | "linkedin" | "ligacoes" | "inbound";
+
+/**
+ * Aba Funil: um Kanban por lista. Google Meu Negócio · Lista e Inbound · Anúncios seguem como já eram;
+ * Instagram, LinkedIn e Ligações · Lista vêm da tabela das listas (nada é enviado sozinho para eles).
+ */
 export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => void }) {
-  const [visao, setVisao] = React.useState<"outbound" | "inbound">("outbound");
+  const [visao, setVisao] = React.useState<ListaFunil>("google");
+  const { data: leads = [] } = useOutreachLeads();
+  const { contatos } = useContatos();
+  const { data: listas = [] } = useListaLeads();
+  const conta: Record<ListaFunil, number> = {
+    google: leads.filter((l) => etapaOutbound(l) !== null).length,
+    instagram: listas.filter((l) => l.lista === "instagram").length,
+    linkedin: listas.filter((l) => l.lista === "linkedin").length,
+    ligacoes: listas.filter((l) => l.lista === "ligacoes").length,
+    inbound: contatos.filter((c) => c.tipo === "inbound").length,
+  };
+  const opcoes: { k: ListaFunil; nome: string; icone: React.ComponentType<{ className?: string }> }[] = [
+    { k: "google", nome: "Google Meu Negócio · Lista", icone: MapPin },
+    { k: "instagram", nome: "Instagram · Lista", icone: Instagram },
+    { k: "linkedin", nome: "LinkedIn · Lista", icone: Linkedin },
+    { k: "ligacoes", nome: "Ligações · Lista", icone: Phone },
+    { k: "inbound", nome: "Inbound · Anúncios", icone: Megaphone },
+  ];
   return (
     <div>
-      <Segmented
-        value={visao}
-        onChange={setVisao}
-        opcoes={[
-          { value: "outbound", label: "Outbound · prospecção ativa" },
-          { value: "inbound", label: "Inbound · anúncios" },
-        ]}
-      />
-      {visao === "outbound" ? <FunilOutbound abrirConversa={abrirConversa} /> : <FunilInbound abrirConversa={abrirConversa} />}
+      <div className="mb-4 flex flex-wrap gap-2">
+        {opcoes.map((o) => {
+          const Icone = o.icone;
+          const vazio = o.k === "linkedin" && conta.linkedin === 0;
+          return (
+            <button
+              key={o.k}
+              onClick={() => setVisao(o.k)}
+              className={cn(
+                "inline-flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[13.5px] font-medium transition-colors",
+                visao === o.k ? "border-primary-bright bg-primary-tint text-ink shadow-[0_0_22px_rgba(110,58,255,.28)]" : "border-border bg-surface text-ink/90 hover:border-primary-bright/50",
+                vazio && visao !== o.k && "opacity-55",
+              )}
+            >
+              <Icone className="h-4 w-4 text-primary-bright" />
+              {o.nome}
+              <span className="font-mono text-[12px] text-muted">{vazio ? "em breve" : conta[o.k]}</span>
+            </button>
+          );
+        })}
+      </div>
+      {visao === "google" ? (
+        <FunilOutbound abrirConversa={abrirConversa} />
+      ) : visao === "inbound" ? (
+        <FunilInbound abrirConversa={abrirConversa} />
+      ) : (
+        <FunilLista key={visao} lista={visao} colunas={visao === "ligacoes" ? COLUNAS_LIGACOES : COLUNAS_LISTA} abrirConversa={abrirConversa} />
+      )}
     </div>
   );
 }

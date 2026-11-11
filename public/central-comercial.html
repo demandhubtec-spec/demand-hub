@@ -277,7 +277,7 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
     <div class="crumb">Comercial / Time Comercial IA</div>
     <div class="sp"></div>
     <div class="stat"><span class="blink"></span>OPERAÇÃO <b>AO VIVO</b></div>
-    <div class="stat">META <b>12 REUNIÕES/SEMANA</b></div>
+    <div class="stat">META <b id="metaSemana">12 REUNIÕES/SEMANA</b></div>
     <div class="stat">AGENTES <b>9 ONLINE · 1 EM PREPARO</b></div>
     <div class="stat">NA SUA FILA <b id="qcount">0</b></div>
     <button class="btn" onclick="abrirPlaybook()">Playbook comercial</button>
@@ -293,8 +293,6 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
       <div class="legend"><span><i style="background:var(--holo)"></i>passagem do lead</span><span><i style="background:var(--lilac);opacity:.6"></i>coordenação da Ana</span><span><i style="background:var(--warn)"></i>você aprova / sua agenda</span><span><i style="background:var(--pink)"></i>entrada e aprendizado</span></div></div>
     <div class="flowbox"><div id="flow"><svg id="links"></svg></div></div>
   </section>
-
-  <div class="funnel" id="funnel"></div>
 
   <div class="grid2">
     <section class="panel">
@@ -524,7 +522,8 @@ function desenharLinks(){
 
 /* ================= FUNIL ================= */
 const FUN={lista:132,pacotes:38,contatos:180,respostas:41,qualif:14,reunioes:6,meta:12};
-function funil(){const f=FUN;document.getElementById('funnel').innerHTML=[
+// O funil saiu daqui: fica na aba Indicadores, por lista (11/11/2026). A função continua para não quebrar o roteiro.
+function funil(){const el=document.getElementById('funnel');if(!el)return;const f=FUN;el.innerHTML=[
  ['Empresas na lista',f.lista,100],['Pacotes de valor prontos',f.pacotes,f.pacotes/f.lista*100],['Contatos feitos',f.contatos,100],['Responderam',f.respostas,f.respostas/f.contatos*100],['Qualificados',f.qualif,f.qualif/f.respostas*100],['Reuniões na semana / meta',`${f.reunioes}/${f.meta}`,f.reunioes/f.meta*100,1]
 ].map(([t,v,p,g])=>`<div class="fs ${g?'gold':''}"><b>${v}</b><span>${t}</span><i style="width:${Math.min(100,p)}%"></i></div>`).join('')}
 
@@ -790,7 +789,7 @@ function aplicar(r,pedidos){
   Object.assign(ST,{ana:pedidos?'wait':'work',leo:r.lista?'work':'idle',rita:r.com_diagnostico?'work':'idle',bia:escritas?'work':'idle',duda:r.com_site?'work':'idle',
     rui:r.aguardando_ok?'wait':'idle',caio:r.em_cadencia?'work':'idle',gabi:h.primeiros?'work':'idle',marina:h.conversas?'work':'idle',davi:'off'});
   Object.assign(PR,{leo:pct(r.com_whatsapp,r.lista),rita:pct(r.com_diagnostico,r.lista),bia:pct(r.fila_envio,escritas),duda:pct(r.com_site,r.lista),
-    rui:pct(r.fila_envio,escritas),caio:pct(r.em_cadencia,r.contatados),gabi:pct(h.primeiros,40),marina:pct(r.reunioes_semana,12)});
+    rui:pct(r.fila_envio,escritas),caio:pct(r.em_cadencia,r.contatados),gabi:pct(h.primeiros,40),marina:pct(r.reunioes_semana,FUN.meta||12)});
   // Sua fila: o que está esperando você de verdade
   FILA.length=0;
   if(LEO_PENDENTES)FILA.push({de:'leo',tipo:'Lista para aprovar',titulo:`${LEO_PENDENTES} ${LEO_PENDENTES>1?'empresas com a ficha pronta':'empresa com a ficha pronta'}`,m:'Site, CNPJ, sócios e dono conferidos pelo Léo',aba:'aprovacao'});
@@ -903,6 +902,10 @@ async function carregar(){
   const sb=parent&&parent!==window?parent.__demandSupabase:null;
   if(!sb){ERRO='Abra pelo portal para ver os números reais.';pintarCanal();return}
   try{
+    // Meta de reuniões por semana: vem de Configurações > Metas do funil (antes era fixa em 12)
+    let mt=null;try{({data:mt}=await sb.from('comercial_metas').select('dados').eq('id','principal').maybeSingle())}catch(e){}
+    const metaSemana=Number(mt&&mt.dados&&mt.dados.reunioes_semana)||12;FUN.meta=metaSemana;
+    const mEl=document.getElementById('metaSemana');if(mEl)mEl.textContent=`${metaSemana} REUNIÕES/SEMANA`;
     const [{data:r,error},{count},{data:ms},{count:leoN}]=await Promise.all([sb.rpc('time_comercial'),sb.from('ana_canal').select('id',{count:'exact',head:true}).in('status',['pendente','aguardando_ok']),
       sb.from('agentes_manuais').select('id,secoes'),sb.from('outreach_leads').select('place_id',{count:'exact',head:true}).eq('wa_status','pendente').eq('leo_status','pendente').in('msg_status',['sem','gerando'])]);
     if(error)throw error;DADOS=r;ERRO=null;(ms||[]).forEach(m=>MANUAIS[m.id]=m.secoes||[]);LEO_PENDENTES=leoN||0;aplicar(r||{},count||0);

@@ -5,13 +5,13 @@ import { chamarSdr, useOutreachLeads, type OutreachLead } from "@/hooks/useProsp
 
 /** Etapas do funil inbound (anúncios, site e WhatsApp direto). "proposta" aparece como Negociação. */
 export const ETAPAS_OPORTUNIDADE = [
-  { key: "recebido", label: "Mensagem recebida / cadastro" },
-  { key: "atendimento", label: "Em atendimento" },
+  { key: "recebido", label: "Leads do anúncio" },
+  { key: "atendimento", label: "Conversa iniciada" },
   { key: "qualificacao", label: "Qualificação" },
   { key: "reuniao", label: "Reunião agendada" },
   { key: "reuniao_realizada", label: "Reunião realizada" },
   { key: "proposta", label: "Negociação" },
-  { key: "ganho", label: "Fechamento (venda)" },
+  { key: "ganho", label: "Venda" },
   { key: "perdido", label: "Perdido" },
 ] as const;
 export type EtapaOportunidade = (typeof ETAPAS_OPORTUNIDADE)[number]["key"];
@@ -32,6 +32,7 @@ export interface SdrLead {
   last_inbound_at: string | null;
   last_outbound_at: string | null;
   created_at: string;
+  updated_at?: string | null;
   funil_etapa: EtapaOportunidade | null;
 }
 
