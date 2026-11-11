@@ -176,14 +176,15 @@ function Capa(p: { s: SlideArte; marca: MarcaArte }) {
   const meio = Math.ceil(palavras.length / 2);
   const linhas = palavras.length > 2 ? [palavras.slice(0, meio).join(" "), palavras.slice(meio).join(" ")] : [gigante];
   const maior = Math.max(...linhas.map((l) => l.length));
-  const tam = Math.min(260, Math.floor(940 / (Math.max(maior, 3) * 0.5)));
+  // 0,62 da altura por letra cobre até as fontes de título mais largas da marca, sem estourar a lâmina
+  const tam = Math.min(240, Math.floor(960 / (Math.max(maior, 3) * 0.62)));
   const pessoa = p.s.foto;
   return (
     <>
       {pessoa ? (
         <>
           <div style={{ position: "absolute", left: 90, right: 90, top: 140, height: 900, borderRadius: "50%", background: `radial-gradient(circle, ${c.destaque}b0 0%, ${c.destaque}00 62%)` }} />
-          <Img src={pessoa} style={{ position: "absolute", left: "50%", bottom: 0, height: 1180, transform: "translateX(-50%)", objectFit: "contain", filter: `drop-shadow(0 0 36px ${c.destaque}99)` }} />
+          <Img src={pessoa} style={{ position: "absolute", left: "50%", bottom: 0, height: 1250, transform: "translateX(-50%)", objectFit: "contain", filter: `drop-shadow(0 0 36px ${c.destaque}99)` }} />
         </>
       ) : null}
       {/* degradê embaixo para o título gigante ler bem por cima da pessoa */}
