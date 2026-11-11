@@ -21,6 +21,26 @@ export type PropsLamina = {
   marca: MarcaArte;
 };
 
+/** Uma lâmina do carrossel contínuo (padrão V5). */
+export type SlideArte = {
+  modelo: "capa" | "cena" | "imersiva" | "chat" | "lista" | "chamada";
+  titulo: string;
+  texto?: string;
+  itens?: string[];
+  conversa?: { quem: "cliente" | "ia"; texto: string }[];
+  /** Foto da cena, ou a pessoa recortada (PNG sem fundo) na capa e na chamada. */
+  foto?: string | null;
+  /** Texto do botão que puxa para a próxima lâmina. */
+  proximo?: string | null;
+};
+
+export type PropsCarrossel = {
+  slides: SlideArte[];
+  indice: number;
+  palavra: string | null;
+  marca: MarcaArte;
+};
+
 export type CenaVideo = {
   texto: string;
   destaque?: string;

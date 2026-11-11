@@ -7,7 +7,7 @@ import { renderMedia, renderStill, selectComposition } from "@remotion/renderer"
 import { copyFile, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import type { PropsLamina, PropsReels } from "./remotion/tipos.ts";
+import type { PropsCarrossel, PropsLamina, PropsReels } from "./remotion/tipos.ts";
 
 // Roda sempre de dentro da pasta estudio-render (npm run rodar)
 const aqui = join(process.cwd(), "src");
@@ -45,6 +45,24 @@ export async function renderLamina(props: PropsLamina): Promise<Buffer> {
     const output = join(pasta, "lamina.png");
     await renderStill({ serveUrl, composition, output, inputProps: props as unknown as Record<string, unknown>, browserExecutable: navegador(), imageFormat: "png", timeoutInMilliseconds: 120_000 });
     return readFile(output);
+  });
+}
+
+/** Carrossel contínuo: a mesma tira renderizada uma vez por lâmina, deslocada até ela. */
+export async function renderCarrossel(props: Omit<PropsCarrossel, "indice">): Promise<Buffer[]> {
+  const serveUrl = await servir();
+  const base = { ...props, indice: 0 } as unknown as Record<string, unknown>;
+  const composition = await selectComposition({ serveUrl, id: "Carrossel", inputProps: base, browserExecutable: navegador() });
+  return temporaria(async (pasta) => {
+    const out: Buffer[] = [];
+    for (let i = 0; i < props.slides.length; i++) {
+      const output = join(pasta, `lamina-${i + 1}.png`);
+      const inputProps = { ...props, indice: i } as unknown as Record<string, unknown>;
+      // As props da composição valem sobre as do render: cada lâmina leva a própria
+      await renderStill({ serveUrl, composition: { ...composition, props: inputProps }, output, inputProps, browserExecutable: navegador(), imageFormat: "png", timeoutInMilliseconds: 120_000 });
+      out.push(await readFile(output));
+    }
+    return out;
   });
 }
 

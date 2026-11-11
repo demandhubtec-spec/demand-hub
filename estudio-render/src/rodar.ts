@@ -8,10 +8,10 @@
 import { lerConfig, rodarDiretor, type Renderizador } from "../../ia-sdr/src/lib/estudio/agentes.ts";
 import type { CopyCarrossel, CopyReels, Marca } from "../../ia-sdr/src/lib/estudio/ia.ts";
 import { duracaoDaCena } from "../../ia-sdr/src/lib/estudio/video-args.ts";
-import { renderLamina, renderReels } from "./render.ts";
-import { modelosDasLaminas } from "../../ia-sdr/src/lib/estudio/fotos.ts";
+import { renderCarrossel, renderReels } from "./render.ts";
+import { planoDoCarrossel } from "../../ia-sdr/src/lib/estudio/fotos.ts";
 import { narrar } from "./voz.ts";
-import { MARCA_PADRAO, type MarcaArte, type PropsLamina } from "./remotion/tipos.ts";
+import { MARCA_PADRAO, type MarcaArte, type SlideArte } from "./remotion/tipos.ts";
 
 const hex = (c: string | undefined) => (c && /^#[0-9a-f]{3,8}$/i.test(c.trim()) ? c.trim() : undefined);
 /** "Montserrat Bold" → "montserrat" (nome no Fontsource). */
@@ -47,22 +47,22 @@ const render: Renderizador = {
   async carrossel(c: CopyCarrossel, palavra, fotos, m) {
     const marca = marcaDaArte(m);
     const slides = (c.slides ?? []).filter((s) => s.titulo).slice(0, 10);
-    const tipos = modelosDasLaminas(slides.length, (i) => fotos.has(i));
-    const out: Buffer[] = [];
-    for (const [i, s] of slides.entries()) {
-      const props: PropsLamina = {
-        tipo: tipos[i],
-        titulo: s.titulo,
-        texto: s.texto,
-        numero: i,
-        pagina: `${i + 1}/${slides.length}`,
-        foto: fotos.get(i) ?? null,
-        palavra,
-        marca,
-      };
-      out.push(await renderLamina(props));
-    }
-    return out;
+    const plano = planoDoCarrossel(slides);
+    // Botão de "próxima": o começo do título da lâmina seguinte
+    const chamadaDe = (t: string | undefined) => {
+      const x = (t ?? "").replace(/\*/g, "").replace(/\s+/g, " ").trim();
+      return x.length > 34 ? `${x.slice(0, 32).replace(/\s+\S*$/, "")}…` : x;
+    };
+    const arte: SlideArte[] = slides.map((s, i) => ({
+      modelo: plano[i],
+      titulo: s.titulo,
+      texto: s.texto,
+      itens: s.itens,
+      conversa: s.conversa,
+      foto: fotos.get(i) ?? (plano[i] === "chamada" ? (fotos.get(0) ?? null) : null),
+      proximo: chamadaDe(slides[i + 1]?.titulo) || null,
+    }));
+    return renderCarrossel({ slides: arte, palavra, marca });
   },
   async reels(c: CopyReels, palavra, fotos, m) {
     const cenas = (c.cenas ?? []).filter((x) => x.texto_tela?.trim()).slice(0, 10);

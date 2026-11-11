@@ -152,7 +152,7 @@ test("fotos: copy nova usa a cena escrita pela Bia; copy antiga ganha cena tirad
   const { cenasDasFotos } = await import("../src/lib/estudio/fotos.ts");
   const nova = cenasDasFotos({ slides: [{ titulo: "Capa", foto: "recepcionista olhando o celular" }, { titulo: "Dois" }, { titulo: "Fim" }], legenda: "" }, "carrossel");
   assert.ok(nova[0]?.startsWith("recepcionista olhando o celular"));
-  assert.match(nova[0] ?? "", /situação desta lâmina: "Capa"/);
+  assert.match(nova[0] ?? "", /rosto deste post: "Capa"/);
   assert.ok(nova[1]?.includes("Dois"));
   const reels = cenasDasFotos({ cenas: [{ tempo: "0-3s", texto_tela: "Seu *WhatsApp* demora" }, { tempo: "3-6s", texto_tela: "B" }], legenda: "", capa_titulo: "", prompt_video: "" }, "reels");
   assert.ok(reels[0]?.includes("Seu WhatsApp demora"));
@@ -168,12 +168,26 @@ test("foto: o prompt pede foto real, sem texto e no formato certo", async () => 
   assert.match(promptDaFoto("dono no balcão", "retrato"), /Nada cortado/);
 });
 
-test("carrossel: modelo de cada lâmina e formato da foto que não corta", async () => {
-  const { modelosDasLaminas, formatoDaFoto } = await import("../src/lib/estudio/fotos.ts");
-  const m = modelosDasLaminas(7, (i) => i !== 3);
-  assert.deepEqual(m, ["capa", "foto", "imersiva", "destaque", "foto", "imersiva", "chamada"]);
-  assert.equal(formatoDaFoto("foto"), "paisagem");
-  assert.equal(formatoDaFoto("capa"), "retrato");
+test("carrossel V5: layout de cada lâmina, foto certa para cada um e pessoa recortada na capa", async () => {
+  const { planoDoCarrossel, formatoDaFoto, cenasDasFotos, promptDaFoto } = await import("../src/lib/estudio/fotos.ts");
+  const slides = [
+    { titulo: "Capa *gigante*", foto: "dona de clínica de blazer" },
+    { titulo: "Problema", foto: "recepção lotada" },
+    { titulo: "Conversa", conversa: [{ quem: "cliente" as const, texto: "Oi" }, { quem: "ia" as const, texto: "Olá!" }] },
+    { titulo: "Lista", itens: ["um", "dois", "três"] },
+    { titulo: "Ponto", foto: "dono no balcão" },
+    { titulo: "Chamada" },
+  ];
+  assert.deepEqual(planoDoCarrossel(slides), ["capa", "cena", "chat", "lista", "imersiva", "chamada"]);
+  assert.equal(formatoDaFoto("capa"), "recorte");
+  assert.equal(formatoDaFoto("cena"), "paisagem");
+  assert.equal(formatoDaFoto("imersiva"), "retrato");
+  const c = cenasDasFotos({ slides, legenda: "" }, "carrossel");
+  assert.match(c[0]!, /dona de clínica de blazer/);
+  assert.equal(c[2], null);
+  assert.equal(c[3], null);
+  assert.match(c[5]!, /dona de clínica de blazer/); // a chamada traz a mesma pessoa da capa
+  assert.match(promptDaFoto("dona de clínica", "recorte"), /fundo totalmente transparente/);
 });
 
 test("fotos do Kelvin (feitas no ChatGPT dele) têm prioridade; com referência o prompt pede para seguir o estilo", async () => {

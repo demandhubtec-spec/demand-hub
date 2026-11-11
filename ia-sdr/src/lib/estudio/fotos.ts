@@ -12,27 +12,40 @@
 import { env } from "../env.ts";
 import type { Copy, CopyCarrossel, CopyReels } from "./ia.ts";
 
-/** retrato 2:3 (lâmina com foto cheia), paisagem 3:2 (lâmina com foto em cima), vertical (reels). */
-export type Formato = "retrato" | "paisagem" | "vertical";
-
-export type ModeloLamina = "capa" | "foto" | "imersiva" | "destaque" | "chamada";
+/** retrato 2:3 (foto cheia), paisagem 3:2 (foto na moldura), vertical (reels), recorte (pessoa em PNG sem fundo, na frente do título). */
+export type Formato = "retrato" | "paisagem" | "vertical" | "recorte";
 
 /**
- * Modelo de cada lâmina do carrossel (usado pelo estúdio de produção): capa, miolo alternando foto em cima
- * e foto cheia (ou destaque quando não tem foto) e a chamada no fim. Fica aqui para a foto já nascer no formato certo.
+ * Layout de cada lâmina do carrossel (padrão V5, pedido do Kelvin em 10/11 olhando a V4):
+ *  capa      pessoa recortada na frente do título gigante
+ *  cena      foto da situação numa moldura, título e texto
+ *  imersiva  foto cheia com o texto por cima
+ *  chat      celular com a conversa da IA (sem foto)
+ *  lista     cartões com os pontos (sem foto)
+ *  chamada   a mesma pessoa da capa chamando para comentar a palavra
  */
-export function modelosDasLaminas(total: number, temFoto: (i: number) => boolean): ModeloLamina[] {
-  let comFoto = 0;
-  return Array.from({ length: total }, (_, i) => {
+export type ModeloLamina = "capa" | "cena" | "imersiva" | "chat" | "lista" | "chamada";
+
+type SlideCopy = CopyCarrossel["slides"][number];
+
+export function planoDoCarrossel(slides: SlideCopy[]): ModeloLamina[] {
+  let fotos = 0;
+  return slides.map((s, i) => {
     if (i === 0) return "capa";
-    if (i === total - 1) return "chamada";
-    if (!temFoto(i)) return "destaque";
-    return comFoto++ % 2 === 0 ? "foto" : "imersiva";
+    if (i === slides.length - 1) return "chamada";
+    if ((s.conversa ?? []).filter((m) => m?.texto?.trim()).length >= 2) return "chat";
+    if ((s.itens ?? []).filter((x) => x?.trim()).length >= 2) return "lista";
+    return fotos++ % 2 === 0 ? "cena" : "imersiva";
   });
 }
 
-/** Formato da foto pelo modelo da lâmina: a foto em cima é horizontal; as de fundo são em pé. Assim nada corta. */
-export const formatoDaFoto = (m: ModeloLamina): Formato => (m === "foto" ? "paisagem" : "retrato");
+/** Mantido para quem ainda chama pelo total (lâminas sem conversa nem lista). */
+export function modelosDasLaminas(total: number, _temFoto?: (i: number) => boolean): ModeloLamina[] {
+  return planoDoCarrossel(Array.from({ length: total }, () => ({ titulo: "x" })));
+}
+
+/** Formato da foto pelo layout: pessoa recortada na capa e na chamada, moldura horizontal na cena, em pé na imersiva. */
+export const formatoDaFoto = (m: ModeloLamina): Formato => (m === "capa" || m === "chamada" ? "recorte" : m === "cena" ? "paisagem" : "retrato");
 
 const tamanho = (f: Formato) => (f === "paisagem" ? "1536x1024" : "1024x1536");
 const semAst = (t: string | null | undefined) => (t ?? "").replace(/\*/g, "").replace(/\s+/g, " ").trim();
@@ -55,16 +68,30 @@ export function cenasDasFotos(copy: Copy, formato: "carrossel" | "reels" | "esta
     });
   }
   const slides = ((copy as CopyCarrossel).slides ?? []).filter((x) => x.titulo).slice(0, 10);
-  const comFoto = new Set([0, 1, 3, 5, slides.length - 1]);
+  const plano = planoDoCarrossel(slides);
+  const pessoa = slides[0]?.foto?.trim() || "dona de pequeno negócio brasileiro, uns 35 anos, roupa social casual, sorriso confiante, segurando o celular";
   return slides.map((sl, i) => {
-    const cena = sl.foto?.trim() || (comFoto.has(i) ? "cena real numa clínica ou pequeno negócio brasileiro" : null);
+    const m = plano[i];
+    if (m === "chat" || m === "lista") return null; // essas lâminas são desenhadas, sem foto
+    if (m === "capa") return `${pessoa}. Ela é o rosto deste post: "${semAst(sl.titulo)}"`;
+    // Chamada: a mesma pessoa da capa, para o carrossel fechar com quem abriu
+    if (m === "chamada") return `${pessoa}. Agora apontando para o lado ou mostrando o celular, convidando a comentar. A mesma pessoa, mesma roupa`;
+    const cena = sl.foto?.trim() || "cena real numa clínica ou pequeno negócio brasileiro";
     // A mensagem da lâmina vai junto: a foto tem que contar o que o título e o texto dizem (pedido do Kelvin, 10/11)
-    return cena ? `${cena}. A foto precisa mostrar a situação desta lâmina: "${semAst(sl.titulo)}${sl.texto ? `. ${semAst(sl.texto)}` : ""}"` : null;
+    return `${cena}. A foto precisa mostrar a situação desta lâmina: "${semAst(sl.titulo)}${sl.texto ? `. ${semAst(sl.texto)}` : ""}"`;
   });
 }
 
 /** Prompt final: a cena da copy + o padrão de foto da DemandIA. Puro, para os testes cobrirem. */
 export function promptDaFoto(cena: string, formato: Formato, comReferencia = false): string {
+  if (formato === "recorte")
+    return [
+      `Foto de estúdio profissional para capa de post, pessoa sozinha com o fundo totalmente transparente (PNG recortado): ${cena.trim().replace(/\s+/g, " ")}.`,
+      "Pessoa brasileira real, natural, com textura de pele e expressão verdadeira, olhando para a câmera.",
+      "Enquadramento da cintura para cima, de frente, centralizada, com a cabeça e as mãos inteiras e folga no topo; o corpo pode terminar na borda de baixo.",
+      "Luz de estúdio de campanha publicitária: luz principal suave na frente e luz de recorte roxa e violeta nas bordas do cabelo e dos ombros (cores da marca).",
+      "Sem fundo, sem cenário, sem sombra no chão. Sem nenhum texto, letra, logotipo ou marca d'água. Nada de ilustração, 3D ou aparência de imagem de IA.",
+    ].join(" ");
   return [
     comReferencia
       ? "As imagens enviadas são referências de posts que funcionaram: siga o estilo delas (enquadramento, luz, clima, tipo de cena), mas crie pessoas, lugar e composição novos. Não copie rostos, textos nem logos."
@@ -119,7 +146,7 @@ export async function gerarFoto(cena: string, formato: Formato = "retrato", refe
   for (const m of modelosDeImagem()) {
     try {
       const foto = await gerarFotoCom(m, cena, formato, referencias, pronto);
-      modeloQueFunciona = m;
+      if (formato !== "recorte") modeloQueFunciona = m;
       return foto;
     } catch (e) {
       ultimo = e;
@@ -134,6 +161,21 @@ export async function gerarFoto(cena: string, formato: Formato = "retrato", refe
 async function gerarFotoCom(modelo: string, cena: string, formato: Formato, referencias: Blob[], pronto?: string): Promise<string> {
   // Chave só das fotos (conta do Kelvin na OpenAI), se estiver na Vercel; senão a chave de sempre
   const h = { Authorization: `Bearer ${process.env.OPENAI_IMAGE_KEY || env.openaiKey}` };
+  if (formato === "recorte") {
+    // Pessoa sem fundo (PNG transparente): se o modelo não fizer fundo transparente, tenta o próximo
+    const r = await fetch("https://api.openai.com/v1/images/generations", {
+      method: "POST",
+      headers: { ...h, "Content-Type": "application/json" },
+      body: JSON.stringify({ model: modelo, prompt: pronto || promptDaFoto(cena, "recorte"), size: tamanho(formato), quality: qualidade(), background: "transparent", output_format: "png", n: 1 }),
+      signal: AbortSignal.timeout(170_000),
+    });
+    if (!r.ok) {
+      const corpo = (await r.text()).slice(0, 300);
+      if (semModelo(r.status, corpo) || (r.status === 400 && /background|transparen/i.test(corpo))) throw new ErroModelo(`OpenAI recorte ${r.status}: ${corpo}`);
+      throw new Error(`OpenAI recorte ${r.status}: ${corpo}`);
+    }
+    return (await lerResposta(r)).replace("data:image/jpeg", "data:image/png");
+  }
   if (referencias.length) {
     try {
       const f = new FormData();
@@ -220,7 +262,7 @@ export async function gerarFotos(
       const f = typeof formato === "function" ? formato(i) : formato;
       const pronto = prontos.get(i)?.trim() || undefined;
       try {
-        if (opts.motor === "kairogen") {
+        if (opts.motor === "kairogen" && f !== "recorte") {
           try {
             const { gerarImagemKairogen } = await import("../kairogen.ts");
             fotos.set(i, await gerarImagemKairogen(pronto || promptDaFoto(c, f), f === "paisagem" ? "3:2" : f === "vertical" ? "9:16" : "2:3"));
