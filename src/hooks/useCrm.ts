@@ -33,6 +33,8 @@ export interface SdrLead {
   last_outbound_at: string | null;
   created_at: string;
   updated_at?: string | null;
+  /** Na lixeira: some do funil e dos indicadores, mas continua guardado e pode ser restaurado. */
+  lixeira_em?: string | null;
   funil_etapa: EtapaOportunidade | null;
 }
 
@@ -149,6 +151,21 @@ export function useEtapaInbound() {
   return useMutation({
     mutationFn: async ({ id, etapa }: { id: string; etapa: EtapaOportunidade | null }) => {
       const { error } = await supabase.from("sdr_leads").update({ funil_etapa: etapa }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm"] }),
+  });
+}
+
+/** Manda contatos para a lixeira (ou restaura). Nada é apagado. */
+export function useLixeira() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ ids, lixeira }: { ids: string[]; lixeira: boolean }) => {
+      const { error } = await supabase
+        .from("sdr_leads")
+        .update({ lixeira_em: lixeira ? new Date().toISOString() : null })
+        .in("id", ids);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["crm"] }),
