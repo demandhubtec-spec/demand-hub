@@ -20,8 +20,12 @@ import { PlaybookTab } from "./time/PlaybookTab";
 import { FunilKanban } from "./time/FunilKanban";
 import { ListaDoLeo } from "./time/ListaDoLeo";
 import { EtapaRitaDuda } from "./time/EtapaRitaDuda";
+import { IndicadoresTab } from "./time/IndicadoresTab";
+import { InsightsTab } from "./time/InsightsTab";
+import { LigacoesWebhookTab, MetasTab } from "./time/MetasTab";
+import { useInsights } from "@/hooks/useComercial";
 
-export const ABAS_TIME = ["central", "aprovacao", "envios", "funil", "conversas", "contatos", "ana", "playbook", "config"] as const;
+export const ABAS_TIME = ["central", "aprovacao", "envios", "funil", "indicadores", "insights", "conversas", "contatos", "ana", "playbook", "config"] as const;
 export type AbaTime = (typeof ABAS_TIME)[number];
 
 /** Endereços antigos do CRM (?aba=...) caem na aba certa daqui. */
@@ -43,6 +47,8 @@ export default function TimeComercial() {
   const [params, setParams] = useSearchParams();
   const { data: canal = [] } = useCanal();
   const { data: leads = [] } = useOutreachLeads();
+  const { data: ins } = useInsights();
+  const insightsPendentes = (ins?.insights ?? []).filter((i) => i.status === "pendente").length;
 
   const bruta = params.get("aba") ?? "";
   const aba: AbaTime = (ABAS_TIME as readonly string[]).includes(bruta) ? (bruta as AbaTime) : (ABA_ANTIGA[bruta] ?? "central");
@@ -86,6 +92,8 @@ export default function TimeComercial() {
         <TabsTrigger value="aprovacao">Aprovação{paraRevisar ? ` (${paraRevisar})` : ""}</TabsTrigger>
         <TabsTrigger value="envios">Envios</TabsTrigger>
         <TabsTrigger value="funil">Funil</TabsTrigger>
+        <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
+        <TabsTrigger value="insights">Insights{insightsPendentes ? ` (${insightsPendentes})` : ""}</TabsTrigger>
         <TabsTrigger value="conversas">Conversas</TabsTrigger>
         <TabsTrigger value="contatos">Contatos</TabsTrigger>
         <TabsTrigger value="ana">Você e a Ana{esperando ? ` (${esperando})` : ""}</TabsTrigger>
@@ -114,6 +122,12 @@ export default function TimeComercial() {
       </TabsContent>
       <TabsContent value="funil">
         <FunilKanban abrirConversa={abrirConversa} />
+      </TabsContent>
+      <TabsContent value="indicadores">
+        <IndicadoresTab irPara={(a) => irPara(a)} />
+      </TabsContent>
+      <TabsContent value="insights">
+        <InsightsTab />
       </TabsContent>
       <TabsContent value="conversas">
         <ConversasTab leadId={params.get("lead")} escolher={abrirConversa} />
@@ -183,9 +197,9 @@ function Contatos({ abrirConversa }: { abrirConversa: (id: string) => void }) {
   );
 }
 
-/** Configurações: prospecção automática, limites e controles, e o registro do que o robô fez. */
+/** Configurações: prospecção automática, limites e controles, metas do funil, webhook das ligações e o registro do que o robô fez. */
 function Configuracoes() {
-  const [visao, setVisao] = React.useState<"automatico" | "controles" | "atividade">("automatico");
+  const [visao, setVisao] = React.useState<"automatico" | "controles" | "metas" | "ligacoes" | "atividade">("automatico");
   return (
     <div>
       <Segmented
@@ -194,10 +208,22 @@ function Configuracoes() {
         opcoes={[
           { value: "automatico", label: "Automático" },
           { value: "controles", label: "Controles" },
+          { value: "metas", label: "Metas do funil" },
+          { value: "ligacoes", label: "Ligações · webhook" },
           { value: "atividade", label: "Registro de atividade" },
         ]}
       />
-      {visao === "automatico" ? <AutomaticoTab /> : visao === "controles" ? <ControlesTab /> : <AtividadeTab />}
+      {visao === "automatico" ? (
+        <AutomaticoTab />
+      ) : visao === "controles" ? (
+        <ControlesTab />
+      ) : visao === "metas" ? (
+        <MetasTab />
+      ) : visao === "ligacoes" ? (
+        <LigacoesWebhookTab />
+      ) : (
+        <AtividadeTab />
+      )}
     </div>
   );
 }

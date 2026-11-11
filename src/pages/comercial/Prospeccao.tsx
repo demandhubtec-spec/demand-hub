@@ -78,30 +78,27 @@ export function StatusOperacao() {
   );
 }
 
-/** Números dos envios da prospecção (aba Envios). */
+/** Números dos envios da prospecção (aba Envios). Enviados no total e respostas ficam no funil do Google, na aba Indicadores. */
 export function NumerosEnvio() {
   const { data: cfg } = useOutreachConfig();
   const { data: r } = useOutreachResumo();
   const { data: leads = [] } = useOutreachLeads();
   const { data: orc } = useOutreachOrcamento();
-  const taxa = r && r.wa_enviados > 0 ? Math.round((r.responderam / r.wa_enviados) * 100) : 0;
   const aprovadas = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "aprovada").length;
   const emCadencia = leads.filter((l) => l.cadencia === "ativa").length;
   return (
     <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-4">
       <KpiCard label="Em cadência" value={String(emCadencia)} delta={`${aprovadas} aprovados na fila`} index={0} />
       <KpiCard label="Enviados hoje" value={`${r?.wa_hoje ?? 0} / ${cfg?.wa_daily_cap ?? "-"}`} index={1} />
-      <KpiCard label="Total enviados" value={String(r?.wa_enviados ?? "-")} index={2} />
-      <KpiCard label="Responderam" value={String(r?.responderam ?? "-")} delta={`${taxa}% de resposta`} accent="positive" index={3} />
-      <KpiCard label="Opt-out" value={String(r?.optout ?? "-")} accent="attention" index={4} />
-      <KpiCard label="Erros / sem WhatsApp" value={String(r?.wa_erros ?? "-")} accent="attention" index={5} />
-      <KpiCard label="E-mails enviados" value={String(r?.emails_enviados ?? "-")} index={6} />
+      <KpiCard label="Opt-out" value={String(r?.optout ?? "-")} accent="attention" index={2} />
+      <KpiCard label="Erros / sem WhatsApp" value={String(r?.wa_erros ?? "-")} accent="attention" index={3} />
+      <KpiCard label="E-mails enviados" value={String(r?.emails_enviados ?? "-")} index={4} />
       <KpiCard
         label="Gasto Apify no mês"
         value={`US$ ${Number(orc?.gasto_usd ?? 0).toFixed(2)}`}
         delta={`teto US$ ${orc?.teto_usd ?? 4}`}
         deltaClass={Number(orc?.gasto_usd ?? 0) >= Number(orc?.teto_usd ?? 4) ? "warn" : "up"}
-        index={7}
+        index={5}
       />
     </div>
   );
