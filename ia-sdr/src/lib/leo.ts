@@ -362,11 +362,19 @@ async function iniciarColeta(): Promise<string | null> {
       tipo === "perfil"
         ? { usernames: [...new Set(total)] }
         : { queries: [...new Set(total)].join("\n"), resultsPerPage: 10, maxPagesPerQuery: 1, countryCode: "br", languageCode: "pt-BR" };
-    const run = await apify<{ data: { id: string } }>(`/acts/${tipo === "perfil" ? ATOR_INSTAGRAM : ATOR_BUSCA}/runs`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-    });
+    let run: { data: { id: string } };
+    try {
+      run = await apify<{ data: { id: string } }>(`/acts/${tipo === "perfil" ? ATOR_INSTAGRAM : ATOR_BUSCA}/runs`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(input),
+      });
+    } catch (e) {
+      // Apify recusou (limite da conta, chave, fora do ar): segue sem a pesquisa paga para a lista não travar
+      await log(`Léo: a pesquisa paga falhou (${String((e as Error).message ?? e).slice(0, 160)}). Segui sem ela para a lista não travar.`);
+      for (const l of leads.filter((x) => consultas[x.place_id])) await avancar(l, tipo, {});
+      return null;
+    }
     const coleta: ColetaLeo = { id: run.data.id, tipo, leads: Object.keys(consultas), consultas, iniciada_em: new Date().toISOString() };
     await db().from("outreach_config").update({ leo_coleta: coleta }).eq("id", 1);
     await log(`Léo pesquisando (${tipo}): ${coleta.leads.length} empresas, ${total.length} consultas`);
