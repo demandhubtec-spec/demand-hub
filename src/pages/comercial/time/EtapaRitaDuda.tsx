@@ -77,11 +77,15 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
     const url = supabase.storage.from("materiais").getPublicUrl(caminho).data.publicUrl;
     const { error } = await supabase
       .from("outreach_leads")
-      .update({ marca: { ...(l.marca ?? {}), logo: url }, duda_status: "ajuste", duda_nota: "Logo nova enviada pelo Kelvin: use esta logo e as cores dela no site." })
+      .update({
+        marca: { ...(l.marca ?? {}), logo: url, logo_manual: true, logo_checado: null, cores: null, logo_fundo: null, logo_pedido_em: new Date().toISOString() },
+        duda_status: "ajuste",
+        duda_nota: "Logo nova enviada pelo Kelvin: use esta logo e as cores dela no site.",
+      })
       .eq("place_id", l.place_id);
     if (error) return showToast(`Erro: ${error.message}`);
     qc.invalidateQueries({ queryKey: ["outreach"] });
-    showToast("Logo trocada. A Duda refaz o site e o PDF na próxima rodada (até 10 minutos).");
+    showToast("Logo trocada. O robô mede as cores dela e a Duda refaz o site e o PDF (até 30 minutos).");
   }
 
   return (
@@ -109,7 +113,12 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
               <Card key={l.place_id} className="p-4">
                 <div className="flex items-start gap-3">
                   {l.marca?.logo ? (
-                    <img src={l.marca.logo} alt="" referrerPolicy="no-referrer" className="h-10 w-10 shrink-0 rounded-[10px] bg-white object-cover" />
+                    <img
+                      src={l.marca.logo}
+                      alt=""
+                      referrerPolicy="no-referrer"
+                      className={cn("h-10 w-10 shrink-0 rounded-[10px] object-contain p-0.5", l.marca.logo_fundo === "escuro" ? "bg-[#111]" : "bg-white")}
+                    />
                   ) : (
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-[13px] font-semibold">{l.empresa.slice(0, 1)}</div>
                   )}
@@ -119,6 +128,15 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                       {l.origem === "instagram" && <Instagram className="h-3.5 w-3.5 shrink-0 text-primary-bright" aria-label="Veio da lista do Instagram" />}
                     </div>
                     <div className="text-[12px] text-muted">{[l.nicho, l.cidade].filter(Boolean).join(" · ")}</div>
+                    {etapa === "duda" && l.marca?.logo_checado && !l.marca?.logo && <div className="text-[12px] text-attention">Não achei a logo. Suba a logo para o site sair com as cores do cliente.</div>}
+                    {etapa === "duda" && l.marca?.cores?.primaria && (
+                      <div className="mt-1 flex items-center gap-1 text-[11.5px] text-muted">
+                        {[l.marca.cores.primaria, l.marca.cores.secundaria].filter(Boolean).map((c) => (
+                          <span key={c} className="inline-block h-3 w-3 rounded-full border border-border" style={{ background: c! }} />
+                        ))}
+                        cores da logo{l.marca.logo_fonte ? ` · logo do ${l.marca.logo_fonte}` : ""}
+                      </div>
+                    )}
                   </div>
                   {d && (
                     <div className="text-right">
