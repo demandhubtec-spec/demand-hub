@@ -24,7 +24,8 @@ const NAO_E_SITE = /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook
 const EXT = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg", "image/gif": "gif", "image/avif": "avif" };
 
 export function chaveDoPdf(l) {
-  return [l.diag_em ?? "", l.marca?.logo ?? "", l.site_tk ?? "", l.site_em ?? ""].join("|");
+  // "nicho1": sem logo, o PDF leva a marca criada pelo nicho (12/11/2026); muda a chave para gerar de novo
+  return [l.diag_em ?? "", l.marca?.logo ?? "nicho1", l.site_tk ?? "", l.site_em ?? ""].join("|");
 }
 
 async function rest(caminho) {
