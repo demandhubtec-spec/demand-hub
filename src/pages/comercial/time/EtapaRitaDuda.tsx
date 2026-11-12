@@ -21,7 +21,7 @@ const TEXTO: Record<Etapa, { intro: string; vazio: string; proxima: string }> = 
     proxima: "Aprovado. A Duda monta o relatório final e o site de demonstração.",
   },
   duda: {
-    intro: "A Duda deixa o relatório pronto com a marca da DemandIA e a logo do cliente (o cliente recebe em PDF) e, para quem não tem site, monta o site de demonstração com a logo e as cores dele. Se a logo vier errada, suba a certa. Confira e aprove.",
+    intro: "A Duda deixa o relatório pronto com a marca da DemandIA e a logo do cliente (o cliente recebe em PDF) e monta o site com a logo e as cores dele: site novo para quem não tem, versão melhorada para quem já tem. Se a logo vier errada, suba a certa. Confira e aprove.",
     vazio: "Nada esperando você. Chega aqui depois que você aprova o diagnóstico da Rita.",
     proxima: "Aprovado. A Bia escreve as mensagens com o link do relatório e o Rui revisa.",
   },
@@ -188,9 +188,10 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                       />
                     </label>
                   )}
-                  {etapa === "duda" && semSite && l.site_preview?.token && (
+                  {etapa === "duda" && !l.site_preview?.token && <span className="text-[12px] text-muted">Site sendo montado</span>}
+                  {etapa === "duda" && l.site_preview?.token && (
                     <a href={linkPrevia(l.site_preview.token)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
-                      Abrir site de demonstração <ExternalLink className="h-3 w-3" />
+                      {(l.site_preview as { tipo?: string }).tipo === "melhoria" ? "Abrir versão melhorada do site" : "Abrir site novo (demonstração)"} <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                   {visao !== "aprovado" && (
