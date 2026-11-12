@@ -7,14 +7,14 @@ const nextConfig: NextConfig = {
     "/api/cron/estudio": ["./node_modules/ffmpeg-static/ffmpeg"],
     "/api/estudio": ["./node_modules/ffmpeg-static/ffmpeg"],
   },
-  async redirects() {
-    return [
-      // No domínio demandhub.com.br, a página inicial leva para a landing page
-      { source: "/", has: [{ type: "host", value: "(www\\.)?demandhub\\.com\\.br" }], destination: "/diagnostico", permanent: false },
-    ];
-  },
   async rewrites() {
-    return [
+    return {
+      // No domínio demandhub.com.br, a página inicial mostra o site geral da DemandIA (arquivo estático em public/site).
+      // Fica em beforeFiles porque já existe uma página "/" (status do serviço), que continua no endereço da Vercel.
+      beforeFiles: [
+        { source: "/", has: [{ type: "host", value: "(www\\.)?demandhub\\.com\\.br" }], destination: "/site/index.html" },
+      ],
+      afterFiles: [
       // Landing page do diagnóstico gratuito (arquivo estático em public/diagnostico)
       { source: "/diagnostico", destination: "/diagnostico/index.html" },
       // Portfólio animado para clínicas (arquivo estático em public/portfolioclinicas)
@@ -35,7 +35,9 @@ const nextConfig: NextConfig = {
       { source: "/portfolio/eventos", destination: "/portfolioeventos/index.html" },
       { source: "/portfolioservicos", destination: "/portfolioservicos/index.html" },
       { source: "/portfolio/servicos", destination: "/portfolioservicos/index.html" },
-    ];
+      ],
+      fallback: [],
+    };
   },
 };
 
