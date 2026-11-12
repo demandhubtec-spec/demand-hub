@@ -41,6 +41,7 @@ export const navGroups: NavGroup[] = [
       { label: "Time de Marketing IA", path: "/marketing/estudio", colaboradorPode: false },
       { label: "Instagram · Direct", path: "/marketing/instagram-direct", colaboradorPode: false },
       { label: "Landing page", path: "/marketing/landing-page", colaboradorPode: false },
+      { label: "SEO e orgânico", path: "/marketing/seo", colaboradorPode: false },
     ],
   },
   {
