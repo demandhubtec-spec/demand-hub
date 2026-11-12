@@ -2,7 +2,7 @@
  * Identidade do cliente para o site de demonstração da Duda (12/11/2026, pedido do Kelvin: "o site não pode
  * ser genérico, tem que ter a logo e as cores do cliente").
  *  - A IA olha a logo (visão) e diz se é mesmo a logo da empresa e quais são as cores principais.
- *  - Logo e fotos vão para o storage (bucket "materiais"): link do Instagram e de site expira ou bloqueia.
+ *  - Logo e fotos vão para o storage (bucket "estudio", pasta comercial/; o "materiais" só aceita PDF): link do Instagram e de site expira ou bloqueia.
  *  - A paleta do site sai das cores da logo (cor de destaque, tom escuro e tom claro), com contraste garantido.
  */
 import { db } from "./db.ts";
@@ -120,10 +120,10 @@ export async function analisarLogo(url: string, empresa: string): Promise<{ e_lo
 
 const EXT: Record<string, string> = { "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "image/svg+xml": "svg", "image/gif": "gif", "image/avif": "avif" };
 
-/** Copia uma imagem da internet para o storage (bucket público "materiais") e devolve o link novo. */
+/** Copia uma imagem da internet para o storage (bucket público "estudio", pasta comercial/) e devolve o link novo. */
 export async function guardarImagem(url: string, caminhoSemExtensao: string): Promise<string | null> {
   try {
-    if (url.includes("/storage/v1/object/public/materiais/")) return url; // já está com a gente
+    if (url.includes("/storage/v1/object/public/")) return url; // já está com a gente
     const r = await fetch(url, { signal: AbortSignal.timeout(20_000), headers: { "User-Agent": "Mozilla/5.0 (DemandIA)" } });
     if (!r.ok) return null;
     const tipo = (r.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
@@ -131,9 +131,9 @@ export async function guardarImagem(url: string, caminhoSemExtensao: string): Pr
     const buf = Buffer.from(await r.arrayBuffer());
     if (buf.length < 300 || buf.length > 6_000_000) return null;
     const caminho = `${caminhoSemExtensao}.${EXT[tipo]}`;
-    const up = await db().storage.from("materiais").upload(caminho, buf, { contentType: tipo, upsert: true });
+    const up = await db().storage.from("estudio").upload(`comercial/${caminho}`, buf, { contentType: tipo, upsert: true });
     if (up.error) return null;
-    return db().storage.from("materiais").getPublicUrl(caminho).data.publicUrl;
+    return db().storage.from("estudio").getPublicUrl(`comercial/${caminho}`).data.publicUrl;
   } catch {
     return null;
   }
@@ -154,7 +154,7 @@ export async function identidadeDoCliente(
   let logoFinal: string | null = null;
   let logo_fundo: "claro" | "escuro" = "claro";
   let cores: CoresMarca | null = null;
-  const nossa = (u: string | null | undefined) => !!u && u.includes("/storage/v1/object/public/materiais/");
+  const nossa = (u: string | null | undefined) => !!u && u.includes("/storage/v1/object/public/");
   if (medidas?.primaria && nossa(logo)) {
     // Logo capturada (print do site, do Instagram ou do Google) e cores medidas na própria imagem
     logoFinal = logo!;
@@ -162,7 +162,7 @@ export async function identidadeDoCliente(
     logo_fundo = medidas.fundo === "escuro" ? "escuro" : "claro";
   } else if (pareceLogo(logo)) {
     // Logo que o Kelvin subiu no portal (pasta logos/) vale sempre; a IA só tira as cores
-    const manual = /\/storage\/v1\/object\/public\/materiais\/logos\//.test(logo!);
+    const manual = /\/storage\/v1\/object\/public\/(materiais|estudio\/comercial)\/logos\//.test(logo!);
     const guardada = manual ? logo! : await guardarImagem(logo!, `sites/${token}/logo`);
     const olhar = await analisarLogo(guardada ?? logo!, empresa);
     if (manual || olhar?.e_logo) {

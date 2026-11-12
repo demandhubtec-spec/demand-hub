@@ -4,7 +4,7 @@
  * 1. Logo do cliente (12/11/2026, pedido do Kelvin: "tira um print da logo, do site, do Instagram ou do Google"):
  *    abre o site da empresa e pega a logo do topo (o arquivo original ou um print dela); sem site, pega a foto
  *    do perfil do Instagram; por último, a imagem que a Rita achou. Mede as cores na própria imagem, pixel a
- *    pixel, e guarda tudo no bucket "materiais". Logo subida pelo Kelvin no portal: só mede as cores.
+ *    pixel, e guarda no bucket "estudio" (pasta comercial/marcas). Logo subida pelo Kelvin no portal: só mede as cores.
  * 2. Relatório em PDF: abre a página do relatório, salva em PDF A4 (uma página por área) e guarda no storage.
  *    O link fica em outreach_leads.marca.pdf e vai anexado na mensagem da Gabi. Refaz quando o diagnóstico,
  *    a logo ou o site de demonstração mudam (marca.pdf_chave).
@@ -42,14 +42,17 @@ async function salvarLead(placeId, patch) {
   if (!r.ok) throw new Error(`salvar ${r.status}: ${await r.text()}`);
 }
 
+/** PDF vai para o bucket "materiais" (só aceita PDF); imagens vão para o "estudio", pasta comercial/. */
 async function subir(caminho, corpo, tipo) {
-  const r = await fetch(`${URL_SB}/storage/v1/object/materiais/${caminho}`, {
+  const balde = tipo === "application/pdf" ? "materiais" : "estudio";
+  if (balde === "estudio") caminho = `comercial/${caminho}`;
+  const r = await fetch(`${URL_SB}/storage/v1/object/${balde}/${caminho}`, {
     method: "POST",
     headers: { ...H, "Content-Type": tipo, "x-upsert": "true" },
     body: corpo,
   });
   if (!r.ok) throw new Error(`upload ${r.status}: ${await r.text()}`);
-  return `${URL_SB}/storage/v1/object/public/materiais/${caminho}`;
+  return `${URL_SB}/storage/v1/object/public/${balde}/${caminho}`;
 }
 
 const filaLogos = () =>
