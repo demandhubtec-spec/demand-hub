@@ -142,7 +142,9 @@ export function PreviaSite({ p }: { p: SitePreview }) {
   .flutua{position:fixed;right:18px;bottom:18px;z-index:30;width:58px;height:58px;border-radius:50%;background:#25D366;display:grid;place-items:center;box-shadow:0 14px 30px -10px rgba(0,0,0,.45)}
   .flutua svg{width:30px;height:30px}
   @media (max-width:980px){.cards{grid-template-columns:repeat(2,1fr)}.galeria{grid-template-columns:repeat(2,1fr);grid-auto-rows:160px}}
-  @media (max-width:860px){.hgrid,.sobre,.final{grid-template-columns:1fr}.colagem,.arte{justify-self:center;max-width:360px}.links{display:none}.sobre,.final{padding:34px 22px}.hero{padding:40px 0 60px}section.bloco{padding:60px 0}.passos{grid-template-columns:1fr}.marca span{max-width:150px}}
+  @media (max-width:860px){.hgrid,.sobre,.final{grid-template-columns:1fr}.colagem,.arte{justify-self:center;max-width:360px}.links{display:none}.sobre,.final{padding:34px 22px}.hero{padding:40px 0 60px}section.bloco{padding:60px 0}.passos{grid-template-columns:1fr}.marca span{max-width:150px}.marca .criada span{max-width:none}.nav .btn.pq{padding:11px}.nav .btn.pq .txt{display:none}}
+  .marca .criada span{max-width:none}
+  .marca .criada .nome{white-space:normal!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
   @media (max-width:520px){.cards{grid-template-columns:1fr}.nav .btn{display:none}}
   `;
 
@@ -181,7 +183,7 @@ export function PreviaSite({ p }: { p: SitePreview }) {
             <a href="#contato">Contato</a>
           </nav>
           <a className="btn pq" href={wa} target={p.whatsapp ? "_blank" : undefined} rel="noreferrer">
-            <IconeWa /> Fale conosco
+            <IconeWa /> <span className="txt">Fale conosco</span>
           </a>
         </div>
       </header>
