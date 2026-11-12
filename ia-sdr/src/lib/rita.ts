@@ -396,7 +396,9 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
     .eq("wa_status", "pendente")
     .eq("rita_status", "aprovado")
     .or("duda_status.is.null,duda_status.eq.ajuste")
-    .limit(20);
+    // Ajuste pedido pelo Kelvin vem primeiro; antes, sem ordem, um ajuste podia ficar de fora das 20 da rodada
+    .order("duda_status", { ascending: true, nullsFirst: false })
+    .limit(60);
   let duda = 0;
   for (const l of ((d ?? []) as unknown as LeadDuda[]).filter((x) => !esperandoLogo(x)).slice(0, POR_RODADA)) {
     try {
