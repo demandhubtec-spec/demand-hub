@@ -16,7 +16,7 @@ import { type CoresMarca, identidadeDoCliente } from "./site-marca.ts";
 const comManual = (t: string, quem: string) => (manuaisAtuais(quem) ? `${t}\n\n${manuaisAtuais(quem)}` : t);
 
 /** Sites que não são da empresa (diretórios, redes, link na bio): contam como "sem site próprio". */
-const NAO_E_SITE = /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook\.com|instagram\.com|linktr\.ee|wa\.me|whatsapp\.com|negocio\.site|business\.site|google\.com|goo\.gl|ifood|doctoralia|booksy|kiwify)/i;
+const NAO_E_SITE = /(mechameaqui|guiamais|apontador|telelistas|solutudo|facebook\.com|instagram\.com|linktr\.ee|wa\.me|whatsapp\.com|negocio\.site|business\.site|google\.com|goo\.gl|ifood|doctoralia|booksy|kiwify|canva\.com|wixsite\.com\/?$)/i;
 
 export function semSiteProprio(site: string | null | undefined): boolean {
   const s = (site ?? "").trim();
@@ -90,6 +90,9 @@ export interface SitePreview {
   gerado_em: string;
   /** Versão 2 (12/11/2026): identidade do cliente e seções a mais. Tudo opcional para as prévias antigas. */
   versao?: number;
+  /** "novo": a empresa não tem site; "melhoria": versão melhorada do site que ela já tem. */
+  tipo?: "novo" | "melhoria";
+  site_atual?: string | null;
   logo?: string | null;
   /** "escuro": logo branca, vai num selo com fundo escuro. */
   logo_fundo?: "claro" | "escuro";
@@ -104,6 +107,8 @@ export interface SitePreview {
 
 /** Dados extras que a Duda passa para o site: logo, fotos (posts do Instagram) e contatos. */
 export interface ExtrasSite {
+  /** Endereço do site atual: a prévia vira uma versão melhorada dele. */
+  site_atual?: string | null;
   logo?: string | null;
   cores?: { primaria?: string | null; secundaria?: string | null; fundo?: "claro" | "escuro" | null } | null;
   fotos?: string[];
@@ -187,12 +192,18 @@ export async function gerarSite(
   ajuste?: string | null,
   extras: ExtrasSite = {},
 ): Promise<SitePreview> {
-  const r = await callLLM({ system: comManual(promptSite(lead), "duda") + (ajuste ? `\n\nO Kelvin pediu este ajuste na versão anterior: ${ajuste}` : ""), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 4000, json: true });
+  const melhoria = !!extras.site_atual && !semSiteProprio(extras.site_atual);
+  const contexto = melhoria
+    ? `\n\nA empresa JÁ TEM site (${extras.site_atual}). Esta prévia é a versão melhorada dele: mais clara, mais moderna, com o WhatsApp em destaque e textos que convertem. Não copie o site atual; escreva melhor.`
+    : "";
+  const r = await callLLM({ system: comManual(promptSite(lead), "duda") + contexto + (ajuste ? `\n\nO Kelvin pediu este ajuste na versão anterior: ${ajuste}` : ""), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 4000, json: true });
   const site = montarSite(lead, r.message.content ?? "", tokenAtual || novoToken());
   // Identidade do cliente: logo (guardada e conferida pela IA), cores tiradas dela e fotos do Instagram
   const id = await identidadeDoCliente(site.token, site.empresa, extras.logo, extras.fotos ?? [], extras.cores ?? null).catch(() => ({ logo: null, logo_fundo: "claro" as const, cores: null, fotos: [] as string[] }));
   return {
     ...site,
+    tipo: melhoria ? "melhoria" : "novo",
+    site_atual: melhoria ? extras.site_atual ?? null : null,
     logo: id.logo,
     logo_fundo: id.logo_fundo,
     cores: id.cores,

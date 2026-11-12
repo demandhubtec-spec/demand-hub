@@ -48,7 +48,11 @@ function textoDoRelatorio(lead: unknown): string {
   const previa = (lead as { site_preview?: { token?: string } | null }).site_preview?.token;
   return `\n\n## Diagnóstico aprovado pelo Kelvin (use os achados reais)\n${d.geral?.frase ?? ""}\n${areas}
 O relatório completo vai em PDF anexado (o cliente não recebe link do relatório). No PRIMEIRO toque do WhatsApp, escreva "[PDF]" sozinho num balão, antes da pergunta final: o sistema troca pelo arquivo. Diga no balão anterior algo como "separei o raio-x completo aqui no PDF". Não coloque o link do relatório em nenhum toque.${
-    previa ? `\nPrévia gratuita do site, já com a logo e as cores da empresa (link pode ir no primeiro toque ou num follow-up): ${linkPrevia(previa)}` : ""
+    previa
+      ? (lead as { site_preview?: { tipo?: string } | null }).site_preview?.tipo === "melhoria"
+        ? `\nA empresa já tem site: montamos uma versão melhorada dele, com a logo e as cores da empresa (é a proposta de melhoria; o link pode ir no primeiro toque ou num follow-up): ${linkPrevia(previa)}`
+        : `\nA empresa não tem site: montamos uma prévia gratuita do site dela, com a logo e as cores da empresa (o link pode ir no primeiro toque ou num follow-up): ${linkPrevia(previa)}`
+      : ""
   }\n(Link do relatório só para o e-mail, se houver toque por e-mail: ${linkRelatorio(l.relatorio_token)})`;
 }
 

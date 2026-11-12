@@ -45,7 +45,7 @@ function TopoPdf({ empresa, logo, escuro }: { empresa: string; logo?: string | n
   );
 }
 
-function Area({ titulo, a, extra, topo }: { titulo: string; a: AreaDiagnostico; extra?: string; topo?: React.ReactNode }) {
+function Area({ titulo, a, extra, topo, acao }: { titulo: string; a: AreaDiagnostico; extra?: string; topo?: React.ReactNode; acao?: React.ReactNode }) {
   return (
     <section className="area">
       {topo}
@@ -75,6 +75,7 @@ function Area({ titulo, a, extra, topo }: { titulo: string; a: AreaDiagnostico; 
           <b>O que você ganha melhorando:</b> {a.ganho}
         </div>
       )}
+      {acao}
     </section>
   );
 }
@@ -115,7 +116,18 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
       {d.cliente_oculto && <Area topo={topo} titulo="Atendimento · cliente oculto (fizemos um teste como se fôssemos cliente)" a={d.cliente_oculto} />}
       {d.google && <Area topo={topo} titulo="Google Meu Negócio · como você aparece na busca" a={d.google} />}
       {d.site ? (
-        <Area topo={topo} titulo="Site · velocidade, texto e estrutura" a={d.site} />
+        <Area
+          topo={topo}
+          titulo="Site · velocidade, texto e estrutura"
+          a={d.site}
+          acao={
+            previa ? (
+              <a className="cta previa" href={previa}>
+                Ver a versão melhorada do seu site
+              </a>
+            ) : undefined
+          }
+        />
       ) : (
         <section className="area">
           {topo}

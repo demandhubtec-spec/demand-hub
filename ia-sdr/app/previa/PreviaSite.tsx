@@ -147,7 +147,15 @@ export function PreviaSite({ p }: { p: SitePreview }) {
       <style dangerouslySetInnerHTML={{ __html: css }} />
 
       <div className="faixa">
-        <b>Prévia gratuita</b> feita pela DemandIA para a {p.empresa}. É um rascunho de como o site poderia ficar, não o site oficial.
+        {p.tipo === "melhoria" ? (
+          <>
+            <b>Prévia gratuita</b> feita pela DemandIA: como o site da {p.empresa} poderia ficar melhor. Não é o site oficial.
+          </>
+        ) : (
+          <>
+            <b>Prévia gratuita</b> feita pela DemandIA para a {p.empresa}. É um rascunho de como o site poderia ficar, não o site oficial.
+          </>
+        )}
         <a href="https://demandhub.com.br" target="_blank" rel="noreferrer">Quero o site completo</a>
       </div>
 

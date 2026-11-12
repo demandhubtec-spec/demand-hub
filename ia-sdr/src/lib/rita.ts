@@ -330,11 +330,12 @@ export interface MarcaLead {
 }
 
 /** Logo, cores, fotos e contatos que a Rita e o robô levantaram, para o site da Duda ter a cara do cliente. */
-export function extrasDoSite(l: Pick<LeadDuda, "marca" | "diagnosticos" | "whatsapp" | "instagram">) {
+export function extrasDoSite(l: Pick<LeadDuda, "marca" | "diagnosticos" | "whatsapp" | "instagram"> & { site?: string | null }) {
   const perfil = (l.diagnosticos?.instagram?.dados as { perfil?: Partial<PerfilInstagram> } | undefined)?.perfil;
   const imagens = perfil && typeof perfil === "object" && Array.isArray(perfil.imagens) ? perfil.imagens : [];
   const c = l.marca?.cores;
   return {
+    site_atual: semSiteProprio(l.site) ? null : l.site,
     logo: l.marca?.logo ?? null,
     cores: c?.primaria ? { primaria: c.primaria, secundaria: c.secundaria ?? null, fundo: l.marca?.logo_fundo ?? null } : null,
     fotos: imagens,
@@ -408,7 +409,8 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
           patch.marca = l.marca;
         }
       }
-      if (semSiteProprio(l.site) && (!l.site_preview || l.duda_status === "ajuste")) patch.site_preview = await gerarSite(l, l.site_preview?.token ?? null, l.duda_nota ?? null, extrasDoSite(l));
+      // Todo cliente ganha a prévia: site novo (quem não tem) ou a versão melhorada do site atual
+      if (!l.site_preview || l.duda_status === "ajuste" || (l.site_preview as { versao?: number }).versao !== 2) patch.site_preview = await gerarSite(l, l.site_preview?.token ?? null, l.duda_nota ?? null, extrasDoSite(l));
       await db().from("outreach_leads").update(patch).eq("place_id", l.place_id);
       duda++;
     } catch (e) {
