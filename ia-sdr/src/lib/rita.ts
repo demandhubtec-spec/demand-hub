@@ -284,7 +284,8 @@ async function diagnosticar1(lead: LeadRita, perfis: Map<string, PerfilInstagram
     geral: { nota: Number(j.geral?.nota ?? 0), frase: j.geral?.frase ?? "", solucao: j.geral?.solucao ?? "" },
     gerado_em: new Date().toISOString(),
   };
-  const logo = igLead?.foto ?? site?.logo ?? lead.marca?.logo ?? null;
+  // Logo já capturada pelo robô (ou subida pelo Kelvin) não é trocada quando a Rita refaz o diagnóstico
+  const logo = (lead.marca as MarcaLead | null)?.logo_checado ? lead.marca?.logo ?? null : igLead?.foto ?? site?.logo ?? lead.marca?.logo ?? null;
   await db()
     .from("outreach_leads")
     .update({
@@ -304,18 +305,50 @@ type LeadDuda = LeadPerfil & {
   instagram: string | null;
   whatsapp: string | null;
   endereco: string | null;
-  marca: { logo?: string | null } | null;
+  marca: MarcaLead | null;
   diagnosticos: Diagnosticos | null;
   site_preview: { token?: string } | null;
   duda_status: string | null;
   duda_nota: string | null;
 };
 
-/** Logo, fotos e contatos que a Rita já levantou, para o site da Duda ter a cara do cliente. */
+/**
+ * Marca do cliente. O robô do GitHub tira um print da logo (site, Instagram ou Google), mede as cores na
+ * própria imagem e marca logo_checado. logo_manual: logo que o Kelvin subiu no portal (o robô só mede as cores).
+ */
+export interface MarcaLead {
+  logo?: string | null;
+  logo_fonte?: string | null;
+  logo_checado?: boolean | null;
+  logo_manual?: boolean | null;
+  logo_fundo?: "claro" | "escuro" | null;
+  cores?: { primaria?: string | null; secundaria?: string | null } | null;
+  pdf?: string | null;
+  pdf_chave?: string | null;
+  /** Quando o Kelvin subiu a logo (a Duda espera o robô medir as cores). */
+  logo_pedido_em?: string | null;
+}
+
+/** Logo, cores, fotos e contatos que a Rita e o robô levantaram, para o site da Duda ter a cara do cliente. */
 export function extrasDoSite(l: Pick<LeadDuda, "marca" | "diagnosticos" | "whatsapp" | "instagram">) {
   const perfil = (l.diagnosticos?.instagram?.dados as { perfil?: Partial<PerfilInstagram> } | undefined)?.perfil;
   const imagens = perfil && typeof perfil === "object" && Array.isArray(perfil.imagens) ? perfil.imagens : [];
-  return { logo: l.marca?.logo ?? null, fotos: imagens, whatsapp: l.whatsapp, instagram: l.instagram };
+  const c = l.marca?.cores;
+  return {
+    logo: l.marca?.logo ?? null,
+    cores: c?.primaria ? { primaria: c.primaria, secundaria: c.secundaria ?? null, fundo: l.marca?.logo_fundo ?? null } : null,
+    fotos: imagens,
+    whatsapp: l.whatsapp,
+    instagram: l.instagram,
+  };
+}
+
+/** A Duda espera o robô tentar pegar a logo (até 60 minutos depois do diagnóstico), para o site sair com a cara do cliente. */
+export function esperandoLogo(l: { marca: MarcaLead | null; diagnosticos: Diagnosticos | null }, agora = Date.now()): boolean {
+  if (l.marca?.logo_checado) return false;
+  const quando = l.marca?.logo_pedido_em ?? l.diagnosticos?.gerado_em ?? null;
+  const desde = quando ? Date.parse(quando) : 0;
+  return !!desde && agora - desde < 60 * 60_000;
 }
 
 /** Uma rodada da Rita e da Duda (cron a cada 10 minutos). */
@@ -362,9 +395,9 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
     .eq("wa_status", "pendente")
     .eq("rita_status", "aprovado")
     .or("duda_status.is.null,duda_status.eq.ajuste")
-    .limit(POR_RODADA);
+    .limit(20);
   let duda = 0;
-  for (const l of (d ?? []) as unknown as LeadDuda[]) {
+  for (const l of ((d ?? []) as unknown as LeadDuda[]).filter((x) => !esperandoLogo(x)).slice(0, POR_RODADA)) {
     try {
       const patch: Record<string, unknown> = { duda_status: "pendente", duda_nota: null };
       // Logo guardada com a gente: link do Instagram expira e o PDF/relatório ficaria sem a logo

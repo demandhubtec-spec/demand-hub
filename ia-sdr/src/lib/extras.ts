@@ -105,6 +105,7 @@ export interface SitePreview {
 /** Dados extras que a Duda passa para o site: logo, fotos (posts do Instagram) e contatos. */
 export interface ExtrasSite {
   logo?: string | null;
+  cores?: { primaria?: string | null; secundaria?: string | null; fundo?: "claro" | "escuro" | null } | null;
   fotos?: string[];
   whatsapp?: string | null;
   instagram?: string | null;
@@ -189,7 +190,7 @@ export async function gerarSite(
   const r = await callLLM({ system: comManual(promptSite(lead), "duda") + (ajuste ? `\n\nO Kelvin pediu este ajuste na versão anterior: ${ajuste}` : ""), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 4000, json: true });
   const site = montarSite(lead, r.message.content ?? "", tokenAtual || novoToken());
   // Identidade do cliente: logo (guardada e conferida pela IA), cores tiradas dela e fotos do Instagram
-  const id = await identidadeDoCliente(site.token, site.empresa, extras.logo, extras.fotos ?? []).catch(() => ({ logo: null, logo_fundo: "claro" as const, cores: null, fotos: [] as string[] }));
+  const id = await identidadeDoCliente(site.token, site.empresa, extras.logo, extras.fotos ?? [], extras.cores ?? null).catch(() => ({ logo: null, logo_fundo: "claro" as const, cores: null, fotos: [] as string[] }));
   return {
     ...site,
     logo: id.logo,

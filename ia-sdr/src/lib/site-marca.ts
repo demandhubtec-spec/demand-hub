@@ -13,6 +13,7 @@ export interface CoresMarca {
   escura: string; // títulos e faixas escuras
   clara: string; // fundos suaves
   texto_no_destaque: string; // branco ou quase preto, o que tiver mais contraste em cima da cor
+  cor2?: string; // segunda cor da logo, para detalhes (anel, estrelas, pontos)
 }
 
 const HEX = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i;
@@ -65,12 +66,15 @@ export function paletaDaMarca(primaria: string | null, secundaria?: string | nul
   if (!cores.length) return null;
   const viva = (c: string) => saturacao(c) > 0.18 && luminancia(c) > 0.02 && luminancia(c) < 0.92;
   let cor = cores.find(viva) ?? "#B8892E"; // logo neutra (preto, branco, cinza): destaque dourado discreto
-  for (let i = 0; i < 6 && luminancia(cor) > 0.55; i++) cor = misturar(cor, "#000000", 0.15);
-  const jaEscura = cores.find((c) => luminancia(c) < 0.04 && c !== cor);
-  const escura = jaEscura ?? misturar(cor, "#05060A", 0.74);
+  // Botão com texto branco legível: escurece um pouco cor muito clara (laranja claro, amarelo)
+  for (let i = 0; i < 8 && contraste(cor, "#FFFFFF") < 3 && luminancia(cor) > 0.12; i++) cor = misturar(cor, "#000000", 0.1);
+  const outra = cores.find((c) => c !== hexValido(primaria) && viva(c)) ?? null;
+  const jaEscura = cores.find((c) => luminancia(c) < 0.04);
+  // Fundo escuro: a cor escura da logo, ou a segunda cor bem escurecida (fica mais elegante que escurecer o destaque)
+  const escura = jaEscura ?? misturar(outra ?? cor, "#05060A", 0.76);
   const clara = misturar(cor, "#FFFFFF", 0.9);
   const texto_no_destaque = contraste(cor, "#FFFFFF") >= 2.6 ? "#FFFFFF" : "#111111";
-  return { cor, escura, clara, texto_no_destaque };
+  return { cor, escura, clara, texto_no_destaque, cor2: outra ?? cor };
 }
 
 /** Endereços que nunca são a logo da empresa (capa padrão do Canva, ícone embutido, pixel de rastreio). */
@@ -144,11 +148,19 @@ export async function identidadeDoCliente(
   empresa: string,
   logo: string | null | undefined,
   fotos: string[] = [],
+  /** Cores medidas pixel a pixel pelo robô do GitHub (marca.cores) e o fundo que a logo pede. */
+  medidas?: { primaria?: string | null; secundaria?: string | null; fundo?: "claro" | "escuro" | null } | null,
 ): Promise<{ logo: string | null; logo_fundo: "claro" | "escuro"; cores: CoresMarca | null; fotos: string[] }> {
   let logoFinal: string | null = null;
   let logo_fundo: "claro" | "escuro" = "claro";
   let cores: CoresMarca | null = null;
-  if (pareceLogo(logo)) {
+  const nossa = (u: string | null | undefined) => !!u && u.includes("/storage/v1/object/public/materiais/");
+  if (medidas?.primaria && nossa(logo)) {
+    // Logo capturada (print do site, do Instagram ou do Google) e cores medidas na própria imagem
+    logoFinal = logo!;
+    cores = paletaDaMarca(medidas.primaria, medidas.secundaria ?? null);
+    logo_fundo = medidas.fundo === "escuro" ? "escuro" : "claro";
+  } else if (pareceLogo(logo)) {
     // Logo que o Kelvin subiu no portal (pasta logos/) vale sempre; a IA só tira as cores
     const manual = /\/storage\/v1\/object\/public\/materiais\/logos\//.test(logo!);
     const guardada = manual ? logo! : await guardarImagem(logo!, `sites/${token}/logo`);
