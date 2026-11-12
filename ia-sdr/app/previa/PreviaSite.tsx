@@ -4,6 +4,8 @@
  * segmento. Página única: topo, serviços, galeria, sobre, como funciona, dúvidas e contato.
  */
 import { PALETAS, type SitePreview } from "@/src/lib/extras.ts";
+import { marcaCriada, paletaDoNicho } from "@/src/lib/identidade-nicho.ts";
+import { EmblemaMarca, MarcaCompleta } from "./EmblemaMarca.tsx";
 
 const iniciais = (s: string) =>
   s
@@ -15,12 +17,15 @@ const iniciais = (s: string) =>
 
 function coresDoSite(p: SitePreview) {
   if (p.cores) return p.cores;
+  // Sem logo: identidade criada a partir do padrão do nicho (cores e emblema)
+  if (!p.logo) return paletaDoNicho(p.nicho, p.empresa);
   const c = PALETAS[p.paleta] ?? PALETAS.azul;
   return { cor: c.cor, escura: c.escura, clara: c.clara, texto_no_destaque: "#FFFFFF", cor2: c.cor };
 }
 
 export function PreviaSite({ p }: { p: SitePreview }) {
   const c = coresDoSite(p);
+  const criada = p.logo ? null : marcaCriada(p.empresa, p.nicho);
   const nota = p.nota ? String(p.nota).replace(".", ",") : null;
   const fotos = p.fotos ?? [];
   const wa = p.whatsapp ? `https://wa.me/${p.whatsapp}?text=${encodeURIComponent(`Olá! Vim pelo site da ${p.empresa} e quero mais informações.`)}` : "#contato";
@@ -28,10 +33,16 @@ export function PreviaSite({ p }: { p: SitePreview }) {
   const etapas = p.etapas ?? [];
   const faq = p.faq ?? [];
 
-  const Marca = ({ claro = false }: { claro?: boolean }) => (
+  const Marca = ({ claro = false, id = "topo" }: { claro?: boolean; id?: string }) => (
     <div className={`marca${claro ? " clara" : ""}`}>
-      {p.logo ? <img src={p.logo} alt={p.empresa} className={`logo${p.logo_fundo === "escuro" ? " chip" : ""}`} /> : <div className="mono">{iniciais(p.empresa) || "•"}</div>}
-      <span>{p.empresa}</span>
+      {criada ? (
+        <MarcaCompleta m={criada} c={c} clara={claro} id={id} />
+      ) : (
+        <>
+          <img src={p.logo!} alt={p.empresa} className={`logo${p.logo_fundo === "escuro" ? " chip" : ""}`} />
+          <span>{p.empresa}</span>
+        </>
+      )}
     </div>
   );
 
@@ -79,6 +90,7 @@ export function PreviaSite({ p }: { p: SitePreview }) {
   .arte .bg{position:absolute;inset:8% 0 0 10%;border-radius:40px;background:var(--c)}
   .arte .bg2{position:absolute;inset:0 12% 12% 0;border-radius:40px;background:var(--e);display:grid;place-items:center;overflow:hidden}
   .arte .bg2 img{width:58%;height:auto;max-height:62%;object-fit:contain;background:#fff;border-radius:26px;padding:22px}
+  .arte .emblema{background:#fff;border-radius:34px;padding:26px;box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}
   .arte .big{color:#fff;font-weight:800;font-size:clamp(70px,11vw,130px);letter-spacing:-4px}
   .arte .anel{position:absolute;width:38%;aspect-ratio:1/1;border-radius:50%;border:14px solid var(--c2);right:-4%;top:-4%;opacity:.85}
   .arte .card{position:absolute;left:-4%;bottom:8%;background:#fff;border-radius:18px;padding:14px 18px;box-shadow:0 22px 44px -20px rgba(0,0,0,.4);min-width:190px}
@@ -227,7 +239,7 @@ export function PreviaSite({ p }: { p: SitePreview }) {
             <div className="arte" aria-hidden>
               <div className="bg" />
               <div className="anel" />
-              <div className="bg2">{p.logo ? <img src={p.logo} alt="" className={p.logo_fundo === "escuro" ? "chip" : undefined} /> : <div className="big">{iniciais(p.empresa)}</div>}</div>
+              <div className="bg2">{p.logo ? <img src={p.logo} alt="" className={p.logo_fundo === "escuro" ? "chip" : undefined} /> : criada ? <div className="emblema"><EmblemaMarca m={criada} c={c} tamanho={150} id="arte" /></div> : <div className="big">{iniciais(p.empresa)}</div>}</div>
               <div className="card">
                 <b>{nota ? `★ ${nota}` : p.nicho ?? "Atendimento"}</b>
                 <span>{nota ? `${p.avaliacoes ?? ""} avaliações no Google` : p.cidade ?? ""}</span>
@@ -354,7 +366,7 @@ export function PreviaSite({ p }: { p: SitePreview }) {
             </div>
           </div>
           <footer>
-            <Marca />
+            <Marca id="rodape" />
             <span>
               © {p.empresa}
               {p.cidade ? ` · ${p.cidade}` : ""} · Prévia criada pela DemandIA
