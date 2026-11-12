@@ -17,7 +17,7 @@ interface Relatorio {
   nicho: string | null;
   cidade: string | null;
   diagnosticos: Diagnosticos;
-  marca: { logo?: string | null; pdf?: string | null } | null;
+  marca: { logo?: string | null; pdf?: string | null; logo_fundo?: "claro" | "escuro" | null } | null;
   site_preview: { token?: string } | null;
 }
 
@@ -35,12 +35,12 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
 const cor = (n: number) => (n >= 70 ? "#3ddc97" : n >= 50 ? "#ffc857" : "#ff6b81");
 
 /** Topo de cada página do PDF (some na tela). */
-function TopoPdf({ empresa, logo }: { empresa: string; logo?: string | null }) {
+function TopoPdf({ empresa, logo, escuro }: { empresa: string; logo?: string | null; escuro?: boolean }) {
   return (
     <div className="pdf-topo">
       <img src="/diagnostico/logo.svg" alt="DemandIA" />
       <span>Diagnóstico digital · {empresa}</span>
-      {logo && <img src={logo} alt="" className="pdf-logo" referrerPolicy="no-referrer" />}
+      {logo && <img src={logo} alt="" className={`pdf-logo${escuro ? " escuro" : ""}`} referrerPolicy="no-referrer" />}
     </div>
   );
 }
@@ -83,7 +83,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
   const r = await carregar((await params).token);
   if (!r) notFound();
   const d = r.diagnosticos;
-  const topo = <TopoPdf empresa={r.empresa} logo={r.marca?.logo} />;
+  const topo = <TopoPdf empresa={r.empresa} logo={r.marca?.logo} escuro={r.marca?.logo_fundo === "escuro"} />;
   const previa = r.site_preview?.token ? linkPrevia(r.site_preview.token) : null;
   const wa = `https://wa.me/${SDR_CONFIG.whatsapp.numero}?text=${encodeURIComponent(`Oi! Vi o diagnóstico da ${r.empresa} e quero conversar.`)}`;
   return (
@@ -92,7 +92,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
       <header className="capa">
         <div className="marcas">
           <img src="/diagnostico/logo.svg" alt="DemandIA" className="logo-demandia" />
-          {r.marca?.logo && <img src={r.marca.logo} alt={r.empresa} className="logo-cliente" referrerPolicy="no-referrer" />}
+          {r.marca?.logo && <img src={r.marca.logo} alt={r.empresa} className={`logo-cliente${r.marca.logo_fundo === "escuro" ? " escuro" : ""}`} referrerPolicy="no-referrer" />}
         </div>
         <div className="eyebrow">Diagnóstico digital · {[r.nicho, r.cidade].filter(Boolean).join(" · ")}</div>
         <h1>{r.empresa}</h1>
@@ -155,7 +155,7 @@ const CSS = `
 main{max-width:920px;margin:0 auto;padding:40px 20px 60px}
 .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#a47bff;margin-bottom:8px}
 .capa{padding:28px;border-radius:22px;background:radial-gradient(120% 120% at 0% 0%,#2a1460 0%,#120a2a 55%,#0b0718 100%);border:1px solid #2c2150;margin-bottom:22px}
-.marcas{display:flex;align-items:center;gap:16px;margin-bottom:22px}.logo-demandia{height:26px}.logo-cliente{height:54px;width:54px;object-fit:cover;border-radius:14px;background:#fff;margin-left:auto}
+.marcas{display:flex;align-items:center;gap:16px;margin-bottom:22px}.logo-demandia{height:26px}.logo-cliente{height:64px;width:auto;max-width:180px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;margin-left:auto}.logo-cliente.escuro{background:#05030c;border:1px solid #2c2150}
 h1{font-family:'Archivo Narrow',sans-serif;font-size:44px;margin:0 0 8px;line-height:1.05}.frase{font-size:18px;color:#cfc6f5;margin:0 0 20px}
 .geral{display:flex;align-items:center;gap:20px;flex-wrap:wrap}.mini{display:flex;gap:16px;flex-wrap:wrap;color:#b9b0dc;font-size:14px}.mini b{font-size:18px;margin-left:4px}
 .nota{border:2px solid;border-radius:16px;padding:8px 14px;text-align:center;min-width:92px}.nota b{display:block;font-size:30px;line-height:1}.nota span{font-size:12px;text-transform:uppercase;letter-spacing:.08em}.nota.grande b{font-size:42px}
@@ -177,11 +177,11 @@ footer{margin-top:22px;color:#8f86b8;font-size:13px}
   main{max-width:none;padding:0}
   .capa,.area,.solucao{min-height:297mm;margin:0;border-radius:0;border:none;padding:16mm 16mm 18mm;break-inside:avoid}
   .capa{display:flex;flex-direction:column;justify-content:center;padding:26mm 18mm}
-  .capa h1{font-size:68px}.capa .frase{font-size:26px;line-height:1.4}.capa .eyebrow{font-size:15px}.marcas{margin-bottom:40px}.logo-demandia{height:34px}.logo-cliente{height:84px;width:84px}
+  .capa h1{font-size:68px}.capa .frase{font-size:26px;line-height:1.4}.capa .eyebrow{font-size:15px}.marcas{margin-bottom:40px}.logo-demandia{height:34px}.logo-cliente{height:96px;max-width:240px}
   .area,.solucao{break-before:page}
   .area{background:#0b0718}
   .pdf-topo{display:flex;align-items:center;gap:12px;color:#8f86b8;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding-bottom:12px;margin-bottom:22mm;border-bottom:1px solid #2a2048}
-  .pdf-topo img{height:18px}.pdf-topo .pdf-logo{height:30px;width:30px;object-fit:cover;border-radius:8px;background:#fff;margin-left:auto}
+  .pdf-topo img{height:18px}.pdf-topo .pdf-logo{height:34px;width:auto;max-width:120px;object-fit:contain;border-radius:8px;background:#fff;padding:3px 6px;margin-left:auto}.pdf-topo .pdf-logo.escuro{background:#05030c}
   .area h2{font-size:34px;line-height:1.25}.eyebrow{font-size:14px}.area li{font-size:19px;margin-bottom:12px;line-height:1.45}h3{font-size:15px}.colunas{margin-top:34px;gap:30px}.ganho{font-size:19px;line-height:1.5;margin-top:34px;padding:20px 22px}
   .nota{min-width:110px}.nota b{font-size:46px}.nota span{font-size:13px}.cta{font-size:18px;padding:16px 26px}
   .mini{font-size:17px}.mini b{font-size:22px}
