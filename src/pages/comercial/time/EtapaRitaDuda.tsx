@@ -71,10 +71,10 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
   async function trocarLogo(l: OutreachLead, arquivo: File) {
     if (!arquivo.type.startsWith("image/")) return showToast("Envie uma imagem (PNG, JPG, SVG ou WEBP).");
     const ext = (arquivo.name.split(".").pop() || "png").toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
-    const caminho = `logos/${l.place_id.replace(/[^A-Za-z0-9_-]/g, "")}-${Date.now()}.${ext}`;
-    const up = await supabase.storage.from("materiais").upload(caminho, arquivo, { contentType: arquivo.type, upsert: true });
+    const caminho = `comercial/logos/${l.place_id.replace(/[^A-Za-z0-9_-]/g, "")}-${Date.now()}.${ext}`;
+    const up = await supabase.storage.from("estudio").upload(caminho, arquivo, { contentType: arquivo.type, upsert: true });
     if (up.error) return showToast(`Erro ao subir a logo: ${up.error.message}`);
-    const url = supabase.storage.from("materiais").getPublicUrl(caminho).data.publicUrl;
+    const url = supabase.storage.from("estudio").getPublicUrl(caminho).data.publicUrl;
     const { error } = await supabase
       .from("outreach_leads")
       .update({
