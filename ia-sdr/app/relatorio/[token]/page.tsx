@@ -2,10 +2,12 @@
  * Relatório do diagnóstico (Rita escreve, Duda monta): página pública com a marca da DemandIA e a logo do
  * cliente. Fora do Google (noindex), acessada só por quem tem o link. "Baixar PDF" usa a impressão do navegador.
  */
+import type React from "react";
 import { notFound } from "next/navigation";
 import { db } from "@/src/lib/db.ts";
 import { SDR_CONFIG } from "@/src/config/sdr.ts";
 import type { AreaDiagnostico, Diagnosticos } from "@/src/lib/rita.ts";
+import { linkPrevia } from "@/src/lib/extras.ts";
 import { BotaoPdf } from "./BotaoPdf.tsx";
 
 export const dynamic = "force-dynamic";
@@ -15,12 +17,13 @@ interface Relatorio {
   nicho: string | null;
   cidade: string | null;
   diagnosticos: Diagnosticos;
-  marca: { logo?: string | null } | null;
+  marca: { logo?: string | null; pdf?: string | null } | null;
+  site_preview: { token?: string } | null;
 }
 
 async function carregar(token: string): Promise<Relatorio | null> {
   if (!/^[A-Za-z0-9_-]{8,20}$/.test(token)) return null;
-  const { data } = await db().from("outreach_leads").select("empresa,nicho,cidade,diagnosticos,marca").eq("relatorio_token", token).maybeSingle();
+  const { data } = await db().from("outreach_leads").select("empresa,nicho,cidade,diagnosticos,marca,site_preview").eq("relatorio_token", token).maybeSingle();
   return data && (data as Relatorio).diagnosticos ? (data as Relatorio) : null;
 }
 
@@ -31,9 +34,21 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
 
 const cor = (n: number) => (n >= 70 ? "#3ddc97" : n >= 50 ? "#ffc857" : "#ff6b81");
 
-function Area({ titulo, a, extra }: { titulo: string; a: AreaDiagnostico; extra?: string }) {
+/** Topo de cada página do PDF (some na tela). */
+function TopoPdf({ empresa, logo }: { empresa: string; logo?: string | null }) {
+  return (
+    <div className="pdf-topo">
+      <img src="/diagnostico/logo.svg" alt="DemandIA" />
+      <span>Diagnóstico digital · {empresa}</span>
+      {logo && <img src={logo} alt="" className="pdf-logo" referrerPolicy="no-referrer" />}
+    </div>
+  );
+}
+
+function Area({ titulo, a, extra, topo }: { titulo: string; a: AreaDiagnostico; extra?: string; topo?: React.ReactNode }) {
   return (
     <section className="area">
+      {topo}
       <div className="area-topo">
         <div>
           <div className="eyebrow">{titulo}</div>
@@ -68,6 +83,8 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
   const r = await carregar((await params).token);
   if (!r) notFound();
   const d = r.diagnosticos;
+  const topo = <TopoPdf empresa={r.empresa} logo={r.marca?.logo} />;
+  const previa = r.site_preview?.token ? linkPrevia(r.site_preview.token) : null;
   const wa = `https://wa.me/${SDR_CONFIG.whatsapp.numero}?text=${encodeURIComponent(`Oi! Vi o diagnóstico da ${r.empresa} e quero conversar.`)}`;
   return (
     <main>
@@ -95,23 +112,30 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
         </div>
       </header>
 
-      {d.cliente_oculto && <Area titulo="Atendimento · cliente oculto (fizemos um teste como se fôssemos cliente)" a={d.cliente_oculto} />}
-      {d.google && <Area titulo="Google Meu Negócio · como você aparece na busca" a={d.google} />}
+      {d.cliente_oculto && <Area topo={topo} titulo="Atendimento · cliente oculto (fizemos um teste como se fôssemos cliente)" a={d.cliente_oculto} />}
+      {d.google && <Area topo={topo} titulo="Google Meu Negócio · como você aparece na busca" a={d.google} />}
       {d.site ? (
-        <Area titulo="Site · velocidade, texto e estrutura" a={d.site} />
+        <Area topo={topo} titulo="Site · velocidade, texto e estrutura" a={d.site} />
       ) : (
         <section className="area">
+          {topo}
           <div className="eyebrow">Site</div>
           <h2>Hoje a empresa não tem site próprio. Conferimos no Google, no WhatsApp e no Instagram.</h2>
           <div className="ganho">
-            <b>O que você ganha com um site:</b> quem pesquisa no Google e não encontra um site acaba indo para o concorrente que tem. Já preparamos uma
-            demonstração de como ficaria o seu.
+            <b>O que você ganha com um site:</b> quem pesquisa no Google e não encontra um site acaba indo para o concorrente que tem.
+            {previa ? " Já preparamos uma demonstração de como ficaria o seu, com a sua logo e as suas cores." : " Podemos preparar uma demonstração de como ficaria o seu."}
           </div>
+          {previa && (
+            <a className="cta previa" href={previa}>
+              Ver a demonstração do seu site
+            </a>
+          )}
         </section>
       )}
-      {d.instagram && <Area titulo="Instagram · comparado com os concorrentes da região" a={d.instagram} />}
+      {d.instagram && <Area topo={topo} titulo="Instagram · comparado com os concorrentes da região" a={d.instagram} />}
 
       <section className="solucao">
+        {topo}
         <div className="eyebrow">Como a DemandIA resolve</div>
         <p>{d.geral?.solucao}</p>
         <a className="cta" href={wa}>
@@ -119,7 +143,7 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
         </a>
       </section>
       <footer>
-        Diagnóstico feito pela DemandIA com dados públicos em {new Date(d.gerado_em).toLocaleDateString("pt-BR")}. <BotaoPdf />
+        Diagnóstico feito pela DemandIA com dados públicos em {new Date(d.gerado_em).toLocaleDateString("pt-BR")}. <BotaoPdf pdf={r.marca?.pdf ?? null} />
       </footer>
     </main>
   );
@@ -144,5 +168,26 @@ ul{margin:0;padding-left:18px;line-height:1.55}li{margin-bottom:4px}.criticos li
 .cta{display:inline-block;background:#3ddc97;color:#06210f;font-weight:600;padding:14px 22px;border-radius:999px;text-decoration:none}
 footer{margin-top:22px;color:#8f86b8;font-size:13px}
 @media(max-width:640px){.colunas{grid-template-columns:1fr}h1{font-size:34px}.area-topo{flex-direction:column}}
-@media print{body{background:#fff;color:#111}.capa,.area{background:#fff;border-color:#ddd}.frase,.mini,.extra{color:#333}.solucao{color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ganho{background:#f4f0ff;color:#222}footer button{display:none}.area{break-inside:avoid}}
+.cta.previa{margin-top:16px;background:#a47bff;color:#120a2a}
+.pdf-topo{display:none}
+/* PDF (uma página por área, no tema escuro da DemandIA): gerado pelo robô no GitHub e anexado na mensagem */
+@page{size:A4;margin:0}
+@media print{
+  html,body{background:#0b0718;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  main{max-width:none;padding:0}
+  .capa,.area,.solucao{min-height:297mm;margin:0;border-radius:0;border:none;padding:16mm 16mm 18mm;break-inside:avoid}
+  .capa{display:flex;flex-direction:column;justify-content:center;padding:26mm 18mm}
+  .capa h1{font-size:68px}.capa .frase{font-size:26px;line-height:1.4}.capa .eyebrow{font-size:15px}.marcas{margin-bottom:40px}.logo-demandia{height:34px}.logo-cliente{height:84px;width:84px}
+  .area,.solucao{break-before:page}
+  .area{background:#0b0718}
+  .pdf-topo{display:flex;align-items:center;gap:12px;color:#8f86b8;font-size:12px;letter-spacing:.06em;text-transform:uppercase;padding-bottom:12px;margin-bottom:22mm;border-bottom:1px solid #2a2048}
+  .pdf-topo img{height:18px}.pdf-topo .pdf-logo{height:30px;width:30px;object-fit:cover;border-radius:8px;background:#fff;margin-left:auto}
+  .area h2{font-size:34px;line-height:1.25}.eyebrow{font-size:14px}.area li{font-size:19px;margin-bottom:12px;line-height:1.45}h3{font-size:15px}.colunas{margin-top:34px;gap:30px}.ganho{font-size:19px;line-height:1.5;margin-top:34px;padding:20px 22px}
+  .nota{min-width:110px}.nota b{font-size:46px}.nota span{font-size:13px}.cta{font-size:18px;padding:16px 26px}
+  .mini{font-size:17px}.mini b{font-size:22px}
+  .solucao{display:flex;flex-direction:column;justify-content:center;background:linear-gradient(135deg,#5a28e0,#8a5cff)}
+  .solucao .pdf-topo{position:absolute;top:16mm;left:16mm;right:16mm;color:#efe8ff;border-color:rgba(255,255,255,.3)}
+  .solucao{position:relative}.solucao p{font-size:28px;line-height:1.45}.solucao .cta{align-self:flex-start}
+  footer{display:none}
+}
 `;
