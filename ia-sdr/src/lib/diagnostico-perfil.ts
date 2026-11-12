@@ -265,7 +265,7 @@ export function problemasDaSequencia(seq: Toque[]): string[] {
   const out = seq.flatMap((t) => problemasDeEstilo(`${t.assunto ?? ""}\n${t.texto}`).map((p) => `toque ${t.n + 1}: ${p}`));
   for (const t of seq) {
     if (t.canal !== "whatsapp") continue;
-    const b = t.texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+    const b = tirarPdf(t.texto).texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
     const ultimo = b[b.length - 1] ?? "";
     if (b.length < 2 || !ultimo.includes("?") || ultimo.length > 140) out.push(`toque ${t.n + 1}: a pergunta tem que ir sozinha no último balão, curta`);
     if (b.length !== 3) out.push(`toque ${t.n + 1}: precisa de exatamente 3 balões (apresentação e contexto, conteúdo, pergunta)`);
@@ -283,6 +283,26 @@ const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando
  * o conteúdo e a pergunta final sozinha.
  */
 export function separarEmBaloes(texto: string): string {
+  const { texto: sem, tinha } = tirarPdf(texto);
+  return tinha ? porPdf(separarEmBaloesSemPdf(sem)) : separarEmBaloesSemPdf(texto);
+}
+
+/**
+ * Marcador do relatório em PDF (12/11/2026): a Bia escreve "[PDF]" num balão sozinho e o disparo troca pelo
+ * arquivo anexado. O marcador não conta como balão nas regras de 3 balões e fica sempre antes da pergunta.
+ */
+export const MARCA_PDF = "[PDF]";
+export function tirarPdf(texto: string): { texto: string; tinha: boolean } {
+  if (!texto.includes(MARCA_PDF)) return { texto, tinha: false };
+  return { texto: texto.split(MARCA_PDF).map((x) => x.trim()).filter(Boolean).join("\n\n"), tinha: true };
+}
+export function porPdf(texto: string): string {
+  const b = texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  if (!b.length) return MARCA_PDF;
+  return [...b.slice(0, -1), MARCA_PDF, b[b.length - 1]].join("\n\n");
+}
+
+function separarEmBaloesSemPdf(texto: string): string {
   const frasesDe = (t: string) => t.split(/(?<=[.!?…]|\p{Extended_Pictographic})\s+/u).map((f) => f.trim()).filter(Boolean);
   let b = texto.split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
   if (b.length >= 3) {
@@ -304,6 +324,8 @@ export function separarEmBaloes(texto: string): string {
 
 /** Limpa uma mensagem de WhatsApp: tira cara de IA e garante no máximo 3 balões. */
 export function limparMensagem(texto: string, maxBaloes = 3): string {
+  const { texto: sem, tinha } = tirarPdf(texto);
+  if (tinha) return porPdf(limparMensagem(sem, maxBaloes));
   const t = humanizar(texto);
   const baloes = t.split(/\n\s*\n/).map((b) => b.replace(/\s*\n\s*/g, " ").trim()).filter(Boolean);
   return (baloes.length > maxBaloes ? [...baloes.slice(0, maxBaloes - 1), baloes.slice(maxBaloes - 1).join(" ")] : baloes).join("\n\n");

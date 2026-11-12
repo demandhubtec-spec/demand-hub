@@ -4,6 +4,7 @@
  *
  *   POST { place_id, canal: "email", para: ["a@x.com"], assunto, texto }  → e-mail do Gmail da Ana, com assinatura
  *   POST { place_id, canal: "whatsapp", texto, para_whatsapp?, documento? } → WhatsApp da Ana, balão por balão
+ *        ("[PDF]" sozinho num balão: manda ali o relatório em PDF do lead)
  *        (documento: { url, nome } de um PDF no bucket "materiais"; vai logo depois do 1º balão)
  *        (para_whatsapp: outro número da mesma empresa, ex.: o administrativo que a recepção indicou)
  *   → { ok, enviados }
@@ -34,9 +35,20 @@ export async function OPTIONS(req: Request) {
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Separa os balões do WhatsApp (linha em branco), no máximo 4. */
+/** Separa os balões do WhatsApp (linha em branco), no máximo 4 (o "[PDF]" não conta). */
 function baloesAvulso(texto: string): string[] {
-  return texto.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean).slice(0, 4);
+  const b = texto.replace(/\[PDF\]/g, "\n\n[PDF]\n\n").split(/\n\s*\n/).map((x) => x.trim()).filter(Boolean);
+  const out: string[] = [];
+  let texto4 = 0;
+  for (const x of b) {
+    if (x === "[PDF]") {
+      if (!out.includes("[PDF]")) out.push(x);
+    } else if (texto4 < 4) {
+      out.push(x);
+      texto4++;
+    }
+  }
+  return out;
 }
 
 export async function POST(req: Request) {
@@ -54,7 +66,7 @@ export async function POST(req: Request) {
   if (!body.place_id || !texto || !["email", "whatsapp"].includes(body.canal ?? "")) return json({ error: "informe place_id, canal e texto" }, 400);
   if (/[—–]/.test(texto)) return json({ error: "o texto tem travessão; troque por vírgula ou ponto" }, 400);
 
-  const { data: lead } = await db().from("outreach_leads").select("place_id,empresa,whatsapp,email").eq("place_id", body.place_id).maybeSingle();
+  const { data: lead } = await db().from("outreach_leads").select("place_id,empresa,whatsapp,email,marca").eq("place_id", body.place_id).maybeSingle();
   if (!lead) return json({ error: "lead não encontrado" }, 404);
   const log = (channel: string, event: string, detail: Record<string, unknown>) =>
     db().from("outreach_log").insert({ channel, event, detail, place_id: lead.place_id });
@@ -77,6 +89,10 @@ export async function POST(req: Request) {
     const phone = outro || String(lead.whatsapp).replace(/\D/g, "");
     const sdr = await upsertLeadByPhone(phone, `${phone}@s.whatsapp.net`);
     const baloes = baloesAvulso(texto);
+    // "[PDF]" sozinho num balão: no lugar dele vai o relatório em PDF do lead (gerado pelo robô no GitHub)
+    const pdfDoLead = (lead as { marca?: { pdf?: string | null } | null }).marca?.pdf ?? null;
+    if (baloes.includes("[PDF]") && !pdfDoLead) return json({ error: "o PDF do relatório ainda não foi gerado; tire o [PDF] ou espere uns minutos" }, 400);
+    const nomePdf = `Diagnostico ${String(lead.empresa).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, " ").trim().slice(0, 50)}.pdf`;
     // PDF anexo: só aceita arquivo do nosso bucket público "materiais"
     const doc = body.documento?.url ? { url: String(body.documento.url), nome: String(body.documento.nome || "analise.pdf") } : null;
     if (doc && !doc.url.startsWith(`${env.supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/materiais/`)) return json({ error: "o PDF precisa estar no bucket materiais" }, 400);
@@ -86,6 +102,12 @@ export async function POST(req: Request) {
     for (let i = 0; i < baloes.length; i++) {
       // 504: o servidor do WhatsApp demorou, mas a mensagem sai mesmo assim; não reenviar
       // sendText já tenta de novo quando o servidor demora; se ainda falhar, o erro volta para a tela
+      if (baloes[i] === "[PDF]") {
+        const idPdf = await sendDocument(phone, pdfDoLead!, nomePdf);
+        await addMessage({ lead_id: sdr.id, direction: "out", author: "ia", kind: "followup", content: `[PDF] ${nomePdf} ${pdfDoLead}`, evolution_message_id: idPdf }).catch(() => null);
+        if (i < baloes.length - 1) await sleep(2500 + Math.floor(Math.random() * 2500));
+        continue;
+      }
       const id = await sendText(phone, baloes[i]);
       // Registrado como mensagem da Ana: o webhook reconhece e não pausa a IA como se fosse resposta manual
       // (se o registro falhar, a mensagem já saiu: segue para o próximo balão em vez de parar no meio)

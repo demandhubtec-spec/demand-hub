@@ -1,0 +1,44 @@
+# Relatório da Duda em PDF: o cliente recebe o diagnóstico em PDF anexado no WhatsApp.
+# Roda de 15 em 15 minutos das 8h às 20h (Brasília) e pelo botão "Run workflow" na aba Actions.
+# Fila vazia termina em segundos (não instala o navegador).
+name: Relatórios em PDF
+
+on:
+  schedule:
+    - cron: "*/15 11-23 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: relatorios-pdf
+  cancel-in-progress: false
+
+jobs:
+  pdf:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Tem PDF para gerar?
+        id: fila
+        working-directory: pdf-render
+        run: node rodar.mjs --checar | tee /dev/stderr | grep -q "tem=sim" && echo "tem=sim" >> "$GITHUB_OUTPUT" || echo "tem=nao" >> "$GITHUB_OUTPUT"
+
+      - name: Instalar o navegador
+        if: steps.fila.outputs.tem == 'sim'
+        working-directory: pdf-render
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: Gerar os PDFs
+        if: steps.fila.outputs.tem == 'sim'
+        working-directory: pdf-render
+        run: npm run rodar

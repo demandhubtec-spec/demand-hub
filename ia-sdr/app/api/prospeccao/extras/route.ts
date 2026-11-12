@@ -8,6 +8,7 @@
 import { db } from "@/src/lib/db.ts";
 import { diagnosticar, type Concorrente, type LeadPerfil } from "@/src/lib/diagnostico-perfil.ts";
 import { gerarDirect, gerarSite, linkPrevia, type SitePreview } from "@/src/lib/extras.ts";
+import { extrasDoSite } from "@/src/lib/rita.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -28,7 +29,7 @@ export async function OPTIONS(req: Request) {
 }
 
 const CAMPOS =
-  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,endereco,diagnostico,site_preview";
+  "place_id,empresa,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,endereco,diagnostico,site_preview,whatsapp,marca,diagnosticos";
 
 export async function POST(req: Request) {
   const h = cors(req);
@@ -55,7 +56,7 @@ export async function POST(req: Request) {
       await db().from("outreach_leads").update({ dm_instagram: dm, dm_instagram_enviado_em: null }).eq("place_id", l.place_id);
       return json({ ok: true, dm_instagram: dm });
     }
-    const site = await gerarSite(l, l.site_preview?.token);
+    const site = await gerarSite(l, l.site_preview?.token, null, extrasDoSite(l as unknown as Parameters<typeof extrasDoSite>[0]));
     await db().from("outreach_leads").update({ site_preview: site, site_preview_em: site.gerado_em }).eq("place_id", l.place_id);
     return json({ ok: true, site_preview: site, link: linkPrevia(site.token) });
   } catch (e) {

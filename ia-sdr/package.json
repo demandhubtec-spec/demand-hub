@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/conversa-time.test.ts tests/rita.test.ts tests/leo.test.ts tests/playbook.test.ts tests/ana-otimizacao.test.ts tests/rules.test.ts tests/agent.test.ts tests/diagnostico.test.ts tests/outreach.test.ts tests/anuncio.test.ts tests/demo.test.ts tests/estudio.test.ts tests/ligacoes-insights.test.ts"
+    "test": "node --test tests/instagram-pdf-site.test.ts tests/conversa-time.test.ts tests/rita.test.ts tests/leo.test.ts tests/playbook.test.ts tests/ana-otimizacao.test.ts tests/rules.test.ts tests/agent.test.ts tests/diagnostico.test.ts tests/outreach.test.ts tests/anuncio.test.ts tests/demo.test.ts tests/estudio.test.ts tests/ligacoes-insights.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.45.0",

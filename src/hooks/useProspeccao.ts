@@ -43,7 +43,18 @@ export interface OutreachLead {
   leo_decidido_em?: string | null;
   // Rita (diagnósticos) e Duda (relatório e site)
   diagnosticos?: DiagnosticosLead | null;
-  marca?: { logo?: string | null } | null;
+  /** logo do cliente; pdf: relatório em PDF gerado pelo robô no GitHub (vai anexado na 1ª mensagem). */
+  marca?: {
+    logo?: string | null;
+    pdf?: string | null;
+    pdf_chave?: string | null;
+    logo_fonte?: string | null;
+    logo_checado?: boolean | null;
+    logo_manual?: boolean | null;
+    logo_fundo?: "claro" | "escuro" | null;
+    cores?: { primaria?: string | null; secundaria?: string | null } | null;
+    logo_pedido_em?: string | null;
+  } | null;
   relatorio_token?: string | null;
   rita_status?: "pendente" | "aprovado" | "ajuste" | null;
   rita_nota?: string | null;

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { CopyX, ExternalLink, Upload } from "lucide-react";
+import { CopyX, ExternalLink, Send, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
@@ -17,8 +17,10 @@ import {
   useMarcarAvisoLido,
 } from "@/hooks/useComercial";
 import { cn } from "@/lib/utils";
+import { chamarSdr, type OutreachLead, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
+import { useQueryClient } from "@tanstack/react-query";
 import { type CardItem, Quadro } from "./FunilKanban";
-import type { Coluna } from "./funis";
+import { type Coluna, etapaListaDoTime, etapaOutboundDaLista, passoDoTime, patchOutbound, placeIdInstagram } from "./funis";
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
 const NOME: Record<ListaExtra, string> = { instagram: "Instagram", linkedin: "LinkedIn", ligacoes: "Ligações" };
@@ -50,6 +52,37 @@ export function FunilLista({
     (l) => (!rodada || (l.rodada ?? "Sem rodada") === rodada) && (!segmento || l.nicho === segmento) && (!nota || l.nota === nota),
   );
   const porId = new Map(visiveis.map((l) => [l.id, l]));
+  // Instagram: quem já foi para o time (Rita, Duda, Bia, Gabi) segue a etapa da prospecção ativa
+  const { data: prospeccao = [] } = useOutreachLeads();
+  const doTimePorPlace = React.useMemo(() => new Map(prospeccao.filter((p) => p.origem === "instagram").map((p) => [p.place_id, p])), [prospeccao]);
+  const noTime = (l: ListaLead): OutreachLead | null => {
+    if (lista !== "instagram") return null;
+    const pid = placeIdInstagram(l.perfil_url, l.perfil);
+    return pid ? doTimePorPlace.get(pid) ?? null : null;
+  };
+  const etapaDe = (l: ListaLead) => {
+    const t = noTime(l);
+    return t ? etapaListaDoTime(t) : l.etapa;
+  };
+  const updateLead = useUpdateLead();
+  const qc = useQueryClient();
+  const [mandando, setMandando] = React.useState(false);
+  const prontosParaOTime = lista === "instagram" ? visiveis.filter((l) => l.etapa === "na_lista" && !noTime(l) && (l.whatsapp ?? "").replace(/\D/g, "").length >= 10) : [];
+  const semWhatsNaLista = lista === "instagram" ? visiveis.filter((l) => l.etapa === "na_lista" && !noTime(l) && (l.whatsapp ?? "").replace(/\D/g, "").length < 10).length : 0;
+  async function mandarParaOTime() {
+    if (!prontosParaOTime.length) return;
+    if (!window.confirm(`Mandar ${prontosParaOTime.length} empresa(s) para o time? A Rita faz o raio-x, a Duda o PDF e o site, a Bia as mensagens, e nada sai sem a sua aprovação.`)) return;
+    setMandando(true);
+    try {
+      const r = await chamarSdr<{ enviados: number; sem_whatsapp: number; ja_estavam: number }>("/api/prospeccao/instagram", { ids: prontosParaOTime.map((l) => l.id) });
+      qc.invalidateQueries({ queryKey: ["outreach"] });
+      showToast(`${r.enviados} empresa(s) foram para a Rita.${r.ja_estavam ? ` ${r.ja_estavam} já estavam na prospecção.` : ""}${r.sem_whatsapp ? ` ${r.sem_whatsapp} sem WhatsApp ficaram de fora.` : ""}`);
+    } catch (e) {
+      showToast(`Erro: ${(e as Error).message}`);
+    } finally {
+      setMandando(false);
+    }
+  }
   const conversaPorFone = React.useMemo(() => new Map(contatos.map((c) => [fim8(c.phone), c.id])), [contatos]);
   const parado = (l: ListaLead) =>
     l.etapa === "contato" && Date.now() - new Date(l.atualizado_em).getTime() > 3 * 86400_000
@@ -62,7 +95,14 @@ export function FunilLista({
     quando: l.atualizado_em,
     conversa: fim8(l.whatsapp) ? conversaPorFone.get(fim8(l.whatsapp)) ?? null : null,
     nota: l.nota,
-    etiqueta: lista === "ligacoes" ? (l.tentativas ? `${l.tentativas} tentativa${l.tentativas > 1 ? "s" : ""}` : null) : l.canal,
+    etiqueta:
+      lista === "ligacoes"
+        ? l.tentativas
+          ? `${l.tentativas} tentativa${l.tentativas > 1 ? "s" : ""}`
+          : null
+        : noTime(l)
+          ? passoDoTime(noTime(l)!) ?? "Gabi"
+          : l.canal,
     valor: l.etapa === "ganho" ? l.valor : null,
     aviso: parado(l),
   }));
@@ -71,6 +111,16 @@ export function FunilLista({
     const l = porId.get(id);
     if (!l) return;
     const nome = colunas.find((c) => c.key === para)?.label;
+    const t = noTime(l);
+    if (t) {
+      const destino = etapaOutboundDaLista(para);
+      const patch = destino ? patchOutbound(t, destino) : null;
+      if (!patch) return showToast("Essa etapa é marcada sozinha quando a Gabi manda a mensagem.");
+      return updateLead.mutate(
+        { placeId: t.place_id, patch, descricao: `Funil Instagram: ${l.empresa} → ${nome}` },
+        { onSuccess: () => showToast(`${l.empresa} → ${nome}`), onError: (e) => showToast(`Erro: ${(e as Error).message}`) },
+      );
+    }
     atualizar.mutate(
       { id, patch: { etapa: para } },
       { onSuccess: () => showToast(`${l.empresa} → ${nome}`), onError: (e) => showToast(`Erro: ${(e as Error).message}`) },
@@ -112,8 +162,13 @@ export function FunilLista({
             <option>Frio</option>
           </select>
         )}
+        {lista === "instagram" && (
+          <Button size="sm" variant="ghost" className="ml-auto" disabled={mandando || !prontosParaOTime.length} onClick={mandarParaOTime} title={semWhatsNaLista ? `${semWhatsNaLista} sem WhatsApp ficam na lista (só Direct)` : undefined}>
+            <Send /> {mandando ? "Mandando…" : `Mandar para o time (${prontosParaOTime.length})`}
+          </Button>
+        )}
         {lista !== "ligacoes" && (
-          <Button size="sm" className="ml-auto" onClick={() => setImportar(true)}>
+          <Button size="sm" className={lista === "instagram" ? "" : "ml-auto"} onClick={() => setImportar(true)}>
             <Upload /> Nova rodada
           </Button>
         )}
@@ -135,7 +190,10 @@ export function FunilLista({
         <Quadro
           colunas={colunas}
           itens={itens}
-          etapa={(id) => porId.get(id)?.etapa ?? null}
+          etapa={(id) => {
+            const l = porId.get(id);
+            return l ? etapaDe(l) : null;
+          }}
           mover={mover}
           abrir={(id) => setAberto(porId.get(id) ?? null)}
           abrirConversa={abrirConversa}

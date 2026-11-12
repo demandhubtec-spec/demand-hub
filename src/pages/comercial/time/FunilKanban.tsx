@@ -184,7 +184,8 @@ function FunilOutbound({ abrirConversa }: { abrirConversa: (id: string) => void 
   const [aberto, setAberto] = React.useState<OutreachLead | null>(null);
 
   const sdrPorFone = React.useMemo(() => new Map(contatos.map((c) => [fim8(c.phone), c.id])), [contatos]);
-  const noFunil = leads.filter((l) => etapaOutbound(l) !== null);
+  // Quem veio da lista do Instagram aparece no funil do Instagram, não aqui
+  const noFunil = leads.filter((l) => l.origem !== "instagram" && etapaOutbound(l) !== null);
   const porId = new Map(noFunil.map((l) => [l.place_id, l]));
   const itens: CardItem[] = noFunil.map((l) => ({
     id: l.place_id,
@@ -345,7 +346,7 @@ export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => 
   const { contatos } = useContatos();
   const { data: listas = [] } = useListaLeads();
   const conta: Record<ListaFunil, number> = {
-    google: leads.filter((l) => etapaOutbound(l) !== null).length,
+    google: leads.filter((l) => l.origem !== "instagram" && etapaOutbound(l) !== null).length,
     instagram: listas.filter((l) => l.lista === "instagram").length,
     linkedin: listas.filter((l) => l.lista === "linkedin").length,
     ligacoes: listas.filter((l) => l.lista === "ligacoes").length,

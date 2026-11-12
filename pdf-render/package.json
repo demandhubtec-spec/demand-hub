@@ -1,0 +1,8 @@
+{
+  "name": "demandia-pdf-render",
+  "private": true,
+  "type": "module",
+  "description": "Gera o PDF do relatório da Duda (página /relatorio/:token) e guarda no storage. Roda no GitHub Actions.",
+  "scripts": { "rodar": "node rodar.mjs" },
+  "dependencies": { "playwright": "1.48.2" }
+}

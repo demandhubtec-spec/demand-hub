@@ -118,3 +118,46 @@ export const COLUNAS_LIGACOES = [
   { key: "ganho", label: "Venda", dica: "Venda feita" },
   { key: "perdido", label: "Perdido", dica: "Sem interesse ou número errado", fim: true },
 ] as const satisfies readonly Coluna<EtapaLista>[];
+
+/* ───────────── Lista do Instagram no fluxo do time (12/11/2026) ───────────── */
+
+/** @handle do perfil (URL ou @texto), em minúsculas. */
+export function handleInstagram(ig: string | null | undefined): string | null {
+  const s = (ig ?? "").trim();
+  const m = s.match(/instagram\.com\/([A-Za-z0-9._]+)/i) ?? s.match(/^@?([A-Za-z0-9._]+)$/);
+  return m ? m[1].toLowerCase() : null;
+}
+
+/** place_id que a empresa da lista do Instagram ganha quando vai para o time (igual ao do servidor). */
+export const placeIdInstagram = (perfilUrl: string | null | undefined, perfil?: string | null) => {
+  const h = handleInstagram(perfilUrl) ?? handleInstagram(perfil);
+  return h ? `ig_${h}` : null;
+};
+
+/** Coluna do funil da lista para quem já está no fluxo do time (vem da prospecção ativa). */
+export function etapaListaDoTime(l: OutreachLead): EtapaLista {
+  const e = etapaOutbound(l);
+  if (!e || e === "disparar") return "na_lista";
+  if (e === "enviado") return "contato";
+  return e as EtapaLista;
+}
+
+/** Em que ponto do time a empresa está, antes do primeiro contato. Nulo depois que a Gabi abordou. */
+export function passoDoTime(l: OutreachLead): string | null {
+  const e = etapaOutbound(l);
+  if (e && e !== "disparar") return null;
+  if (l.wa_status !== "pendente") return null;
+  if (!l.rita_status) return "Rita fazendo o raio-x";
+  if (l.rita_status === "pendente") return "Raio-x para você aprovar";
+  if (l.rita_status === "ajuste") return "Rita ajustando";
+  if (!l.duda_status || l.duda_status === "ajuste") return "Duda montando PDF e site";
+  if (l.duda_status === "pendente") return "PDF e site para aprovar";
+  if (l.msg_status === "sem" || l.msg_status === "gerando") return "Bia escrevendo";
+  if (l.msg_status === "rascunho") return "Mensagem para aprovar";
+  if (l.msg_status === "aprovada") return "Na fila da Gabi";
+  return "No time";
+}
+
+/** Lista → etapa da prospecção, para mover o card de quem já está no time. */
+export const etapaOutboundDaLista = (e: EtapaLista): EtapaOutbound | null =>
+  e === "na_lista" ? "disparar" : e === "contato" ? "enviado" : (COLUNAS_OUTBOUND.some((c) => c.key === e) ? (e as EtapaOutbound) : null);

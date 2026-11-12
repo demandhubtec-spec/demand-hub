@@ -88,6 +88,57 @@ async function enviarBaloes(path: string, to: string, text: string): Promise<{ o
   }
   return last;
 }
+/**
+ * Relatório em PDF (12/11/2026): a Bia escreve "[PDF]" num balão sozinho e aqui ele vira o arquivo anexado
+ * (marca.pdf do lead, gerado pelo robô no GitHub). Sem PDF pronto, o marcador vira o link do relatório.
+ */
+let PDF_DO_LEAD: { url: string; nome: string; link: string | null } | null = null;
+function pdfDoLead(l: any): { url: string; nome: string; link: string | null } | null {
+  const empresa = String(l?.empresa ?? "empresa").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^A-Za-z0-9]+/g, " ").trim().slice(0, 50);
+  const link = l?.relatorio_token ? `https://demandia-sdr.vercel.app/relatorio/${l.relatorio_token}` : null;
+  if (!l?.marca?.pdf) return link ? { url: "", nome: "", link } : null;
+  return { url: String(l.marca.pdf), nome: `Diagnostico ${empresa}.pdf`, link };
+}
+function partesDoPdf(t: string): [string, string] | null {
+  const i = t.indexOf("[PDF]");
+  return i < 0 ? null : [t.slice(0, i).trim(), t.slice(i + 5).trim()];
+}
+async function enviarPdf(path: string, to: string): Promise<{ ok: boolean; status: number; body: string }> {
+  const p = PDF_DO_LEAD;
+  if (!p) return { ok: true, status: 200, body: "" };
+  if (!p.url) return p.link ? await enviarBaloes(path, to, p.link) : { ok: true, status: 200, body: "" };
+  const r = await fetch(`${EVO_URL}/send/media`, {
+    method: "POST",
+    headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+    body: JSON.stringify({ number: to, url: p.url, type: "document", filename: p.nome, caption: "", delay: 1500 }),
+    signal: AbortSignal.timeout(40000),
+  }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response);
+  return { ok: r.ok || r.status === 504, status: r.status, body: await r.text() };
+}
+/** Manda o texto em balões; se tiver "[PDF]", manda a parte de antes, o arquivo e depois o resto. */
+async function enviarComPdf(path: string, to: string, texto: string, formatar: (t: string) => string) {
+  const pp = partesDoPdf(texto);
+  if (!pp) {
+    const t = formatar(texto);
+    return { r: await enviarBaloes(path, to, t), enviado: t };
+  }
+  const antes = pp[0] ? formatar(pp[0]) : "";
+  if (antes) {
+    const r = await enviarBaloes(path, to, antes);
+    if (!r.ok) return { r, enviado: antes };
+    await sleep(rand(2000, 4000));
+  }
+  const rp = await enviarPdf(path, to);
+  const marca = PDF_DO_LEAD?.url ? "[PDF do diagnóstico anexado]" : PDF_DO_LEAD?.link ?? "";
+  if (!rp.ok) return { r: rp, enviado: [antes, marca].filter(Boolean).join("\n\n") };
+  const depois = pp[1] ? formatar(pp[1]) : "";
+  if (depois) {
+    await sleep(rand(2500, 5000));
+    const r = await enviarBaloes(path, to, depois);
+    return { r, enviado: [antes, marca, depois].filter(Boolean).join("\n\n") };
+  }
+  return { r: rp, enviado: [antes, marca].filter(Boolean).join("\n\n") };
+}
 const semAcento = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const PALAVRA_EMPRESA = /(cl[ií]nica|odonto|dent|advog|advoc|jur[ií]dic|im[oó]v|imobili|consult|centro|instituto|n[uú]cleo|studio|est[uú]dio|\bpet\b|vet|ltda|\bme\b|eireli|grupo|escrit[oó]rio|sa[uú]de|m[eé]dic|\bmed\b|lab|diagn|contab|loja|atendimento|recep|oficial|unidade|agro|com[eé]rcio|servi[cç]o|&|\d)/i;
 /** Nome que o WhatsApp mostra para o número (perfil comercial verificado), se vier na checagem. */
@@ -157,8 +208,8 @@ async function enviarComSaudacao(path: string, to: string, nome: string, texto: 
   const r0 = await enviarBaloes(path, to, oi);
   if (!r0.ok) return { r: r0, enviado: oi };
   await sleep(rand(12000, 16000));
-  const resto = separarEmBaloes(semSaudacao(texto));
-  return { r: await enviarBaloes(path, to, resto), enviado: `${oi}\n\n${resto}` };
+  const env = await enviarComPdf(path, to, semSaudacao(texto), separarEmBaloes);
+  return { r: env.r, enviado: `${oi}\n\n${env.enviado}` };
 }
 /**
  * 1º contato com o áudio da Ana (configurado no portal): "Oi, bom dia!", espera o robô de boas-vindas
@@ -197,9 +248,8 @@ async function enviarAbordagemComAudio(path: string, to: string, nome: string, c
   const r2 = { ok: r.ok || r.status === 504, status: r.status, body: await r.text() };
   if (!r2.ok) {
     // O áudio falhou depois do "Oi" e do "Tudo bem?": manda a análise aprovada em texto para não deixar a conversa solta
-    const resto = separarEmBaloes(semSaudacao(textoReserva));
-    const r3 = await enviarBaloes(path, to, resto);
-    return { r: r3, enviado: `${oi}\n\n${tudo}\n\n${resto}`, audio: false, erroAudio: `${r2.status}: ${r2.body.slice(0, 200)}` };
+    const env3 = await enviarComPdf(path, to, semSaudacao(textoReserva), separarEmBaloes);
+    return { r: env3.r, enviado: `${oi}\n\n${tudo}\n\n${env3.enviado}`, audio: false, erroAudio: `${r2.status}: ${r2.body.slice(0, 200)}` };
   }
   const fala = String(cfg.audio_abordagem_texto || "").trim();
   return { r: r2, enviado: `${oi}\n\n${tudo}\n\n[Áudio da Ana] ${fala}`.trim(), audio: true };
@@ -326,7 +376,7 @@ const TEXTO_ROBO = [
 /** Manda o próximo toque de WhatsApp da cadência que já venceu. Retorna null se não havia nada. */
 async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
   const { data: due } = await sb.from("outreach_leads")
-    .select("place_id, empresa, decisor, whatsapp, sequencia, toque_atual, wa_status")
+    .select("place_id, empresa, decisor, whatsapp, sequencia, toque_atual, wa_status, marca, relatorio_token")
     .eq("cadencia", "ativa").eq("proximo_canal", "whatsapp")
     .lte("proximo_toque_em", new Date().toISOString())
     .order("proximo_toque_em", { ascending: true }).limit(1);
@@ -360,6 +410,7 @@ async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
       .eq("place_id", lead.place_id).eq("event", "followup").contains("detail", { robo: true });
     if (!jaPediu) { texto = pick(TEXTO_ROBO); robo = true; }
   }
+  PDF_DO_LEAD = pdfDoLead(lead);
   const { r } = await enviarComSaudacao(cfg.evolution_send_path, to, nome, texto);
   if (r.ok) {
     await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
@@ -474,6 +525,7 @@ Deno.serve(async (req) => {
   // 1º contato em duas etapas: a saudação vai sozinha, a gente espera o robô de boas-vindas da empresa
   // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
   const nome = nomeParaSaudar(lead, nomeWhats);
+  PDF_DO_LEAD = pdfDoLead(lead);
   // Com o áudio configurado, o 1º contato é "Oi" + "Tudo bem?" + áudio; a análise aprovada vira o próximo toque
   // O áudio fala de clínica e paciente: só vai para os nichos marcados na configuração (vazio = todos)
   const nichosAudio: string[] = Array.isArray(cfg.audio_abordagem_nichos) ? cfg.audio_abordagem_nichos : [];
