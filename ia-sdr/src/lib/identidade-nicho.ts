@@ -25,8 +25,8 @@ interface Nicho {
 
 // Ordem importa: o mais específico antes (endocrinologia pediátrica antes de pediatria, por exemplo).
 const NICHOS: Nicho[] = [
-  { chave: /endocrin|diabet|metabol|tireoid|horm/i, simbolo: "molecula", rotulo: "Endocrinologia", paletas: [["#1E8C86", "#0B2E33", "#C9A45C"], ["#3F7D6E", "#13302A", "#D8B98A"], ["#2B6F8F", "#0C2533", "#7FC8C2"]] },
-  { chave: /odonto|dent|sorriso|implant|ortodon/i, simbolo: "dente", rotulo: "Odontologia", paletas: [["#0E8FB8", "#062B3D", "#7ED3E8"], ["#1B6FB3", "#0A2240", "#56C2C9"], ["#14928A", "#08302D", "#9ADBD3"]] },
+  { chave: /endocrin|diabet|metabol|tireoid|horm/i, simbolo: "molecula", rotulo: "Endocrinologia", paletas: [["#1E8C86", "#0B2E33", "#C9A45C"], ["#3F7D6E", "#13302A", "#D8B98A"], ["#2B6F8F", "#0C2533", "#7FC8C2"], ["#8A5A7A", "#2A1A26", "#D9B7A0"], ["#4A6FA5", "#121E33", "#E0A96D"]] },
+  { chave: /odonto|dent|sorriso|implant|ortodon/i, simbolo: "dente", rotulo: "Odontologia", paletas: [["#0E8FB8", "#062B3D", "#7ED3E8"], ["#1B6FB3", "#0A2240", "#56C2C9"], ["#14928A", "#08302D", "#9ADBD3"], ["#5A6FB5", "#151B38", "#9FD3E0"], ["#2D7F9A", "#0D2530", "#E7B56A"]] },
   { chave: /pediatr|infantil|crian/i, simbolo: "bebe", rotulo: "Pediatria", paletas: [["#3A8DDE", "#102A4C", "#F28C6B"], ["#2FA39A", "#0D3532", "#F6B860"]] },
   { chave: /dermat|pele|estetic|harmoniza|beleza|spa\b|cosmet/i, simbolo: "brilho", rotulo: "Estética e dermatologia", paletas: [["#B8846B", "#3A2620", "#E2C2A8"], ["#A86F7A", "#35202A", "#E8C9B8"], ["#9C7A54", "#2E2418", "#D9C3A0"]] },
   { chave: /cardio|cora[cç]/i, simbolo: "coracao", rotulo: "Cardiologia", paletas: [["#B83A4B", "#2E0F18", "#E9A5A0"], ["#9E2F45", "#1F1A2E", "#5B7DB1"]] },
@@ -47,7 +47,13 @@ const PADRAO: Nicho = { chave: /$^/, simbolo: "brilho", rotulo: "", paletas: [["
 function hash(s: string): number {
   let h = 2166136261;
   for (const ch of s) h = Math.imul(h ^ ch.charCodeAt(0), 16777619);
-  return Math.abs(h);
+  // mistura final (murmur3): sem ela o resto da divisão por 3 ou 5 sai quase sempre igual
+  h ^= h >>> 16;
+  h = Math.imul(h, 0x85ebca6b);
+  h ^= h >>> 13;
+  h = Math.imul(h, 0xc2b2ae35);
+  h ^= h >>> 16;
+  return h >>> 0;
 }
 
 export function nichoDe(nicho: string | null | undefined, empresa = ""): Nicho {
