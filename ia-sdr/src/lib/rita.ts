@@ -401,7 +401,7 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
     try {
       const patch: Record<string, unknown> = { duda_status: "pendente", duda_nota: null };
       // Logo guardada com a gente: link do Instagram expira e o PDF/relatório ficaria sem a logo
-      if (l.marca?.logo && /^https?:/i.test(l.marca.logo) && !l.marca.logo.includes("/storage/v1/object/public/materiais/")) {
+      if (l.marca?.logo && /^https?:/i.test(l.marca.logo) && !l.marca.logo.includes("/storage/v1/object/public/")) {
         const guardada = await guardarImagem(l.marca.logo, `marcas/${l.place_id.replace(/[^A-Za-z0-9_-]/g, "")}`);
         if (guardada) {
           l.marca = { ...l.marca, logo: guardada };
