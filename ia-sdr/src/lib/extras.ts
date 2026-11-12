@@ -11,6 +11,7 @@ import { manuaisAtuais } from "./playbook.ts";
 
 import { REGRAS_DE_ESTILO, humanizar } from "./estilo.ts";
 import { type Diagnostico, type LeadPerfil, nomeCurto } from "./diagnostico-perfil.ts";
+import { type CoresMarca, identidadeDoCliente } from "./site-marca.ts";
 
 const comManual = (t: string, quem: string) => (manuaisAtuais(quem) ? `${t}\n\n${manuaisAtuais(quem)}` : t);
 
@@ -87,25 +88,49 @@ export interface SitePreview {
   diferenciais: string[];
   paleta: Paleta;
   gerado_em: string;
+  /** Versão 2 (12/11/2026): identidade do cliente e seções a mais. Tudo opcional para as prévias antigas. */
+  versao?: number;
+  logo?: string | null;
+  /** "escuro": logo branca, vai num selo com fundo escuro. */
+  logo_fundo?: "claro" | "escuro";
+  cores?: CoresMarca | null;
+  fotos?: string[];
+  whatsapp?: string | null;
+  instagram?: string | null;
+  etapas?: { titulo: string; texto: string }[];
+  faq?: { pergunta: string; resposta: string }[];
+  chamada_final?: string;
+}
+
+/** Dados extras que a Duda passa para o site: logo, fotos (posts do Instagram) e contatos. */
+export interface ExtrasSite {
+  logo?: string | null;
+  fotos?: string[];
+  whatsapp?: string | null;
+  instagram?: string | null;
 }
 
 export function promptSite(lead: LeadPerfil & { endereco?: string | null }): string {
   const empresa = nomeCurto(lead.empresa);
-  return `Você é redator de sites para pequenas empresas no Brasil. Escreva o conteúdo de uma PRÉVIA curta de site (3 seções) para a ${empresa}, ${lead.nicho ?? "empresa local"} em ${lead.cidade ?? "sua cidade"}.
-Dados reais que podem aparecer: nome "${empresa}", cidade, ${lead.nota ? `nota ${String(lead.nota).replace(".", ",")} no Google` : ""} ${lead.avaliacoes ? `com ${lead.avaliacoes} avaliações` : ""}.
+  return `Você é redator de sites para pequenas empresas no Brasil. Escreva o conteúdo de uma PRÉVIA de site (página única) para a ${empresa}, ${lead.nicho ?? "empresa local"}${lead.cidade ? ` em ${lead.cidade}` : ""}.
+O dono vai abrir e precisa sentir que o site é DELE: fale do jeito do segmento dele, com o nome da empresa, nada de texto que serviria para qualquer empresa.
+Dados reais que podem aparecer: nome "${empresa}"${lead.cidade ? `, cidade ${lead.cidade}` : ""}${lead.nota ? `, nota ${String(lead.nota).replace(".", ",")} no Google` : ""}${lead.avaliacoes ? ` com ${lead.avaliacoes} avaliações` : ""}.
 
 Regras:
 - Não invente fatos sobre a empresa: nada de anos de experiência, número de clientes, prêmios, nomes de pessoas, depoimentos ou preços.
-- Fale do que esse tipo de negócio costuma oferecer e do que o cliente da região quer (resultado, confiança, praticidade), com palavras simples.
-- Título com no máximo 8 palavras. Subtítulo com no máximo 22 palavras. Botão (cta) com 2 a 4 palavras.
+- Fale do que esse tipo de negócio costuma oferecer e do que o cliente da região quer (resultado, confiança, praticidade), com palavras simples e específicas do segmento.
+- Título forte com no máximo 8 palavras (sem ser só o nome da empresa). Subtítulo com no máximo 22 palavras. Botão (cta) com 2 a 4 palavras.
 - "sobre": 2 frases sobre como a empresa atende, sem inventar dados.
-- 3 serviços típicos do segmento, cada um com título curto e 1 frase.
+- 4 serviços típicos do segmento, cada um com título curto e 1 frase.
 - 3 diferenciais curtos (até 6 palavras cada), sem números inventados.
-- Escolha a paleta que combina com o segmento: azul, verde, roxo, terracota, grafite ou rosa.
-- Sem travessão, sem emoji, sem palavras de marketing genérico (soluções, potencializar, jornada).
+- "etapas": 3 passos de como é ser atendido (ex.: chamar no WhatsApp, avaliação, tratamento), título curto e 1 frase.
+- "faq": 3 perguntas que o cliente desse segmento sempre faz, com respostas curtas e honestas (sem preço e sem promessa).
+- "chamada_final": 1 frase curta convidando para falar no WhatsApp.
+- Escolha a paleta que combina com o segmento (só é usada se a empresa não tiver logo): azul, verde, roxo, terracota, grafite ou rosa.
+- Sem travessão, sem emoji, sem palavras de marketing genérico (soluções, potencializar, jornada, excelência).
 
 Responda SOMENTE com JSON:
-{"titulo": "...", "subtitulo": "...", "cta": "...", "sobre": "...", "servicos": [{"titulo": "...", "texto": "..."}], "diferenciais": ["..."], "paleta": "azul"}`;
+{"titulo": "...", "subtitulo": "...", "cta": "...", "sobre": "...", "servicos": [{"titulo": "...", "texto": "..."}], "diferenciais": ["..."], "etapas": [{"titulo": "...", "texto": "..."}], "faq": [{"pergunta": "...", "resposta": "..."}], "chamada_final": "...", "paleta": "azul"}`;
 }
 
 export function montarSite(lead: LeadPerfil & { endereco?: string | null }, raw: string, token = novoToken()): SitePreview {
@@ -117,7 +142,7 @@ export function montarSite(lead: LeadPerfil & { endereco?: string | null }, raw:
   }
   const txt = (x: unknown, max = 240) => humanizar(String(x ?? "")).slice(0, max);
   const servicos = (Array.isArray(j.servicos) ? j.servicos : [])
-    .slice(0, 3)
+    .slice(0, 4)
     .map((s: { titulo?: unknown; texto?: unknown }) => ({ titulo: txt(s?.titulo, 60), texto: txt(s?.texto, 200) }))
     .filter((s) => s.titulo);
   if (!txt(j.titulo) || servicos.length < 2) throw new Error("conteúdo do site incompleto");
@@ -138,6 +163,16 @@ export function montarSite(lead: LeadPerfil & { endereco?: string | null }, raw:
     diferenciais: (Array.isArray(j.diferenciais) ? j.diferenciais : []).slice(0, 3).map((x) => txt(x, 60)).filter(Boolean),
     paleta,
     gerado_em: new Date().toISOString(),
+    versao: 2,
+    etapas: (Array.isArray(j.etapas) ? j.etapas : [])
+      .slice(0, 3)
+      .map((e: { titulo?: unknown; texto?: unknown }) => ({ titulo: txt(e?.titulo, 50), texto: txt(e?.texto, 180) }))
+      .filter((e) => e.titulo),
+    faq: (Array.isArray(j.faq) ? j.faq : [])
+      .slice(0, 4)
+      .map((f: { pergunta?: unknown; resposta?: unknown }) => ({ pergunta: txt(f?.pergunta, 120), resposta: txt(f?.resposta, 300) }))
+      .filter((f) => f.pergunta && f.resposta),
+    chamada_final: txt(j.chamada_final, 140),
   };
 }
 
@@ -145,9 +180,25 @@ export function novoToken() {
   return randomBytes(6).toString("base64url");
 }
 
-export async function gerarSite(lead: LeadPerfil & { endereco?: string | null }, tokenAtual?: string | null, ajuste?: string | null): Promise<SitePreview> {
-  const r = await callLLM({ system: comManual(promptSite(lead), "duda") + (ajuste ? `\n\nO Kelvin pediu este ajuste na versão anterior: ${ajuste}` : ""), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 3000, json: true });
-  return montarSite(lead, r.message.content ?? "", tokenAtual || novoToken());
+export async function gerarSite(
+  lead: LeadPerfil & { endereco?: string | null },
+  tokenAtual?: string | null,
+  ajuste?: string | null,
+  extras: ExtrasSite = {},
+): Promise<SitePreview> {
+  const r = await callLLM({ system: comManual(promptSite(lead), "duda") + (ajuste ? `\n\nO Kelvin pediu este ajuste na versão anterior: ${ajuste}` : ""), messages: [{ role: "user", content: "Escreva o conteúdo." }], maxTokens: 4000, json: true });
+  const site = montarSite(lead, r.message.content ?? "", tokenAtual || novoToken());
+  // Identidade do cliente: logo (guardada e conferida pela IA), cores tiradas dela e fotos do Instagram
+  const id = await identidadeDoCliente(site.token, site.empresa, extras.logo, extras.fotos ?? []).catch(() => ({ logo: null, logo_fundo: "claro" as const, cores: null, fotos: [] as string[] }));
+  return {
+    ...site,
+    logo: id.logo,
+    logo_fundo: id.logo_fundo,
+    cores: id.cores,
+    fotos: id.fotos,
+    whatsapp: (extras.whatsapp ?? "").replace(/\D/g, "") || null,
+    instagram: handleInstagram(extras.instagram),
+  };
 }
 
 /** Link público da prévia (fica no app da IA SDR). */

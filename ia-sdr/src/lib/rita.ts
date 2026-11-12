@@ -16,6 +16,7 @@ import { db } from "./db.ts";
 import { callLLM } from "./llm.ts";
 import { baixar } from "./enriquecer.ts";
 import { gerarSite, semSiteProprio } from "./extras.ts";
+import { guardarImagem } from "./site-marca.ts";
 import { diagnosticar, type Concorrente, type LeadPerfil } from "./diagnostico-perfil.ts";
 import { carregarPlaybook, manuaisAtuais, playbookAtual } from "./playbook.ts";
 
@@ -119,6 +120,8 @@ export interface PerfilInstagram {
   comercial: boolean;
   ultimo_post: string | null;
   foto: string | null;
+  /** Fotos dos últimos posts (para o site de demonstração da Duda). */
+  imagens?: string[];
 }
 
 const handle = (url: string | null | undefined) => (url ?? "").match(/instagram\.com\/([A-Za-z0-9._]+)/i)?.[1]?.toLowerCase() ?? null;
@@ -135,6 +138,11 @@ export function lerPerfil(p: any): PerfilInstagram {
     comercial: !!(p.isBusinessAccount ?? p.businessCategoryName),
     ultimo_post: datas.length ? datas[datas.length - 1] : null,
     foto: p.profilePicUrlHD ?? p.profilePicUrl ?? null,
+    imagens: (Array.isArray(p.latestPosts) ? p.latestPosts : [])
+      .filter((x: any) => x?.type !== "Video" || x?.displayUrl)
+      .map((x: any) => x?.displayUrl)
+      .filter((u: unknown) => typeof u === "string" && /^https?:/.test(u as string))
+      .slice(0, 6),
   };
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
@@ -190,6 +198,8 @@ interface LeadRita extends LeadPerfil {
   diagnosticos: Diagnosticos | null;
   marca: { logo?: string | null } | null;
   relatorio_token: string | null;
+  origem?: string | null;
+  observacoes?: string | null;
 }
 
 export function promptRita(lead: LeadRita, fatos: Record<string, unknown>): string {
@@ -201,15 +211,19 @@ Fatos (JSON):
 ${JSON.stringify(fatos, null, 1).slice(0, 9000)}
 
 Responda em JSON:
-{"google":AREA,"site":AREA|null,"instagram":AREA|null,"geral":{"nota":0-100,"frase":"1 frase forte para o dono","solucao":"como a DemandIA resolve (atendimento com IA, site, prospecção), 2 frases"}}
+{"google":AREA|null,"site":AREA|null,"instagram":AREA|null,"geral":{"nota":0-100,"frase":"1 frase forte para o dono","solucao":"como a DemandIA resolve (atendimento com IA, site, prospecção), 2 frases"}}
 AREA = {"nota":0-100,"aprovado":true|false,"resumo":"1 frase","positivos":["..."],"criticos":["..."],"ganho":"1 a 2 frases"}
-Regras: aprovado só com nota 70 ou mais. 1 a 3 positivos, 2 a 4 críticos. Se não houver site, "site" = null. Se não houver Instagram, "instagram" = null.
+Regras: aprovado só com nota 70 ou mais. 1 a 3 positivos, 2 a 4 críticos. Se não houver site, "site" = null. Se não houver Instagram, "instagram" = null. Se não houver dados do Google (fatos.google = null), "google" = null e não fale de posição, nota ou avaliações do Google.${
+    lead.origem === "instagram"
+      ? `\nEsta empresa veio da lista do Instagram (a pessoa comentou num post sobre marketing e vendas, mostrando interesse em crescer). O foco do raio-x é o Instagram e o site; use o que foi anotado na coleta (seguidores, bio, link, pedidos). Não cite o post nem de quem era.`
+      : ""
+  }
 ${lead.rita_nota ? `\nO Kelvin pediu este ajuste na versão anterior: ${lead.rita_nota}` : ""}
 ${playbookAtual() ? `\n## Playbook comercial\n${playbookAtual()}` : ""}
 ${manuaisAtuais("rita")}`;
 }
 
-const CAMPOS = "place_id,empresa,nicho,cidade,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,rita_nota,rita_status,diagnosticos,marca,relatorio_token";
+const CAMPOS = "place_id,empresa,nicho,cidade,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,rita_nota,rita_status,diagnosticos,marca,relatorio_token,origem,observacoes";
 
 async function concorrentesDe(lead: LeadRita): Promise<(Concorrente & { instagram: string | null })[]> {
   let q = db().from("outreach_leads").select("place_id,empresa,avaliacoes,nota,instagram,posicao_busca").neq("place_id", lead.place_id).eq("nicho", lead.nicho ?? "").eq("cidade", lead.cidade ?? "");
@@ -234,8 +248,9 @@ async function diagnosticar1(lead: LeadRita, perfis: Map<string, PerfilInstagram
   const igLead = perfis.get(handle(lead.instagram) ?? "") ?? null;
   const igConc = conc.map((c) => perfis.get(handle(c.instagram) ?? "")).filter(Boolean) as PerfilInstagram[];
 
+  const doInstagram = lead.origem === "instagram";
   const fatos = {
-    google: {
+    google: doInstagram ? null : {
       nota: lead.nota,
       avaliacoes: lead.avaliacoes,
       fotos: lead.fotos,
@@ -251,7 +266,7 @@ async function diagnosticar1(lead: LeadRita, perfis: Map<string, PerfilInstagram
     instagram: igLead
       ? { perfil: igLead, concorrentes: igConc.map((p) => ({ usuario: p.usuario, seguidores: p.seguidores, posts: p.posts, ultimo_post: p.ultimo_post })) }
       : lead.instagram
-        ? { perfil: lead.instagram, observacao: "não deu para ler o perfil agora" }
+        ? { perfil: lead.instagram, observacao: "não deu para ler o perfil agora", ...(doInstagram && lead.observacoes ? { anotado_na_coleta: lead.observacoes.slice(0, 800) } : {}) }
         : null,
   };
 
@@ -262,7 +277,7 @@ async function diagnosticar1(lead: LeadRita, perfis: Map<string, PerfilInstagram
       ? { ...a, nota: Math.max(0, Math.min(100, Math.round(a.nota))), aprovado: a.nota >= 70, positivos: a.positivos ?? [], criticos: a.criticos ?? [], dados }
       : null;
   const diag: Diagnosticos = {
-    google: area(j.google, fatos.google),
+    google: fatos.google ? area(j.google, fatos.google) : null,
     site: temSite ? { ...(area(j.site, fatos.site ?? undefined) ?? { nota: 0, aprovado: false, resumo: "Não conseguimos abrir o site.", positivos: [], criticos: ["O site não abriu no teste"], ganho: "" }), tem_site: true } : null,
     instagram: area(j.instagram, fatos.instagram ?? undefined),
     cliente_oculto: lead.diagnosticos?.cliente_oculto ?? null,
@@ -281,6 +296,26 @@ async function diagnosticar1(lead: LeadRita, perfis: Map<string, PerfilInstagram
       duda_status: null,
     })
     .eq("place_id", lead.place_id);
+}
+
+type LeadDuda = LeadPerfil & {
+  place_id: string;
+  site: string | null;
+  instagram: string | null;
+  whatsapp: string | null;
+  endereco: string | null;
+  marca: { logo?: string | null } | null;
+  diagnosticos: Diagnosticos | null;
+  site_preview: { token?: string } | null;
+  duda_status: string | null;
+  duda_nota: string | null;
+};
+
+/** Logo, fotos e contatos que a Rita já levantou, para o site da Duda ter a cara do cliente. */
+export function extrasDoSite(l: Pick<LeadDuda, "marca" | "diagnosticos" | "whatsapp" | "instagram">) {
+  const perfil = (l.diagnosticos?.instagram?.dados as { perfil?: Partial<PerfilInstagram> } | undefined)?.perfil;
+  const imagens = perfil && typeof perfil === "object" && Array.isArray(perfil.imagens) ? perfil.imagens : [];
+  return { logo: l.marca?.logo ?? null, fotos: imagens, whatsapp: l.whatsapp, instagram: l.instagram };
 }
 
 /** Uma rodada da Rita e da Duda (cron a cada 10 minutos). */
@@ -323,16 +358,24 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
   // Duda: diagnóstico aprovado → site de demonstração para quem não tem site (o relatório já está no ar)
   const { data: d } = await db()
     .from("outreach_leads")
-    .select("place_id,empresa,nicho,cidade,decisor,endereco,nota,avaliacoes,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,site,instagram,site_preview,duda_nota,duda_status")
+    .select("place_id,empresa,nicho,cidade,decisor,endereco,nota,avaliacoes,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,site,instagram,whatsapp,marca,diagnosticos,site_preview,duda_nota,duda_status")
     .eq("wa_status", "pendente")
     .eq("rita_status", "aprovado")
     .or("duda_status.is.null,duda_status.eq.ajuste")
     .limit(POR_RODADA);
   let duda = 0;
-  for (const l of (d ?? []) as unknown as (LeadPerfil & { place_id: string; site: string | null; endereco: string | null; site_preview: { token?: string } | null; duda_status: string | null })[]) {
+  for (const l of (d ?? []) as unknown as LeadDuda[]) {
     try {
       const patch: Record<string, unknown> = { duda_status: "pendente", duda_nota: null };
-      if (semSiteProprio(l.site) && (!l.site_preview || l.duda_status === "ajuste")) patch.site_preview = await gerarSite(l, l.site_preview?.token ?? null, (l as { duda_nota?: string | null }).duda_nota ?? null);
+      // Logo guardada com a gente: link do Instagram expira e o PDF/relatório ficaria sem a logo
+      if (l.marca?.logo && /^https?:/i.test(l.marca.logo) && !l.marca.logo.includes("/storage/v1/object/public/materiais/")) {
+        const guardada = await guardarImagem(l.marca.logo, `marcas/${l.place_id.replace(/[^A-Za-z0-9_-]/g, "")}`);
+        if (guardada) {
+          l.marca = { ...l.marca, logo: guardada };
+          patch.marca = l.marca;
+        }
+      }
+      if (semSiteProprio(l.site) && (!l.site_preview || l.duda_status === "ajuste")) patch.site_preview = await gerarSite(l, l.site_preview?.token ?? null, l.duda_nota ?? null, extrasDoSite(l));
       await db().from("outreach_leads").update(patch).eq("place_id", l.place_id);
       duda++;
     } catch (e) {
