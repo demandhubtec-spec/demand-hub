@@ -5,12 +5,13 @@
  *   POST { acao: "conectar" }                   → { url } para autorizar o Search Console (conta demandhubtec@gmail.com)
  *   POST { acao: "sincronizar", dias? }         → puxa as buscas do Google agora
  *   POST { acao: "checar_ia", pergunta_id? }    → pergunta ao ChatGPT agora e registra se citou a DemandIA
- *   GET/POST com CRON_SECRET (relógio diário)   → sincroniza o Google todo dia e checa as IAs toda segunda
+ *   POST { acao: "plano" }                      → gera agora o plano da semana para subir no Google e nas IAs
+ *   GET/POST com CRON_SECRET (relógio diário)   → sincroniza o Google todo dia; toda segunda checa as IAs e gera o plano
  */
 import { db } from "@/src/lib/db.ts";
 import { env } from "@/src/lib/env.ts";
 import { authUrl, oauthState } from "@/src/lib/google.ts";
-import { checarIAs, sincronizarGSC, statusSearchConsole } from "@/src/lib/seo.ts";
+import { checarIAs, gerarPlano, sincronizarGSC, statusSearchConsole } from "@/src/lib/seo.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -51,6 +52,7 @@ async function handler(req: Request) {
     if (acao === "conectar") return json({ url: authUrl(oauthState("searchconsole"), "searchconsole") });
     if (acao === "sincronizar") return json({ ok: true, ...(await sincronizarGSC(body.dias ? Math.min(480, Math.max(3, body.dias)) : undefined)) });
     if (acao === "checar_ia") return json({ ok: true, ...(await checarIAs(body.pergunta_id)) });
+    if (acao === "plano") return json({ ok: true, ...(await gerarPlano()) });
     if (acao === "relogio") {
       const out: Record<string, unknown> = {};
       const st = await statusSearchConsole();
@@ -63,7 +65,14 @@ async function handler(req: Request) {
       }
       // ChatGPT: uma vez por semana, na segunda (horário de Brasília)
       const semana = new Date(Date.now() - 3 * 3_600_000).getUTCDay();
-      if (semana === 1) out.ia = await checarIAs();
+      if (semana === 1) {
+        out.ia = await checarIAs();
+        try {
+          out.plano = await gerarPlano();
+        } catch (e) {
+          out.plano_erro = String((e as Error).message).slice(0, 300);
+        }
+      }
       return json({ ok: true, ...out });
     }
     return json({ error: "ação desconhecida" }, 400);
