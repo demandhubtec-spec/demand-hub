@@ -13,6 +13,7 @@ import Clientes from "@/pages/comercial/Clientes";
 import TimeComercial from "@/pages/comercial/TimeComercial";
 import InstagramDirect from "@/pages/marketing/InstagramDirect";
 import LandingPage from "@/pages/marketing/LandingPage";
+import Seo from "@/pages/marketing/Seo";
 import Estudio from "@/pages/marketing/Estudio";
 import Financas from "@/pages/administrativo/Financas";
 import Contratos from "@/pages/administrativo/Contratos";
@@ -45,6 +46,7 @@ export default function App() {
 
           <Route path="marketing/instagram-direct" element={<InstagramDirect />} />
           <Route path="marketing/landing-page" element={<LandingPage />} />
+          <Route path="marketing/seo" element={<Seo />} />
           <Route path="marketing/estudio" element={<Estudio />} />
 
           <Route path="comercial/crm" element={<Crm />} />
