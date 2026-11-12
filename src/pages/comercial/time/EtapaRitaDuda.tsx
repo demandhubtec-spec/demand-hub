@@ -10,6 +10,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { type AreaDiagnosticoLead, linkPrevia, linkRelatorio, type OutreachLead, useOutreachLeads } from "@/hooks/useProspeccao";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { semSiteProprio } from "@/pages/comercial/prospeccao/cadencia";
 
 type Etapa = "rita" | "duda";
 type Visao = "pendente" | "ajuste" | "aprovado";
@@ -194,6 +195,7 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                       {(l.site_preview as { tipo?: string }).tipo === "melhoria" ? "Abrir versão melhorada do site" : "Abrir site novo (demonstração)"} <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
+                  {etapa === "duda" && <SiteAtual l={l} />}
                   {visao !== "aprovado" && (
                     <div className="ml-auto flex gap-1.5">
                       <Button size="sm" variant="ghost" onClick={() => setAjustando(ajustando === l.place_id ? null : l.place_id)}>
@@ -221,5 +223,17 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
         </div>
       )}
     </div>
+  );
+}
+
+/** Site atual do cliente, ao lado do site novo, para comparar os dois. */
+function SiteAtual({ l }: { l: OutreachLead }) {
+  const atual = ((l.site_preview as { site_atual?: string | null } | null)?.site_atual ?? l.site ?? "").trim();
+  if (!atual) return <span className="text-[12px] text-muted">Cliente sem site hoje</span>;
+  const href = /^https?:\/\//i.test(atual) ? atual : `https://${atual}`;
+  return (
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+      {semSiteProprio(atual) ? "Página atual do cliente (sem site próprio)" : "Site atual do cliente"} <ExternalLink className="h-3 w-3" />
+    </a>
   );
 }

@@ -104,6 +104,10 @@ test("sem logo: identidade criada pelo padrão do nicho", async () => {
       assert.ok(contraste(c.escura, "#FFFFFF") >= 7, `${nicho}/${emp}: ${c.escura}`);
     }
   }
+  // concorrentes do mesmo nicho não saem todos com a mesma paleta
+  const cores = new Set(["Dra. Laura Pazinato I Endocrinologista", "Dra. Keila Hayashi Nakamura, Endocrinologista pediátrico", "Dra Giovanna Lutti", "Dr. Murilo Cerci", "Dra. Daniela Albiero"].map((e) => paletaDoNicho("Endocrinologia", e).cor));
+  assert.ok(cores.size >= 3, `só ${cores.size} paletas diferentes`);
+  assert.notEqual(paletaDoNicho("Endocrinologia", "Dra. Laura Pazinato I Endocrinologista").cor, paletaDoNicho("Endocrinologia", "Dra. Keila Hayashi Nakamura, Endocrinologista pediátrico").cor);
   // mesma empresa, mesma paleta (estável entre visitas)
   assert.deepEqual(paletaDoNicho("Odontologia", "Sorriso X"), paletaDoNicho("Odontologia", "Sorriso X"));
 });

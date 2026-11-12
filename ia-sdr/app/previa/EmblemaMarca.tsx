@@ -128,10 +128,10 @@ export function EmblemaMarca({ m, c, tamanho = 44, id = "e" }: { m: MarcaCriada;
 /** Emblema + nome + especialidade (a "logo" completa). `clara`: texto branco, para fundo escuro. */
 export function MarcaCompleta({ m, c, tamanho = 44, clara = false, id }: { m: MarcaCriada; c: CoresMarca; tamanho?: number; clara?: boolean; id?: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: Math.round(tamanho * 0.27), minWidth: 0 }}>
+    <div className="criada" style={{ display: "flex", alignItems: "center", gap: Math.round(tamanho * 0.27), minWidth: 0 }}>
       <EmblemaMarca m={m} c={c} tamanho={tamanho} id={id} />
       <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.15, minWidth: 0 }}>
-        <span style={{ fontWeight: 800, fontSize: Math.round(tamanho * 0.38), color: clara ? "#fff" : c.escura, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.nome}</span>
+        <span className="nome" style={{ fontWeight: 800, fontSize: Math.round(tamanho * 0.38), color: clara ? "#fff" : c.escura, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{m.nome}</span>
         {m.sub && (
           <span style={{ fontWeight: 600, fontSize: Math.max(9, Math.round(tamanho * 0.22)), letterSpacing: ".08em", textTransform: "uppercase", color: clara ? c.cor2 ?? "#fff" : c.cor, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", marginTop: 2 }}>
             {m.sub}
