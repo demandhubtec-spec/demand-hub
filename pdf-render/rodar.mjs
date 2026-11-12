@@ -246,8 +246,7 @@ async function rodarLogos(ctx, fila) {
         Object.assign(marca, { logo: link, logo_fonte: img.fonte, cores: { primaria: medida.primaria, secundaria: medida.secundaria }, logo_fundo: medida.fundo });
         console.log(`Logo: ${l.empresa} (${img.fonte}) ${medida.primaria} ${medida.secundaria ?? ""} fundo ${medida.fundo}`);
         // Site de demonstração já montado sem a logo: a Duda refaz com a logo e as cores (só se ainda não foi aprovado)
-        const semSite = !l.site || NAO_E_SITE.test(l.site);
-        if (semSite && l.duda_status === "pendente" && l.site_preview) {
+        if (l.duda_status === "pendente" && l.site_preview) {
           patch.duda_status = "ajuste";
           patch.duda_nota = "Logo e cores do cliente capturadas: refaça o site com elas.";
         }
