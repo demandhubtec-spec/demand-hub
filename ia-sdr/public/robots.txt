@@ -1,0 +1,30 @@
+# DemandIA · demandhub.com.br
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /previa/
+Disallow: /relatorio/
+
+# Buscadores e assistentes de IA podem ler o site
+User-agent: Googlebot
+Allow: /
+User-agent: Bingbot
+Allow: /
+User-agent: GPTBot
+Allow: /
+User-agent: OAI-SearchBot
+Allow: /
+User-agent: ChatGPT-User
+Allow: /
+User-agent: ClaudeBot
+Allow: /
+User-agent: Claude-SearchBot
+Allow: /
+User-agent: PerplexityBot
+Allow: /
+User-agent: Google-Extended
+Allow: /
+User-agent: Applebot-Extended
+Allow: /
+
+Sitemap: https://demandhub.com.br/sitemap.xml
