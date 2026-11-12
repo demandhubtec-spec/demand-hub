@@ -28,6 +28,7 @@ import { contatosDoSite } from "@/src/lib/enriquecer.ts";
 import { env } from "@/src/lib/env.ts";
 import { carregarPlaybook, manuaisAtuais } from "@/src/lib/playbook.ts";
 import { linkRelatorio, type Diagnosticos } from "@/src/lib/rita.ts";
+import { linkPrevia } from "@/src/lib/extras.ts";
 
 /** Empresas reabordadas do zero (08/11/2026): já receberam mensagens da abordagem antiga, pela Ana. */
 function jaFalamos(lead: unknown): string {
@@ -44,7 +45,23 @@ function textoDoRelatorio(lead: unknown): string {
     .filter(([, a]) => a)
     .map(([n, a]) => `- ${n}: nota ${(a as { nota: number }).nota}. Críticos: ${((a as { criticos: string[] }).criticos ?? []).slice(0, 2).join("; ")}`)
     .join("\n");
-  return `\n\n## Diagnóstico aprovado pelo Kelvin (use os achados reais)\n${d.geral?.frase ?? ""}\n${areas}\nLink do relatório completo (mande no primeiro toque, um link só): ${linkRelatorio(l.relatorio_token)}`;
+  const previa = (lead as { site_preview?: { token?: string } | null }).site_preview?.token;
+  return `\n\n## Diagnóstico aprovado pelo Kelvin (use os achados reais)\n${d.geral?.frase ?? ""}\n${areas}
+O relatório completo vai em PDF anexado (o cliente não recebe link do relatório). No PRIMEIRO toque do WhatsApp, escreva "[PDF]" sozinho num balão, antes da pergunta final: o sistema troca pelo arquivo. Diga no balão anterior algo como "separei o raio-x completo aqui no PDF". Não coloque o link do relatório em nenhum toque.${
+    previa ? `\nPrévia gratuita do site, já com a logo e as cores da empresa (link pode ir no primeiro toque ou num follow-up): ${linkPrevia(previa)}` : ""
+  }\n(Link do relatório só para o e-mail, se houver toque por e-mail: ${linkRelatorio(l.relatorio_token)})`;
+}
+
+/** Empresa da lista do Instagram: a abordagem parte do Instagram, não do Google. */
+function contextoInstagram(lead: unknown): string {
+  const l = lead as { origem?: string | null; observacoes?: string | null };
+  if (l.origem !== "instagram") return "";
+  return `\n\n## Esta empresa veio da lista do Instagram
+A pessoa comentou num post sobre marketing e vendas, mostrando interesse em crescer. Anotações da coleta: ${(l.observacoes ?? "").slice(0, 600)}
+- Abra dizendo que a Gabi viu o perfil da empresa no Instagram e preparou um raio-x digital gratuito (Instagram, site e como os clientes chegam).
+- Não cite o post, o comentário nem o perfil onde ele foi feito, e não diga que acompanhamos comentários.
+- Não há dados do Google Meu Negócio desta empresa: não fale de posição, nota ou avaliações no Google.
+- Ganchos que funcionam aqui: transformar seguidores em pedidos e agendamentos, atendimento rápido no WhatsApp, site próprio com a cara da marca.`;
 }
 
 export const runtime = "nodejs";
@@ -62,7 +79,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 const CAMPOS =
-  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em,relatorio_token,diagnosticos,wa_sent_at";
+  "place_id,empresa,email,nicho,cidade,decisor,avaliacoes,nota,site,instagram,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,tentativa,endereco,site_preview,toque_atual,sequencia,dm_instagram_enviado_em,relatorio_token,diagnosticos,wa_sent_at,origem,observacoes";
 const LOTE = 5;
 
 /** Pede a sequência à IA; se ainda vier com cara de IA, pede uma nova versão uma vez. */
@@ -72,7 +89,7 @@ async function escreverSequencia(lead: LeadPerfil & { tentativa?: number | null 
     const manual = manuaisAtuais(quem);
     return `${t}${pb ? `\n\n## Playbook comercial do Kelvin (siga sempre)\n${pb}` : ""}${manual ? `\n\n${manual}` : ""}`;
   };
-  const system = comPlaybook(promptSequencia(lead, diag), "bia") + textoDoRelatorio(lead) + jaFalamos(lead);
+  const system = comPlaybook(promptSequencia(lead, diag), "bia") + textoDoRelatorio(lead) + contextoInstagram(lead) + jaFalamos(lead);
   const pedir = async (extra = "") => {
     const res = await callLLM({
       system,
