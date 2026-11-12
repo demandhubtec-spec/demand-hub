@@ -79,3 +79,31 @@ test("instagram: lead da lista vira empresa da prospecção, só com WhatsApp", 
   assert.match(String(l.observacoes), /Lista do Instagram/);
   assert.equal(paraProspeccao({ ...base, whatsapp: null }), null);
 });
+
+test("sem logo: identidade criada pelo padrão do nicho", async () => {
+  const { marcaCriada, nomeDaMarca, paletaDoNicho, siglaDaMarca } = await import("../src/lib/identidade-nicho.ts");
+  assert.deepEqual(nomeDaMarca("Dra. Laura Pazinato I Endocrinologista", "Endocrinologia"), { nome: "Dra. Laura Pazinato", sub: "Endocrinologista", pessoa: true });
+  assert.equal(nomeDaMarca("Dra Giovanna Lutti - Endocrinologista em Campinas").sub, "Endocrinologista");
+  assert.equal(nomeDaMarca("Clínica EEMA (Dr. Murilo Cerci e Dra. Daniela Albiero)", "Endocrinologia").nome, "Clínica EEMA");
+  assert.equal(nomeDaMarca("Haras Villa Real", "Imobiliária").sub, "Negócios imobiliários");
+  assert.equal(nomeDaMarca("FM Cardoso Negócios Imobiliários", "Imobiliária").sub, "");
+  assert.equal(siglaDaMarca("Dra. Keila Hayashi Nakamura"), "KN");
+  assert.equal(siglaDaMarca("Ultra Visão Imóveis"), "UV");
+  const m = marcaCriada("Dra. Laura Pazinato I Endocrinologista", "Endocrinologia");
+  assert.equal(m.monograma, true);
+  assert.equal(m.sigla, "LP");
+  assert.equal(marcaCriada("FM Cardoso Negócios Imobiliários", "Imobiliária").simbolo, "casa");
+  assert.equal(marcaCriada("AGRO VARIEDADES DO JOSÉ", "Pet shop / Veterinária").simbolo, "pata");
+  // Paleta do nicho: endocrinologia não cai no azul genérico, e o botão tem contraste com texto branco
+  const p = paletaDoNicho("Endocrinologia", "Dra. Laura Pazinato I Endocrinologista");
+  assert.notEqual(p.cor, "#1F5EFF");
+  for (const nicho of ["Endocrinologia", "Odontologia", "Imobiliária", "Pet shop / Veterinária", "Estética", "Advocacia", null]) {
+    for (const emp of ["A", "Clínica Beta", "Dra. Ana Souza"]) {
+      const c = paletaDoNicho(nicho, emp);
+      assert.ok(contraste(c.cor, "#FFFFFF") >= 3, `${nicho}/${emp}: ${c.cor}`);
+      assert.ok(contraste(c.escura, "#FFFFFF") >= 7, `${nicho}/${emp}: ${c.escura}`);
+    }
+  }
+  // mesma empresa, mesma paleta (estável entre visitas)
+  assert.deepEqual(paletaDoNicho("Odontologia", "Sorriso X"), paletaDoNicho("Odontologia", "Sorriso X"));
+});
