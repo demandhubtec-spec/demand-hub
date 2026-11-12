@@ -9,6 +9,8 @@ import { SDR_CONFIG } from "@/src/config/sdr.ts";
 import type { AreaDiagnostico, Diagnosticos } from "@/src/lib/rita.ts";
 import { linkPrevia } from "@/src/lib/extras.ts";
 import { BotaoPdf } from "./BotaoPdf.tsx";
+import { marcaCriada, paletaDoNicho } from "@/src/lib/identidade-nicho.ts";
+import { EmblemaMarca, MarcaCompleta } from "@/app/previa/EmblemaMarca.tsx";
 
 export const dynamic = "force-dynamic";
 
@@ -35,12 +37,12 @@ export async function generateMetadata({ params }: { params: Promise<{ token: st
 const cor = (n: number) => (n >= 70 ? "#3ddc97" : n >= 50 ? "#ffc857" : "#ff6b81");
 
 /** Topo de cada página do PDF (some na tela). */
-function TopoPdf({ empresa, logo, escuro }: { empresa: string; logo?: string | null; escuro?: boolean }) {
+function TopoPdf({ empresa, logo, escuro, criada }: { empresa: string; logo?: string | null; escuro?: boolean; criada?: React.ReactNode }) {
   return (
     <div className="pdf-topo">
       <img src="/diagnostico/logo.svg" alt="DemandIA" />
       <span>Diagnóstico digital · {empresa}</span>
-      {logo && <img src={logo} alt="" className={`pdf-logo${escuro ? " escuro" : ""}`} referrerPolicy="no-referrer" />}
+      {logo ? <img src={logo} alt="" className={`pdf-logo${escuro ? " escuro" : ""}`} referrerPolicy="no-referrer" /> : criada}
     </div>
   );
 }
@@ -84,7 +86,17 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
   const r = await carregar((await params).token);
   if (!r) notFound();
   const d = r.diagnosticos;
-  const topo = <TopoPdf empresa={r.empresa} logo={r.marca?.logo} escuro={r.marca?.logo_fundo === "escuro"} />;
+  // Sem logo: a mesma identidade criada pelo nicho que aparece no site de demonstração
+  const criada = r.marca?.logo ? null : marcaCriada(r.empresa, r.nicho);
+  const coresCriada = criada ? paletaDoNicho(r.nicho, r.empresa) : null;
+  const topo = (
+    <TopoPdf
+      empresa={r.empresa}
+      logo={r.marca?.logo}
+      escuro={r.marca?.logo_fundo === "escuro"}
+      criada={criada && coresCriada ? <span className="pdf-emblema"><EmblemaMarca m={criada} c={coresCriada} tamanho={30} id="pdf" /></span> : null}
+    />
+  );
   const previa = r.site_preview?.token ? linkPrevia(r.site_preview.token) : null;
   const wa = `https://wa.me/${SDR_CONFIG.whatsapp.numero}?text=${encodeURIComponent(`Oi! Vi o diagnóstico da ${r.empresa} e quero conversar.`)}`;
   return (
@@ -93,7 +105,13 @@ export default async function RelatorioPage({ params }: { params: Promise<{ toke
       <header className="capa">
         <div className="marcas">
           <img src="/diagnostico/logo.svg" alt="DemandIA" className="logo-demandia" />
-          {r.marca?.logo && <img src={r.marca.logo} alt={r.empresa} className={`logo-cliente${r.marca.logo_fundo === "escuro" ? " escuro" : ""}`} referrerPolicy="no-referrer" />}
+          {r.marca?.logo ? (
+            <img src={r.marca.logo} alt={r.empresa} className={`logo-cliente${r.marca.logo_fundo === "escuro" ? " escuro" : ""}`} referrerPolicy="no-referrer" />
+          ) : criada && coresCriada ? (
+            <div className="logo-criada">
+              <MarcaCompleta m={criada} c={coresCriada} tamanho={52} id="capa" />
+            </div>
+          ) : null}
         </div>
         <div className="eyebrow">Diagnóstico digital · {[r.nicho, r.cidade].filter(Boolean).join(" · ")}</div>
         <h1>{r.empresa}</h1>
@@ -167,7 +185,7 @@ const CSS = `
 main{max-width:920px;margin:0 auto;padding:40px 20px 60px}
 .eyebrow{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#a47bff;margin-bottom:8px}
 .capa{padding:28px;border-radius:22px;background:radial-gradient(120% 120% at 0% 0%,#2a1460 0%,#120a2a 55%,#0b0718 100%);border:1px solid #2c2150;margin-bottom:22px}
-.marcas{display:flex;align-items:center;gap:16px;margin-bottom:22px}.logo-demandia{height:26px}.logo-cliente{height:64px;width:auto;max-width:180px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;margin-left:auto}.logo-cliente.escuro{background:#05030c;border:1px solid #2c2150}
+.marcas{display:flex;align-items:center;gap:16px;margin-bottom:22px}.logo-demandia{height:26px}.logo-cliente{height:64px;width:auto;max-width:180px;object-fit:contain;border-radius:14px;background:#fff;padding:8px;margin-left:auto}.logo-cliente.escuro{background:#05030c;border:1px solid #2c2150}.logo-criada{margin-left:auto;background:#fff;border-radius:16px;padding:10px 16px;max-width:340px}.pdf-emblema{margin-left:auto;display:flex}
 h1{font-family:'Archivo Narrow',sans-serif;font-size:44px;margin:0 0 8px;line-height:1.05}.frase{font-size:18px;color:#cfc6f5;margin:0 0 20px}
 .geral{display:flex;align-items:center;gap:20px;flex-wrap:wrap}.mini{display:flex;gap:16px;flex-wrap:wrap;color:#b9b0dc;font-size:14px}.mini b{font-size:18px;margin-left:4px}
 .nota{border:2px solid;border-radius:16px;padding:8px 14px;text-align:center;min-width:92px}.nota b{display:block;font-size:30px;line-height:1}.nota span{font-size:12px;text-transform:uppercase;letter-spacing:.08em}.nota.grande b{font-size:42px}
