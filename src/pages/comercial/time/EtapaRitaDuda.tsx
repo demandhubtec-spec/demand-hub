@@ -1,19 +1,19 @@
 import * as React from "react";
-import { Check, ExternalLink, FileText, ImageUp, Instagram, PencilLine } from "lucide-react";
+import { Check, ExternalLink, FileText, ImageUp, Instagram, PencilLine, RotateCcw, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Segmented } from "@/components/ui/segmented";
 import { useToast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { type AreaDiagnosticoLead, linkPrevia, linkRelatorio, type OutreachLead, useOutreachLeads } from "@/hooks/useProspeccao";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { semSiteProprio } from "@/pages/comercial/prospeccao/cadencia";
+import { type Coluna, esperandoLogo, fmtDuracao, montarQuadro, POR_RODADA, MINUTOS_POR_RODADA, ROTULO } from "./quadro-etapas";
 
 type Etapa = "rita" | "duda";
-type Visao = "pendente" | "ajuste" | "aprovado";
+type Visao = Coluna;
 
 const TEXTO: Record<Etapa, { intro: string; vazio: string; proxima: string }> = {
   rita: {
@@ -48,9 +48,9 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
   const [nota, setNota] = React.useState("");
 
   const campo = etapa === "rita" ? "rita_status" : "duda_status";
-  const daEtapa = leads.filter((l) => l.wa_status === "pendente" && l[campo]);
-  const cont = (v: Visao) => daEtapa.filter((l) => l[campo] === v).length;
-  const lista = daEtapa.filter((l) => l[campo] === visao);
+  const quadro = React.useMemo(() => montarQuadro(leads, etapa), [leads, etapa]);
+  const lista = quadro.cols[visao];
+  const emProducao = visao === "fila" || visao === "fazendo";
 
   async function decidir(l: OutreachLead, status: "aprovado" | "ajuste", recado?: string) {
     const patch: Record<string, unknown> = { [campo]: status, [etapa === "rita" ? "rita_nota" : "duda_nota"]: recado ?? null };
@@ -66,6 +66,24 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
     setNota("");
     qc.invalidateQueries({ queryKey: ["outreach"] });
     showToast(status === "aprovado" ? TEXTO[etapa].proxima : "Ajuste pedido. Volta para você na próxima rodada (até 10 minutos).");
+  }
+
+  /** Descartar a empresa (sai do fluxo e vai para Descartadas na lista do Léo) ou trazer de volta. */
+  async function descartar(l: OutreachLead, volta = false) {
+    const { error } = await supabase
+      .from("outreach_leads")
+      .update({ leo_status: volta ? "aprovado" : "descartado", leo_decidido_em: new Date().toISOString() })
+      .eq("place_id", l.place_id);
+    if (error) return showToast(`Erro: ${error.message}`);
+    const quem = etapa === "rita" ? "diagnóstico da Rita" : "relatório e site da Duda";
+    await supabase.from("outreach_log").insert({
+      channel: "portal",
+      event: "config",
+      place_id: l.place_id,
+      detail: { msg: volta ? `Empresa voltou para o fluxo (${quem})` : `Empresa descartada no ${quem}` },
+    });
+    qc.invalidateQueries({ queryKey: ["outreach"] });
+    showToast(volta ? "Empresa de volta para aprovação." : "Empresa descartada. Ela não segue para as mensagens.");
   }
 
   /** Logo nova enviada pelo Kelvin: vai para o storage e a Duda refaz o site e o PDF com ela. */
@@ -92,19 +110,13 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
   return (
     <div>
       <div className="mb-3 text-[13px] text-muted">{TEXTO[etapa].intro}</div>
-      <Segmented
-        value={visao}
-        onChange={setVisao}
-        opcoes={[
-          { value: "pendente", label: `Para aprovar (${cont("pendente")})` },
-          { value: "ajuste", label: `Em ajuste (${cont("ajuste")})` },
-          { value: "aprovado", label: `Aprovados (${cont("aprovado")})` },
-        ]}
-      />
+      <QuadroEtapa etapa={etapa} quadro={quadro} visao={visao} onVisao={setVisao} />
       {isLoading ? (
         <div className="text-[13px] text-muted">Carregando…</div>
       ) : !lista.length ? (
-        <EmptyState>{visao === "pendente" ? TEXTO[etapa].vazio : "Nada aqui."}</EmptyState>
+        <EmptyState>{visao === "pendente" ? TEXTO[etapa].vazio : visao === "fila" || visao === "fazendo" ? `Nada na fila da ${etapa === "rita" ? "Rita" : "Duda"} agora.` : "Nada aqui."}</EmptyState>
+      ) : emProducao ? (
+        <FilaDeProducao etapa={etapa} lista={lista} visao={visao} />
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           {lista.map((l) => {
@@ -174,7 +186,7 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                     ) : (
                       <span className="text-[12px] text-muted">PDF sendo gerado</span>
                     ))}
-                  {etapa === "duda" && visao !== "aprovado" && (
+                  {etapa === "duda" && (visao === "pendente" || visao === "ajuste") && (
                     <label className="inline-flex cursor-pointer items-center gap-1 text-[12.5px] text-muted hover:text-ink">
                       <ImageUp className="h-3 w-3" /> {l.marca?.logo ? "Trocar logo" : "Subir logo"}
                       <input
@@ -196,8 +208,18 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                     </a>
                   )}
                   {etapa === "duda" && <SiteAtual l={l} />}
-                  {visao !== "aprovado" && (
+                  {visao === "descartado" && (
+                    <div className="ml-auto">
+                      <Button size="sm" variant="ghost" onClick={() => descartar(l, true)}>
+                        <RotateCcw /> Trazer de volta
+                      </Button>
+                    </div>
+                  )}
+                  {(visao === "pendente" || visao === "ajuste") && (
                     <div className="ml-auto flex gap-1.5">
+                      <Button size="sm" variant="ghost" onClick={() => descartar(l)}>
+                        <X /> Descartar
+                      </Button>
                       <Button size="sm" variant="ghost" onClick={() => setAjustando(ajustando === l.place_id ? null : l.place_id)}>
                         <PencilLine /> Pedir ajuste
                       </Button>
@@ -235,5 +257,100 @@ function SiteAtual({ l }: { l: OutreachLead }) {
     <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
       {semSiteProprio(atual) ? "Página atual do cliente (sem site próprio)" : "Site atual do cliente"} <ExternalLink className="h-3 w-3" />
     </a>
+  );
+}
+
+const COLUNAS: Coluna[] = ["fila", "fazendo", "ajuste", "pendente", "aprovado", "descartado"];
+const COR: Record<Coluna, string> = {
+  fila: "border-l-muted",
+  fazendo: "border-l-primary-bright",
+  ajuste: "border-l-attention",
+  pendente: "border-l-primary-bright",
+  aprovado: "border-l-positive",
+  descartado: "border-l-negative",
+};
+const DICA: Record<Coluna, string> = {
+  fila: "esperando a vez",
+  fazendo: `${POR_RODADA} a cada ${MINUTOS_POR_RODADA} min`,
+  ajuste: "refazendo o que você pediu",
+  pendente: "esperando você",
+  aprovado: "seguiram adiante",
+  descartado: "saíram do fluxo",
+};
+
+/** Quadro da etapa: o que chegou, o que está sendo feito, o que espera você e o que já saiu. Clique para ver a lista. */
+function QuadroEtapa({ etapa, quadro, visao, onVisao }: { etapa: "rita" | "duda"; quadro: ReturnType<typeof montarQuadro>; visao: Coluna; onVisao: (v: Coluna) => void }) {
+  const quem = etapa === "rita" ? "Rita" : "Duda";
+  const pct = quadro.chegou ? Math.round((quadro.entregues / quadro.chegou) * 100) : 0;
+  return (
+    <div className="mb-4">
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-[13px]">
+        <span>
+          Chegaram para a {quem}: <b>{quadro.chegou}</b>
+        </span>
+        <span>
+          Entregues: <b>{quadro.entregues}</b> ({pct}%)
+        </span>
+        <span>
+          Feitos hoje: <b>{quadro.hoje}</b>
+        </span>
+        <span className="text-muted">Para zerar a fila: {fmtDuracao(quadro.horasParaZerar)} de trabalho</span>
+      </div>
+      <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
+        <div className="h-full rounded-full bg-primary-bright transition-all" style={{ width: `${pct}%` }} />
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {COLUNAS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onVisao(c)}
+            className={cn(
+              "rounded-[12px] border border-border border-l-4 bg-surface p-2.5 text-left transition hover:bg-surface-2",
+              COR[c],
+              visao === c && "ring-2 ring-primary-bright",
+            )}
+          >
+            <div className="text-[11.5px] text-muted">{ROTULO[etapa][c]}</div>
+            <div className="brand-num text-[22px] leading-tight">{quadro.cols[c].length}</div>
+            <div className="text-[11px] text-muted">
+              {c === "fila" && etapa === "duda" && quadro.esperandoLogo ? `${quadro.esperandoLogo} esperando a logo` : DICA[c]}
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Lista simples do que está na fila ou sendo feito agora (sem ações: ainda está com a IA). */
+function FilaDeProducao({ etapa, lista, visao }: { etapa: "rita" | "duda"; lista: OutreachLead[]; visao: Coluna }) {
+  const [todos, setTodos] = React.useState(false);
+  const mostra = todos ? lista : lista.slice(0, 60);
+  return (
+    <Card className="p-0">
+      <div className="border-b border-border px-4 py-2.5 text-[12.5px] text-muted">
+        {visao === "fazendo"
+          ? `A ${etapa === "rita" ? "Rita" : "Duda"} está fazendo estas agora. Ficam prontas na próxima rodada (até ${MINUTOS_POR_RODADA} minutos).`
+          : `Na ordem em que a ${etapa === "rita" ? "Rita" : "Duda"} vai pegar.`}
+      </div>
+      <ol className="divide-y divide-border">
+        {mostra.map((l, i) => (
+          <li key={l.place_id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
+            <span className="w-6 shrink-0 text-right text-[11.5px] text-muted">{i + 1}</span>
+            <span className="min-w-0 flex-1 truncate font-medium">{l.empresa}</span>
+            <span className="hidden truncate text-[12px] text-muted sm:block">{[l.nicho, l.cidade].filter(Boolean).join(" · ")}</span>
+            {etapa === "duda" && esperandoLogo(l) && <span className="shrink-0 text-[11.5px] text-attention">esperando a logo</span>}
+          </li>
+        ))}
+      </ol>
+      {lista.length > mostra.length && (
+        <div className="border-t border-border px-4 py-2 text-center">
+          <Button size="sm" variant="ghost" onClick={() => setTodos(true)}>
+            Ver todas ({lista.length})
+          </Button>
+        </div>
+      )}
+    </Card>
   );
 }
