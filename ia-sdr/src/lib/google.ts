@@ -16,8 +16,8 @@ export function redirectUri() {
   return `${env.appUrl}/api/google/callback`;
 }
 
-/** Qual conta Google: "google" = Agenda da IA SDR · "gmail" = envio de e-mails da prospecção · "planilhas" = planilhas do time no Drive */
-export type GoogleKind = "google" | "gmail" | "planilhas";
+/** Qual conta Google: "google" = Agenda da IA SDR · "gmail" = envio de e-mails da prospecção · "planilhas" = planilhas do time no Drive · "searchconsole" = dados de busca do site (SEO) */
+export type GoogleKind = "google" | "gmail" | "planilhas" | "searchconsole";
 
 const SCOPES_BY_KIND: Record<GoogleKind, string[]> = {
   google: SCOPES,
@@ -25,6 +25,8 @@ const SCOPES_BY_KIND: Record<GoogleKind, string[]> = {
   gmail: ["https://www.googleapis.com/auth/gmail.send", "https://www.googleapis.com/auth/gmail.readonly"],
   // drive.file: só mexe nos arquivos que o próprio portal criou (a planilha da lista do Léo)
   planilhas: ["https://www.googleapis.com/auth/drive.file"],
+  // só leitura dos relatórios de busca (palavras-chave, cliques, posição) do Google Search Console
+  searchconsole: ["https://www.googleapis.com/auth/webmasters.readonly"],
 };
 
 function sign(payload: string) {
@@ -42,7 +44,7 @@ export function validOauthState(state: string | null): GoogleKind | null {
   if (!state) return null;
   const parts = state.split(".");
   const [kind, ts, sig] = parts.length === 3 ? parts : ["google", parts[0], parts[1]];
-  if (kind !== "google" && kind !== "gmail" && kind !== "planilhas") return null;
+  if (kind !== "google" && kind !== "gmail" && kind !== "planilhas" && kind !== "searchconsole") return null;
   if (!ts || !sig || Date.now() - Number(ts) > 15 * 60_000) return null;
   const expected = sign(kind === "google" ? ts : `${kind}:${ts}`);
   if (expected.length !== sig.length || !timingSafeEqual(Buffer.from(expected), Buffer.from(sig))) return null;
@@ -88,13 +90,22 @@ export async function exchangeCode(code: string, kind: GoogleKind = "google") {
     }).catch(() => null);
     email = r?.ok ? ((await r.json()) as { emailAddress?: string }).emailAddress ?? null : null;
   }
+  let sites: string[] | undefined;
+  if (kind === "searchconsole") {
+    // Quais sites essa conta enxerga no Search Console (a sincronização usa o do demandhub.com.br)
+    const r = await fetch("https://www.googleapis.com/webmasters/v3/sites", {
+      headers: { Authorization: `Bearer ${t.access_token}` },
+    }).catch(() => null);
+    const j = r?.ok ? ((await r.json()) as { siteEntry?: { siteUrl: string; permissionLevel: string }[] }) : null;
+    sites = (j?.siteEntry ?? []).filter((x) => x.permissionLevel !== "siteUnverifiedUser").map((x) => x.siteUrl);
+  }
   await db().from("sdr_integrations").upsert({
     key: kind,
-    value: { refresh_token: t.refresh_token, connected_at: new Date().toISOString(), ...(email ? { email } : {}) },
+    value: { refresh_token: t.refresh_token, connected_at: new Date().toISOString(), ...(email ? { email } : {}), ...(sites ? { sites } : {}) },
     updated_at: new Date().toISOString(),
   });
   cache.delete(kind);
-  return { email };
+  return { email, sites };
 }
 
 const cache = new Map<GoogleKind, { token: string; exp: number }>();
@@ -106,7 +117,9 @@ export async function accessToken(kind: GoogleKind = "google"): Promise<string> 
   const refresh = (row.data?.value as { refresh_token?: string } | undefined)?.refresh_token;
   if (!refresh) {
     throw new Error(
-      kind === "gmail"
+      kind === "searchconsole"
+        ? "Google Search Console não conectado. Conecte pelo portal em Marketing > SEO e orgânico."
+        : kind === "gmail"
         ? "Gmail não conectado. Acesse /api/google/connect?secret=ADMIN_SECRET&tipo=gmail"
         : "Google Agenda não conectado. Acesse /api/google/connect?secret=ADMIN_SECRET",
     );
