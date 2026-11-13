@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
       { source: "/portfolio/eventos", destination: "/portfolioeventos/index.html" },
       { source: "/portfolioservicos", destination: "/portfolioservicos/index.html" },
       { source: "/portfolio/servicos", destination: "/portfolioservicos/index.html" },
+      // Propostas comerciais exclusivas por cliente (arquivo estático em public/proposta/<cliente>, sem indexação)
+      { source: "/proposta/:cliente", destination: "/proposta/:cliente/index.html" },
       ],
       fallback: [],
     };
