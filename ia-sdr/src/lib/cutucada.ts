@@ -3,7 +3,7 @@
  * em 1 hora (seg a sex 8h às 18h, sábado até meio-dia), a Gabi manda UMA cutucada: "Oi! Fico no aguardo do atendimento por aqui 😊".
  * Depois disso, quem cuida são os follow-ups (7 em até 14 dias, só WhatsApp).
  */
-import { addMessage, db, leadDoTelefone, logEvent, ultimoEvento, updateLead } from "./db.ts";
+import { addMessage, db, leadDoTelefone, logEvent, ultimoEvento, updateLead, upsertLeadByPhone } from "./db.ts";
 import { destination, sendText } from "./evolution.ts";
 import { horarioProspeccaoV2, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { FLUXO_V2_DESDE } from "./prospeccao.ts";
@@ -24,7 +24,10 @@ export async function runCutucadas(now = new Date()) {
     .limit(30);
   let enviadas = 0;
   for (const o of (data ?? []) as { place_id: string; empresa: string; whatsapp: string; wa_sent_at: string }[]) {
-    const lead = await leadDoTelefone(o.whatsapp).catch(() => null);
+    // Quem nunca respondeu pode não ter ficha na Gabi: o WhatsApp devolve o envio como LID e o registro
+    // caía num número interno (13/11: Clínica Ito, Baronesa, Ivone... ficaram sem cutucada). Cria pela ficha do disparo.
+    const tel = (o.whatsapp ?? "").replace(/\D/g, "");
+    const lead = (await leadDoTelefone(o.whatsapp).catch(() => null)) ?? (tel ? await upsertLeadByPhone(tel, `${tel}@s.whatsapp.net`).catch(() => null) : null);
     if (!lead || lead.ai_paused || lead.status === "opt_out") continue;
     if (await ultimoEvento(lead.id, "cutucada").catch(() => null)) continue;
     // Respondeu depois do 1º contato (gente de verdade, não robô)? Não cutuca
