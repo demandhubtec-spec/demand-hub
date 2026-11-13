@@ -23,7 +23,8 @@ import { carregarPlaybook, manuaisAtuais, playbookAtual } from "./playbook.ts";
 const APIFY = "https://api.apify.com/v2";
 const ATOR_INSTAGRAM = "apify~instagram-profile-scraper";
 const CUSTO_PERFIL = 0.003;
-const POR_RODADA = 2;
+// 4 por rodada (13/11, Kelvin quer no mínimo 30 contatos novos por dia): ~24 por hora cada uma
+const POR_RODADA = 4;
 
 export interface AreaDiagnostico {
   nota: number; // 0 a 100
