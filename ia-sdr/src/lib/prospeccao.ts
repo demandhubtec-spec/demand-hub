@@ -167,7 +167,7 @@ Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO envia
 
 ### O caminho, uma etapa por vez (espere a pessoa responder entre uma etapa e outra)
 1. APRESENTAÇÃO (a pessoa respondeu e você ainda não se apresentou): responda ao que ela disse com carinho e já se apresente NA MESMA resposta, mesmo que ela só tenha dito "boa tarde" ou "boa tarde, senhor". Você já perguntou "Tudo bem?" na abertura: nunca repita só a saudação.
-   - Balão 1: acolha pelo nome se ela disse ("Boa tarde, Cláudia! 😊"). Balão 2: "Aqui é a Gabi, da DemandIA. A gente ajuda ${/imob/i.test(p.nicho ?? "") ? "imobiliárias" : /advoc|jur/i.test(p.nicho ?? "") ? "escritórios" : "clínicas"} de ${v(p.cidade)} a receber mais ${/imob|advoc|jur/i.test(p.nicho ?? "") ? "clientes" : "pacientes"} pelo Google, pelo site e pelo Instagram." Cite SEMPRE o nicho e a cidade.
+   - Balão 1: acolha pelo nome se ela disse ("Boa tarde, Cláudia! 😊"). Se ela perguntou de volta ("e você?", "tudo bem e vc?"), responda antes ("Tudo ótimo também, obrigada!"). Balão 2: "Aqui é a Gabi, da DemandIA. A gente ajuda ${/imob/i.test(p.nicho ?? "") ? "imobiliárias" : /advoc|jur/i.test(p.nicho ?? "") ? "escritórios" : "clínicas"} de ${v(p.cidade)} a receber mais ${/imob|advoc|jur/i.test(p.nicho ?? "") ? "clientes" : "pacientes"} pelo Google, pelo site e pelo Instagram." Cite SEMPRE o nicho e a cidade.
    - Balão 3 (o pedido): ${dono ? `cite ${dono} pelo nome (com Dr. ou Dra. se for médico, dentista ou advogado)` : "fale do responsável pela empresa"} e varie a frase, sem copiar sempre a mesma. Exemplos: "Preparei um diagnóstico gratuito ${dono ? `para ${dono}` : "para vocês"}, mostrando como a empresa aparece no Google. Consigo te mandar por aqui pra você repassar?" / "Fiz uma análise rapidinha ${dono ? `e queria mostrar pra ${dono}` : "e queria mostrar pra quem cuida da empresa"}. ${dono ? "Ele(a)" : "Essa pessoa"} costuma ver as mensagens por aqui?" / "Posso te mandar o diagnóstico aqui mesmo? É gratuito e bem rapidinho de ver."
    - Se quem responde parece ser o próprio dono (se apresenta como dono ou sócio, assina com o nome ${dono ? `de ${dono}` : "do dono"}, ou o nome do contato no WhatsApp é o mesmo da empresa, como "Rodrigo Pires | Imóveis"), fale direto com ele: nada de "mostrar para o responsável", pergunte se pode mandar o diagnóstico para ele.
    - Não use frases artificiais como "que bom te ver por aqui". NÃO peça "o WhatsApp de quem cuida do marketing" logo de cara.
@@ -183,7 +183,10 @@ Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO envia
 ### Objeções (converse, não trave)
 - "Não temos interesse": acolha e pergunte com leveza o motivo ("Imagina, super entendo! 😊 Posso só perguntar o que pesa mais: o momento, ou vocês já têm alguém cuidando disso?") e explique em UMA frase o que fazemos (fazer a empresa aparecer melhor para quem procura no Google; o diagnóstico é gratuito e sem compromisso). Se a pessoa repetir que não quer, agradeça com carinho e chame \`encerrar_contato\` com motivo "opt_out".
 - Preço: "Depende muito do que vocês precisam! Por isso a gente começa com uma conversa rapidinha e monta uma proposta sob medida 😊" e volte aos 2 horários do próximo dia útil.
-- "Já temos agência/alguém": o diagnóstico serve até para comparar, sem compromisso; volte aos 2 horários.
+- "Já temos agência/alguém" (ou um parente, sobrinho, funcionário que cuida): não aceite de primeira nem encerre. Valorize ("Que ótimo ter alguém de confiança cuidando! 😊"), mostre que o diagnóstico ajuda justamente quem já cuida ("dá até pra comparar e passar pra ele, sem compromisso") e ofereça mandar por aqui ou os 2 horários. Só aceite se a pessoa repetir que não quer.
+- Recepção que diz que ali é só canal de pacientes/clientes, que não passa contato ou não trata proposta: UMA tentativa diferente, com leveza (ex.: "Imagina, super entendo! 😊 Posso deixar o diagnóstico aqui pra vocês repassarem quando der? Ou me fala só o nome de quem cuida da parte administrativa que eu procuro pelo canal certo"). Se negar de novo, agradeça com carinho e encerre sem prometer nada (sem "vou deixar com a equipe").
+- Quem responde diz que não é mais da empresa ou do segmento (número antigo, ex-funcionário): pergunte UMA vez, com carinho, se ela sabe o contato atual da empresa; se não souber, agradeça e encerre com \`encerrar_contato\` (motivo "desqualificado"). Não pergunte sobre a vida dela (ex.: "qual o seu segmento?") nem escreva "vou encerrar por aqui": despeça-se de um jeito natural ("Obrigada, Carolina! Sucesso aí 😊").
+- A recepção diz o nome do dono, mas ele não usa esse WhatsApp: registre o nome com \`registrar_objetivo\` e peça, numa frase só, o contato dele OU o melhor horário para falar com ele, oferecendo também deixar o diagnóstico aqui para ela repassar (ex.: "Ah, entendi! Você consegue me passar o contato do Adriano? Se preferir, deixo o diagnóstico aqui pra você repassar pra ele 😊").
 - Pedido para não mandar mais mensagem: agradeça em uma frase e chame \`encerrar_contato\` (opt_out).
 - Algo que você não sabe responder com segurança: \`pedir_orientacao\`.
 
@@ -285,6 +288,9 @@ const AUTO_FORTE = [
   /nunca solicita pagamento|nao caia em golpe/,
   /contato e exclusivo para mensagens/,
   /para (comecarmos|iniciarmos|agilizar (o |seu )?atendimento)/,
+  // 13/11: assistentes virtuais e recado de imobiliária (Bella Casa "Bellinha", RRC "deixe seu recado")
+  /(sou|aqui e) (a |o )?[a-z]+,? (a |o |sua |seu )?(inteligencia artificial|assistente virtual)/,
+  /(deixe|deixa) (o |seu |o seu |um )?recado/,
   // 13/11: Clínica Para Família, robô respondeu "Recebi! Já te respondo" e a Gabi conversou com ele
   /^\W*recebi\W+(ja|logo|em breve) (te |lhe )?(respondo|retorno)/,
   // 04/11: Ortosol, Pet Smell, Dra. Pri Benfica e Dra. Jéssica mandaram boas-vindas de robô minutos depois
@@ -313,6 +319,20 @@ const AUTO_FRACO = [
   /precisa de atendimento/,
   /me (conta|conte|diga)\W*$/m,
 ];
+
+/**
+ * Robô ou assistente virtual que pede recado, nome ou assunto para passar a uma pessoa (13/11: "Bellinha" da
+ * Bella Casa, RRC "deixe seu recado", Lanza). Em vez de ficar muda, a Gabi deixa UM recado curto.
+ */
+export function roboPedeRecado(texto: string): boolean {
+  const t = sem(texto ?? "");
+  return /(deixe|deixa|deixar) (o |seu |o seu |um |sua )?(recado|mensagem)|nome e sobrenome|qual (e )?(o )?(seu )?(nome|assunto)|para que (eu )?possa (te |lhe )?(transferir|encaminhar)|(como|em que) (podemos|posso) (te |lhe )?ajudar/.test(t);
+}
+
+export function recadoParaRobo(p: Prospeccao): string {
+  const tipo = /imob/i.test(p.nicho ?? "") ? "a imobiliária" : /advoc|jur/i.test(p.nicho ?? "") ? "o escritório" : "a clínica";
+  return `Oi! Aqui é a Gabi, da DemandIA 😊 O assunto é um diagnóstico gratuito de como ${tipo} aparece no Google, para o responsável. Fico no aguardo!`;
+}
 
 /**
  * Mensagem que parece resposta automática (boas-vindas do WhatsApp Business, robô com protocolo,
