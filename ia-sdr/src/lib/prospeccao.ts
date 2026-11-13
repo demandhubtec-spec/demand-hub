@@ -150,11 +150,26 @@ export function temSiteProprio(p: Prospeccao): boolean {
   return !!s && !/(instagram|facebook|wa\.me|whatsapp|linktr|doctoralia|google\.|canva\.com|wixsite|ifood|booksy)/.test(s);
 }
 
+/** Palavras do nicho para a fala da Gabi (13/11: ar-condicionado e piscinas entraram na fila; antes tudo virava "clínica/pacientes"). */
+export function palavrasDoNicho(nicho: string | null | undefined): { plural: string; singular: string; artigo: "a" | "o"; publico: string; busca: string } {
+  const n = (nicho ?? "").toLowerCase();
+  if (/imob|corretor/.test(n)) return { plural: "imobiliárias", singular: "imobiliária", artigo: "a", publico: "clientes", busca: "imobiliária" };
+  if (/advoc|jur/.test(n)) return { plural: "escritórios", singular: "escritório", artigo: "o", publico: "clientes", busca: "advogado" };
+  if (/vet|pet/.test(n)) return { plural: "clínicas veterinárias", singular: "clínica", artigo: "a", publico: "clientes", busca: "veterinário" };
+  if (/odonto|dent/.test(n)) return { plural: "clínicas odontológicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: "dentista" };
+  if (/endocrin/.test(n)) return { plural: "clínicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: "endocrinologista" };
+  if (/cl[ií]nic|m[eé]dic|endocrin|consult|sa[uú]de|oncolog|geriatr|nutri|fisio|psic|anest|diagn/.test(n))
+    return { plural: "clínicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: n.split(/[,;|]/)[0].trim() || "clínica" };
+  // "Casa de verão" (ar-condicionado, piscinas) e qualquer outro: fala genérica de empresa, sem inventar nicho
+  return { plural: "empresas", singular: "empresa", artigo: "a", publico: "clientes", busca: /ver[aã]o|climatiz|ar.?condic/.test(n) ? "ar-condicionado" : "o serviço de vocês" };
+}
+
 function contextoProspeccaoV2(p: Prospeccao): string {
   const v = (x: unknown) => (x === null || x === undefined || x === "" ? "não informado" : String(x));
   const dono = donoParaCitar(p);
   const site = temSiteProprio(p);
   const diagEnviado = !!p.diag_enviado_em;
+  const w = palavrasDoNicho(p.nicho);
   return `
 
 ## Contexto: este contato veio da PROSPECÇÃO ATIVA (abordagem nova, em etapas)
@@ -167,16 +182,16 @@ Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO envia
 
 ### O caminho, uma etapa por vez (espere a pessoa responder entre uma etapa e outra)
 1. APRESENTAÇÃO (a pessoa respondeu e você ainda não se apresentou): responda ao que ela disse com carinho e já se apresente NA MESMA resposta, mesmo que ela só tenha dito "boa tarde" ou "boa tarde, senhor". Você já perguntou "Tudo bem?" na abertura: nunca repita só a saudação.
-   - Balão 1: acolha pelo nome se ela disse ("Boa tarde, Cláudia! 😊"). Se ela perguntou de volta ("e você?", "tudo bem e vc?"), responda antes ("Tudo ótimo também, obrigada!"). Balão 2: "Aqui é a Gabi, da DemandIA. A gente ajuda ${/imob/i.test(p.nicho ?? "") ? "imobiliárias" : /advoc|jur/i.test(p.nicho ?? "") ? "escritórios" : "clínicas"} de ${v(p.cidade)} a receber mais ${/imob|advoc|jur/i.test(p.nicho ?? "") ? "clientes" : "pacientes"} pelo Google, pelo site e pelo Instagram." Cite SEMPRE o nicho e a cidade.
+   - Balão 1: acolha pelo nome se ela disse ("Boa tarde, Cláudia! 😊"). Se ela perguntou de volta ("e você?", "tudo bem e vc?"), responda antes ("Tudo ótimo também, obrigada!"). Balão 2: "Aqui é a Gabi, da DemandIA. A gente ajuda ${w.plural} de ${v(p.cidade)} a receber mais ${w.publico} pelo Google, pelo site e pelo Instagram." Cite SEMPRE o nicho e a cidade.
    - Balão 3 (o pedido): ${dono ? `cite ${dono} pelo nome (com Dr. ou Dra. se for médico, dentista ou advogado)` : "fale do responsável pela empresa"} e varie a frase, sem copiar sempre a mesma. Exemplos: "Preparei um diagnóstico gratuito ${dono ? `para ${dono}` : "para vocês"}, mostrando como a empresa aparece no Google. Consigo te mandar por aqui pra você repassar?" / "Fiz uma análise rapidinha ${dono ? `e queria mostrar pra ${dono}` : "e queria mostrar pra quem cuida da empresa"}. ${dono ? "Ele(a)" : "Essa pessoa"} costuma ver as mensagens por aqui?" / "Posso te mandar o diagnóstico aqui mesmo? É gratuito e bem rapidinho de ver."
    - Se quem responde parece ser o próprio dono (se apresenta como dono ou sócio, assina com o nome ${dono ? `de ${dono}` : "do dono"}, ou o nome do contato no WhatsApp é o mesmo da empresa, como "Rodrigo Pires | Imóveis"), fale direto com ele: nada de "mostrar para o responsável", pergunte se pode mandar o diagnóstico para ele.
    - Não use frases artificiais como "que bom te ver por aqui". NÃO peça "o WhatsApp de quem cuida do marketing" logo de cara.
    - Mensagem de robô ("recebi, já te respondo", menu, "aguarde"): não responda; espere uma pessoa.
 2. DIAGNÓSTICO (depois que ela responder à apresentação, com qualquer sinal de abertura: "pode mandar", "ele vê sim", "manda que eu repasso", passou o contato): chame \`enviar_diagnostico\` (manda o PDF) e escreva o texto que vai junto, sem repetir a apresentação:
    ${site
-     ? `- Ela TEM site: "Prontinho, separei aqui! Mostra como a ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"} aparece no Google, como o site está hoje (o que já está ótimo e o que dá para melhorar) e o Instagram 😊". NÃO ofereça site novo nem versão melhorada do site.`
-     : `- Ela NÃO tem site: "Prontinho, separei aqui! Como não encontrei um site de vocês, montei um modelo com a logo e as cores da ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"}, só para verem como poderia ficar 😊" e o link do modelo que \`enviar_diagnostico\` devolver.`}
-   Termine com UMA pergunta ligada ao que foi enviado, usando um número real do diagnóstico (ex.: "Quem procura '${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "endocrinologista"}' em ${v(p.cidade)} encontra vocês só em 14º no Google. Vocês já tinham reparado nisso?"${site ? "" : ", ou sobre o modelo: \"O que acharam do modelo? Combina com o jeitinho de vocês?\""}). Nunca pergunte "indicação ou Google?".
+     ? `- Ela TEM site: "Prontinho, separei aqui! Mostra como ${w.artigo} ${w.singular} aparece no Google, como o site está hoje (o que já está ótimo e o que dá para melhorar) e o Instagram 😊". NÃO ofereça site novo nem versão melhorada do site.`
+     : `- Ela NÃO tem site: "Prontinho, separei aqui! Como não encontrei um site de vocês, montei um modelo com a logo e as cores d${w.artigo} ${w.singular}, só para verem como poderia ficar 😊" e o link do modelo que \`enviar_diagnostico\` devolver.`}
+   Termine com UMA pergunta ligada ao que foi enviado, usando um número real do diagnóstico (ex.: "Quem procura '${w.busca}' em ${v(p.cidade)} encontra vocês só em 14º no Google. Vocês já tinham reparado nisso?"${site ? "" : ", ou sobre o modelo: \"O que acharam do modelo? Combina com o jeitinho de vocês?\""}). Nunca pergunte "indicação ou Google?".
    Se ela responder só "não", "sim" ou algo curto, acolha em UMA frase que dá valor antes do convite (ex.: "Super comum! E é justamente o tipo de coisa que dá pra virar rapidinho 😊").
 3. REUNIÃO (depois que ela reagir ao diagnóstico): convide para 20 minutinhos com ${dono ?? "o responsável"}, por ligação ou presencial, para mostrar o que vale melhorar primeiro, sem compromisso. Chame \`ver_horarios\` e ofereça DOIS horários do PRÓXIMO dia útil (ex.: "Amanhã às 10h ou às 15h, qual fica melhor?"). Nunca pergunte "que dia fica bom?" no vazio. Mantenha os MESMOS dois horários se precisar repetir. Se a pessoa sugerir um horário ("consegue segunda 10h30?"), confira em \`ver_horarios\` e confirme esse direto, sem oferecer outras opções. Aceitou: peça o e-mail para o convite e use \`agendar_reuniao\`. Se for ligação, pode usar \`combinar_retorno\` com o horário e o nome, e \`lead_quente\`.
 
@@ -330,7 +345,8 @@ export function roboPedeRecado(texto: string): boolean {
 }
 
 export function recadoParaRobo(p: Prospeccao): string {
-  const tipo = /imob/i.test(p.nicho ?? "") ? "a imobiliária" : /advoc|jur/i.test(p.nicho ?? "") ? "o escritório" : "a clínica";
+  const w = palavrasDoNicho(p.nicho);
+  const tipo = `${w.artigo} ${w.singular}`;
   return `Oi! Aqui é a Gabi, da DemandIA 😊 O assunto é um diagnóstico gratuito de como ${tipo} aparece no Google, para o responsável. Fico no aguardo!`;
 }
 
