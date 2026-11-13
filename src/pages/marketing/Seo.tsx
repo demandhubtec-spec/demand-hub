@@ -19,7 +19,9 @@ import { cn } from "@/lib/utils";
  *  - Google: palavras-chave, posição, impressões e cliques (Google Search Console, sincronizado todo dia).
  *  - Origem das visitas: de onde vêm as visitas do site e do diagnóstico (rastreador próprio, lp_eventos).
  *  - Presença nas IAs: toda segunda o sistema pergunta ao ChatGPT e registra se a DemandIA foi citada.
- * Só o dono vê. Dados pelas funções seo_resumo, seo_origens e seo_ia_resumo (migração 0033).
+ *  - Em cada palavra: posição média e em que página do Google o site aparece; palavras-alvo fixas e o plano
+ *    da semana (o que fazer para subir), gerado toda segunda pelo servidor da Ana.
+ * Só o dono vê. Dados pelas funções seo_resumo, seo_origens, seo_ia_resumo (0033) e seo_ranking (0034).
  */
 
 const PERIODOS = [
@@ -51,6 +53,34 @@ interface ResumoGoogle {
   por_dia?: { dia: string; cliques: number; impressoes: number; posicao: number | null }[];
   consultas?: Consulta[];
   paginas?: { pagina: string; cliques: number; impressoes: number; ctr: number | null; posicao: number | null }[];
+}
+interface Alvo {
+  id: string;
+  palavra: string;
+  ativa: boolean;
+  cliques: number;
+  impressoes: number;
+  posicao: number | null;
+  posicao_ant: number | null;
+  pagina_google: number | null;
+  busca: string | null;
+  buscas: number;
+}
+interface ItemPlano {
+  prioridade: "alta" | "média" | "baixa";
+  titulo: string;
+  porque: string;
+  como: string[];
+  pagina?: string;
+  palavra?: string;
+}
+interface Ranking {
+  de: string;
+  ate: string;
+  tem_dados: boolean;
+  alvos: Alvo[];
+  oportunidades: { consulta: string; impressoes: number; cliques: number; posicao: number; pagina_google: number; pagina: string | null }[];
+  plano: { criado_em: string; resumo: string | null; itens: ItemPlano[] } | null;
 }
 interface Origens {
   visitas_site: number;
@@ -124,6 +154,16 @@ function useResumoGoogle(dias: number) {
       const { data, error } = await supabase.rpc("seo_resumo", { p_dias: dias });
       if (error) throw error;
       return data as ResumoGoogle;
+    },
+  });
+}
+function useRanking(dias: number) {
+  return useQuery({
+    queryKey: ["seo_ranking", dias],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc("seo_ranking", { p_dias: dias });
+      if (error) throw error;
+      return data as Ranking;
     },
   });
 }
@@ -232,7 +272,8 @@ function AbaGoogle({ dias }: { dias: number }) {
 
   if (!r.conectado) {
     return (
-      <Card className="p-6 px-[22px]">
+      <>
+      <Card className="mb-[22px] p-6 px-[22px]">
         <div className="text-[15px] font-semibold">Conectar o Google Search Console</div>
         <div className="mt-1.5 max-w-[640px] text-[13px] text-muted">
           É de onde vêm as palavras-chave, a posição do site no Google, as impressões e os cliques. Clique no botão, entre com a conta{" "}
@@ -242,12 +283,15 @@ function AbaGoogle({ dias }: { dias: number }) {
           Conectar Google Search Console
         </Button>
       </Card>
+      <RankingEPlano dias={dias} />
+      </>
     );
   }
 
   if (!r.ultimo_dia) {
     return (
-      <Card className="p-6 px-[22px]">
+      <>
+      <Card className="mb-[22px] p-6 px-[22px]">
         <div className="text-[15px] font-semibold">Google conectado</div>
         <div className="mt-1.5 max-w-[640px] text-[13px] text-muted">
           Ainda não há dados guardados. O Google costuma mostrar os primeiros números alguns dias depois que o site é verificado. Dá para puxar agora:
@@ -256,6 +300,8 @@ function AbaGoogle({ dias }: { dias: number }) {
           {sincronizar.isPending ? "Buscando no Google…" : "Buscar dados agora"}
         </Button>
       </Card>
+      <RankingEPlano dias={dias} />
+      </>
     );
   }
 
@@ -288,6 +334,8 @@ function AbaGoogle({ dias }: { dias: number }) {
         <KpiCard index={4} label="Palavras-chave" value={num(r.palavras)} delta={`${top10} na 1ª página`} />
       </div>
 
+      <RankingEPlano dias={dias} />
+
       <Card className="mb-[22px] p-5 px-[22px]">
         <div className="text-sm font-semibold">Cliques e impressões por dia</div>
         <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Barras: impressões (quantas vezes o site apareceu) · linha: cliques</div>
@@ -315,6 +363,7 @@ function AbaGoogle({ dias }: { dias: number }) {
                     <Th>Impressões</Th>
                     <Th>CTR</Th>
                     <Th>Posição</Th>
+                    <Th>Página do Google</Th>
                   </tr>
                 </thead>
                 <tbody>
@@ -326,6 +375,9 @@ function AbaGoogle({ dias }: { dias: number }) {
                       <Td>{c.ctr == null ? "–" : fmtPct(c.ctr)}</Td>
                       <Td>
                         <Posicao atual={c.posicao} antes={c.posicao_ant} />
+                      </Td>
+                      <Td>
+                        <PaginaGoogle posicao={c.posicao} />
                       </Td>
                     </tr>
                   ))}
@@ -347,6 +399,7 @@ function AbaGoogle({ dias }: { dias: number }) {
                   <Th>Cliques</Th>
                   <Th>Impr.</Th>
                   <Th>Posição</Th>
+                  <Th>Página</Th>
                 </tr>
               </thead>
               <tbody>
@@ -360,6 +413,222 @@ function AbaGoogle({ dias }: { dias: number }) {
                     <Td>{num(p.cliques)}</Td>
                     <Td>{num(p.impressoes)}</Td>
                     <Td>{dec(p.posicao)}</Td>
+                    <Td>
+                      <PaginaGoogle posicao={p.posicao} curto />
+                    </Td>
+                  </tr>
+                ))}
+              </tbody>
+            </TableWrap>
+          )}
+        </Card>
+      </div>
+    </>
+  );
+}
+
+/** Em que página do Google a posição cai (posição 1 a 10 = 1ª página, 11 a 20 = 2ª...). */
+function PaginaGoogle({ posicao, curto }: { posicao: number | null; curto?: boolean }) {
+  if (posicao == null) return <span className="text-[11.5px] text-muted">{curto ? "–" : "ainda não aparece"}</span>;
+  const pg = Math.max(1, Math.ceil(posicao / 10));
+  const cls =
+    pg === 1 ? "bg-positive-tint text-positive" : pg === 2 ? "bg-amber-500/15 text-amber-300" : "bg-surface-2 text-muted";
+  return <span className={cn("whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-semibold", cls)}>{curto ? `${pg}ª` : `${pg}ª página`}</span>;
+}
+
+const COR_PRIORIDADE: Record<string, string> = {
+  alta: "bg-negative-tint text-negative",
+  média: "bg-amber-500/15 text-amber-300",
+  baixa: "bg-surface-2 text-muted",
+};
+
+/** Palavras-alvo (onde o site está no Google), oportunidades perto da 1ª página e o plano da semana. */
+function RankingEPlano({ dias }: { dias: number }) {
+  const q = useRanking(dias);
+  const qc = useQueryClient();
+  const { showToast } = useToast();
+  const [nova, setNova] = React.useState("");
+  const recarregar = () => qc.invalidateQueries({ queryKey: ["seo_ranking"] });
+
+  const plano = useMutation({
+    mutationFn: () => chamarSdr<{ itens: number }>("/api/seo", { acao: "plano" }),
+    onSuccess: (r) => {
+      showToast(`Plano da semana pronto: ${r.itens} ações.`);
+      recarregar();
+    },
+    onError: (e) => showToast(`Não deu: ${(e as Error).message}`),
+  });
+  const adicionar = useMutation({
+    mutationFn: async (palavra: string) => {
+      const { error } = await supabase.from("seo_palavras_alvo").insert({ palavra: palavra.toLowerCase() });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNova("");
+      recarregar();
+    },
+    onError: (e) => showToast(`Não deu: ${(e as Error).message}`),
+  });
+  const alternar = useMutation({
+    mutationFn: async (a: Alvo) => {
+      const { error } = await supabase.from("seo_palavras_alvo").update({ ativa: !a.ativa }).eq("id", a.id);
+      if (error) throw error;
+    },
+    onSuccess: recarregar,
+  });
+
+  if (q.isError) return <EmptyState>Não deu para carregar o ranking. Confira se a migração 0034 já foi rodada no banco.</EmptyState>;
+  if (!q.data) return null;
+  const r = q.data;
+  const ativas = r.alvos.filter((a) => a.ativa);
+  const naPrimeira = ativas.filter((a) => a.pagina_google === 1).length;
+
+  return (
+    <>
+      <Card className="mb-[22px] p-5 px-[22px]">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <div className="text-sm font-semibold">Palavras-alvo: onde o site aparece no Google</div>
+            <div className="mt-0.5 text-[11.5px] text-muted">
+              Posição média e página do Google ({r.tem_dados ? `${dataBR(r.de)} a ${dataBR(r.ate)}` : "ainda sem dados do Google"}) ·{" "}
+              {naPrimeira} de {ativas.length} na 1ª página · posição 1 a 10 = 1ª página, 11 a 20 = 2ª página
+            </div>
+          </div>
+        </div>
+        <div className="mt-3">
+          <TableWrap>
+            <thead>
+              <tr>
+                <Th>Palavra-alvo</Th>
+                <Th>Página do Google</Th>
+                <Th>Posição</Th>
+                <Th>Impressões</Th>
+                <Th>Cliques</Th>
+                <Th>Busca que mais aparece</Th>
+                <Th> </Th>
+              </tr>
+            </thead>
+            <tbody>
+              {r.alvos.map((a) => (
+                <tr key={a.id} className={cn(!a.ativa && "opacity-50")}>
+                  <Td wrap>
+                    <span className="font-medium">{a.palavra}</span>
+                  </Td>
+                  <Td>
+                    <PaginaGoogle posicao={a.posicao} />
+                  </Td>
+                  <Td>
+                    <Posicao atual={a.posicao} antes={a.posicao_ant} />
+                  </Td>
+                  <Td>{num(a.impressoes)}</Td>
+                  <Td>{num(a.cliques)}</Td>
+                  <Td wrap>
+                    <span className="text-[12px] text-muted">{a.busca ? (a.buscas > 1 ? `${a.busca} (+${a.buscas - 1})` : a.busca) : "–"}</span>
+                  </Td>
+                  <Td>
+                    <button className="text-[11.5px] text-muted hover:text-foreground" onClick={() => alternar.mutate(a)}>
+                      {a.ativa ? "Pausar" : "Voltar"}
+                    </button>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </TableWrap>
+        </div>
+        <form
+          className="mt-3 flex gap-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (nova.trim().length > 2) adicionar.mutate(nova.trim());
+          }}
+        >
+          <Input value={nova} onChange={(e) => setNova(e.target.value)} placeholder="Nova palavra-alvo, do jeito que o cliente busca no Google (ex.: crm para clínicas)" />
+          <Button type="submit" variant="ghost" disabled={adicionar.isPending || nova.trim().length <= 2}>
+            Adicionar
+          </Button>
+        </form>
+      </Card>
+
+      <div className="mb-[22px] grid grid-cols-1 gap-3.5 2xl:grid-cols-[1.5fr_1fr]">
+        <Card className="p-5 px-[22px]">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold">O que fazer para subir no Google e nas IAs</div>
+              <div className="mt-0.5 text-[11.5px] text-muted">
+                Toda segunda o sistema analisa as posições, as palavras-alvo, o site e o ChatGPT e monta as ações da semana.
+                {r.plano ? ` Último plano: ${dataBR(r.plano.criado_em)}.` : ""}
+              </div>
+            </div>
+            <Button size="sm" onClick={() => plano.mutate()} disabled={plano.isPending}>
+              {plano.isPending ? "Analisando…" : r.plano ? "Gerar de novo" : "Gerar plano agora"}
+            </Button>
+          </div>
+          {!r.plano ? (
+            <div className="mt-3">
+              <EmptyState>Ainda sem plano. Clique em "Gerar plano agora" (leva uns 30 segundos).</EmptyState>
+            </div>
+          ) : (
+            <>
+              {r.plano.resumo && <div className="mt-3 text-[13px] leading-relaxed">{r.plano.resumo}</div>}
+              <div className="mt-3 flex flex-col gap-2.5">
+                {r.plano.itens.map((it, i) => (
+                  <div key={i} className="rounded-[10px] border border-border p-3.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-[13.5px] font-semibold">
+                        {i + 1}. {it.titulo}
+                      </div>
+                      <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold", COR_PRIORIDADE[it.prioridade] ?? COR_PRIORIDADE.média)}>
+                        {it.prioridade}
+                      </span>
+                    </div>
+                    <div className="mt-1 text-[12.5px] text-muted">{it.porque}</div>
+                    {it.como.length > 0 && (
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-[12.5px]">
+                        {it.como.map((c, j) => (
+                          <li key={j}>{c}</li>
+                        ))}
+                      </ul>
+                    )}
+                    {(it.palavra || it.pagina) && (
+                      <div className="mt-2 text-[11.5px] text-muted">
+                        {it.palavra && <>Palavra: <b className="text-ink">{it.palavra}</b></>}
+                        {it.palavra && it.pagina && " · "}
+                        {it.pagina && <>Página: {it.pagina.replace(/^https?:\/\/(www\.)?demandhub\.com\.br/, "") || "/"}</>}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+
+        <Card className="p-5 px-[22px]">
+          <div className="text-sm font-semibold">Quase na 1ª página</div>
+          <div className="mb-3 mt-0.5 text-[11.5px] text-muted">
+            Buscas entre a posição 4 e 20. São as que mais valem o esforço: subir poucas posições já traz cliques.
+          </div>
+          {r.oportunidades.length === 0 ? (
+            <EmptyState>{r.tem_dados ? "Nenhuma busca nessa faixa no período." : "Aparece aqui quando o Google começar a mostrar dados."}</EmptyState>
+          ) : (
+            <TableWrap>
+              <thead>
+                <tr>
+                  <Th>Busca</Th>
+                  <Th>Posição</Th>
+                  <Th>Impr.</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.oportunidades.map((o) => (
+                  <tr key={o.consulta}>
+                    <Td wrap>{o.consulta}</Td>
+                    <Td>
+                      <span className="inline-flex items-center gap-1.5">
+                        {dec(o.posicao)} <PaginaGoogle posicao={o.posicao} curto />
+                      </span>
+                    </Td>
+                    <Td>{num(o.impressoes)}</Td>
                   </tr>
                 ))}
               </tbody>
