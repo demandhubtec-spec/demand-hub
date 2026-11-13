@@ -4,7 +4,7 @@
  *   Evento: MESSAGE
  */
 import { waitUntil } from "@vercel/functions";
-import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, prospeccaoDoTelefone, telefoneDoLid } from "@/src/lib/prospeccao.ts";
+import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, prospeccaoDoTelefone, recadoParaRobo, roboPedeRecado, telefoneDoLid } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, ultimoEventoEm, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
@@ -13,7 +13,7 @@ import { env } from "@/src/lib/env.ts";
 import { SDR_CONFIG } from "@/src/config/sdr.ts";
 import { ehCliente, isBlocked } from "@/src/lib/bloqueio.ts";
 import { limparNomeDoPush } from "@/src/lib/nome.ts";
-import { parseWebhook, sendText, textoDosContatos } from "@/src/lib/evolution.ts";
+import { destination, parseWebhook, sendText, textoDosContatos } from "@/src/lib/evolution.ts";
 import { db } from "@/src/lib/db.ts";
 import { interpretarMidia } from "@/src/lib/midia.ts";
 import { emailsNoTexto, rascunhoDoEmailPassado } from "@/src/lib/rascunho-email.ts";
@@ -174,6 +174,17 @@ export async function POST(req: Request) {
           evolution_message_id: msg.id,
         });
         if (salvo) await logEvent(lead.id, "resposta_automatica");
+        // Robô pedindo recado/assunto: a Gabi deixa UM recado curto para chegar numa pessoa (v2)
+        if (salvo && ehFluxoV2(prospeccao) && !lead.ai_paused && roboPedeRecado(content) && !(await ultimoEvento(lead.id, "recado_robo").catch(() => null))) {
+          const recado = recadoParaRobo(prospeccao);
+          await logEvent(lead.id, "recado_robo");
+          try {
+            const id = await sendText(destination(lead), recado);
+            await addMessage({ lead_id: lead.id, direction: "out", author: "ia", content: recado, evolution_message_id: id });
+          } catch (e) {
+            console.error("recado para o robô falhou", e);
+          }
+        }
         return Response.json({ ok: true, ignorado: "resposta_automatica" });
       }
     }
