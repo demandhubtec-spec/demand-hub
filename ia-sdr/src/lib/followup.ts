@@ -59,3 +59,21 @@ export function addBusinessDays(from: Date, n: number, cfg: FollowCfg = SDR_CONF
   }
   return clampToBusinessTime(d, cfg);
 }
+
+/**
+ * Prospecção ativa, abordagem v2 (13/11/2026, Kelvin): 7 follow-ups em até 14 dias, só WhatsApp
+ * (dias 1, 2, 4, 6, 8, 11 e 14 depois do último contato), de segunda a sábado; sábado só de manhã.
+ */
+export const PROSPECCAO_V2: FollowCfg = {
+  ...SDR_CONFIG.followUp,
+  maxTentativas: 7,
+  intervalosDias: [1, 1, 2, 2, 2, 3, 3],
+  diasUteis: [1, 2, 3, 4, 5, 6],
+};
+
+/** Pode mandar mensagem da prospecção v2 agora? Seg a sex 8h às 18h; sábado 8h ao meio-dia. */
+export function horarioProspeccaoV2(date: Date): boolean {
+  if (!isBusinessTime(date, PROSPECCAO_V2)) return false;
+  const l = toLocal(date);
+  return l.dow !== 6 || minutesOfDay(l) < 12 * 60;
+}

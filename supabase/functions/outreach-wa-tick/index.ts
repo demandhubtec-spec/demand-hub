@@ -178,7 +178,21 @@ function nomeParaSaudar(lead: { decisor?: string | null; empresa?: string | null
 function saudacaoCurta(nome?: string) {
   const h = spHour();
   const periodo = h < 12 ? "bom dia" : h < 18 ? "boa tarde" : "boa noite";
-  return `${pick(["Oi", "Olá"])}, ${nome ? `${nome}, ` : ""}${periodo}! ${pick(["😊", "🙂", "👋"])}`;
+  // Kelvin (13/11): só 😊, nunca 🙂 ("cara de assustada") nem 👋
+  return `Oi, ${nome ? `${nome}, ` : ""}${periodo}! 😊`;
+}
+/**
+ * Abordagem v2 (13/11/2026, Kelvin): o 1º contato é só "Oi, boa tarde! 😊" e "Tudo bem?". A Gabi espera a
+ * pessoa responder; se ninguém responder em 1 hora, a IA SDR manda "Fico no aguardo do atendimento por aqui 😊".
+ * A apresentação, o diagnóstico (PDF) e o convite para a reunião vêm depois, um de cada vez, na conversa.
+ */
+async function enviarSoSaudacao(path: string, to: string) {
+  const oi = saudacaoCurta();
+  const r0 = await enviarBaloes(path, to, oi);
+  if (!r0.ok) return { r: r0, enviado: oi };
+  await sleep(rand(3500, 6000));
+  const r1 = await enviarBaloes(path, to, "Tudo bem?");
+  return { r: r1, enviado: `${oi}\n\nTudo bem?` };
 }
 const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
 /** Se a mensagem veio num bloco só, separa em 3 balões: Ana com o contexto, o conteúdo e a pergunta sozinha.
@@ -478,7 +492,7 @@ Deno.serve(async (req) => {
   }
 
   // 2) Abordagem nova (1º toque), até o teto diário de abordagens
-  if (sabado) return Response.json({ ...out, skip: "sabado_so_followup" });
+  // Sábado de manhã também sai contato novo (Kelvin, 13/11); depois do meio-dia já parou lá em cima
   if (tetoNovos) return Response.json({ ...out, skip: "teto_diario", count });
 
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
@@ -526,14 +540,10 @@ Deno.serve(async (req) => {
   // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
   const nome = nomeParaSaudar(lead, nomeWhats);
   PDF_DO_LEAD = pdfDoLead(lead);
-  // Com o áudio configurado, o 1º contato é "Oi" + "Tudo bem?" + áudio; a análise aprovada vira o próximo toque
-  // O áudio fala de clínica e paciente: só vai para os nichos marcados na configuração (vazio = todos)
-  const nichosAudio: string[] = Array.isArray(cfg.audio_abordagem_nichos) ? cfg.audio_abordagem_nichos : [];
-  const usarAudio = !!cfg.audio_abordagem_url && Array.isArray(lead.sequencia) && !!lead.sequencia[0]?.texto
-    && (!nichosAudio.length || nichosAudio.includes(lead.nicho));
-  const env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string } = usarAudio
-    ? await enviarAbordagemComAudio(cfg.evolution_send_path, to, nome, cfg, text)
-    : await enviarComSaudacao(cfg.evolution_send_path, to, nome, text);
+  // Abordagem v2: só a saudação e o "Tudo bem?" (sem texto, sem PDF, sem áudio)
+  const env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string } =
+    await enviarSoSaudacao(cfg.evolution_send_path, to);
+  void nome; void text;
   const comAudio = !!env.audio;
   if (env.erroAudio) await log(lead.place_id, "audio_erro", { erro: env.erroAudio });
   const r = env.r;
@@ -552,10 +562,8 @@ Deno.serve(async (req) => {
           cadencia: "ativa", cadencia_inicio: agora, toque_atual: 0, ultimo_toque_em: agora, ultimo_canal: "whatsapp",
           proximo_canal: lead.sequencia[0]?.canal || "whatsapp", proximo_toque_em: proximoDiaUtil930(),
         }).eq("place_id", lead.place_id).eq("cadencia", "nao_iniciada");
-      } else {
-        // Começa a cadência de follow-up (só para quem tem a sequência aprovada)
-        await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "enviado" });
       }
+      // Abordagem v2: sem a cadência antiga; os follow-ups agora são da Gabi (IA SDR), 7 em até 14 dias
     }
     await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, audio: comAudio, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
     return Response.json({ ...out, sent: lead.empresa, to, next: nextAt });

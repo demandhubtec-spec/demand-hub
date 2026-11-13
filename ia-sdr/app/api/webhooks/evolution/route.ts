@@ -4,7 +4,7 @@
  *   Evento: MESSAGE
  */
 import { waitUntil } from "@vercel/functions";
-import { ehDisparoDaProspeccao, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
+import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, ultimoEventoEm, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
@@ -159,7 +159,9 @@ export async function POST(req: Request) {
       const norm = (t: string) => t.replace(/^\[resposta automática\]\s*/, "").replace(/\s+/g, " ").trim().toLowerCase();
       const repetida = content.length > 25 && (await history(lead.id, 40).catch(() => []))
         .some((m) => m.direction === "in" && norm(m.content) === norm(content));
-      if (repetida || pareceRespostaAutomatica(msg.text ?? interpretado ?? "", seg)) {
+      // Abordagem v2: a recepção costuma responder "Boa tarde, em que posso ajudar?" na hora; isso é gente,
+      // não robô. Só os sinais fortes (protocolo, menu, "mensagem automática") contam como robô.
+      if (repetida || pareceRespostaAutomatica(msg.text ?? interpretado ?? "", ehFluxoV2(prospeccao) ? null : seg)) {
         const salvo = await addMessage({
           lead_id: lead.id,
           direction: "in",
@@ -236,7 +238,11 @@ export async function POST(req: Request) {
   if (!testeDoDono && (lead.ai_paused || lead.status === "opt_out")) return Response.json({ ok: true, ai: "pausada" });
   // Respondeu enquanto a abordagem ainda está saindo (saudação + apresentação): a apresentação já
   // termina com uma pergunta, então a Ana espera a próxima mensagem em vez de atropelar.
-  if (segDoDisparo !== null && segDoDisparo >= 0 && segDoDisparo < 45) return Response.json({ ok: true, ai: "aguardando_abordagem" });
+  // Abordagem v2 (só "Oi, boa tarde! / Tudo bem?"): não tem apresentação saindo, então a Gabi responde já
+  if (segDoDisparo !== null && segDoDisparo >= 0 && segDoDisparo < 45) {
+    const p = await prospeccaoDoTelefone(msg.phone).catch(() => null);
+    if (!ehFluxoV2(p)) return Response.json({ ok: true, ai: "aguardando_abordagem" });
+  }
 
   waitUntil(handleInbound(lead.id, saved.id));
   return Response.json({ ok: true });

@@ -13,6 +13,7 @@ import { rodarLeoComVez } from "@/src/lib/leo.ts";
 import { runRitaEDuda } from "@/src/lib/rita.ts";
 import { db } from "@/src/lib/db.ts";
 import { dispararRoboPdf } from "@/src/lib/robo-pdf.ts";
+import { runCutucadas } from "@/src/lib/cutucada.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -44,11 +45,13 @@ async function handler(req: Request) {
   const retomadas = followupsLigados ? await etapa(runRetomadas, 60_000) : desligado;
   // Quem pediu a demo da recepcionista e parou: cutucada (15 min) e retomada da Ana (2 h), no mesmo dia
   const demo = followupsLigados ? await etapa(runDemoAcompanhamento, 60_000) : desligado;
+  // Prospecção v2: "Fico no aguardo do atendimento" para quem não respondeu ao "Oi, tudo bem?" em 1 hora
+  const cutucadas = await etapa(runCutucadas, 60_000);
   const [leo, rita] = await fichas;
   // Robô do GitHub (logo e PDF do relatório): o agendamento do GitHub falha, então o relógio chama ele
   const robo_pdf = await etapa(dispararRoboPdf, 30_000);
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf });
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas });
 }
 
 export const GET = handler;

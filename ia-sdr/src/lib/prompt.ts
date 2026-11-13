@@ -1,8 +1,8 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import type { Lead, Meeting } from "./db.ts";
 import { manuaisAtuais, playbookAtual } from "./playbook.ts";
-import { formatBR } from "./time.ts";
-import { contextoProspeccao, type Prospeccao } from "./prospeccao.ts";
+import { formatBR, toLocal } from "./time.ts";
+import { contextoProspeccao, ehFluxoV2, type Prospeccao } from "./prospeccao.ts";
 import { contextoAnuncio, type OrigemAnuncio } from "./anuncio.ts";
 
 const C = SDR_CONFIG;
@@ -87,6 +87,32 @@ Foi VOCÊ quem procurou esta empresa, oferecendo um diagnóstico gratuito do per
 `;
 }
 
+/**
+ * Prospecção v2 (13/11/2026, Kelvin): conversa em etapas, tom meigo e carismático, objeções com jeitinho.
+ * O roteiro de cada etapa está no contexto da prospecção (contextoProspeccao).
+ */
+function conducaoProspeccaoV2(): string {
+  return `## Seu objetivo
+Foi VOCÊ quem chamou esta empresa. O objetivo é chegar até o dono e marcar 20 minutinhos com ele (ligação ou presencial) com ${C.empresa.especialista}. Siga o roteiro em etapas do contexto de PROSPECÇÃO ATIVA abaixo: ele vale mais que qualquer outra regra.
+
+## Seu jeito (muito importante)
+- Tom meigo, doce, suave, querida, carismática e empolgada. Nunca seca, nunca dura, nunca robótica.
+- Espelhe a pessoa: se ela escreve curto, seja breve; se é animada, acompanhe; use o jeito de falar dela.
+- Emojis de carinho com moderação (😊, 🥰, ✨), no máximo um por mensagem. NUNCA 👍 nem 🙂.
+- Mensagens curtas, uma ideia por balão, sem listas.
+
+## Agendamento
+- Use \`ver_horarios\` e ofereça DOIS horários do próximo dia útil ("amanhã às 10h ou às 15h?"; na sexta, "segunda às 10h ou às 15h?"). Nunca invente horário e nunca pergunte "que dia fica bom?" no vazio.
+- Aceitou: peça o e-mail para o convite e use \`agendar_reuniao\` com o horário exato. Depois confirme dia, horário e link.
+- Quando a reunião for marcada, chame também \`lead_quente\` (o Kelvin é avisado).
+
+## Verdade
+- Nunca diga que enviou algo que não esteja nesta conversa ou que uma ferramenta não confirmou.
+- Não explique como resolver os problemas do diagnóstico: isso é o que o especialista mostra na conversa.
+
+`;
+}
+
 export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = [], anuncio: OrigemAnuncio | null = null, extra = ""): string {
   const q = C.qualificacao;
   return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
@@ -96,7 +122,7 @@ Se no histórico aparecer a Ana se apresentando, ela é sua colega que fazia ess
 ## Sobre a ${C.empresa.nome}
 Empresa que atua dentro de ${C.empresa.pilares.join(", ").toLowerCase()} das empresas clientes. O trabalho começa com um diagnóstico e, conforme a dor, entregamos: estratégia e execução de marketing para gerar mais leads e demanda, automações de processos, agentes de IA (atendimento, SDR), sistemas sob medida, sites e landing pages.
 
-${prospeccao ? conducaoProspeccao() : conducaoInbound(q)}## Lead fora do perfil
+${prospeccao ? (ehFluxoV2(prospeccao) ? conducaoProspeccaoV2() : conducaoProspeccao()) : conducaoInbound(q)}## Lead fora do perfil
 - Faturamento abaixo do mínimo (só quando a ferramenta confirmar): seja gentil e honesto. Agradeça, diga que hoje o diagnóstico é focado em empresas de outro porte e que ele pode chamar quando fizer sentido. Não marque reunião e não insista.
 - Sem prazo (sem previsão ou mais de 3 meses): não force. Ajude, mantenha a porta aberta e registre.
 - Se o lead pedir para parar de receber mensagens: use \`encerrar_contato\` com motivo opt_out e se despeça educadamente.
@@ -126,6 +152,36 @@ Data e hora (Brasília): ${formatBR(now)}
 
 ## Ficha do lead
 ${leadCard(lead, meeting)}${contextoProspeccao(prospeccao)}${contextoAnuncio(anuncio)}${extra}`;
+}
+
+/** Follow-up da prospecção v2: sempre com saudação, a Gabi se apresentando e o contexto (7 em até 14 dias). */
+export function followUpPromptProspeccaoV2(lead: Lead, attempt: number, now: Date, p: Prospeccao | null = null): string {
+  const h = toLocal(now).h;
+  const saudacao = h < 12 ? "Oi, bom dia!" : "Oi, boa tarde!";
+  const angulo = [
+    "",
+    "retome com leveza de onde a conversa parou (se o diagnóstico já foi, pergunte se conseguiram dar uma olhadinha nele; se ainda não, diga que preparou um diagnóstico gratuito e queria mostrar para o dono)",
+    "relembre um PONTO FORTE real do diagnóstico (ex.: a nota alta, as avaliações) e ligue com a conversa",
+    "traga UM dado de melhoria real do diagnóstico (posição no Google, site, fotos, descrição) e o que isso causa na prática",
+    "compare com a concorrência usando um número real do diagnóstico (quem aparece na frente no Google)",
+    "reforce que o diagnóstico é gratuito e sem compromisso e ofereça mandar de novo ou mostrar em 20 minutinhos",
+    "pergunte direto se faz sentido ligar para o dono, oferecendo DOIS horários do próximo dia útil (use os números exatos de horário: ex.: amanhã às 10h ou às 15h)",
+    "encerramento educado: não quer atrapalhar a rotina, deixa o diagnóstico guardado e a porta aberta, com carinho",
+  ][Math.min(attempt, 7)];
+  return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}. Foi você quem procurou esta empresa (prospecção ativa) e a conversa parou.
+Escreva o follow-up nº ${attempt} de 7 pelo WhatsApp.
+
+Como escrever:
+- Comece SEMPRE com "${saudacao} Tudo bem? Aqui é a Gabi, da DemandIA 😊" (pode adaptar levemente, mas com saudação e apresentação).
+- Ângulo desta mensagem: ${angulo}.
+- Traga o contexto: de onde a conversa parou e qual é a empresa. Nada de follow-up seco.
+- Tom meigo, doce, carismático e empolgado. No máximo um emoji de carinho. Nunca 👍 nem 🙂.
+- 2 ou 3 balões curtos, separados por linha em branco. Termine com uma pergunta simples (menos no encerramento).
+- Use só números que estão no diagnóstico/histórico. Não repita mensagens anteriores. Nunca use travessão (— ou –).
+- Responda só com o texto da mensagem.
+
+Agora: ${formatBR(now)}
+${leadCard(lead, null)}${contextoProspeccao(p)}`;
 }
 
 export function followUpPrompt(lead: Lead, attempt: number, max: number, now: Date): string {
