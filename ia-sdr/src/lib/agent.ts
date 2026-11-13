@@ -20,9 +20,9 @@ import {
   updateLead,
 } from "./db.ts";
 import { destination, sendBubbles } from "./evolution.ts";
-import { nextFollowUpAt } from "./followup.ts";
+import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
-import { prospeccaoDoTelefone } from "./prospeccao.ts";
+import { ehFluxoV2, prospeccaoDoTelefone } from "./prospeccao.ts";
 import { runTool, TOOLS } from "./tools.ts";
 import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
@@ -169,7 +169,8 @@ async function reply(leadId: string) {
   // (em 06/11 a Ana combinou "domingo à tarde" com um lead e o follow-up jogou para segunda às 8h)
   if (!doDono && !lead.ai_paused && OPEN_STATUSES.includes(lead.status) && !retornoCombinado) {
     patch.followup_attempts = 0;
-    patch.next_followup_at = nextFollowUpAt(now, 0)?.toISOString() ?? null;
+    // Prospecção v2: follow-ups no ritmo dela (7 em até 14 dias)
+    patch.next_followup_at = nextFollowUpAt(now, 0, ehFluxoV2(prospeccao) ? PROSPECCAO_V2 : undefined)?.toISOString() ?? null;
   }
   await updateLead(leadId, patch);
   await logEvent(leadId, "ia_respondeu", { chars: finalText.length });

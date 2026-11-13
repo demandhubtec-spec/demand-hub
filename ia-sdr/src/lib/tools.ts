@@ -6,14 +6,15 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { evaluateBant, faturamentoMinimo, normalizeFaturamento } from "./bant.ts";
 import type { Tool } from "./llm.ts";
-import { activeMeeting, db, getLead, logEvent, updateLead, type Lead } from "./db.ts";
+import { activeMeeting, addMessage, db, getLead, logEvent, updateLead, type Lead } from "./db.ts";
 import { env } from "./env.ts";
-import { sendText } from "./evolution.ts";
+import { destination, sendDocument, sendText } from "./evolution.ts";
 import { busyIntervals, cancelMeeting, createMeeting } from "./google.ts";
 import { freeSlots, isValidSlot, pickOptions, reminderTimes } from "./schedule.ts";
 import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
 import { pedirOrientacao } from "./canal.ts";
-import { prospeccaoDoTelefone } from "./prospeccao.ts";
+import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
+import { linkPrevia } from "./extras.ts";
 
 export const TOOLS: Tool[] = [
   {
@@ -152,6 +153,12 @@ export const TOOLS: Tool[] = [
       },
       required: ["resumo"],
     },
+  },
+  {
+    name: "enviar_diagnostico",
+    description:
+      "Prospecção ativa: manda o PDF do diagnóstico gratuito da empresa pelo WhatsApp (e devolve o link do modelo de site, para quem não tem site). Use na etapa DIAGNÓSTICO, uma vez só. Escreva o texto que acompanha depois de chamar.",
+    input_schema: { type: "object", properties: {} },
   },
   {
     name: "encerrar_contato",
@@ -441,6 +448,25 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       return "Progresso registrado. Siga rumo à conversa de 30 minutos ou ligação com o responsável.";
     }
 
+    case "enviar_diagnostico": {
+      const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+      if (!p?.place_id) return "Este contato não veio da prospecção: não há diagnóstico para mandar.";
+      if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com 2 horários do próximo dia útil.";
+      const pdf = p.marca?.pdf;
+      if (!pdf) {
+        await notifyOwner(`⚠️ ${p.empresa}: a Gabi ia mandar o diagnóstico, mas o PDF ainda não está pronto.\nwa.me/${lead.phone}`);
+        return "O PDF ainda não está pronto. Diga com carinho que vai mandar o diagnóstico daqui a pouquinho e siga a conversa (não diga que enviou).";
+      }
+      const nome = `Diagnóstico ${String(p.empresa ?? "").replace(/[|/\\]+.*$/, "").trim() || "digital"}.pdf`;
+      const id = await sendDocument(destination(lead), pdf, nome);
+      await addMessage({ lead_id: leadId, direction: "out", author: "ia", content: `[PDF] ${nome}`, evolution_message_id: id });
+      await db().from("outreach_leads").update({ diag_enviado_em: new Date().toISOString() }).eq("place_id", p.place_id);
+      const modelo = !temSiteProprio(p) && p.site_preview?.token ? linkPrevia(p.site_preview.token) : null;
+      return modelo
+        ? `PDF enviado. Agora escreva o texto que acompanha (eles não têm site) e inclua este link do modelo de site: ${modelo} . Termine com UMA pergunta ligada ao que foi enviado.`
+        : "PDF enviado. Agora escreva o texto que acompanha (eles têm site: fale do diagnóstico do site atual, sem oferecer site novo) e termine com UMA pergunta ligada a um número real do diagnóstico.";
+    }
+
     case "encerrar_contato": {
       await updateLead(leadId, {
         status: input.motivo === "opt_out" ? "opt_out" : "desqualificado",
@@ -460,6 +486,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
             ...(input.motivo === "opt_out" ? { wa_status: "optout" } : {}),
           })
           .eq("place_id", pe.place_id);
+        if (ehFluxoV2(pe)) await notifyOwner(`🚫 ${pe.empresa}: ${input.motivo === "opt_out" ? "não quer mais contato" : "encerrado"}. A Gabi agradeceu e parou.\nwa.me/${lead.phone}`);
       }
       return "Follow-ups encerrados para este lead. Agora responda ao lead com UMA mensagem curta, gentil e sem insistir (ex.: agradecer o retorno e deixar a porta aberta). Nunca deixe a mensagem dele sem resposta.";
     }

@@ -6,6 +6,7 @@
  *  - no máximo 2 retomadas sem resposta; depois o lead vai para "Retomar depois" (60 dias).
  * Roda no cron de 10 em 10 minutos, só em horário comercial.
  */
+import { FLUXO_V2_DESDE } from "./prospeccao.ts";
 import { toChat } from "./chat.ts";
 import { callLLM } from "./llm.ts";
 import { activeMeeting, db, history, logEvent, updateLead, type Lead } from "./db.ts";
@@ -49,6 +50,8 @@ export async function runRetomadas(now = new Date()) {
     .from("outreach_leads")
     .select("place_id,empresa,whatsapp,decisor,nicho,cidade,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
     .eq("cadencia", "respondeu")
+    // Prospecção v2: quem retoma é o follow-up da Gabi (7 em até 14 dias), sem passar pelo Kelvin
+    .lt("wa_sent_at", FLUXO_V2_DESDE)
     .in("status_comercial", ["respondeu", "contatado", "novo"])
     .not("whatsapp", "is", null)
     .limit(100);

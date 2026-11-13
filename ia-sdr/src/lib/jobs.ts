@@ -10,11 +10,11 @@ import { callLLM } from "./llm.ts";
 import { addMessage, db, getLead, history, logEvent, tryLock, ultimoEvento, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
 import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
-import { isBusinessTime, nextFollowUpAt } from "./followup.ts";
-import { followUpPrompt } from "./prompt.ts";
+import { horarioProspeccaoV2, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
+import { followUpPrompt, followUpPromptProspeccaoV2 } from "./prompt.ts";
 import { humanizar } from "./estilo.ts";
 import { formatBR, toLocal } from "./time.ts";
-import { prospeccaoDoTelefone } from "./prospeccao.ts";
+import { ehFluxoV2, prospeccaoDoTelefone } from "./prospeccao.ts";
 
 const MAX = SDR_CONFIG.followUp.maxTentativas;
 
@@ -35,7 +35,8 @@ export function janelaRetornoCombinado(now: Date): boolean {
 }
 
 export async function runFollowUps(now = new Date()) {
-  const comercial = isBusinessTime(now);
+  // Sábado de manhã também vale para a prospecção v2 (o filtro fino é por lead, abaixo)
+  const comercial = isBusinessTime(now) || horarioProspeccaoV2(now);
   if (!comercial && !janelaRetornoCombinado(now)) return { skipped: "fora do horário comercial" };
   await carregarPlaybook();
 
@@ -66,12 +67,15 @@ export async function runFollowUps(now = new Date()) {
       // Contato da prospecção com a cadência rodando: quem faz o follow-up é a cadência
       // (em 30/10 o AS Odontologia recebeu um "Passando pra retomar" do SDR por cima da cadência).
       const prosp = await prospeccaoDoTelefone(fresh.phone).catch(() => null);
-      if (prosp && prosp.cadencia === "ativa") {
+      const v2 = ehFluxoV2(prosp);
+      // Prospecção v2: só no horário dela (sábado até meio-dia); inbound: só no comercial normal
+      if (!combinado && (v2 ? !horarioProspeccaoV2(now) : !isBusinessTime(now))) continue;
+      if (prosp && !v2 && prosp.cadencia === "ativa") {
         await updateLead(lead.id, { next_followup_at: null });
         continue;
       }
       // Conversa da prospecção que parou: a retomada é proposta ao Kelvin (runRetomadas), nunca sai sozinha
-      if (prosp?.place_id && prosp.cadencia === "respondeu") {
+      if (prosp?.place_id && !v2 && prosp.cadencia === "respondeu") {
         await updateLead(lead.id, { next_followup_at: null });
         continue;
       }
@@ -89,7 +93,7 @@ export async function runFollowUps(now = new Date()) {
       }, []);
 
       const pedir = async (extra = "") =>
-        humanizar((await callLLM({ system: followUpPrompt(fresh, attempt, MAX, now) + (playbookAtual() ? `\n\n## Playbook comercial (siga sempre)\n${playbookAtual()}` : "") + (manuaisAtuais("marina") ? `\n\n${manuaisAtuais("marina")}` : "") + extra, messages: merged, maxTokens: 1500 })).message.content ?? "");
+        humanizar((await callLLM({ system: (v2 ? followUpPromptProspeccaoV2(fresh, attempt, now, prosp) : followUpPrompt(fresh, attempt, MAX, now)) + (playbookAtual() ? `\n\n## Playbook comercial (siga sempre)\n${playbookAtual()}` : "") + (manuaisAtuais("marina") ? `\n\n${manuaisAtuais("marina")}` : "") + extra, messages: merged, maxTokens: 1500 })).message.content ?? "");
       // Nunca manda de novo uma frase que a Ana já mandou nessa conversa
       const jaMandou = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
       const repetida = (t: string) => t.split(/\n+/).some((l) => jaMandou.has(l.trim().toLowerCase()));
@@ -103,7 +107,7 @@ export async function runFollowUps(now = new Date()) {
       const id = await sendText(destination(fresh), text);
       await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind: "followup", content: text, evolution_message_id: id });
 
-      const next = nextFollowUpAt(now, attempt);
+      const next = nextFollowUpAt(now, attempt, v2 ? PROSPECCAO_V2 : undefined);
       await updateLead(lead.id, {
         followup_attempts: attempt,
         next_followup_at: next?.toISOString() ?? null,

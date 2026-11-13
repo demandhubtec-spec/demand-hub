@@ -411,8 +411,9 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
           patch.marca = l.marca;
         }
       }
-      // Todo cliente ganha a prévia: site novo (quem não tem) ou a versão melhorada do site atual
-      if (!l.site_preview || l.duda_status === "ajuste" || (l.site_preview as { versao?: number }).versao !== 2) patch.site_preview = await gerarSite(l, l.site_preview?.token ?? null, l.duda_nota ?? null, extrasDoSite(l));
+      // Modelo de site só para quem NÃO tem site (Kelvin, 13/11): quem tem site recebe o diagnóstico do site atual, no PDF
+      const temSite = !semSiteProprio(l.site);
+      if (!temSite && (!l.site_preview || l.duda_status === "ajuste" || (l.site_preview as { versao?: number }).versao !== 2)) patch.site_preview = await gerarSite(l, l.site_preview?.token ?? null, l.duda_nota ?? null, extrasDoSite(l));
       await db().from("outreach_leads").update(patch).eq("place_id", l.place_id);
       duda++;
     } catch (e) {

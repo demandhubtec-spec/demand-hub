@@ -30,7 +30,11 @@ export interface Prospeccao {
   toque_atual?: number | null;
   ultimo_toque_em?: string | null;
   /** Prévia de site grátis montada para quem não tem site próprio. */
-  site_preview?: { token?: string } | null;
+  site_preview?: { token?: string; tipo?: string | null; site_atual?: string | null } | null;
+  /** Logo e PDF do diagnóstico (robô do GitHub). */
+  marca?: { pdf?: string | null } | null;
+  /** Sócios pelo CNPJ (Léo): o nome do dono para citar na abordagem. */
+  socios?: { nome: string; qualificacao: string | null }[] | null;
   /** Funil das conversas: retorno combinado, marcadores do objetivo e retomadas. */
   status_comercial?: string | null;
   retorno_em?: string | null;
@@ -49,7 +53,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
+    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -102,9 +106,75 @@ function analisePendente(p: Prospeccao): string {
   return `\nA análise do perfil (aprovada) AINDA NÃO foi enviada. Se a pessoa pedir a análise, perguntar o que você viu ou demonstrar interesse, mande este conteúdo em balões curtos, adaptando só o começo para a conversa (sem se apresentar de novo):\n"${a.texto}"\n`;
 }
 
+/**
+ * Abordagem v2 (13/11/2026, Kelvin): o 1º contato é só "Oi, boa tarde! 😊 / Tudo bem?". Quando a pessoa
+ * responde, a Gabi se apresenta; depois manda o diagnóstico (PDF) e só então puxa a reunião com 2 horários
+ * do próximo dia útil. Vale para quem recebeu o 1º contato a partir de 13/11.
+ */
+export const FLUXO_V2_DESDE = "2026-11-13T03:00:00Z";
+export function ehFluxoV2(p: Prospeccao | null | undefined): boolean {
+  return !!p?.wa_sent_at && p.wa_sent_at >= FLUXO_V2_DESDE;
+}
+
+/** Nome de quem decide para a Gabi citar: decisor do Léo, ou o 1º sócio do CNPJ (primeiro nome). */
+export function donoParaCitar(p: Prospeccao): string | null {
+  const bruto = (p.decisor || p.socios?.[0]?.nome || "").replace(/^(dr|dra)\.?\s+/i, "").trim();
+  if (!bruto) return null;
+  const primeiro = bruto.split(/\s+/)[0].toLowerCase();
+  return primeiro ? primeiro[0].toUpperCase() + primeiro.slice(1) : null;
+}
+
+/** O site que ela tem hoje (não vale diretório nem rede social). */
+export function temSiteProprio(p: Prospeccao): boolean {
+  if (p.site_preview?.tipo) return p.site_preview.tipo === "melhoria";
+  const s = (p.site ?? "").toLowerCase();
+  return !!s && !/(instagram|facebook|wa\.me|whatsapp|linktr|doctoralia|google\.|canva\.com|wixsite|ifood|booksy)/.test(s);
+}
+
+function contextoProspeccaoV2(p: Prospeccao): string {
+  const v = (x: unknown) => (x === null || x === undefined || x === "" ? "não informado" : String(x));
+  const dono = donoParaCitar(p);
+  const site = temSiteProprio(p);
+  const diagEnviado = !!p.diag_enviado_em;
+  return `
+
+## Contexto: este contato veio da PROSPECÇÃO ATIVA (abordagem nova, em etapas)
+Foi VOCÊ quem chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Sua primeira mensagem foi só a saudação: "${v(p.wa_message)}". Se ninguém respondeu, depois de 1 hora foi um "Oi! Fico no aguardo do atendimento por aqui 😊".
+Quem responde costuma ser a RECEPÇÃO. Ela não decide, mas é quem leva o assunto até o dono: trate-a como aliada.
+
+Dados que coletamos antes (Google Maps, CNPJ, site, Instagram): Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `sim (${v(p.site_preview?.site_atual || p.site)})` : "não tem"} | Instagram: ${v(p.instagram)}
+${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}
+Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.
+
+### O caminho, uma etapa por vez (espere a pessoa responder entre uma etapa e outra)
+1. APRESENTAÇÃO (a pessoa respondeu ao "Tudo bem?" e você ainda não se apresentou): responda ao que ela disse com carinho e se apresente. Exemplo: "Ai, que bom! Aqui é a Gabi, da DemandIA 😊 A gente ajuda ${/imob/i.test(p.nicho ?? "") ? "imobiliárias" : /advoc|jur/i.test(p.nicho ?? "") ? "escritórios" : "clínicas"} de ${v(p.cidade)} a receber mais ${/imob|advoc|jur/i.test(p.nicho ?? "") ? "clientes" : "pacientes"} pelo Google, pelo site e pelo Instagram." No balão seguinte: "Preparei um diagnóstico gratuito ${dono ? `da ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"} e queria muito mostrar para ${dono} (use Dr. ou Dra. antes do nome se for médico, dentista ou advogado)` : `e queria muito mostrar para o responsável`}. Ele costuma ver as mensagens por aqui, ou tem um jeitinho melhor de falar com ele?" Adapte ao nicho (clínica, imobiliária, escritório...). NÃO peça "o WhatsApp de quem cuida do marketing" logo de cara.
+2. DIAGNÓSTICO (depois que ela responder à apresentação, com qualquer sinal de abertura: "pode mandar", "ele vê sim", "manda que eu repasso", passou o contato): chame \`enviar_diagnostico\` (manda o PDF) e escreva o texto que vai junto, sem repetir a apresentação:
+   ${site
+     ? `- Ela TEM site: "Prontinho, separei aqui! Mostra como a ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"} aparece no Google, como o site está hoje (o que já está ótimo e o que dá para melhorar) e o Instagram 😊". NÃO ofereça site novo nem versão melhorada do site.`
+     : `- Ela NÃO tem site: "Prontinho, separei aqui! Como não encontrei um site de vocês, montei um modelo com a logo e as cores da ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"}, só para verem como poderia ficar 😊" e o link do modelo que \`enviar_diagnostico\` devolver.`}
+   Termine com UMA pergunta ligada ao que foi enviado, usando um número real do diagnóstico (ex.: "Quem procura '${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "endocrinologista"}' em ${v(p.cidade)} encontra vocês só em 14º no Google. Vocês já tinham reparado nisso?"${site ? "" : ", ou sobre o modelo: \"O que acharam do modelo? Combina com o jeitinho de vocês?\""}). Nunca pergunte "indicação ou Google?".
+3. REUNIÃO (depois que ela reagir ao diagnóstico): convide para 20 minutinhos com ${dono ?? "o responsável"}, por ligação ou presencial, para mostrar o que vale melhorar primeiro, sem compromisso. Chame \`ver_horarios\` e ofereça DOIS horários do PRÓXIMO dia útil (ex.: "Amanhã às 10h ou às 15h, qual fica melhor?"). Nunca pergunte "que dia fica bom?" no vazio. Aceitou: peça o e-mail para o convite e use \`agendar_reuniao\`. Se for ligação, pode usar \`combinar_retorno\` com o horário e o nome, e \`lead_quente\`.
+
+### Objeções (converse, não trave)
+- "Não temos interesse": acolha e pergunte com leveza o motivo ("Imagina, super entendo! 😊 Posso só perguntar o que pesa mais: o momento, ou vocês já têm alguém cuidando disso?") e explique em UMA frase o que fazemos (fazer a empresa aparecer melhor para quem procura no Google; o diagnóstico é gratuito e sem compromisso). Se a pessoa repetir que não quer, agradeça com carinho e chame \`encerrar_contato\` com motivo "opt_out".
+- Preço: "Depende muito do que vocês precisam! Por isso a gente começa com uma conversa rapidinha e monta uma proposta sob medida 😊" e volte aos 2 horários do próximo dia útil.
+- "Já temos agência/alguém": o diagnóstico serve até para comparar, sem compromisso; volte aos 2 horários.
+- Pedido para não mandar mais mensagem: agradeça em uma frase e chame \`encerrar_contato\` (opt_out).
+- Algo que você não sabe responder com segurança: \`pedir_orientacao\`.
+
+### Regras desta conversa
+- Uma etapa por resposta. Não junte apresentação, diagnóstico e convite na mesma mensagem.
+- Registre o progresso com \`registrar_objetivo\` (contato do dono quando passarem).
+- Se passarem o contato do dono, registre e diga que vai chamar ele com carinho; se disserem quando ele está, use \`combinar_retorno\`.
+- Nunca diga "vou encaminhar para a equipe". Você continua a conversa até a reunião.
+- Nunca diga que enviou algo que \`enviar_diagnostico\` não confirmou.
+- NÃO pergunte faturamento, equipe, de onde vêm os clientes.`;
+}
+
 /** Bloco que entra no prompt da Ana quando o contato veio da prospecção ativa. */
 export function contextoProspeccao(p: Prospeccao | null): string {
   if (!p) return "";
+  if (ehFluxoV2(p)) return contextoProspeccaoV2(p);
   const v = (x: unknown) => (x === null || x === undefined || x === "" ? "não informado" : String(x));
   return `
 
