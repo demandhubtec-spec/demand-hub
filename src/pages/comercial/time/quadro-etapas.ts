@@ -3,14 +3,14 @@
  * cada uma, o que está fazendo agora, o que está em ajuste, o que foi aprovado e o que foi descartado.
  * Tudo calculado na hora a partir dos leads (a tela atualiza sozinha).
  *
- * Ritmo: o relógio da IA SDR roda a cada 10 minutos e cada uma faz 2 por rodada (POR_RODADA em ia-sdr/src/lib/rita.ts).
+ * Ritmo: o relógio da IA SDR roda a cada 10 minutos e cada uma faz 4 por rodada (POR_RODADA em ia-sdr/src/lib/rita.ts).
  */
 import type { OutreachLead } from "@/hooks/useProspeccao";
 
 export type Coluna = "fila" | "fazendo" | "pendente" | "ajuste" | "aprovado" | "descartado";
 export type EtapaQuadro = "rita" | "duda";
 
-export const POR_RODADA = 2;
+export const POR_RODADA = 4;
 export const MINUTOS_POR_RODADA = 10;
 
 export const ROTULO: Record<EtapaQuadro, Record<Coluna, string>> = {

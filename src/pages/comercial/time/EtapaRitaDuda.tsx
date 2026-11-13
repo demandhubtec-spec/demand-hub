@@ -68,6 +68,23 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
     showToast(status === "aprovado" ? TEXTO[etapa].proxima : "Ajuste pedido. Volta para você na próxima rodada (até 10 minutos).");
   }
 
+  /** Aprovar a lista inteira de uma vez (13/11, Kelvin: aprovar dezenas por dia sem clicar uma a uma). */
+  const [aprovandoTodos, setAprovandoTodos] = React.useState(false);
+  async function aprovarTodos(itens: OutreachLead[]) {
+    setAprovandoTodos(true);
+    const ids = itens.map((l) => l.place_id);
+    const { error } = await supabase.from("outreach_leads").update({ [campo]: "aprovado", [etapa === "rita" ? "rita_nota" : "duda_nota"]: null }).in("place_id", ids).eq(campo, "pendente");
+    setAprovandoTodos(false);
+    if (error) return showToast(`Erro: ${error.message}`);
+    await supabase.from("outreach_log").insert({
+      channel: "portal",
+      event: "config",
+      detail: { msg: `${etapa === "rita" ? "Diagnósticos da Rita" : "Relatórios e sites da Duda"} aprovados em lote: ${ids.length}`, place_ids: ids },
+    });
+    qc.invalidateQueries({ queryKey: ["outreach"] });
+    showToast(`${ids.length} aprovados. ${TEXTO[etapa].proxima}`);
+  }
+
   /** Descartar a empresa (sai do fluxo e vai para Descartadas na lista do Léo) ou trazer de volta. */
   async function descartar(l: OutreachLead, volta = false) {
     const { error } = await supabase
@@ -111,6 +128,19 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
     <div>
       <div className="mb-3 text-[13px] text-muted">{TEXTO[etapa].intro}</div>
       <QuadroEtapa etapa={etapa} quadro={quadro} visao={visao} onVisao={setVisao} />
+      {visao === "pendente" && lista.length > 1 && (
+        <div className="mb-3 flex justify-end">
+          <Button
+            size="sm"
+            disabled={aprovandoTodos}
+            onClick={() => {
+              if (window.confirm(`Aprovar ${lista.length} ${etapa === "rita" ? "diagnósticos da Rita" : "relatórios e sites da Duda"} de uma vez?`)) void aprovarTodos(lista);
+            }}
+          >
+            <Check /> {aprovandoTodos ? "Aprovando…" : `Aprovar todos (${lista.length})`}
+          </Button>
+        </div>
+      )}
       {isLoading ? (
         <div className="text-[13px] text-muted">Carregando…</div>
       ) : !lista.length ? (
