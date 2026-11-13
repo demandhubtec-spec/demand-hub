@@ -366,7 +366,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           ok: true,
           quando: formatBR(start),
           duracao_minutos: SDR_CONFIG.reuniao.duracaoMin,
-          convite: "o link do Google Meet chega por e-mail em seguida (o especialista envia). Confirme dia e horário ao lead e diga que o convite chega no e-mail.",
+          convite: "o convite ainda NÃO foi enviado: o especialista manda o link do Meet à mão. Confirme dia e horário ao lead e diga que o link chega por aqui em seguida. Não diga que o convite já está no e-mail.",
         });
       }
     }
