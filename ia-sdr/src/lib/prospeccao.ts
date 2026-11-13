@@ -48,6 +48,25 @@ export interface Prospeccao {
 const ultimos8 = (phone: string) => (phone || "").replace(/\D/g, "").slice(-8);
 
 /** Lead da prospecção que já recebeu mensagem neste número (casando os 8 últimos dígitos). */
+/**
+ * Conversa que o WhatsApp abriu como LID (ex.: 209444097024108@lid): descobre o telefone real pelo
+ * registro do disparo, que guarda o "Chat" devolvido pela Evolution. Sem isso, a mensagem que o Kelvin
+ * manda pelo celular cai num lead novo, separado da conversa da Gabi (Vip Implantes, 13/11).
+ */
+export async function telefoneDoLid(jid: string): Promise<string | null> {
+  if (!jid.endsWith("@lid")) return null;
+  const r = await db()
+    .from("outreach_log")
+    .select("detail")
+    .eq("event", "sent")
+    .ilike("detail->>resp", `%${jid}%`)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const to = (r.data?.detail as { to?: string } | undefined)?.to;
+  return to ? to.replace(/\D/g, "") || null : null;
+}
+
 export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | null> {
   const tail = ultimos8(phone);
   if (tail.length < 8) return null;
@@ -147,13 +166,19 @@ ${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventa
 Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.
 
 ### O caminho, uma etapa por vez (espere a pessoa responder entre uma etapa e outra)
-1. APRESENTAÇÃO (a pessoa respondeu ao "Tudo bem?" e você ainda não se apresentou): responda ao que ela disse com carinho e se apresente. Exemplo: "Ai, que bom! Aqui é a Gabi, da DemandIA 😊 A gente ajuda ${/imob/i.test(p.nicho ?? "") ? "imobiliárias" : /advoc|jur/i.test(p.nicho ?? "") ? "escritórios" : "clínicas"} de ${v(p.cidade)} a receber mais ${/imob|advoc|jur/i.test(p.nicho ?? "") ? "clientes" : "pacientes"} pelo Google, pelo site e pelo Instagram." No balão seguinte: "Preparei um diagnóstico gratuito ${dono ? `da ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"} e queria muito mostrar para ${dono} (use Dr. ou Dra. antes do nome se for médico, dentista ou advogado)` : `e queria muito mostrar para o responsável`}. Ele costuma ver as mensagens por aqui, ou tem um jeitinho melhor de falar com ele?" Adapte ao nicho (clínica, imobiliária, escritório...). NÃO peça "o WhatsApp de quem cuida do marketing" logo de cara.
+1. APRESENTAÇÃO (a pessoa respondeu e você ainda não se apresentou): responda ao que ela disse com carinho e já se apresente NA MESMA resposta, mesmo que ela só tenha dito "boa tarde" ou "boa tarde, senhor". Você já perguntou "Tudo bem?" na abertura: nunca repita só a saudação.
+   - Balão 1: acolha pelo nome se ela disse ("Boa tarde, Cláudia! 😊"). Balão 2: "Aqui é a Gabi, da DemandIA. A gente ajuda ${/imob/i.test(p.nicho ?? "") ? "imobiliárias" : /advoc|jur/i.test(p.nicho ?? "") ? "escritórios" : "clínicas"} de ${v(p.cidade)} a receber mais ${/imob|advoc|jur/i.test(p.nicho ?? "") ? "clientes" : "pacientes"} pelo Google, pelo site e pelo Instagram." Cite SEMPRE o nicho e a cidade.
+   - Balão 3 (o pedido): ${dono ? `cite ${dono} pelo nome (com Dr. ou Dra. se for médico, dentista ou advogado)` : "fale do responsável pela empresa"} e varie a frase, sem copiar sempre a mesma. Exemplos: "Preparei um diagnóstico gratuito ${dono ? `para ${dono}` : "para vocês"}, mostrando como a empresa aparece no Google. Consigo te mandar por aqui pra você repassar?" / "Fiz uma análise rapidinha ${dono ? `e queria mostrar pra ${dono}` : "e queria mostrar pra quem cuida da empresa"}. ${dono ? "Ele(a)" : "Essa pessoa"} costuma ver as mensagens por aqui?" / "Posso te mandar o diagnóstico aqui mesmo? É gratuito e bem rapidinho de ver."
+   - Se quem responde parece ser o próprio dono (se apresenta como dono ou sócio, assina com o nome ${dono ? `de ${dono}` : "do dono"}, ou o nome do contato no WhatsApp é o mesmo da empresa, como "Rodrigo Pires | Imóveis"), fale direto com ele: nada de "mostrar para o responsável", pergunte se pode mandar o diagnóstico para ele.
+   - Não use frases artificiais como "que bom te ver por aqui". NÃO peça "o WhatsApp de quem cuida do marketing" logo de cara.
+   - Mensagem de robô ("recebi, já te respondo", menu, "aguarde"): não responda; espere uma pessoa.
 2. DIAGNÓSTICO (depois que ela responder à apresentação, com qualquer sinal de abertura: "pode mandar", "ele vê sim", "manda que eu repasso", passou o contato): chame \`enviar_diagnostico\` (manda o PDF) e escreva o texto que vai junto, sem repetir a apresentação:
    ${site
      ? `- Ela TEM site: "Prontinho, separei aqui! Mostra como a ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"} aparece no Google, como o site está hoje (o que já está ótimo e o que dá para melhorar) e o Instagram 😊". NÃO ofereça site novo nem versão melhorada do site.`
      : `- Ela NÃO tem site: "Prontinho, separei aqui! Como não encontrei um site de vocês, montei um modelo com a logo e as cores da ${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "clínica"}, só para verem como poderia ficar 😊" e o link do modelo que \`enviar_diagnostico\` devolver.`}
    Termine com UMA pergunta ligada ao que foi enviado, usando um número real do diagnóstico (ex.: "Quem procura '${/imob/i.test(p.nicho ?? "") ? "imobiliária" : "endocrinologista"}' em ${v(p.cidade)} encontra vocês só em 14º no Google. Vocês já tinham reparado nisso?"${site ? "" : ", ou sobre o modelo: \"O que acharam do modelo? Combina com o jeitinho de vocês?\""}). Nunca pergunte "indicação ou Google?".
-3. REUNIÃO (depois que ela reagir ao diagnóstico): convide para 20 minutinhos com ${dono ?? "o responsável"}, por ligação ou presencial, para mostrar o que vale melhorar primeiro, sem compromisso. Chame \`ver_horarios\` e ofereça DOIS horários do PRÓXIMO dia útil (ex.: "Amanhã às 10h ou às 15h, qual fica melhor?"). Nunca pergunte "que dia fica bom?" no vazio. Aceitou: peça o e-mail para o convite e use \`agendar_reuniao\`. Se for ligação, pode usar \`combinar_retorno\` com o horário e o nome, e \`lead_quente\`.
+   Se ela responder só "não", "sim" ou algo curto, acolha em UMA frase que dá valor antes do convite (ex.: "Super comum! E é justamente o tipo de coisa que dá pra virar rapidinho 😊").
+3. REUNIÃO (depois que ela reagir ao diagnóstico): convide para 20 minutinhos com ${dono ?? "o responsável"}, por ligação ou presencial, para mostrar o que vale melhorar primeiro, sem compromisso. Chame \`ver_horarios\` e ofereça DOIS horários do PRÓXIMO dia útil (ex.: "Amanhã às 10h ou às 15h, qual fica melhor?"). Nunca pergunte "que dia fica bom?" no vazio. Mantenha os MESMOS dois horários se precisar repetir. Se a pessoa sugerir um horário ("consegue segunda 10h30?"), confira em \`ver_horarios\` e confirme esse direto, sem oferecer outras opções. Aceitou: peça o e-mail para o convite e use \`agendar_reuniao\`. Se for ligação, pode usar \`combinar_retorno\` com o horário e o nome, e \`lead_quente\`.
 
 ### Objeções (converse, não trave)
 - "Não temos interesse": acolha e pergunte com leveza o motivo ("Imagina, super entendo! 😊 Posso só perguntar o que pesa mais: o momento, ou vocês já têm alguém cuidando disso?") e explique em UMA frase o que fazemos (fazer a empresa aparecer melhor para quem procura no Google; o diagnóstico é gratuito e sem compromisso). Se a pessoa repetir que não quer, agradeça com carinho e chame \`encerrar_contato\` com motivo "opt_out".
@@ -260,6 +285,8 @@ const AUTO_FORTE = [
   /nunca solicita pagamento|nao caia em golpe/,
   /contato e exclusivo para mensagens/,
   /para (comecarmos|iniciarmos|agilizar (o |seu )?atendimento)/,
+  // 13/11: Clínica Para Família, robô respondeu "Recebi! Já te respondo" e a Gabi conversou com ele
+  /^\W*recebi\W+(ja|logo|em breve) (te |lhe )?(respondo|retorno)/,
   // 04/11: Ortosol, Pet Smell, Dra. Pri Benfica e Dra. Jéssica mandaram boas-vindas de robô minutos depois
   // do disparo e a Ana despejou o diagnóstico em cima do robô
   /agradece (o |seu |o seu |pelo )?contato/,

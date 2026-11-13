@@ -4,7 +4,7 @@
  *   Evento: MESSAGE
  */
 import { waitUntil } from "@vercel/functions";
-import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, prospeccaoDoTelefone } from "@/src/lib/prospeccao.ts";
+import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, prospeccaoDoTelefone, telefoneDoLid } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, ultimoEventoEm, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
@@ -74,6 +74,10 @@ export async function POST(req: Request) {
   if (!testeDoDono && env.ownerPhone && msg.phone === env.ownerPhone) return Response.json({ ignored: "owner" });
   // Números da lista de bloqueio: a IA não conversa nem registra como lead
   if (!testeDoDono && isBlocked(msg.phone, msg.jid, ...msg.altPhones)) return Response.json({ ignored: "bloqueado" });
+
+  // Conversa aberta como LID: usa o telefone real do disparo para não criar um lead separado
+  const telReal = await telefoneDoLid(msg.jid).catch(() => null);
+  if (telReal) msg.phone = telReal;
 
   // Mensagem enviada pelo nosso número: foi a IA ou o Kelvin respondendo na mão?
   if (msg.fromMe) {
