@@ -4,6 +4,7 @@ Allow: /
 Disallow: /api/
 Disallow: /previa/
 Disallow: /relatorio/
+Disallow: /proposta/
 
 # Buscadores e assistentes de IA podem ler o site
 User-agent: Googlebot
