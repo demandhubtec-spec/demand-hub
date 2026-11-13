@@ -333,6 +333,11 @@ async function detectReplies(cfg: any) {
   return n;
 }
 
+/** Para onde mandar: o número do JID só quando é o mesmo telefone (às vezes vem um LID, que não é telefone). */
+function jidDoNumero(jid: string | undefined, numero: string): string {
+  const d = (jid ?? "").split("@")[0].replace(/\D/g, "");
+  return d && d.slice(-8) === numero.replace(/\D/g, "").slice(-8) ? d : numero;
+}
 async function checkNumber(num: string): Promise<{ ok: boolean; jid?: string; name?: string } | null> {
   try {
     const r = await fetch(`${EVO_URL}/user/check`, {
@@ -413,7 +418,8 @@ async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
   await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
 
   const chk = await checkNumber(lead.whatsapp);
-  const to = chk?.jid ? chk.jid.split("@")[0] : lead.whatsapp;
+  // Número com LID (13/11): mandar para o LID como se fosse número dá "no LID found"; aí vai o número normal
+  const to = jidDoNumero(chk?.jid, lead.whatsapp);
   // Igual ao 1º toque: a saudação vai sozinha, espera uns segundos e depois vem a mensagem com o contexto
   const nome = nomeParaSaudar(lead, chk?.name);
   // Só teve robô até agora e ainda não pedimos o contato direto: esse toque vai direto ao ponto (uma vez só)
@@ -524,7 +530,8 @@ Deno.serve(async (req) => {
       await log(lead.place_id, "sem_whatsapp", { num: lead.whatsapp });
       return Response.json({ ...out, skip: "sem_whatsapp", lead: lead.empresa });
     }
-    if (chk?.jid) to = chk.jid.split("@")[0];
+    // Número com LID (13/11): mandar para o LID como se fosse número dá "no LID found"; aí vai o número normal
+    to = jidDoNumero(chk?.jid, lead.whatsapp);
   }
   const nextAt = new Date(Date.now() + rand(cfg.wa_min_interval_sec, cfg.wa_max_interval_sec) * 1000).toISOString();
   await sb.from("outreach_config").update({ next_wa_at: nextAt }).eq("id", 1);
