@@ -128,14 +128,14 @@ export function FunilLista({
   }
 
   const chip = (ativo: boolean) =>
-    cn("rounded-[10px] border px-3 py-1.5 text-[13px]", ativo ? "border-primary-bright bg-primary-tint text-ink" : "border-border bg-surface text-muted hover:text-ink");
+    cn("rounded-[8px] border px-3 py-1.5 text-[13px]", ativo ? "border-primary-bright bg-primary-tint text-ink" : "border-border bg-surface text-muted hover:text-ink");
 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         {lista !== "ligacoes" && rodadas.length > 0 && (
           <>
-            <span className="mr-1 font-mono text-[11px] uppercase tracking-[.12em] text-muted">Rodada</span>
+            <span className="mr-1 text-[12px] text-muted">Rodada</span>
             <button className={chip(!rodada)} onClick={() => setRodada("")}>
               Todas
             </button>
@@ -147,7 +147,7 @@ export function FunilLista({
           </>
         )}
         {segmentos.length > 0 && (
-          <select value={segmento} onChange={(e) => setSegmento(e.target.value)} className="ml-2 rounded-[10px] border border-border bg-surface px-3 py-1.5 text-[13px]">
+          <select value={segmento} onChange={(e) => setSegmento(e.target.value)} className="ml-2 rounded-[8px] border border-border bg-surface px-3 py-1.5 text-[13px]">
             <option value="">Todos os segmentos</option>
             {segmentos.map((s) => (
               <option key={s}>{s}</option>
@@ -155,7 +155,7 @@ export function FunilLista({
           </select>
         )}
         {lista !== "ligacoes" && (
-          <select value={nota} onChange={(e) => setNota(e.target.value)} className="rounded-[10px] border border-border bg-surface px-3 py-1.5 text-[13px]">
+          <select value={nota} onChange={(e) => setNota(e.target.value)} className="rounded-[8px] border border-border bg-surface px-3 py-1.5 text-[13px]">
             <option value="">Todas as notas</option>
             <option>Quente</option>
             <option>Morno</option>
@@ -228,7 +228,7 @@ function AvisosRepetidos({ lista }: { lista: ListaExtra }) {
             </button>
           </div>
           {ver === a.id && (
-            <ul className="mt-2 space-y-0.5 pl-7 text-[12.5px] text-ink/85">
+            <ul className="mt-2 space-y-0.5 pl-7 text-[13px] text-ink/85">
               {a.detalhes.map((d, i) => (
                 <li key={i}>
                   {d.empresa ?? d.perfil} · ficou em <b>{d.ficou_em}</b>
@@ -258,15 +258,15 @@ function ImportarRodada({ lista, onClose }: { lista: ListaExtra; onClose: () => 
           Exporte a aba Leads da planilha em CSV e escolha o arquivo. Lead repetido fica na lista onde apareceu primeiro e você recebe o aviso. Ninguém
           recebe mensagem sozinho: o primeiro contato continua passando pela sua aprovação.
         </DialogDescription>
-        <label className="mt-3 block text-[12.5px] text-muted">
+        <label className="mt-3 block text-[13px] text-muted">
           Nome da rodada (o concorrente e o mês)
           <input
             value={rodada}
             onChange={(e) => setRodada(e.target.value)}
-            className="mt-1 w-full rounded-[10px] border border-border bg-surface px-3 py-2 text-[14px] text-ink"
+            className="mt-1 w-full rounded-[8px] border border-border bg-surface px-3 py-2 text-[14px] text-ink"
           />
         </label>
-        <label className="mt-3 block text-[12.5px] text-muted">
+        <label className="mt-3 block text-[13px] text-muted">
           Arquivo CSV
           <input
             type="file"
@@ -281,7 +281,7 @@ function ImportarRodada({ lista, onClose }: { lista: ListaExtra; onClose: () => 
           />
         </label>
         {arquivo && (
-          <div className="mt-3 rounded-[10px] border border-border bg-surface-2 px-3 py-2 text-[13px]">
+          <div className="mt-3 rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-[13px]">
             {linhas.length} leads no arquivo{semInteresse ? `, ${semInteresse} marcados como sem interesse (ficam de fora)` : ""}.
           </div>
         )}
@@ -337,22 +337,22 @@ function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: () => voi
         <DialogDescription>{NOME[lead.lista]} · Lista</DialogDescription>
         <div className="mt-3 flex flex-wrap gap-2">
           {lead.perfil_url && (
-            <a href={lead.perfil_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] hover:border-primary-bright">
+            <a href={lead.perfil_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] hover:border-primary-bright">
               <ExternalLink className="h-3.5 w-3.5" /> Perfil {lead.perfil ?? ""}
             </a>
           )}
           {wa && (
-            <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] hover:border-primary-bright">
+            <a href={`https://wa.me/${wa}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] hover:border-primary-bright">
               <ExternalLink className="h-3.5 w-3.5" /> WhatsApp
             </a>
           )}
           {lead.post_url && (
-            <a href={lead.post_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[12.5px] hover:border-primary-bright">
+            <a href={lead.post_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] hover:border-primary-bright">
               <ExternalLink className="h-3.5 w-3.5" /> Post onde comentou
             </a>
           )}
         </div>
-        <dl className="mt-4 space-y-2 text-[13.5px]">
+        <dl className="mt-4 space-y-2 text-[14px]">
           {linhas
             .filter(([, v]) => v != null && v !== "")
             .map(([k, v]) => (
@@ -362,13 +362,13 @@ function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: () => voi
               </div>
             ))}
         </dl>
-        <label className="mt-5 block text-[12.5px] text-muted">
+        <label className="mt-5 block text-[13px] text-muted">
           Observações
-          <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={4} className="mt-1 w-full rounded-[10px] border border-border bg-surface p-2.5 text-[13.5px] text-ink" />
+          <textarea value={obs} onChange={(e) => setObs(e.target.value)} rows={4} className="mt-1 w-full rounded-[8px] border border-border bg-surface p-2.5 text-[14px] text-ink" />
         </label>
-        <label className="mt-3 block text-[12.5px] text-muted">
+        <label className="mt-3 block text-[13px] text-muted">
           Valor da venda (R$)
-          <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="mt-1 w-40 rounded-[10px] border border-border bg-surface px-3 py-2 text-[13.5px] text-ink" />
+          <input value={valor} onChange={(e) => setValor(e.target.value)} inputMode="decimal" className="mt-1 w-40 rounded-[8px] border border-border bg-surface px-3 py-2 text-[14px] text-ink" />
         </label>
         <div className="mt-4 flex justify-end">
           <Button

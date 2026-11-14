@@ -38,7 +38,7 @@ const FASES: { key: FaseConversa; nome: string }[] = [
 
 function Campo({ valor, onChange, sufixo, largura = 70 }: { valor: number; onChange: (n: number) => void; sufixo: string; largura?: number }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-[9px] border border-primary-bright/40 bg-[rgba(11,4,32,.7)] px-2.5 py-1">
+    <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-primary-bright/40 bg-[rgba(11,4,32,.7)] px-2.5 py-1">
       <input
         type="number"
         min={0}
@@ -48,7 +48,7 @@ function Campo({ valor, onChange, sufixo, largura = 70 }: { valor: number; onCha
         className="bg-transparent text-center text-[14px] font-semibold text-ink outline-none"
         style={{ width: largura - 30 }}
       />
-      <span className="text-[11.5px] text-muted">{sufixo}</span>
+      <span className="text-[12px] text-muted">{sufixo}</span>
     </span>
   );
 }
@@ -67,7 +67,7 @@ export function MetasTab() {
 
   return (
     <Card className="p-5">
-      <div className="text-[17px] font-semibold">Metas do funil</div>
+      <div className="text-[16px] font-semibold">Metas do funil</div>
       <p className="mb-5 mt-1 text-[13px] text-muted">
         Cada meta é a % de leads que deve passar de uma etapa para a próxima. Quando o realizado fica abaixo, a etapa fica laranja. A que está mais longe
         da meta vira o gargalo.
@@ -87,12 +87,12 @@ export function MetasTab() {
         </Bloco>
       </div>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[720px] border-collapse text-[13.5px]">
+        <table className="w-full min-w-[720px] border-collapse text-[14px]">
           <thead>
             <tr>
-              <th className="pb-2 text-left font-mono text-[10.5px] font-normal uppercase tracking-wider text-muted">Passagem para a etapa</th>
+              <th className="pb-2 text-left text-[12px] font-normal text-muted">Passagem para a etapa</th>
               {COLUNAS.map((c) => (
-                <th key={c.key} className="pb-2 font-mono text-[10.5px] font-normal uppercase tracking-wider text-muted">
+                <th key={c.key} className="pb-2 text-[12px] font-normal text-muted">
                   {c.nome}
                 </th>
               ))}
@@ -124,7 +124,7 @@ export function MetasTab() {
           </Bloco>
         ))}
       </div>
-      <p className="mt-4 text-[12.5px] text-muted">Dá para mudar a qualquer momento. Os Indicadores mudam na hora; os Insights usam a meta nova na próxima análise.</p>
+      <p className="mt-4 text-[13px] text-muted">Dá para mudar a qualquer momento. Os Indicadores mudam na hora; os Insights usam a meta nova na próxima análise.</p>
       <Button
         className="mt-4"
         disabled={salvar.isPending}
@@ -139,7 +139,7 @@ export function MetasTab() {
 function Bloco({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div className="rounded-[12px] border border-border bg-surface-2 p-3.5">
-      <div className="mb-2 font-mono text-[10.5px] uppercase tracking-wider text-muted">{titulo}</div>
+      <div className="mb-2 text-[12px] text-muted">{titulo}</div>
       {children}
     </div>
   );
@@ -162,13 +162,13 @@ export function LigacoesWebhookTab() {
 }`;
   return (
     <Card className="p-5">
-      <div className="text-[17px] font-semibold">Ligações · webhook</div>
+      <div className="text-[16px] font-semibold">Ligações · webhook</div>
       <p className="mb-4 mt-1 text-[13px] text-muted">
         Passe este endereço para a empresa de ligações. Cada contato que ela mandar entra no funil Ligações · Lista. Nada é enviado para o lead daqui.
       </p>
-      <div className="mb-1 font-mono text-[10.5px] uppercase tracking-wider text-muted">Endereço (POST)</div>
+      <div className="mb-1 text-[12px] text-muted">Endereço (POST)</div>
       <div className="mb-4 flex items-center gap-2">
-        <code className="flex-1 truncate rounded-[10px] border border-border bg-[rgba(11,4,32,.7)] px-3 py-2 text-[13px]">{url}</code>
+        <code className="flex-1 truncate rounded-[8px] border border-border bg-[rgba(11,4,32,.7)] px-3 py-2 text-[13px]">{url}</code>
         <Button
           variant="ghost"
           size="sm"
@@ -180,14 +180,14 @@ export function LigacoesWebhookTab() {
           <Copy /> Copiar
         </Button>
       </div>
-      <div className="mb-1 font-mono text-[10.5px] uppercase tracking-wider text-muted">Senha do webhook</div>
+      <div className="mb-1 text-[12px] text-muted">Senha do webhook</div>
       <p className="mb-4 text-[13px] text-ink/90">
         Vai no cabeçalho <code className="text-primary-bright">x-webhook-secret</code>. É a variável <code className="text-primary-bright">LIGACOES_WEBHOOK_SECRET</code> que
         você cadastra na Vercel do servidor da Ana. Enquanto ela não existir, o webhook fica desligado.
       </p>
-      <div className="mb-1 font-mono text-[10.5px] uppercase tracking-wider text-muted">Exemplo de contato</div>
-      <pre className="rounded-[10px] border border-border bg-[rgba(11,4,32,.7)] p-3 text-[12px] leading-relaxed">{exemplo}</pre>
-      <p className="mt-3 text-[12.5px] text-muted">
+      <div className="mb-1 text-[12px] text-muted">Exemplo de contato</div>
+      <pre className="rounded-[8px] border border-border bg-[rgba(11,4,32,.7)] p-3 text-[12px] leading-relaxed">{exemplo}</pre>
+      <p className="mt-3 text-[13px] text-muted">
         O status pode vir com palavras comuns: não atendeu, atendida, conversa, qualificado, reunião agendada, reunião realizada, proposta, venda, sem
         interesse. Também aceita uma lista de contatos de uma vez.
       </p>

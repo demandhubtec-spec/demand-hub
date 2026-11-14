@@ -80,12 +80,12 @@ function Manuais() {
             key={a.id}
             onClick={() => setId(a.id)}
             className={cn(
-              "rounded-[11px] border px-3 py-1.5 text-left text-[12.5px] transition-colors",
+              "rounded-[12px] border px-3 py-1.5 text-left text-[13px] transition-colors",
               a.id === m.id ? "border-primary-bright bg-primary-tint/50" : "border-border hover:border-primary-bright/50",
             )}
           >
             <div className="font-semibold">{a.nome}</div>
-            <div className="text-[11px] text-muted">{a.cargo}</div>
+            <div className="text-[12px] text-muted">{a.cargo}</div>
           </button>
         ))}
       </div>
@@ -186,11 +186,11 @@ function EditorDeSecoes({
                 </Button>
               </div>
               <Textarea value={s.texto} onChange={(e) => mudar(i, "texto", e.target.value)} rows={6} placeholder="Uma regra por linha" />
-              <div className="mt-1.5 text-[11.5px] text-muted">Uma regra por linha.</div>
+              <div className="mt-1.5 text-[12px] text-muted">Uma regra por linha.</div>
             </Card>
           ) : (
             <Card key={i} className="p-4">
-              <div className="eyebrow mb-2 text-[10.5px] text-primary-bright">{s.titulo || "Sem título"}</div>
+              <div className="eyebrow mb-2 text-[12px] text-primary-bright">{s.titulo || "Sem título"}</div>
               <ul className="space-y-1.5 text-[13px] leading-relaxed">
                 {s.texto
                   .split("\n")

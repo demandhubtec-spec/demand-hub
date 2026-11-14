@@ -27,12 +27,12 @@ const CANAL: Record<string, string> = { google: "Google", instagram: "Instagram"
 const AGENTE: Record<string, string> = { gabi: "Gabi", marina: "Marina" };
 
 const Rotulo = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("font-mono text-[11px] uppercase tracking-[.12em] text-muted", className)}>{children}</div>
+  <div className={cn("text-[12px] text-muted", className)}>{children}</div>
 );
 const Tag = ({ children, tom = "roxo" }: { children: React.ReactNode; tom?: "roxo" | "vermelho" | "laranja" | "verde" }) => (
   <span
     className={cn(
-      "rounded-[6px] px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-wider",
+      "rounded-[6px] px-2 py-0.5 text-[12px]",
       tom === "vermelho" && "bg-negative-tint text-negative",
       tom === "laranja" && "bg-attention-tint text-attention",
       tom === "verde" && "bg-positive-tint text-positive",
@@ -122,7 +122,7 @@ export function InsightsTab() {
                 {f.n} · {f.nome}
               </Rotulo>
               <div className="mt-1 text-[15.5px] font-semibold">{f.pergunta}</div>
-              <div className="text-[12.5px] text-muted">{f.conta}</div>
+              <div className="text-[13px] text-muted">{f.conta}</div>
               <div
                 className={cn(
                   "mt-2 text-[32px] font-semibold leading-none",
@@ -178,7 +178,7 @@ export function InsightsTab() {
                 "O sistema mede se melhorou",
               ].map((t, i) => (
                 <li key={t} className="flex items-center gap-2.5">
-                  <b className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary-tint text-[11px]">{i + 1}</b>
+                  <b className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-primary-tint text-[12px]">{i + 1}</b>
                   {t}
                 </li>
               ))}
@@ -190,7 +190,7 @@ export function InsightsTab() {
               <div className="mt-3 text-[13px] text-muted">Nenhuma ainda.</div>
             ) : (
               aplicados.map((i) => (
-                <div key={i.id} className="border-t border-border py-3 text-[13.5px] first-of-type:border-0">
+                <div key={i.id} className="border-t border-border py-3 text-[14px] first-of-type:border-0">
                   {i.incluir[0] ?? i.titulo}
                   <span className="mt-0.5 block text-[12px] text-muted">
                     {NOME_FASE[i.fase]} · {i.canais.map((c) => CANAL[c] ?? c).join(", ") || "todos"} · aprovado{" "}
@@ -242,22 +242,22 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
       <div className="grid gap-5 lg:grid-cols-2">
         <div>
           <Rotulo className="mb-2">Causa raiz</Rotulo>
-          <p className="text-[13.5px] leading-relaxed text-ink/90">{i.causa}</p>
+          <p className="text-[14px] leading-relaxed text-ink/90">{i.causa}</p>
           {i.trecho.length > 0 && (
             <>
               <Rotulo className="mb-2 mt-4">Trecho de uma conversa</Rotulo>
               <div className="rounded-[12px] border border-border bg-[rgba(11,4,32,.6)] p-3">
                 {i.trecho.map((t, k) =>
                   t.de === "nota" ? (
-                    <div key={k} className="py-1 text-center text-[11.5px] text-muted">
+                    <div key={k} className="py-1 text-center text-[12px] text-muted">
                       {t.texto}
                     </div>
                   ) : (
                     <div
                       key={k}
                       className={cn(
-                        "mb-1.5 max-w-[88%] rounded-[11px] px-3 py-2 text-[12.5px] leading-snug",
-                        t.de === "ia" ? "ml-auto rounded-br-[3px] bg-primary-tint" : "rounded-bl-[3px] bg-surface-2",
+                        "mb-1.5 max-w-[88%] rounded-[12px] px-3 py-2 text-[13px] leading-snug",
+                        t.de === "ia" ? "ml-auto rounded-br-[6px] bg-primary-tint" : "rounded-bl-[6px] bg-surface-2",
                       )}
                     >
                       {t.texto}
@@ -279,9 +279,9 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
             />
           ) : (
             <div className="space-y-1 rounded-[12px] border border-border bg-[rgba(11,4,32,.6)] p-3 font-mono text-[12px] leading-relaxed">
-              {i.remover && <div className="rounded-[5px] bg-negative-tint px-2 py-0.5 text-[#ffb3c0] line-through">{i.remover}</div>}
+              {i.remover && <div className="rounded-[6px] bg-negative-tint px-2 py-0.5 text-[#ffb3c0] line-through">{i.remover}</div>}
               {incluir.map((l) => (
-                <div key={l} className="rounded-[5px] bg-positive-tint px-2 py-0.5 text-[#a6f0c9]">
+                <div key={l} className="rounded-[6px] bg-positive-tint px-2 py-0.5 text-[#a6f0c9]">
                   {l}
                 </div>
               ))}
@@ -343,7 +343,7 @@ function Versoes() {
           <div key={v.id} className="flex items-center justify-between gap-3 border-t border-border py-2.5 text-[13px] first-of-type:mt-2">
             <span className="min-w-0">
               {AGENTE[v.agente] ?? v.agente} · {new Date(v.criado_em).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}
-              <span className="block truncate text-[11.5px] text-muted">{v.motivo}</span>
+              <span className="block truncate text-[12px] text-muted">{v.motivo}</span>
             </span>
             <button
               className="shrink-0 text-[12px] text-primary-bright hover:underline"

@@ -64,7 +64,7 @@ export function Quadro<K extends string>({
 
   return (
     <div>
-      <div className="mb-3 flex flex-wrap items-center gap-3 text-[12.5px] text-muted">
+      <div className="mb-3 flex flex-wrap items-center gap-3 text-[13px] text-muted">
         <span>Arraste o card para mudar de etapa. Segure em qualquer espaço vazio do quadro para mover a visão.</span>
         <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5">
           <input type="checkbox" checked={mostrarPerdidos} onChange={(e) => setMostrarPerdidos(e.target.checked)} />
@@ -89,16 +89,16 @@ export function Quadro<K extends string>({
                 if (id && etapa(id) !== col.key) mover(id, col.key);
               }}
               className={cn(
-                "flex w-[248px] shrink-0 flex-col rounded-[14px] border border-border bg-surface-2/40 p-2.5 transition-colors",
+                "flex w-[248px] shrink-0 flex-col rounded-[12px] border border-border bg-surface-2/40 p-2.5 transition-colors",
                 sobre === col.key && "border-primary-bright bg-primary-tint/40",
               )}
             >
               <div className="mb-2 px-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[12.5px] font-semibold">{col.label}</span>
-                  <span className="ml-auto rounded-full bg-surface px-2 text-[11.5px] font-semibold text-muted">{lista.length}</span>
+                  <span className="text-[13px] font-semibold">{col.label}</span>
+                  <span className="ml-auto rounded-full bg-surface px-2 text-[12px] font-semibold text-muted">{lista.length}</span>
                 </div>
-                <div className="mt-0.5 text-[11px] text-muted">{col.dica}</div>
+                <div className="mt-0.5 text-[12px] text-muted">{col.dica}</div>
               </div>
               <div className="flex min-h-[60px] flex-col gap-2">
                 {lista.map((it) => (
@@ -108,19 +108,19 @@ export function Quadro<K extends string>({
                     onDragStart={(e) => e.dataTransfer.setData("text/plain", it.id)}
                     onClick={() => abrir(it.id)}
                     className={cn(
-                      "cursor-pointer rounded-[11px] border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary-bright/50",
+                      "cursor-pointer rounded-[12px] border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary-bright/50",
                       it.nota === "Quente" && "border-l-[3px] border-l-positive",
                       it.aviso && "border-l-[3px] border-l-attention",
                     )}
                   >
                     <div className="text-[13px] font-semibold leading-snug">{it.titulo}</div>
-                    {it.sub && <div className="mt-0.5 text-[11.5px] text-muted">{it.sub}</div>}
+                    {it.sub && <div className="mt-0.5 text-[12px] text-muted">{it.sub}</div>}
                     {(it.nota || it.etiqueta) && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {it.nota && (
                           <span
                             className={cn(
-                              "rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                              "rounded-full px-2 py-0.5 text-[12px] font-semibold",
                               it.nota === "Quente" && "bg-positive-tint text-positive",
                               it.nota === "Morno" && "bg-attention-tint text-attention",
                               it.nota === "Frio" && "bg-surface-2 text-muted",
@@ -129,14 +129,14 @@ export function Quadro<K extends string>({
                             {it.nota}
                           </span>
                         )}
-                        {it.etiqueta && <span className="rounded-[5px] bg-primary-tint px-1.5 py-0.5 font-mono text-[10px] uppercase text-[#d9cbff]">{it.etiqueta}</span>}
+                        {it.etiqueta && <span className="rounded-[6px] bg-primary-tint px-1.5 py-0.5 text-[12px] text-[#d9cbff]">{it.etiqueta}</span>}
                       </div>
                     )}
                     {it.valor != null && it.valor > 0 && (
                       <div className="mt-1 text-[14px] font-semibold text-positive">{it.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
                     )}
-                    {it.aviso && <div className="mt-1 text-[11.5px] text-attention">{it.aviso}</div>}
-                    <div className="mt-1.5 flex items-center gap-2 text-[11px] text-muted">
+                    {it.aviso && <div className="mt-1 text-[12px] text-attention">{it.aviso}</div>}
+                    <div className="mt-1.5 flex items-center gap-2 text-[12px] text-muted">
                       {it.quando && <span>{fmtData(it.quando)}</span>}
                       {paraLixeira && (
                         <button
@@ -272,14 +272,14 @@ function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }
       <button
         onClick={() => setVerLixeira((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-[13px]",
+          "inline-flex items-center gap-1.5 rounded-[8px] border px-3 py-1.5 text-[13px]",
           verLixeira ? "border-primary-bright bg-primary-tint text-ink" : "border-border bg-surface text-muted hover:text-ink",
         )}
       >
         <Trash2 className="h-3.5 w-3.5" /> Lixeira ({naLixeira.length})
       </button>
       {verLixeira && naLixeira.length > 0 && (
-        <button className="text-[12.5px] text-primary-bright hover:underline" onClick={() => mandar(naLixeira.map((c) => c.id), false)}>
+        <button className="text-[13px] text-primary-bright hover:underline" onClick={() => mandar(naLixeira.map((c) => c.id), false)}>
           Restaurar todos
         </button>
       )}
@@ -294,12 +294,12 @@ function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }
         ) : (
           <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
             {naLixeira.map((c) => (
-              <div key={c.id} className="flex items-center gap-3 rounded-[11px] border border-border bg-surface p-3">
+              <div key={c.id} className="flex items-center gap-3 rounded-[12px] border border-border bg-surface p-3">
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-[13px] font-semibold">{c.nomeExibicao}</div>
-                  <div className="text-[11.5px] text-muted">na lixeira desde {fmtData(c.lixeira_em!)}</div>
+                  <div className="text-[12px] text-muted">na lixeira desde {fmtData(c.lixeira_em!)}</div>
                 </div>
-                <button className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline" onClick={() => mandar([c.id], false)}>
+                <button className="inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline" onClick={() => mandar([c.id], false)}>
                   <RotateCcw className="h-3.5 w-3.5" /> Restaurar
                 </button>
               </div>
@@ -370,7 +370,7 @@ export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => 
               key={o.k}
               onClick={() => setVisao(o.k)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[13.5px] font-medium transition-colors",
+                "inline-flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[14px] font-medium transition-colors",
                 visao === o.k ? "border-primary-bright bg-primary-tint text-ink shadow-[0_0_22px_rgba(110,58,255,.28)]" : "border-border bg-surface text-ink/90 hover:border-primary-bright/50",
                 vazio && visao !== o.k && "opacity-55",
               )}

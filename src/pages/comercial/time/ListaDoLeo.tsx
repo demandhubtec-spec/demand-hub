@@ -162,7 +162,7 @@ export function ListaDoLeo() {
 
       {nichos.length > 1 && (
         <div className="mb-3 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-[12.5px] text-muted">Nichos:</span>
+          <span className="mr-1 text-[13px] text-muted">Nichos:</span>
           {[["", daVisao.length] as [string, number], ...nichos].map(([n, q]) => (
             <button
               key={n || "todos"}
@@ -182,7 +182,7 @@ export function ListaDoLeo() {
         <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa, nicho, cidade ou dono" className="max-w-[320px]" />
         {marcados.size > 0 && (
           <>
-            <span className="text-[12.5px] text-muted">{marcados.size} marcada(s)</span>
+            <span className="text-[13px] text-muted">{marcados.size} marcada(s)</span>
             {visao !== "aprovado" && (
               <Button size="sm" onClick={() => decidir([...marcados], "aprovado")}>
                 <Check /> Aprovar
@@ -209,9 +209,9 @@ export function ListaDoLeo() {
           {visao === "pendente" ? "Nada esperando sua aprovação. Quando o Léo terminar uma empresa, ela aparece aqui." : "Nenhuma empresa aqui."}
         </EmptyState>
       ) : (
-        <div className="overflow-x-auto rounded-[14px] border border-border">
-          <table className="w-full min-w-[980px] text-[12.5px]">
-            <thead className="bg-surface-2/60 text-left text-[11px] uppercase tracking-wide text-muted">
+        <div className="overflow-x-auto rounded-[12px] border border-border">
+          <table className="w-full min-w-[980px] text-[13px]">
+            <thead className="bg-surface-2/60 text-left text-[12px] text-muted">
               <tr>
                 <th className="w-8 p-2.5">
                   <input
