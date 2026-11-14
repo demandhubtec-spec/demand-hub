@@ -24,6 +24,8 @@ import Ajuda from "@/pages/Ajuda";
 import ProjetosHome from "@/pages/projetos/ProjetosHome";
 import ProjetosCliente from "@/pages/projetos/ProjetosCliente";
 import Acompanhar from "@/pages/Acompanhar";
+import AjudaCentral from "@/pages/AjudaCentral";
+import Site from "@/pages/marketing/Site";
 
 export default function App() {
   return (
@@ -45,8 +47,10 @@ export default function App() {
           <Route path=":dept/atividades" element={<MinhasAtividades />} />
 
           <Route path="marketing/instagram-direct" element={<InstagramDirect />} />
-          <Route path="marketing/landing-page" element={<LandingPage />} />
-          <Route path="marketing/seo" element={<Seo />} />
+          {/* Landing pages e SEO viraram uma página com abas (14/11/2026); os endereços antigos continuam valendo */}
+          <Route path="marketing/site" element={<Site />} />
+          <Route path="marketing/landing-page" element={<Navigate to="/marketing/site?aba=landing" replace />} />
+          <Route path="marketing/seo" element={<Navigate to="/marketing/site?aba=seo" replace />} />
           <Route path="marketing/estudio" element={<Estudio />} />
 
           <Route path="comercial/crm" element={<Crm />} />
@@ -61,9 +65,14 @@ export default function App() {
 
           <Route path="configuracoes/acessos" element={<Acessos />} />
 
-          <Route path="faq" element={<Faq />} />
-          <Route path="processos" element={<Processos />} />
-          <Route path="ajuda" element={<Ajuda />} />
+          {/* Ajuda num lugar só, com abas */}
+          <Route path="ajuda" element={<AjudaCentral />} />
+          <Route path="faq" element={<Navigate to="/ajuda?aba=faq" replace />} />
+          <Route path="processos" element={<Navigate to="/ajuda?aba=processos" replace />} />
+          {/* Clicar numa área abre a página dela */}
+          <Route path="tecnologia" element={<Navigate to="/tecnologia/visao" replace />} />
+          <Route path="marketing" element={<Navigate to="/marketing/visao" replace />} />
+          <Route path="comercial" element={<Navigate to="/comercial/visao" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>

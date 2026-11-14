@@ -9,6 +9,7 @@ import { AtrasadaBadge } from "@/components/shared/AtrasadaBadge";
 import { NovaAtividadeModal } from "@/components/shared/NovaAtividadeModal";
 import { ProjetoModal } from "@/components/shared/ProjetoModal";
 import { departamentoInfo } from "@/data/departamentos";
+import { AbasArea } from "@/components/layout/AbasArea";
 import type { Departamento } from "@/lib/types";
 import { useAtividadesTodas, useUpdateAtividadeStatus, type AtividadeView } from "@/hooks/useAtividades";
 import { useProjetosAll } from "@/hooks/useProjetos";
@@ -73,13 +74,14 @@ export default function MinhasAtividades() {
     .sort((a, b) => ordem(a.itens[0]).localeCompare(ordem(b.itens[0])));
 
   const projetoAberto = aberta ? projetos.find((p) => p.id === aberta.projetoId) ?? null : null;
-  const titulo = dept ? `${departamentoInfo[dept].nome} · Minhas atividades` : "Minhas atividades";
+  const titulo = dept ? `Tarefas de ${departamentoInfo[dept].nome}` : "Minhas tarefas";
 
   return (
     <section>
+      {dept && <AbasArea dept={dept} />}
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[20px] font-semibold">{titulo}</div>
+          <div className={dept ? "text-[16px] font-semibold" : "brand-h text-[28px]"}>{titulo}</div>
           <div className="mt-1 text-[13px] text-muted">
             Marque a caixinha quando terminar. Clique na atividade para ver detalhes, prazo e conversa.
           </div>

@@ -12,8 +12,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  HelpCircle,
-  GitBranch,
   LifeBuoy,
   RefreshCw,
   LogOut,
@@ -23,7 +21,8 @@ import { Sparkle } from "@/components/brand/HoloSymbol";
 
 /** A estrela aparece só onde há IA (regra do manual de marca). */
 const IA_PATHS = new Set(["/comercial/time", "/marketing/estudio"]);
-import { navGroups } from "./nav-config";
+import { AREAS, navGroups } from "./nav-config";
+import { useAtividadesTodas } from "@/hooks/useAtividades";
 import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -68,7 +67,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
   const [openGroups, setOpenGroups] = React.useState<Record<string, boolean>>(() => {
     const initial: Record<string, boolean> = {};
     navGroups.forEach((g) => {
-      initial[g.key] = g.children.some((c) => location.pathname.startsWith(c.path));
+      initial[g.key] = location.pathname.startsWith(`/${g.key}`);
     });
     return initial;
   });
@@ -100,67 +99,99 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
     setOpenGroups((prev) => ({ ...prev, [key]: !prev[key] }));
   }
 
+  // A área da página aberta fica sempre aberta no menu
+  React.useEffect(() => {
+    const area = navGroups.find((g) => location.pathname.startsWith(`/${g.key}/`));
+    if (area) setOpenGroups((prev) => (prev[area.key] ? prev : { ...prev, [area.key]: true }));
+  }, [location.pathname]);
+
+  // Minhas tarefas: número do que está pendente para mim
+  const { session } = useAuth();
+  const { data: atividades = [] } = useAtividadesTodas();
+  const pendentes = atividades.filter((a) => a.responsavelId === session?.user.id && a.status !== "concluido").length;
+
   const userName = perfil?.nome ?? "Kelvin";
   const userRole = isColaborador ? "Colaborador" : "Dono";
   const initial = userName.charAt(0).toUpperCase();
 
+  /** Área no menu: o nome abre a página da área (Visão, Projetos e Tarefas em abas); a setinha mostra os times e ferramentas. */
   function renderGroup(group: (typeof navGroups)[number]) {
-              const Icon = groupIcons[group.icon];
-              const visibleChildren = group.children.filter((c) => !isColaborador || c.colaboradorPode);
-              const isOpen = collapsed ? false : openGroups[group.key];
-              return (
-                <div key={group.key}>
-                  <button
-                    className={cn(
-                      "nav-sweep flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[14px] font-medium transition-colors hover:bg-white/[.05] hover:text-white",
-                      collapsed && "justify-center",
-                      group.children.some((c) => location.pathname.startsWith(c.path)) && "text-white",
-                    )}
-                    onClick={() => toggleGroup(group.key)}
-                    title={collapsed ? group.label : undefined}
-                  >
-                    <Icon className="h-[17px] w-[17px] shrink-0" />
-                    {!collapsed && (
-                      <>
-                        <span className="flex-1">{group.label}</span>
-                        <ChevronDown
-                          className={cn("h-3.5 w-3.5 shrink-0 transition-transform", isOpen && "rotate-180")}
-                        />
-                      </>
-                    )}
-                  </button>
-                  {!collapsed && (
-                    <div
-                      className="grid transition-[grid-template-rows] duration-300 ease-in-out"
-                      style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}
-                    >
-                      <div className="my-0.5 flex flex-col gap-px overflow-hidden pl-3.5">
-                        {visibleChildren.map((child) => (
-                          <NavLink
-                            key={child.path}
-                            to={child.path}
-                            onClick={onCloseMobile}
-                            className={({ isActive }) =>
-                              cn(
-                                "nav-sweep flex items-center gap-2 rounded-r-[8px] border-l-2 py-2 pl-5 pr-3 text-[13px] font-medium transition-colors",
-                                isActive
-                                  ? "border-l-[#A47BFF] bg-[rgba(110,58,255,.12)] font-semibold text-white"
-                                  : "border-l-sidebar-border text-[#9A8DCC] hover:bg-white/[.04] hover:text-white",
-                              )
-                            }
-                          >
-                            <span className="flex-1">{child.label}</span>
-                            {IA_PATHS.has(child.path) && (
-                              <Sparkle size={9} className="shrink-0 text-[#A47BFF]" />
-                            )}
-                          </NavLink>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
+    const Icon = groupIcons[group.icon];
+    const visibleChildren = group.children.filter((c) => !isColaborador || c.colaboradorPode);
+    const ativa = location.pathname.startsWith(`/${group.key}/`);
+    const isOpen = !collapsed && openGroups[group.key];
+    return (
+      <div key={group.key}>
+        <div className={cn("flex items-center rounded-[8px]", ativa && "text-white")}>
+          <NavLink
+            to={group.home}
+            onClick={() => {
+              onCloseMobile();
+              if (!collapsed) setOpenGroups((prev) => ({ ...prev, [group.key]: true }));
+            }}
+            title={collapsed ? group.label : undefined}
+            className={cn(topItemClass(ativa && !visibleChildren.some((c) => location.pathname.startsWith(c.path)), collapsed), "flex-1")}
+          >
+            <Icon className="h-[17px] w-[17px] shrink-0" />
+            {!collapsed && <span className="flex-1">{group.label}</span>}
+          </NavLink>
+          {!collapsed && visibleChildren.length > 0 && (
+            <button
+              className="ml-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] text-[#9A8DCC] hover:bg-white/[.05] hover:text-white"
+              onClick={() => toggleGroup(group.key)}
+              aria-label={isOpen ? `Fechar ${group.label}` : `Abrir ${group.label}`}
+            >
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
+            </button>
+          )}
+        </div>
+        {!collapsed && visibleChildren.length > 0 && (
+          <div className="grid transition-[grid-template-rows] duration-300 ease-in-out" style={{ gridTemplateRows: isOpen ? "1fr" : "0fr" }}>
+            <div className="my-0.5 flex flex-col gap-px overflow-hidden pl-3.5">
+              {visibleChildren.map((child) => (
+                <NavLink
+                  key={child.path}
+                  to={child.path}
+                  onClick={onCloseMobile}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2 rounded-r-[8px] border-l-2 py-2 pl-5 pr-3 text-[13px] font-medium transition-colors",
+                      isActive
+                        ? "border-l-[#A47BFF] bg-[rgba(110,58,255,.12)] font-semibold text-white"
+                        : "border-l-sidebar-border text-[#9A8DCC] hover:bg-white/[.04] hover:text-white",
+                    )
+                  }
+                >
+                  <span className="flex-1">{child.label}</span>
+                  {IA_PATHS.has(child.path) && <Sparkle size={9} className="shrink-0 text-[#A47BFF]" />}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  /** Itens do rodapé do menu (Administrativo, Configurações, Ajuda): menores, sem grupo. */
+  function itemRodape(to: string, label: string, Icon: React.ComponentType<{ className?: string }>, ativo: boolean) {
+    return (
+      <NavLink
+        key={to}
+        to={to}
+        onClick={onCloseMobile}
+        title={collapsed ? label : undefined}
+        className={cn(
+          "flex items-center gap-3 rounded-[8px] px-3 py-2 text-[13px] font-medium transition-colors",
+          collapsed && "justify-center",
+          ativo ? "bg-[rgba(110,58,255,.16)] text-white" : "text-[#9A8DCC] hover:bg-white/[.05] hover:text-white",
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        {!collapsed && <span>{label}</span>}
+      </NavLink>
+    );
+  }
 
   return (
     <>
@@ -190,26 +221,28 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
         </div>
 
         <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-1.5 pt-2.5 [&>*]:shrink-0">
-          <SectionLabel collapsed={collapsed}>Meu dia</SectionLabel>
           <NavLink
             to="/"
             end
             onClick={onCloseMobile}
-            title={collapsed ? "Resumo" : undefined}
+            title={collapsed ? "Início" : undefined}
             className={({ isActive }) => topItemClass(isActive, collapsed)}
           >
-            <LayoutGrid className="h-[17px] w-[17px] shrink-0" aria-label="Resumo" />
-            {!collapsed && <span>Resumo</span>}
+            <LayoutGrid className="h-[17px] w-[17px] shrink-0" aria-label="Início" />
+            {!collapsed && <span>Início</span>}
           </NavLink>
 
           <NavLink
             to="/minhas-atividades"
             onClick={onCloseMobile}
-            title={collapsed ? "Minhas atividades" : undefined}
+            title={collapsed ? "Minhas tarefas" : undefined}
             className={({ isActive }) => topItemClass(isActive, collapsed)}
           >
             <ListChecks className="h-[17px] w-[17px] shrink-0" />
-            {!collapsed && <span>Minhas atividades</span>}
+            {!collapsed && <span className="flex-1">Minhas tarefas</span>}
+            {!collapsed && pendentes > 0 && (
+              <span className="rounded-full bg-white/[.1] px-2 text-[12px] font-semibold tabular-nums text-white">{pendentes}</span>
+            )}
           </NavLink>
 
           <NavLink
@@ -222,46 +255,17 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             {!collapsed && <span>Projetos</span>}
           </NavLink>
 
-          <SectionLabel collapsed={collapsed}>Departamentos</SectionLabel>
-          {navGroups
-            .filter((g) => ["tecnologia", "marketing", "comercial"].includes(g.key))
+          <SectionLabel collapsed={collapsed}>Áreas</SectionLabel>
+          {AREAS.map((k) => navGroups.find((g) => g.key === k)!)
             .filter((g) => !isColaborador || g.colaboradorPode)
             .map(renderGroup)}
 
-          <SectionLabel collapsed={collapsed}>Ajuda</SectionLabel>
-          <NavLink
-            to="/faq"
-            onClick={onCloseMobile}
-            className={({ isActive }) => topItemClass(isActive, collapsed)}
-          >
-            <HelpCircle className="h-[17px] w-[17px] shrink-0" />
-            {!collapsed && <span>FAQ</span>}
-          </NavLink>
-          <NavLink
-            to="/processos"
-            onClick={onCloseMobile}
-            className={({ isActive }) => topItemClass(isActive, collapsed)}
-          >
-            <GitBranch className="h-[17px] w-[17px] shrink-0" />
-            {!collapsed && <span>Processos DemandIA</span>}
-          </NavLink>
-          <NavLink
-            to="/ajuda"
-            onClick={onCloseMobile}
-            className={({ isActive }) => topItemClass(isActive, collapsed)}
-          >
-            <LifeBuoy className="h-[17px] w-[17px] shrink-0" />
-            {!collapsed && <span>Central de ajuda</span>}
-          </NavLink>
-
-          {!isColaborador && (
-            <>
-              <SectionLabel collapsed={collapsed}>Administração</SectionLabel>
-              {navGroups
-                .filter((g) => ["administrativo", "config"].includes(g.key))
-                .map(renderGroup)}
-            </>
-          )}
+          <div className="flex-1" />
+          <div className="mt-4 flex flex-col gap-px border-t border-sidebar-border pt-3">
+            {!isColaborador && itemRodape("/administrativo/financas", "Administrativo", Briefcase, location.pathname.startsWith("/administrativo"))}
+            {!isColaborador && itemRodape("/configuracoes/acessos", "Configurações", Settings, location.pathname.startsWith("/configuracoes"))}
+            {itemRodape("/ajuda", "Ajuda", LifeBuoy, location.pathname === "/ajuda")}
+          </div>
         </nav>
 
         <div className="relative border-t border-sidebar-border p-3.5">
@@ -300,13 +304,6 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                 <LogOut className="h-[15px] w-[15px]" />
                 Sair
               </button>
-            </div>
-          )}
-          {!collapsed && (
-            <div className="mb-2.5 px-1 tabular-nums text-[12px] leading-relaxed text-[#6E61A0]">
-              DemandIA · Portal
-              <br />
-              Todos os direitos reservados
             </div>
           )}
           <div className={cn("flex items-center gap-2.5", collapsed && "justify-center")}>

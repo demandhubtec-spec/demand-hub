@@ -5,6 +5,7 @@ import { TableWrap, Th, Td } from "@/components/shared/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { departamentoInfo } from "@/data/departamentos";
+import { AbasArea } from "@/components/layout/AbasArea";
 import type { Departamento } from "@/lib/types";
 import { useAtividadesDept } from "@/hooks/useAtividades";
 import { useProjetosDept } from "@/hooks/useProjetos";
@@ -44,10 +45,7 @@ export default function DepartmentVisao() {
 
   return (
     <section>
-      <div className="mb-[22px]">
-        <div className="text-[20px] font-semibold">{info.nome} · Visão do departamento</div>
-        <div className="mt-1 text-[13px] text-muted">{info.resumo}</div>
-      </div>
+      <AbasArea dept={key} />
 
       <div className="mb-[22px] grid grid-cols-1 gap-3.5 sm:grid-cols-2 lg:grid-cols-3">
         {kpis.map((k, i) => (
