@@ -27,7 +27,7 @@ export default function InstagramDirect() {
         <iframe
           src="/painel-instagram.html?embed=1"
           title="Instagram · Direct"
-          className="block w-full rounded-[9px] border-0"
+          className="block w-full rounded-[8px] border-0"
           style={{ height: "calc(100vh - 190px)", minHeight: 640, background: "transparent" }}
         />
       </TabsContent>

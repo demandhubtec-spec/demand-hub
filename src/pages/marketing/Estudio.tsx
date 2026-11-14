@@ -73,7 +73,7 @@ export default function Estudio() {
         <iframe
           src="/central-estudio.html"
           title="Central do Time de Marketing IA"
-          className="block w-full rounded-[14px] border-0"
+          className="block w-full rounded-[12px] border-0"
           style={{ height: "calc(100vh - 140px)", minHeight: 640 }}
         />
       </TabsContent>
@@ -111,7 +111,7 @@ function Selo({ status }: { status: Pauta["status"] }) {
     : status === "revisar_copy" || status === "revisar_arte" || status === "aguardando_video" ? "bg-amber-500/15 text-amber-300"
     : status === "agendado" ? "bg-sky-500/15 text-sky-300"
     : "bg-surface-2 text-muted";
-  return <span className={cn("rounded-full px-2 py-[2px] text-[11.5px] font-semibold", cor)}>{STATUS_TEXTO[status]}</span>;
+  return <span className={cn("rounded-full px-2 py-[2px] text-[12px] font-semibold", cor)}>{STATUS_TEXTO[status]}</span>;
 }
 
 /* ───────────── Aprovações ───────────── */
@@ -145,15 +145,15 @@ function CartaoPauta({ p, onOpen }: { p: Pauta; onOpen: (p: Pauta) => void }) {
     <button
       type="button"
       onClick={() => onOpen(p)}
-      className="w-full rounded-[10px] border border-border bg-surface p-3 text-left transition hover:border-primary hover:shadow-[0_0_18px_rgba(164,123,255,.18)]"
+      className="w-full rounded-[8px] border border-border bg-surface p-3 text-left transition hover:border-primary hover:shadow-[0_0_18px_rgba(164,123,255,.18)]"
     >
-      <div className="flex items-center gap-2 text-[11.5px] text-muted">
+      <div className="flex items-center gap-2 text-[12px] text-muted">
         <span>{diaBonito(p.dia)} · {p.horario}</span>
         <span className="ml-auto rounded-full bg-surface-2 px-2 py-[1px] font-semibold">{FORMATO_TEXTO[p.formato]}</span>
       </div>
       <div className="mt-1.5 line-clamp-3 text-[13px] font-semibold leading-snug text-ink">{p.tema}</div>
-      {p.palavra_gatilho && <div className="mt-1 text-[11.5px] text-primary-bright">palavra {p.palavra_gatilho}</div>}
-      {p.erro && <div className="mt-1 line-clamp-2 text-[11.5px] text-red-300">{p.erro}</div>}
+      {p.palavra_gatilho && <div className="mt-1 text-[12px] text-primary-bright">palavra {p.palavra_gatilho}</div>}
+      {p.erro && <div className="mt-1 line-clamp-2 text-[12px] text-red-300">{p.erro}</div>}
     </button>
   );
 }
@@ -167,13 +167,13 @@ function Aprovacoes() {
   const colunas = ETAPAS.map((e) => ({ ...e, itens: visiveis.filter((p) => e.status.includes(p.status)) })).filter((c) => c.chave !== "erro" || c.itens.length);
   return (
     <>
-      <p className="mb-3 text-[12.5px] text-muted">Cada post anda da esquerda para a direita. As colunas em amarelo esperam você: clique no card para ver e aprovar.</p>
+      <p className="mb-3 text-[13px] text-muted">Cada post anda da esquerda para a direita. As colunas em amarelo esperam você: clique no card para ver e aprovar.</p>
       <div className="flex gap-3 overflow-x-auto pb-3">
         {colunas.map((c) => (
           <div key={c.chave} className={cn("flex w-[260px] shrink-0 flex-col rounded-xl border bg-surface-2/60 p-2.5", c.voce ? "border-amber-400/40" : "border-border")}>
             <div className="mb-2 flex items-center gap-2 px-1">
-              <span className={cn("text-[12.5px] font-semibold", c.voce ? "text-amber-300" : "text-ink")}>{c.titulo}</span>
-              <span className="ml-auto rounded-full bg-surface px-2 text-[11.5px] text-muted">{c.itens.length}</span>
+              <span className={cn("text-[13px] font-semibold", c.voce ? "text-amber-300" : "text-ink")}>{c.titulo}</span>
+              <span className="ml-auto rounded-full bg-surface px-2 text-[12px] text-muted">{c.itens.length}</span>
             </div>
             <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto pr-0.5">
               {c.itens.length ? c.itens.map((p) => <CartaoPauta key={p.id} p={p} onOpen={setAberta} />) : <div className="px-1 py-4 text-center text-[12px] text-muted">Nada aqui</div>}
@@ -219,7 +219,7 @@ function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: P
     <Card className="space-y-3 border-0 p-6">
       <div className="flex flex-wrap items-center gap-2 pr-6">
         <Selo status={pauta.status} />
-        <span className="text-[12.5px] text-muted">
+        <span className="text-[13px] text-muted">
           {diaBonito(pauta.dia)} · {pauta.horario} · {FORMATO_TEXTO[pauta.formato]}
           {pauta.pilar ? ` · ${pauta.pilar}` : ""}
           {pauta.palavra_gatilho ? ` · palavra ${pauta.palavra_gatilho}` : ""}
@@ -227,14 +227,14 @@ function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: P
       </div>
       <h3 className="text-[16px] font-semibold text-ink">{pauta.tema}</h3>
       {pauta.gancho && <p className="text-[13px] text-muted">Gancho: {pauta.gancho}</p>}
-      {pauta.erro && <p className="rounded-[9px] bg-red-500/10 p-2 text-[12.5px] text-red-300">{pauta.erro}</p>}
+      {pauta.erro && <p className="rounded-[8px] bg-red-500/10 p-2 text-[13px] text-red-300">{pauta.erro}</p>}
 
       {emArte && arte && <ArteVisual arte={arte} />}
       {emArte && arte && copy && <AjustesPorCriativo pauta={pauta} copy={copy} arte={arte} onDone={onDone} />}
       {copy && <CopyTexto copy={copy} formato={pauta.formato} aberto={!emArte} />}
 
       {pauta.status === "aguardando_video" && (
-        <div className="rounded-[10px] border border-dashed border-border p-3 text-[13px] text-muted">
+        <div className="rounded-[8px] border border-dashed border-border p-3 text-[13px] text-muted">
           Reels: grava ou gera o vídeo seguindo o roteiro acima e sobe aqui (MP4 vertical, até 90s).
           <div className="mt-2">
             <input ref={arquivo} type="file" accept="video/mp4,video/quicktime" className="hidden" onChange={(e) => subir(e.target.files?.[0])} />
@@ -280,12 +280,12 @@ function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: P
 
 function ArteVisual({ arte }: { arte: Peca }) {
   const video = arte.arquivos.find((u) => /\.(mp4|mov)(\?|$)/i.test(u));
-  if (video) return <video src={video} controls className="max-h-[520px] rounded-[10px]" />;
+  if (video) return <video src={video} controls className="max-h-[520px] rounded-[8px]" />;
   return (
     <div className="flex gap-3 overflow-x-auto pb-2">
       {arte.arquivos.map((u, i) => (
         <a key={u} href={u} target="_blank" rel="noreferrer" className="shrink-0">
-          <img src={u} alt={`Slide ${i + 1}`} className="h-[340px] w-auto rounded-[10px] border border-border" loading="lazy" />
+          <img src={u} alt={`Slide ${i + 1}`} className="h-[340px] w-auto rounded-[8px] border border-border" loading="lazy" />
         </a>
       ))}
     </div>
@@ -345,7 +345,7 @@ function AjustesPorCriativo({ pauta, copy, arte, onDone }: { pauta: Pauta; copy:
   };
 
   return (
-    <details className="rounded-[10px] bg-surface-2 p-3 text-[13px] text-ink" open={mudados.length > 0 || undefined}>
+    <details className="rounded-[8px] bg-surface-2 p-3 text-[13px] text-ink" open={mudados.length > 0 || undefined}>
       <summary className="cursor-pointer font-semibold">Ajustar criativo por criativo ({itens.length} {nome.toLowerCase()}s)</summary>
       <p className="mt-2 text-[12px] text-muted">
         Em cada {nome.toLowerCase()}, escreva o que mudar e escolha a foto. O que você não mexer fica exatamente igual. Fotos novas saem no {motor}.
@@ -356,16 +356,16 @@ function AjustesPorCriativo({ pauta, copy, arte, onDone }: { pauta: Pauta; copy:
           const miniatura = reels ? fotos[String(i)] : arte.arquivos[i];
           const prompt = v.prompt || `Foto realista, estilo editorial, que mostre: ${(it.titulo ?? "").replace(/\*/g, "")}. ${(it.texto ?? "").replace(/\*/g, "")}`.trim();
           return (
-            <div key={i} className={cn("flex gap-3 rounded-[9px] border p-2.5", v.pedido.trim() || v.modo !== "manter" ? "border-amber-400/50" : "border-border")}>
+            <div key={i} className={cn("flex gap-3 rounded-[8px] border p-2.5", v.pedido.trim() || v.modo !== "manter" ? "border-amber-400/50" : "border-border")}>
               {miniatura ? (
                 <a href={miniatura} target="_blank" rel="noreferrer" className="shrink-0">
                   <img src={miniatura} alt={`${nome} ${i + 1}`} className="h-[150px] w-auto rounded-[8px] border border-border" loading="lazy" />
                 </a>
               ) : (
-                <div className="flex h-[150px] w-[110px] shrink-0 items-center justify-center rounded-[8px] border border-dashed border-border text-[11.5px] text-muted">sem foto</div>
+                <div className="flex h-[150px] w-[110px] shrink-0 items-center justify-center rounded-[8px] border border-dashed border-border text-[12px] text-muted">sem foto</div>
               )}
               <div className="min-w-0 flex-1 space-y-2">
-                <div className="text-[12.5px]">
+                <div className="text-[13px]">
                   <span className="font-semibold">{nome} {i + 1}:</span> <span className="text-muted">{(it.titulo ?? "").replace(/\*/g, "")}</span>
                 </div>
                 <Textarea rows={2} value={v.pedido} onChange={(e) => mudar(i, { pedido: e.target.value })} placeholder="O que mudar aqui? Ex.: título mais curto, trocar o texto, foto com o dono no balcão" />
@@ -389,12 +389,12 @@ function AjustesPorCriativo({ pauta, copy, arte, onDone }: { pauta: Pauta; copy:
                         <CopyIcon /> Copiar prompt
                       </Button>
                       {v.modo === "minha" && (
-                        <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface">
+                        <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[13px] text-ink hover:bg-surface">
                           <Upload className="h-3.5 w-3.5" /> {v.arquivo ? v.arquivo.name.slice(0, 28) : "Escolher foto"}
                           <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => mudar(i, { arquivo: e.target.files?.[0] ?? null })} />
                         </label>
                       )}
-                      {v.modo === "nova" && <span className="text-[11.5px] text-muted">A Duda gera com este prompt.</span>}
+                      {v.modo === "nova" && <span className="text-[12px] text-muted">A Duda gera com este prompt.</span>}
                     </div>
                   </div>
                 )}
@@ -426,7 +426,7 @@ function CopyTexto({ copy, formato, aberto }: { copy: Peca; formato: Pauta["form
   const cenas = (c.cenas as Cena[] | undefined) ?? [];
   const hashtags = (c.hashtags as string[] | undefined) ?? [];
   return (
-    <details open={aberto} className="rounded-[10px] bg-surface-2 p-3 text-[13px] text-ink">
+    <details open={aberto} className="rounded-[8px] bg-surface-2 p-3 text-[13px] text-ink">
       <summary className="cursor-pointer font-semibold">Copy (versão {copy.versao})</summary>
       <div className="mt-2 space-y-2">
         {formato === "carrossel" &&
@@ -516,16 +516,16 @@ function CalendarioMes({ onOpen }: { onOpen: (p: Pauta) => void }) {
         </Button>
         <span className="ml-auto text-[12px] text-muted">Amarelo: espera você · Azul: agendado · Verde: publicado</span>
       </div>
-      <div className="grid grid-cols-7 gap-1.5 text-[11.5px] text-muted">
+      <div className="grid grid-cols-7 gap-1.5 text-[12px] text-muted">
         {["dom", "seg", "ter", "qua", "qui", "sex", "sáb"].map((d) => (
-          <div key={d} className="px-1 pb-1 font-semibold uppercase">{d}</div>
+          <div key={d} className="px-1 pb-1 font-semibold">{d}</div>
         ))}
         {semanas.map((d) => {
           const k = ymd(d);
           const fora = d.getMonth() !== ref.getMonth();
           return (
-            <div key={k} className={cn("min-h-[104px] rounded-[9px] border border-border p-1.5", fora && "opacity-40", k === hj && "border-primary")}>
-              <div className={cn("mb-1 text-[11.5px] font-semibold", k === hj ? "text-primary-bright" : "text-muted")}>{d.getDate()}</div>
+            <div key={k} className={cn("min-h-[104px] rounded-[8px] border border-border p-1.5", fora && "opacity-40", k === hj && "border-primary")}>
+              <div className={cn("mb-1 text-[12px] font-semibold", k === hj ? "text-primary-bright" : "text-muted")}>{d.getDate()}</div>
               <div className="flex flex-col gap-1">
                 {(porDia[k] ?? []).map((p) => (
                   <button
@@ -533,7 +533,7 @@ function CalendarioMes({ onOpen }: { onOpen: (p: Pauta) => void }) {
                     type="button"
                     onClick={() => onOpen(p)}
                     title={`${p.horario} · ${FORMATO_TEXTO[p.formato]} · ${STATUS_TEXTO[p.status]}\n${p.tema}`}
-                    className={cn("rounded-[6px] border px-1.5 py-1 text-left text-[11px] leading-tight text-ink hover:brightness-125", COR_STATUS[p.status] ?? "border-border bg-surface-2")}
+                    className={cn("rounded-[6px] border px-1.5 py-1 text-left text-[12px] leading-tight text-ink hover:brightness-125", COR_STATUS[p.status] ?? "border-border bg-surface-2")}
                   >
                     <span className="font-semibold">{p.horario}</span> {FORMATO_TEXTO[p.formato]}
                     <span className="mt-0.5 line-clamp-2 block text-muted">{p.tema}</span>
@@ -645,11 +645,11 @@ function Materiais() {
                 {capa ? (
                   <img src={capa} alt={p.tema} className="h-full w-full object-cover" loading="lazy" />
                 ) : (
-                  <div className="flex h-full items-center justify-center p-4 text-center text-[12.5px] text-muted">{arte ? "Vídeo" : "Arte ainda não feita"}</div>
+                  <div className="flex h-full items-center justify-center p-4 text-center text-[13px] text-muted">{arte ? "Vídeo" : "Arte ainda não feita"}</div>
                 )}
               </button>
               <div className="flex flex-1 flex-col gap-2 p-3">
-                <div className="flex items-center gap-2 text-[11.5px] text-muted">
+                <div className="flex items-center gap-2 text-[12px] text-muted">
                   <span>{diaBonito(p.dia)} · {FORMATO_TEXTO[p.formato]}</span>
                   <span className="ml-auto"><Selo status={p.status} /></span>
                 </div>
@@ -696,7 +696,7 @@ function ComoFuncionaRadar() {
         <li>O Téo usa esses 10 como inspiração de formato e gancho no plano dos próximos posts (nunca copia o texto).</li>
       </ol>
       {semPermissao > 0 && (
-        <p className="rounded-[9px] bg-amber-500/10 p-2 text-amber-200">
+        <p className="rounded-[8px] bg-amber-500/10 p-2 text-amber-200">
           Parado agora: a Meta não está deixando ler os perfis ({semPermissao} de {ativas.length}). Falta a permissão instagram_manage_insights no acesso do app DemandIA Direct. Assim que liberar, o Radar volta sozinho no próximo ciclo.
         </p>
       )}
@@ -719,14 +719,14 @@ function Radar() {
     <ComoFuncionaRadar />
     <Card className="p-5">
       <h3 className="mb-1 text-[15px] font-semibold text-ink">O que bombou nos últimos 30 dias</h3>
-      <p className="mb-3 text-[12.5px] text-muted">Nota = engajamento comparado ao tamanho da conta. O Pauteiro usa os melhores como inspiração.</p>
+      <p className="mb-3 text-[13px] text-muted">Nota = engajamento comparado ao tamanho da conta. O Pauteiro usa os melhores como inspiração.</p>
       {refs.map((r) => (
         <div key={r.id} className="border-b border-border py-2 text-[13px] last:border-0">
           <div className="flex flex-wrap items-center gap-2">
             <b className="text-ink">@{r.conta}</b>
             <span className="text-muted">{r.formato}</span>
             <span className="text-muted">♥ {r.curtidas ?? 0} · 💬 {r.comentarios ?? 0}{r.views ? ` · ▶ ${r.views}` : ""}</span>
-            <span className="rounded-full bg-primary-tint px-2 text-[11.5px] font-semibold text-primary-bright">nota {Number(r.nota ?? 0).toFixed(1)}</span>
+            <span className="rounded-full bg-primary-tint px-2 text-[12px] font-semibold text-primary-bright">nota {Number(r.nota ?? 0).toFixed(1)}</span>
             {r.link && (
               <a href={r.link} target="_blank" rel="noreferrer" className="text-primary-bright underline">
                 ver post
@@ -772,7 +772,7 @@ function Configuracoes() {
         <div className="flex items-center justify-between gap-3">
           <div>
             <h3 className="text-[15px] font-semibold text-ink">Time de Marketing IA ligado</h3>
-            <p className="text-[12.5px] text-muted">Desligado, nenhum agente roda e nada é publicado.</p>
+            <p className="text-[13px] text-muted">Desligado, nenhum agente roda e nada é publicado.</p>
           </div>
           <Switch checked={config.ativo} onCheckedChange={(v) => salvar.mutate({ ativo: v }, { onSuccess: ok, onError: erro })} />
         </div>
@@ -783,8 +783,8 @@ function Configuracoes() {
               onCheckedChange={(v) => salvar.mutate({ agentes: { ...config.agentes, [a.chave]: v } }, { onSuccess: ok, onError: erro })}
             />
             <div className="min-w-[220px] flex-1">
-              <div className="text-[13.5px] font-semibold text-ink">{a.nome}</div>
-              <div className="text-[12.5px] text-muted">{a.faz}</div>
+              <div className="text-[14px] font-semibold text-ink">{a.nome}</div>
+              <div className="text-[13px] text-muted">{a.faz}</div>
             </div>
             <Button
               size="sm"
@@ -833,7 +833,7 @@ function Configuracoes() {
         >
           Salvar horários
         </Button>
-        <p className="text-[12.5px] text-muted">
+        <p className="text-[13px] text-muted">
           Mix da semana: {Object.entries(config.mix ?? {}).map(([f, n]) => `${n} ${FORMATO_TEXTO[f as keyof typeof FORMATO_TEXTO] ?? f}`).join(", ")}.
         </p>
       </Card>
@@ -901,7 +901,7 @@ function Kairogen() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h3 className="text-[15px] font-semibold text-ink">Kairogen</h3>
-          <p className="text-[12.5px] text-muted">Gera as fotos das peças nos modelos do Kairogen (Nano Banana, GPT Image, Seedream, Flux), direto do portal. Os créditos saem da sua conta lá.</p>
+          <p className="text-[13px] text-muted">Gera as fotos das peças nos modelos do Kairogen (Nano Banana, GPT Image, Seedream, Flux), direto do portal. Os créditos saem da sua conta lá.</p>
         </div>
         {isLoading ? null : info?.conectado ? (
           <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[12px] text-emerald-300">Conectado</span>
@@ -911,9 +911,9 @@ function Kairogen() {
           </Button>
         )}
       </div>
-      {info?.erro ? <p className="rounded-[9px] bg-red-500/10 p-2 text-[12.5px] text-red-300">{info.erro}</p> : null}
+      {info?.erro ? <p className="rounded-[8px] bg-red-500/10 p-2 text-[13px] text-red-300">{info.erro}</p> : null}
       {codigo && (
-        <div className="rounded-[10px] border border-amber-400/40 p-3 text-[13px] text-ink">
+        <div className="rounded-[8px] border border-amber-400/40 p-3 text-[13px] text-ink">
           Abri o Kairogen numa aba nova. Confira se o código lá é <span className="font-mono text-[15px] font-semibold">{codigo.codigo}</span> e clique em autorizar.
           <div className="mt-1 text-[12px] text-muted">
             Não abriu?{" "}
@@ -936,7 +936,7 @@ function Kairogen() {
               <select
                 value={info.modelo_imagem ?? ""}
                 onChange={(e) => passo("modelo", { modelo: e.target.value })}
-                className="rounded-md border border-border bg-surface px-2 py-1.5 text-[12.5px] text-ink"
+                className="rounded-md border border-border bg-surface px-2 py-1.5 text-[13px] text-ink"
               >
                 {info.modelos_imagem.map((m) => (
                   <option key={m} value={m}>
@@ -953,9 +953,9 @@ function Kairogen() {
               />
             )}
           </div>
-          {info.creditos ? <p className="text-[12.5px] text-muted">Créditos: {info.creditos}</p> : null}
+          {info.creditos ? <p className="text-[13px] text-muted">Créditos: {info.creditos}</p> : null}
           {info.ferramentas?.length ? (
-            <details className="text-[12.5px] text-muted">
+            <details className="text-[13px] text-muted">
               <summary className="cursor-pointer">O que o Kairogen libera para o portal ({info.ferramentas.length})</summary>
               <ul className="mt-1 space-y-0.5">
                 {info.ferramentas.map((f) => (
@@ -992,7 +992,7 @@ function Pilares() {
   return (
     <Card className="space-y-2 p-5">
       <h3 className="text-[15px] font-semibold text-ink">Pilares de conteúdo</h3>
-      <p className="text-[12.5px] text-muted">Um por linha, no formato “Nome: do que fala”. O Pauteiro reveza entre eles.</p>
+      <p className="text-[13px] text-muted">Um por linha, no formato “Nome: do que fala”. O Pauteiro reveza entre eles.</p>
       <Textarea rows={5} value={texto} onChange={(e) => setTexto(e.target.value)} />
       <Button
         size="sm"
@@ -1037,7 +1037,7 @@ function Fontes() {
     <Card className="space-y-3 p-5">
       <div>
         <h3 className="text-[15px] font-semibold text-ink">Perfis de referência</h3>
-        <p className="text-[12.5px] text-muted">O Radar lê só contas comerciais ou de criador. Conta pessoal ou privada não aparece.</p>
+        <p className="text-[13px] text-muted">O Radar lê só contas comerciais ou de criador. Conta pessoal ou privada não aparece.</p>
       </div>
       <div className="flex gap-2">
         <Input value={novo} onChange={(e) => setNovo(e.target.value)} placeholder="@perfil ou link do Instagram" onKeyDown={(e) => e.key === "Enter" && adicionar()} />
@@ -1139,14 +1139,14 @@ function ManualDeMarca() {
       <Card className="space-y-4 p-5">
         <div>
           <h3 className="text-[15px] font-semibold text-ink">Manual de marca</h3>
-          <p className="text-[12.5px] text-muted">Tudo aqui entra nas copies (Bia), nas artes e nos vídeos (Duda). Mudou, vale a partir da próxima peça.</p>
+          <p className="text-[13px] text-muted">Tudo aqui entra nas copies (Bia), nas artes e nos vídeos (Duda). Mudou, vale a partir da próxima peça.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
             <Label>Logo (PNG ou SVG, de preferência fundo transparente)</Label>
             <div className="flex items-center gap-3">
-              {m.logo_url ? <img src={m.logo_url} alt="Logo" className="h-12 max-w-[200px] rounded-md bg-[#0d0a1a] object-contain p-1" /> : <span className="text-[12.5px] text-muted">Sem logo ainda</span>}
-              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface-2">
+              {m.logo_url ? <img src={m.logo_url} alt="Logo" className="h-12 max-w-[200px] rounded-md bg-[#0d0a1a] object-contain p-1" /> : <span className="text-[13px] text-muted">Sem logo ainda</span>}
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[13px] text-ink hover:bg-surface-2">
                 <Upload className="h-3.5 w-3.5" /> {subindo === "logo" ? "Subindo…" : "Subir logo"}
                 <input type="file" accept="image/png,image/svg+xml,image/jpeg,image/webp" className="hidden" onChange={(e) => subir(e.target.files?.[0], "logo")} />
               </label>
@@ -1156,11 +1156,11 @@ function ManualDeMarca() {
             <Label>Manual completo (PDF)</Label>
             <div className="flex items-center gap-3">
               {m.manual_url ? (
-                <a href={m.manual_url} target="_blank" rel="noreferrer" className="text-[12.5px] text-primary underline">Abrir manual</a>
+                <a href={m.manual_url} target="_blank" rel="noreferrer" className="text-[13px] text-primary underline">Abrir manual</a>
               ) : (
-                <span className="text-[12.5px] text-muted">Sem PDF ainda</span>
+                <span className="text-[13px] text-muted">Sem PDF ainda</span>
               )}
-              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface-2">
+              <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[13px] text-ink hover:bg-surface-2">
                 <Upload className="h-3.5 w-3.5" /> {subindo === "manual" ? "Subindo…" : "Subir PDF"}
                 <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => subir(e.target.files?.[0], "manual")} />
               </label>
@@ -1170,20 +1170,20 @@ function ManualDeMarca() {
 
         <div className="space-y-2">
           <Label>Trilhas do reels (MP3, instrumental)</Label>
-          <p className="text-[12.5px] text-muted">Cada reels sorteia uma destas e toca baixinho por baixo da narração. Pode gerar no Kairogen (Estúdio de Áudio, aba Trilha) e subir aqui.</p>
+          <p className="text-[13px] text-muted">Cada reels sorteia uma destas e toca baixinho por baixo da narração. Pode gerar no Kairogen (Estúdio de Áudio, aba Trilha) e subir aqui.</p>
           <div className="space-y-2">
             {(m.trilhas ?? []).map((t, i) => (
               <div key={t} className="flex items-center gap-3">
-                <span className="w-16 text-[12.5px] text-muted">Trilha {i + 1}</span>
+                <span className="w-16 text-[13px] text-muted">Trilha {i + 1}</span>
                 <audio src={t} controls preload="none" className="h-8 max-w-[320px] flex-1" />
                 <button type="button" onClick={() => tirarTrilha(t)} className="rounded-md p-1.5 text-muted hover:bg-surface-2 hover:text-ink" aria-label="Remover trilha">
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
               </div>
             ))}
-            {!(m.trilhas ?? []).length ? <span className="text-[12.5px] text-muted">Sem trilha ainda. Os reels saem só com a narração.</span> : null}
+            {!(m.trilhas ?? []).length ? <span className="text-[13px] text-muted">Sem trilha ainda. Os reels saem só com a narração.</span> : null}
           </div>
-          <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[12.5px] text-ink hover:bg-surface-2">
+          <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-border px-3 py-1.5 text-[13px] text-ink hover:bg-surface-2">
             <Upload className="h-3.5 w-3.5" /> {subindo === "trilha" ? "Subindo…" : "Subir trilhas"}
             <input type="file" multiple accept="audio/mpeg,audio/mp3,audio/wav,audio/x-wav,audio/mp4,audio/aac,.mp3,.wav,.m4a" className="hidden" onChange={(e) => subirTrilhas(e.target.files)} />
           </label>
@@ -1195,7 +1195,7 @@ function ManualDeMarca() {
             {CORES.map((c) => {
               const v = m.cores?.[c.chave] || c.padrao;
               return (
-                <label key={c.chave} className="flex items-center gap-2 text-[12.5px] text-ink">
+                <label key={c.chave} className="flex items-center gap-2 text-[13px] text-ink">
                   <input type="color" value={v} onChange={(e) => setM((x) => ({ ...x, cores: { ...x.cores, [c.chave]: e.target.value } }))} className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent" />
                   <span>{c.nome}<br /><span className="text-muted">{v}</span></span>
                 </label>
@@ -1239,7 +1239,7 @@ function ManualDeMarca() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 className="text-[15px] font-semibold text-ink">Padrão do nosso perfil (@demand_ia)</h3>
-            <p className="text-[12.5px] text-muted">
+            <p className="text-[13px] text-muted">
               A Rita estuda os nossos posts toda semana (texto e imagem) e o time segue essa linha.
               {config.ultimo_perfil ? ` Último estudo: ${config.ultimo_perfil.split("-").reverse().join("/")}.` : " Ainda não estudou."}
             </p>
@@ -1255,12 +1255,12 @@ function ManualDeMarca() {
         </div>
         {perfil.resumo ? (
           <div className="grid gap-3 sm:grid-cols-2">
-            <div className="rounded-[10px] border border-border p-3">
-              <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-muted">Conteúdo</div>
+            <div className="rounded-[8px] border border-border p-3">
+              <div className="mb-1 text-[12px] font-semibold text-muted">Conteúdo</div>
               <p className="whitespace-pre-wrap text-[13px] text-ink">{perfil.resumo}</p>
             </div>
-            <div className="rounded-[10px] border border-border p-3">
-              <div className="mb-1 text-[12px] font-semibold uppercase tracking-wide text-muted">Visual</div>
+            <div className="rounded-[8px] border border-border p-3">
+              <div className="mb-1 text-[12px] font-semibold text-muted">Visual</div>
               <p className="whitespace-pre-wrap text-[13px] text-ink">{perfil.visual}</p>
             </div>
           </div>
