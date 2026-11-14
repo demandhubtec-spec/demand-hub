@@ -78,7 +78,7 @@ export function Compositor({ leadId, placeholder, compacto = false }: { leadId: 
   return (
     <div className={cn("border-t border-border p-2.5", compacto && "p-2")}>
       {imagem && (
-        <div className="mb-2 inline-flex items-center gap-2 rounded-[7px] bg-surface-2 px-2 py-1 text-[12px]">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-[8px] bg-surface-2 px-2 py-1 text-[12px]">
           <ImagePlus className="h-3.5 w-3.5" /> {imagem.nome}
           <button onClick={() => setImagem(null)} aria-label="Tirar imagem">
             <X className="h-3.5 w-3.5" />
@@ -121,7 +121,7 @@ export function Compositor({ leadId, placeholder, compacto = false }: { leadId: 
           <Send />
         </Button>
       </div>
-      {enviar.isPending && <div className="mt-1 text-[11px] text-muted">Enviando para a Ana…</div>}
+      {enviar.isPending && <div className="mt-1 text-[12px] text-muted">Enviando para a Ana…</div>}
     </div>
   );
 }
