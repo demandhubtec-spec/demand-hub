@@ -1,5 +1,3 @@
-import type { Departamento } from "@/lib/types";
-
 export interface NavChild {
   label: string;
   path: string;
@@ -11,54 +9,60 @@ export interface NavGroup {
   key: string;
   label: string;
   icon: "tecnologia" | "marketing" | "comercial" | "administrativo" | "config";
+  /** Página principal da área (Visão, com as abas Projetos e Tarefas dentro). */
+  home: string;
   children: NavChild[];
   colaboradorPode?: boolean;
 }
 
-function deptChildren(dept: Departamento): NavChild[] {
-  return [
-    { label: "Visão do departamento", path: `/${dept}/visao`, colaboradorPode: true },
-    { label: "Projetos", path: `/${dept}/projetos`, colaboradorPode: true },
-    { label: "Minhas atividades", path: `/${dept}/atividades`, colaboradorPode: true },
-  ];
-}
+/** Abas internas de cada área (antes eram 3 itens repetidos no menu). Usadas no título da página. */
+export const ABAS_AREA = [
+  { sufixo: "visao", label: "Visão" },
+  { sufixo: "projetos", label: "Projetos" },
+  { sufixo: "atividades", label: "Tarefas" },
+] as const;
 
+/**
+ * Menu (Etapa 2 do visual, 14/11/2026): cada área mostra só o que é dela.
+ * Visão, Projetos e Tarefas viraram abas dentro da página da área.
+ */
 export const navGroups: NavGroup[] = [
-  {
-    key: "tecnologia",
-    label: "Tecnologia",
-    icon: "tecnologia",
-    colaboradorPode: true,
-    children: deptChildren("tecnologia"),
-  },
-  {
-    key: "marketing",
-    label: "Marketing",
-    icon: "marketing",
-    colaboradorPode: false, // colaborador (Fabrício) fica só com Tecnologia
-    children: [
-      ...deptChildren("marketing"),
-      { label: "Time de Marketing IA", path: "/marketing/estudio", colaboradorPode: false },
-      { label: "Instagram · Direct", path: "/marketing/instagram-direct", colaboradorPode: false },
-      { label: "Landing page", path: "/marketing/landing-page", colaboradorPode: false },
-      { label: "SEO e orgânico", path: "/marketing/seo", colaboradorPode: false },
-    ],
-  },
   {
     key: "comercial",
     label: "Comercial",
     icon: "comercial",
+    home: "/comercial/visao",
     colaboradorPode: false, // colaborador não vê nada do Comercial (CRM, clientes, prospecção)
     children: [
-      ...deptChildren("comercial"),
       { label: "Time Comercial IA", path: "/comercial/time", colaboradorPode: false },
       { label: "Clientes", path: "/comercial/clientes", colaboradorPode: false },
     ],
   },
   {
+    key: "marketing",
+    label: "Marketing",
+    icon: "marketing",
+    home: "/marketing/visao",
+    colaboradorPode: false, // colaborador (Fabrício) fica só com Tecnologia
+    children: [
+      { label: "Time de Marketing IA", path: "/marketing/estudio", colaboradorPode: false },
+      { label: "Instagram Direct", path: "/marketing/instagram-direct", colaboradorPode: false },
+      { label: "Landing pages e SEO", path: "/marketing/site", colaboradorPode: false },
+    ],
+  },
+  {
+    key: "tecnologia",
+    label: "Tecnologia",
+    icon: "tecnologia",
+    home: "/tecnologia/visao",
+    colaboradorPode: true,
+    children: [],
+  },
+  {
     key: "administrativo",
     label: "Administrativo",
     icon: "administrativo",
+    home: "/administrativo/financas",
     colaboradorPode: false,
     children: [
       { label: "Finanças", path: "/administrativo/financas", colaboradorPode: false },
@@ -69,10 +73,14 @@ export const navGroups: NavGroup[] = [
     key: "config",
     label: "Configurações",
     icon: "config",
+    home: "/configuracoes/acessos",
     colaboradorPode: false,
     children: [{ label: "Acessos e logins", path: "/configuracoes/acessos", colaboradorPode: false }],
   },
 ];
+
+/** Áreas que aparecem no menu, na ordem. */
+export const AREAS = ["comercial", "marketing", "tecnologia"] as const;
 
 /** Departamentos que o colaborador enxerga. */
 export const DEPTS_COLABORADOR = ["tecnologia"] as const;

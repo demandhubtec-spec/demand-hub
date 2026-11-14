@@ -3,20 +3,20 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "./Sidebar";
 import { Topbar } from "./Topbar";
 import { cn } from "@/lib/utils";
-import { navGroups, rotaSoDono } from "./nav-config";
+import { ABAS_AREA, navGroups, rotaSoDono } from "./nav-config";
 import { useAuth } from "@/hooks/useAuth";
 import { useClientes } from "@/hooks/useClientes";
 
 function buildTitleMap(): Record<string, string> {
   const map: Record<string, string> = {
-    "/": "Resumo",
-    "/faq": "FAQ",
-    "/processos": "Processos DemandIA",
-    "/ajuda": "Central de ajuda",
+    "/": "Início",
+    "/ajuda": "Ajuda",
     "/projetos": "Projetos",
-    "/minhas-atividades": "Minhas atividades",
+    "/minhas-atividades": "Minhas tarefas",
   };
   navGroups.forEach((group) => {
+    if (["comercial", "marketing", "tecnologia"].includes(group.key))
+      ABAS_AREA.forEach((a) => (map[`/${group.key}/${a.sufixo}`] = `${group.label} · ${a.label}`));
     group.children.forEach((child) => {
       map[child.path] = `${group.label} · ${child.label}`;
     });
