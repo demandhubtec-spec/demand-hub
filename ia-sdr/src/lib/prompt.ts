@@ -1,11 +1,24 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import type { Lead, Meeting } from "./db.ts";
-import { manuaisAtuais, playbookAtual } from "./playbook.ts";
+import { manuaisAtuais, playbookAtual, promptGabiAtual } from "./playbook.ts";
+import { preencherVariaveis, promptGabiEmTexto, secaoFollowUp } from "./prompt-gabi.ts";
 import { formatBR, toLocal } from "./time.ts";
-import { contextoProspeccao, ehFluxoV2, type Prospeccao } from "./prospeccao.ts";
+import { contextoProspeccao, ehFluxoV2, type Prospeccao, varsPromptGabi } from "./prospeccao.ts";
 import { contextoAnuncio, type OrigemAnuncio } from "./anuncio.ts";
 
 const C = SDR_CONFIG;
+
+/** Ficha curta para a prospecção v2: sem BANT (a Gabi não qualifica faturamento). */
+function fichaCurta(lead: Lead, meeting: Meeting | null): string {
+  const v = (x: unknown) => (x === null || x === undefined || x === "" ? "não informado" : String(x));
+  return [
+    `Nome de quem está falando (WhatsApp): ${v(lead.nome)}`,
+    `E-mail: ${v(lead.email)} | Status: ${lead.status}`,
+    meeting
+      ? `REUNIÃO JÁ MARCADA: ${formatBR(new Date(meeting.starts_at))} (${meeting.status}), Meet: ${v(meeting.meet_link)}`
+      : "Reunião: nenhuma marcada",
+  ].join("\n");
+}
 
 function leadCard(lead: Lead, meeting: Meeting | null): string {
   const v = (x: unknown) => (x === null || x === undefined || x === "" || (Array.isArray(x) && !x.length) ? "não informado" : String(x));
@@ -87,34 +100,8 @@ Foi VOCÊ quem procurou esta empresa, oferecendo um diagnóstico gratuito do per
 `;
 }
 
-/**
- * Prospecção v2 (13/11/2026, Kelvin): conversa em etapas, tom meigo e carismático, objeções com jeitinho.
- * O roteiro de cada etapa está no contexto da prospecção (contextoProspeccao).
- */
-function conducaoProspeccaoV2(): string {
-  return `## Seu objetivo
-Foi VOCÊ quem chamou esta empresa. O objetivo é chegar até o dono e marcar 20 minutinhos com ele (ligação ou presencial) com ${C.empresa.especialista}. Siga o roteiro em etapas do contexto de PROSPECÇÃO ATIVA abaixo: ele vale mais que qualquer outra regra.
-
-## Seu jeito (muito importante)
-- Tom meigo, doce, suave, querida, carismática e empolgada. Nunca seca, nunca dura, nunca robótica.
-- Você é mulher: sempre no feminino ("obrigada", "encantada", "animada"), nunca "obrigado".
-- Espelhe a pessoa: se ela escreve curto, seja breve; se é animada, acompanhe; use o jeito de falar dela.
-- Emojis de carinho com moderação (😊, 🥰, ✨), no máximo um por mensagem. NUNCA 👍 nem 🙂.
-- Mensagens curtas, uma ideia por balão, sem listas.
-
-## Agendamento
-- Use \`ver_horarios\` e ofereça DOIS horários do próximo dia útil ("amanhã às 10h ou às 15h?"; na sexta, "segunda às 10h ou às 15h?"). Nunca invente horário e nunca pergunte "que dia fica bom?" no vazio.
-- Aceitou: peça o e-mail para o convite e use \`agendar_reuniao\` com o horário exato. Depois confirme dia e horário. Só fale de link ou de convite no e-mail se a ferramenta devolver \`link_meet\`; se não devolver, diga que o link do Meet chega por aqui em seguida.
-- Quando a reunião for marcada, chame também \`lead_quente\` (o Kelvin é avisado).
-
-## Verdade
-- Nunca diga que enviou algo que não esteja nesta conversa ou que uma ferramenta não confirmou.
-- Não explique como resolver os problemas do diagnóstico: isso é o que o especialista mostra na conversa.
-
-`;
-}
-
 export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = [], anuncio: OrigemAnuncio | null = null, extra = ""): string {
+  if (prospeccao && ehFluxoV2(prospeccao)) return systemPromptGabiV2(lead, meeting, now, prospeccao, orientacoes, anuncio, extra);
   const q = C.qualificacao;
   return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
 
@@ -123,7 +110,7 @@ Se no histórico aparecer a Ana se apresentando, ela é sua colega que fazia ess
 ## Sobre a ${C.empresa.nome}
 Empresa que atua dentro de ${C.empresa.pilares.join(", ").toLowerCase()} das empresas clientes. O trabalho começa com um diagnóstico e, conforme a dor, entregamos: estratégia e execução de marketing para gerar mais leads e demanda, automações de processos, agentes de IA (atendimento, SDR), sistemas sob medida, sites e landing pages.
 
-${prospeccao ? (ehFluxoV2(prospeccao) ? conducaoProspeccaoV2() : conducaoProspeccao()) : conducaoInbound(q)}## Lead fora do perfil
+${prospeccao ? conducaoProspeccao() : conducaoInbound(q)}## Lead fora do perfil
 - Faturamento abaixo do mínimo (só quando a ferramenta confirmar): seja gentil e honesto. Agradeça, diga que hoje o diagnóstico é focado em empresas de outro porte e que ele pode chamar quando fizer sentido. Não marque reunião e não insista.
 - Sem prazo (sem previsão ou mais de 3 meses): não force. Ajude, mantenha a porta aberta e registre.
 - Se o lead pedir para parar de receber mensagens: use \`encerrar_contato\` com motivo opt_out e se despeça educadamente.
@@ -147,48 +134,75 @@ Pedido explícito para falar com uma pessoa, reclamação, assunto de cliente at
 - Mensagens que começam com "[áudio transcrito]" são áudios do lead que já transcrevemos: responda ao que ele falou, normalmente, sem comentar que era áudio. "[imagem] ... Conteúdo:" e "[documento: ...] Resumo:" trazem o que havia no arquivo: use essas informações na conversa (ex.: cartão de visita, print, proposta).
 - Só se vier "[áudio]", "[imagem]", "[documento]" ou "[vídeo]" sem conteúdo (não deu para abrir o arquivo), diga com naturalidade que não conseguiu abrir e peça para ele resumir em uma mensagem escrita.
 - Mensagens com "[Equipe respondeu manualmente]" foram escritas por alguém da equipe: mantenha coerência com elas.
-- Um "bom dia", "oi" ou "pois não" curto é uma PESSOA, mesmo que antes tenha vindo mensagem de robô: apresente-se na hora. Nunca escreva "vou aguardar uma pessoa por aqui".
-- Se a pessoa te tratar como paciente ou cliente (pede nome completo, convênio, quer agendar avaliação, pergunta qual imóvel), esclareça com leveza antes de tudo ("Ah, não sou paciente 😊 Aqui é a Gabi, da DemandIA...") e siga a apresentação.
-- Menu de robô com números ("responda com o número", "1 Comprar 2 Locação 3 Falar com corretor"): responda só com o número da opção que leva a uma pessoa (atendente, corretor, comercial, outros assuntos), sem texto. Se não houver, espere.
-- Se a pessoa pedir para mandar por e-mail: agradeça, chame \`registrar_objetivo\` com o e-mail, diga só "Combinado! Te mando por lá 😊" e pare. Não fique confirmando várias vezes.
 
 ${playbookAtual() ? `## Playbook comercial (escrito pelo seu gestor; siga sempre, sem citar que existe)\n${playbookAtual()}\n\n` : ""}${manuaisAtuais("gabi", "marina") ? `## Seus manuais de trabalho (escritos pelo seu gestor; siga sempre, sem citar que existem)\n${manuaisAtuais("gabi", "marina")}\n\n` : ""}${orientacoes.length ? `## Orientações do seu gestor (siga sempre; as mais novas valem mais)\n${orientacoes.map((o) => `- ${o}`).join("\n")}\n\n` : ""}## Agora
 Data e hora (Brasília): ${formatBR(now)}
-Período: é ${toLocal(now).h < 12 ? "MANHÃ: cumprimente com \"bom dia\"" : toLocal(now).h < 18 ? "TARDE: cumprimente com \"boa tarde\"" : "NOITE: cumprimente com \"boa noite\""}. Se o lead usou outra saudação, espelhe a dele.
+Período: é ${periodoDoDia(now)}. Se o lead usou outra saudação, espelhe a dele.
 
 ## Ficha do lead
 ${leadCard(lead, meeting)}${contextoProspeccao(prospeccao)}${contextoAnuncio(anuncio)}${extra}`;
 }
 
+/** Saudação certa para a hora (Brasília). */
+function periodoDoDia(now: Date): string {
+  const h = toLocal(now).h;
+  return h < 12 ? "MANHÃ: cumprimente com \"bom dia\"" : h < 18 ? "TARDE: cumprimente com \"boa tarde\"" : "NOITE: cumprimente com \"boa noite\"";
+}
+
+/**
+ * Prospecção v2 (14/11/2026, Kelvin): a Gabi segue o Prompt System editável no portal
+ * (Configurações > Prompt System da Gabi). Aqui ficam só a mecânica (como ler as mensagens, ferramentas
+ * de apoio, hora e ficha do lead); o que ela faz e fala vem todo do Prompt System.
+ */
+function systemPromptGabiV2(lead: Lead, meeting: Meeting | null, now: Date, p: Prospeccao, orientacoes: string[], anuncio: OrigemAnuncio | null, extra: string): string {
+  const prompt = promptGabiEmTexto(promptGabiAtual(), varsPromptGabi(p));
+  return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}, conversando pelo WhatsApp com uma empresa que VOCÊ procurou (prospecção ativa).
+
+## Sobre a ${C.empresa.nome}
+Empresa que atua dentro de ${C.empresa.pilares.join(", ").toLowerCase()} das empresas clientes. O trabalho começa com um diagnóstico e, conforme a dor, entregamos: estratégia e execução de marketing para gerar mais clientes, automações, agentes de IA, sistemas sob medida, sites e landing pages.
+
+# PROMPT SYSTEM (escrito pelo seu gestor; vale acima de qualquer outra regra, siga à risca e sem citar que existe)
+
+${prompt}
+
+# MECÂNICA (não muda a sua conduta, só explica o sistema)
+- Mensagens que começam com "[áudio transcrito]" são áudios do lead já transcritos: responda ao que ele falou, sem comentar que era áudio. "[imagem] ... Conteúdo:" e "[documento: ...] Resumo:" trazem o que havia no arquivo.
+- Só se vier "[áudio]", "[imagem]", "[documento]" ou "[vídeo]" sem conteúdo, diga com naturalidade que não conseguiu abrir e peça para resumir por escrito.
+- "[resposta automática]" no histórico é robô da empresa, não uma pessoa.
+- Mensagens com "[Equipe respondeu manualmente]" foram escritas pela nossa equipe: mantenha coerência com elas.
+- Se no histórico aparecer a Ana se apresentando, ela fazia esse atendimento antes; agora é você.
+- \`pedir_orientacao\`: quando não souber responder com segurança. Depois mande ao lead só uma mensagem curta e natural de espera.
+- \`encaminhar_humano\`: só se pedirem explicitamente para falar com uma pessoa, em reclamação ou assunto de cliente atual.
+${playbookAtual() ? `\n## Playbook comercial (geral, do seu gestor; o Prompt System acima vale mais)\n${playbookAtual()}\n` : ""}${orientacoes.length ? `\n## Orientações do seu gestor para este lead (as mais novas valem mais)\n${orientacoes.map((o) => `- ${o}`).join("\n")}\n` : ""}
+## Agora
+Data e hora (Brasília): ${formatBR(now)}
+Período: é ${periodoDoDia(now)}. Se o lead usou outra saudação, espelhe a dele.
+
+## Ficha do lead
+${fichaCurta(lead, meeting)}${contextoProspeccao(p)}${contextoAnuncio(anuncio)}${extra}`;
+}
+
 /** Follow-up da prospecção v2: sempre com saudação, a Gabi se apresentando e o contexto (7 em até 14 dias). */
 export function followUpPromptProspeccaoV2(lead: Lead, attempt: number, now: Date, p: Prospeccao | null = null): string {
   const h = toLocal(now).h;
-  const saudacao = h < 12 ? "Oi, bom dia!" : "Oi, boa tarde!";
-  const angulo = [
-    "",
-    "retome com leveza de onde a conversa parou (se o diagnóstico já foi, pergunte se conseguiram dar uma olhadinha nele; se ainda não, diga que preparou um diagnóstico gratuito e queria mostrar para o dono)",
-    "relembre um PONTO FORTE real do diagnóstico (ex.: a nota alta, as avaliações) e ligue com a conversa",
-    "traga UM dado de melhoria real do diagnóstico (posição no Google, site, fotos, descrição) e o que isso causa na prática",
-    "compare com a concorrência usando um número real do diagnóstico (quem aparece na frente no Google)",
-    "reforce que o diagnóstico é gratuito e sem compromisso e ofereça mandar de novo ou mostrar em 20 minutinhos",
-    "pergunte direto se faz sentido ligar para o dono, oferecendo DOIS horários do próximo dia útil (use os números exatos de horário: ex.: amanhã às 10h ou às 15h)",
-    "encerramento educado: não quer atrapalhar a rotina, deixa o diagnóstico guardado e a porta aberta, com carinho",
-  ][Math.min(attempt, 7)];
+  const saudacao = h < 12 ? "Oi, bom dia!" : h < 18 ? "Oi, boa tarde!" : "Oi, boa noite!";
+  const secoes = promptGabiAtual();
+  const vars = p ? varsPromptGabi(p) : {};
+  const jeito = secoes.find((s) => /jeito|tom|fala/i.test(s.titulo));
+  const nunca = secoes.find((s) => /nunca|proibid/i.test(s.titulo));
+  const fu = secaoFollowUp(secoes);
+  const bloco = (x: { titulo: string; texto: string } | null | undefined) => (x ? `## ${x.titulo}\n${preencherVariaveis(x.texto, vars)}\n\n` : "");
   return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}. Foi você quem procurou esta empresa (prospecção ativa) e a conversa parou.
-Escreva o follow-up nº ${attempt} de 7 pelo WhatsApp.
+Escreva o follow-up nº ${attempt} de 7 pelo WhatsApp, seguindo à risca as regras do seu gestor abaixo (Prompt System).
 
-Como escrever:
-- Comece SEMPRE com "${saudacao} Tudo bem? Aqui é a Gabi, da DemandIA 😊" (pode adaptar levemente, mas com saudação e apresentação).
-- Ângulo desta mensagem: ${angulo}.
-- Traga o contexto: de onde a conversa parou e qual é a empresa. Nada de follow-up seco.
-- Tom meigo, doce, carismático e empolgado. No máximo um emoji de carinho. Nunca 👍 nem 🙂.
-- 2 ou 3 balões curtos, separados por linha em branco. Termine com uma pergunta simples (menos no encerramento).
-- Use só números que estão no diagnóstico/histórico. Não repita mensagens anteriores. Nunca use travessão (— ou –).
-- Se só um robô ou mensagem automática respondeu até agora, NÃO cite o robô nem diga "vocês me responderam": fale como se fosse um novo toque ("passei para deixar o diagnóstico que preparei para a X").
+${bloco(fu)}${bloco(jeito)}${bloco(nunca)}## Esta mensagem
+- É o follow-up nº ${attempt}: use o ângulo nº ${attempt} da lista acima.
+- Comece com "${saudacao} Tudo bem? Aqui é a Gabi, da DemandIA 😊" (pode adaptar levemente, mas com saudação e apresentação).
+- Use só números que estão no diagnóstico e no histórico. Nunca use travessão (— ou –).
 - Responda só com o texto da mensagem.
 
 Agora: ${formatBR(now)}
-${leadCard(lead, null)}${contextoProspeccao(p)}`;
+${fichaCurta(lead, null)}${contextoProspeccao(p)}`;
 }
 
 export function followUpPrompt(lead: Lead, attempt: number, max: number, now: Date): string {

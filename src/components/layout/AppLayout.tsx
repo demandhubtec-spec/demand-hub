@@ -46,15 +46,24 @@ export function AppLayout() {
     }
   }, [collapsed]);
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  // Padrão: área de conteúdo clara (branco neve) com o menu lateral roxo. O botão da lua troca e o portal lembra.
   const [theme, setTheme] = React.useState<"dark" | "light">(() => {
-    if (typeof document !== "undefined") {
-      return (document.body.getAttribute("data-theme") as "dark" | "light") ?? "dark";
+    try {
+      const salvo = localStorage.getItem("dh.tema");
+      if (salvo === "dark" || salvo === "light") return salvo;
+    } catch {
+      /* sem armazenamento: usa o padrão */
     }
-    return "dark";
+    return "light";
   });
 
   React.useEffect(() => {
     document.body.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("dh.tema", theme);
+    } catch {
+      /* sem armazenamento: só não lembra */
+    }
   }, [theme]);
 
   const { data: clientes = [] } = useClientes();

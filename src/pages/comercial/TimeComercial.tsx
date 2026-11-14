@@ -17,6 +17,7 @@ import { InboundTab } from "./crm/InboundTab";
 import { ConversasTab } from "./crm/ConversasTab";
 import { CanalTab } from "./crm/CanalTab";
 import { PlaybookTab } from "./time/PlaybookTab";
+import { PromptGabiTab } from "./time/PromptGabiTab";
 import { FunilKanban } from "./time/FunilKanban";
 import { ListaDoLeo } from "./time/ListaDoLeo";
 import { EtapaRitaDuda } from "./time/EtapaRitaDuda";
@@ -96,7 +97,7 @@ export default function TimeComercial() {
         <TabsTrigger value="insights">Insights{insightsPendentes ? ` (${insightsPendentes})` : ""}</TabsTrigger>
         <TabsTrigger value="conversas">Conversas</TabsTrigger>
         <TabsTrigger value="contatos">Contatos</TabsTrigger>
-        <TabsTrigger value="ana">Você e a Ana{esperando ? ` (${esperando})` : ""}</TabsTrigger>
+        <TabsTrigger value="ana">Você e a Gabi{esperando ? ` (${esperando})` : ""}</TabsTrigger>
         <TabsTrigger value="playbook">Playbook</TabsTrigger>
         <TabsTrigger value="config">Configurações</TabsTrigger>
       </TabsList>
@@ -197,15 +198,21 @@ function Contatos({ abrirConversa }: { abrirConversa: (id: string) => void }) {
   );
 }
 
-/** Configurações: prospecção automática, limites e controles, metas do funil, webhook das ligações e o registro do que o robô fez. */
+/** Configurações: Prompt System da Gabi, prospecção automática, limites e controles, metas do funil, webhook das ligações e o registro do que o robô fez. */
 function Configuracoes() {
-  const [visao, setVisao] = React.useState<"automatico" | "controles" | "metas" | "ligacoes" | "atividade">("automatico");
+  const [params, setParams] = useSearchParams();
+  type Visao = "prompt" | "automatico" | "controles" | "metas" | "ligacoes" | "atividade";
+  const visoes: Visao[] = ["prompt", "automatico", "controles", "metas", "ligacoes", "atividade"];
+  const v = params.get("config") as Visao | null;
+  const visao: Visao = v && visoes.includes(v) ? v : "prompt";
+  const setVisao = (n: Visao) => setParams({ aba: "config", config: n }, { replace: true });
   return (
     <div>
       <Segmented
         value={visao}
         onChange={setVisao}
         opcoes={[
+          { value: "prompt", label: "Prompt System da Gabi" },
           { value: "automatico", label: "Automático" },
           { value: "controles", label: "Controles" },
           { value: "metas", label: "Metas do funil" },
@@ -213,7 +220,9 @@ function Configuracoes() {
           { value: "atividade", label: "Registro de atividade" },
         ]}
       />
-      {visao === "automatico" ? (
+      {visao === "prompt" ? (
+        <PromptGabiTab />
+      ) : visao === "automatico" ? (
         <AutomaticoTab />
       ) : visao === "controles" ? (
         <ControlesTab />

@@ -206,6 +206,33 @@ table.t td{padding:8px 6px;border-bottom:1px solid rgba(164,123,255,.12);vertica
 .gm .nmz{font-family:var(--mono);font-size:10.5px;color:var(--muted);margin:0 0 3px 2px}
 .gm .m{max-width:100%}
 </style>
+<style id="tema-claro">
+/* ===== Tema claro (14/11/2026): segue o portal; o escuro continua quando o portal está no escuro ===== */
+html.claro{--bg:#eef0f4;--bg2:#f9fafb;--glass:rgba(255,255,255,.86);--glass2:rgba(255,255,255,.96);--line:rgba(46,30,110,.16);--ink:#0b0420;--muted:#585174;--violet:#6e3aff;--lilac:#6e3aff;--holo:#0b8aa3;--pink:#b8338f;--ok:#13895a;--warn:#b8620f;--bad:#c9304a}
+html.claro,html.claro body{background:var(--bg);color:var(--ink)}
+html.claro .aura{opacity:.28}
+html.claro .floor{opacity:.3}
+html.claro .scan{display:none}
+html.claro #fx{opacity:.18}
+html.claro .stat,html.claro .btn{box-shadow:0 1px 2px rgba(20,10,60,.06)}
+html.claro .btn.pri,html.claro .btn.ok{color:#fff}
+html.claro .btn:hover{box-shadow:0 0 0 3px rgba(110,58,255,.12)}
+html.claro .node .pb{background:rgba(46,30,110,.1)}
+html.claro .c-idle{background:rgba(46,30,110,.04)}
+html.claro .holo .face,html.claro .mini{background:radial-gradient(circle at 50% 35%,rgba(11,138,163,.14),rgba(110,58,255,.12) 60%,#efeafe);border-color:rgba(110,58,255,.35);box-shadow:0 6px 18px rgba(110,58,255,.18)}
+html.claro .qi{background:#fff}
+html.claro .shade{background:rgba(20,10,60,.25)}
+html.claro .sec p,html.claro .sec ul{color:#2b2550}
+html.claro .sugs button,html.claro form.send input,html.claro .mf textarea{background:#fff}
+html.claro .brief .kv div,html.claro .msg{background:#f3f1fa}
+html.claro .drawer,html.claro .modal{background:linear-gradient(180deg,#fbfbfd,#f2f1f7);box-shadow:-18px 0 50px rgba(20,10,60,.14)}
+html.claro .toast{background:#fff;color:var(--ink)}
+html.claro .grp .mini{background:radial-gradient(circle at 50% 35%,rgba(11,138,163,.14),rgba(110,58,255,.12) 60%,#efeafe)}
+</style>
+<script>
+/* Segue o tema do portal (claro por padrão; escuro quando o portal estiver no escuro) */
+(function(){function aplicar(){var t="light";try{t=window.parent.document.body.getAttribute("data-theme")||"light"}catch(e){}document.documentElement.classList.toggle("claro",t!=="dark")}aplicar();try{new MutationObserver(aplicar).observe(window.parent.document.body,{attributes:true,attributeFilter:["data-theme"]})}catch(e){}})();
+</script>
 </head>
 <body>
 <canvas id="fx"></canvas><div class="aura"></div><div class="floor"></div><div class="scan"></div>

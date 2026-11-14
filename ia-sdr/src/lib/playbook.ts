@@ -4,13 +4,14 @@
  * Fica em memória por 1 minuto para não ir ao banco a cada mensagem.
  */
 import { db } from "./db.ts";
+import { ID_PROMPT_GABI, PROMPT_GABI_PADRAO } from "./prompt-gabi.ts";
 
 export interface SecaoPlaybook {
   titulo: string;
   texto: string;
 }
 
-let cache: { em: number; texto: string; manuais: Record<string, string> } | null = null;
+let cache: { em: number; texto: string; manuais: Record<string, string>; promptGabi: SecaoPlaybook[] | null } | null = null;
 const TTL = 60_000;
 
 /** Seções em texto corrido para entrar no prompt (sem markdown pesado). */
@@ -33,21 +34,30 @@ export function playbookEmTexto(secoes: SecaoPlaybook[]): string {
 export async function carregarPlaybook(agora = Date.now()): Promise<string> {
   if (cache && agora - cache.em < TTL) return cache.texto;
   try {
-    const [{ data }, { data: ms }] = await Promise.all([
-      db().from("comercial_playbook").select("secoes").eq("id", "principal").maybeSingle(),
+    const [{ data: linhas }, { data: ms }] = await Promise.all([
+      db().from("comercial_playbook").select("id,secoes").in("id", ["principal", ID_PROMPT_GABI]),
       db().from("agentes_manuais").select("id,nome,cargo,secoes"),
     ]);
-    const secoes = ((data as { secoes?: SecaoPlaybook[] } | null)?.secoes ?? []).filter((s) => s && typeof s.titulo === "string");
+    const valida = (x: unknown): SecaoPlaybook[] =>
+      (Array.isArray(x) ? x : []).filter((s): s is SecaoPlaybook => !!s && typeof s.titulo === "string" && typeof s.texto === "string");
+    const linha = (id: string) => ((linhas ?? []) as { id: string; secoes: unknown }[]).find((l) => l.id === id);
+    const secoes = valida(linha("principal")?.secoes);
+    const pg = valida(linha(ID_PROMPT_GABI)?.secoes);
     const manuais: Record<string, string> = {};
     for (const m of (ms ?? []) as { id: string; nome: string; cargo: string; secoes: SecaoPlaybook[] }[]) {
       manuais[m.id] = `## Manual de trabalho: ${m.nome} (${m.cargo})\n${playbookEmTexto((m.secoes ?? []).filter((s) => s && typeof s.titulo === "string"))}`;
     }
-    cache = { em: agora, texto: playbookEmTexto(secoes), manuais };
+    cache = { em: agora, texto: playbookEmTexto(secoes), manuais, promptGabi: pg.length ? pg : null };
   } catch (e) {
     console.error("playbook não carregou", e);
-    cache = { em: agora, texto: cache?.texto ?? "", manuais: cache?.manuais ?? {} };
+    cache = { em: agora, texto: cache?.texto ?? "", manuais: cache?.manuais ?? {}, promptGabi: cache?.promptGabi ?? null };
   }
   return cache.texto;
+}
+
+/** Prompt System da Gabi salvo no portal (ou o padrão, se ainda não salvaram nada). */
+export function promptGabiAtual(): SecaoPlaybook[] {
+  return cache?.promptGabi ?? PROMPT_GABI_PADRAO;
 }
 
 /** Último playbook carregado (para o montador do prompt, que é síncrono). */

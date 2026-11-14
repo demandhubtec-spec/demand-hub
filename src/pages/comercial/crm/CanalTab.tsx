@@ -43,12 +43,12 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendentes.length]);
 
-  if (isError) return <EmptyState>Falta rodar o SQL do canal com a Ana no Supabase para liberar esta aba.</EmptyState>;
+  if (isError) return <EmptyState>Falta rodar o SQL do canal com a Gabi no Supabase para liberar esta aba.</EmptyState>;
 
   return (
     <Card className="flex h-[680px] flex-col overflow-hidden">
       <div className="border-b border-border p-3 text-[12.5px] text-muted">
-        A Ana te chama aqui quando precisar de direcionamento. Você também pode orientar sobre qualquer conversa, por texto, áudio ou foto.
+        A Gabi te chama aqui quando precisar de direcionamento. Você também pode orientar sobre qualquer conversa, por texto, áudio ou foto.
         O que você responder para ela no WhatsApp também aparece aqui.
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto bg-surface-2/40 p-3">
@@ -69,7 +69,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                 <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
                   {ana ? (
                     <span className="inline-flex items-center gap-1 text-primary-bright">
-                      <Bot className="h-3 w-3" /> Ana
+                      <Bot className="h-3 w-3" /> Gabi
                     </span>
                   ) : (
                     <span className="text-ink">Você{m.origem === "whatsapp" ? " · pelo WhatsApp" : ""}</span>

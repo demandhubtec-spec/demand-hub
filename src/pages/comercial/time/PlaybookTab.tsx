@@ -14,7 +14,7 @@ import { fmtData } from "../prospeccao/shared";
 
 /** O que cada manual muda no dia a dia: deixa claro onde a edição faz efeito. */
 const ONDE_VALE: Record<string, string> = {
-  ana: "Vale no canal Você e a Ana: como ela te responde, propõe mensagens e coordena o time.",
+  ana: "Vale no canal Você e a Gabi: como ela te responde, propõe mensagens e coordena o time.",
   leo: "Guia a análise da lista. As pesquisas do Léo (site, CNPJ, dono) são automáticas; mudar as regras de busca é ajuste no sistema.",
   rita: "Guia o raio-x digital e a pesquisa do nicho.",
   bia: "Vale na sequência de mensagens da prospecção e no Direct do Instagram.",

@@ -75,3 +75,36 @@ export function useSalvarManual() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "manuais"] }),
   });
 }
+
+/**
+ * Prompt System da Gabi: tudo o que ela faz e fala na prospecção pelo WhatsApp (abordagem, conversa,
+ * agendamento, objeções, follow-ups). Fica no comercial_playbook, linha "prompt_gabi". Vazio = vale o padrão do sistema.
+ */
+export const ID_PROMPT_GABI = "prompt_gabi";
+
+export function usePromptGabi() {
+  return useQuery({
+    queryKey: ["comercial", "prompt-gabi"],
+    queryFn: async (): Promise<Playbook> => {
+      const { data, error } = await supabase.from("comercial_playbook").select("secoes,atualizado_em").eq("id", ID_PROMPT_GABI).maybeSingle();
+      if (error) throw error;
+      return { secoes: (data?.secoes as SecaoPlaybook[] | undefined) ?? [], atualizado_em: data?.atualizado_em ?? null };
+    },
+  });
+}
+
+export function useSalvarPromptGabi() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (secoes: SecaoPlaybook[]) => {
+      const { data: u } = await supabase.auth.getUser();
+      // Mantém as quebras de linha do texto (o prompt é lido como está)
+      const limpas = secoes.map((s) => ({ titulo: s.titulo.trim(), texto: s.texto.replace(/\s+$/g, "") })).filter((s) => s.titulo || s.texto.trim());
+      const { error } = await supabase
+        .from("comercial_playbook")
+        .upsert({ id: ID_PROMPT_GABI, secoes: limpas, atualizado_em: new Date().toISOString(), atualizado_por: u.user?.id ?? null });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "prompt-gabi"] }),
+  });
+}

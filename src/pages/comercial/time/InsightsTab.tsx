@@ -257,7 +257,7 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
                       key={k}
                       className={cn(
                         "mb-1.5 max-w-[88%] rounded-[11px] px-3 py-2 text-[12.5px] leading-snug",
-                        t.de === "ia" ? "ml-auto rounded-br-[3px] bg-[#2a1466]" : "rounded-bl-[3px] bg-[#1f1840]",
+                        t.de === "ia" ? "ml-auto rounded-br-[3px] bg-primary-tint" : "rounded-bl-[3px] bg-surface-2",
                       )}
                     >
                       {t.texto}
