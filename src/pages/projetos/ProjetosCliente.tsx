@@ -53,7 +53,7 @@ const COLS = "md:grid md:grid-cols-[minmax(0,1fr)_120px_150px_150px_130px] md:it
 
 function Cabecalho() {
   return (
-    <div className={`hidden border-b border-border px-[18px] py-2.5 font-mono text-[10.5px] uppercase tracking-[.06em] text-muted ${COLS}`}>
+    <div className={`hidden border-b border-border px-[18px] py-2.5 text-[10.5px] tracking-[.06em] text-muted ${COLS}`}>
       <span>Entrega</span>
       <span>Fase</span>
       <span>Etapas</span>
@@ -86,23 +86,23 @@ function LinhaProjeto({
       className={`flex cursor-pointer flex-col gap-2.5 border-b border-border px-[18px] py-3.5 transition-colors last:border-b-0 hover:bg-surface-2/60 ${COLS}`}
     >
       <div className="min-w-0">
-        <div className="mb-0.5 font-mono text-[11px] text-muted">{rotulo}</div>
+        <div className="mb-0.5 font-mono text-[12px] text-muted">{rotulo}</div>
         <div className="text-[14px] font-semibold leading-tight">{p.nome}</div>
-        {subtitulo && <div className="mt-0.5 truncate text-[12.5px] text-muted">{subtitulo}</div>}
+        {subtitulo && <div className="mt-0.5 truncate text-[13px] text-muted">{subtitulo}</div>}
       </div>
       <div>
         {p.fase ? (
-          <span className="rounded-full bg-primary-tint px-2 py-0.5 font-mono text-[11px] font-semibold text-primary-bright">
+          <span className="rounded-full bg-primary-tint px-2 py-0.5 font-mono text-[12px] font-semibold text-primary-bright">
             {faseLabel[p.fase] ?? p.fase}
           </span>
         ) : (
-          <span className="font-mono text-[11px] text-muted">Não iniciada</span>
+          <span className="font-mono text-[12px] text-muted">Não iniciada</span>
         )}
       </div>
       <div>
         {total ? (
           <>
-            <div className="mb-1 font-mono text-[11px] text-muted">
+            <div className="mb-1 font-mono text-[12px] text-muted">
               {feitas}/{total} feitas
             </div>
             <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
@@ -110,10 +110,10 @@ function LinhaProjeto({
             </div>
           </>
         ) : (
-          <span className="font-mono text-[11px] text-muted">Sem etapas</span>
+          <span className="font-mono text-[12px] text-muted">Sem etapas</span>
         )}
       </div>
-      <div className="flex flex-wrap items-center gap-1.5 font-mono text-[11.5px]">
+      <div className="flex flex-wrap items-center gap-1.5 font-mono text-[12px]">
         <span className={atrasada ? "text-negative" : "text-muted"}>
           {p.prazoInicio || p.prazoFim ? `${diaMes(p.prazoInicio)} a ${diaMes(p.prazoFim)}` : "a definir"}
         </span>
@@ -131,13 +131,13 @@ function LinhaTravada({ e }: { e: EscopoEntrega }) {
   return (
     <div className={`flex flex-col gap-1 border-b border-border px-[18px] py-3.5 opacity-50 last:border-b-0 ${COLS}`}>
       <div className="min-w-0">
-        <div className="mb-0.5 font-mono text-[11px] text-muted">{numeroEntrega(e.numero, e.rotulo)}</div>
+        <div className="mb-0.5 font-mono text-[12px] text-muted">{numeroEntrega(e.numero, e.rotulo)}</div>
         <div className="text-[14px] font-semibold leading-tight">{e.nome}</div>
-        {e.resumo && <div className="mt-0.5 truncate text-[12.5px] text-muted">{e.resumo}</div>}
+        {e.resumo && <div className="mt-0.5 truncate text-[13px] text-muted">{e.resumo}</div>}
       </div>
-      <span className="font-mono text-[11px] text-muted">Não iniciada</span>
+      <span className="font-mono text-[12px] text-muted">Não iniciada</span>
       <span />
-      <span className="font-mono text-[11px] text-muted">a definir</span>
+      <span className="font-mono text-[12px] text-muted">a definir</span>
       <span className="text-xs text-muted">Ainda não iniciado</span>
     </div>
   );
@@ -232,7 +232,7 @@ export default function ProjetosCliente() {
           {iniciais}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="text-[21px] font-semibold">{cliente.nome}</div>
+          <div className="text-[20px] font-semibold">{cliente.nome}</div>
           <div className="mt-1 text-[13px] text-muted">{sub}</div>
         </div>
         {!isColaborador && <AcompanhamentoCliente clienteId={cliente.id} clienteNome={cliente.nome} projetos={projetos} />}
@@ -249,13 +249,13 @@ export default function ProjetosCliente() {
           {gruposEscopo.map((g, gi) => (
             <React.Fragment key={g.area ?? "sem-area"}>
               {temAreas && (
-                <div className={`mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-[.04em] text-muted ${gi ? "mt-7" : ""}`}>
+                <div className={`mb-3 flex items-center gap-2 text-xs font-bold tracking-[.04em] text-muted ${gi ? "mt-7" : ""}`}>
                   {(() => {
                     const info = areaInfo(g.area);
                     const Icone = info.icone;
                     return (
                       <>
-                        <span className="flex h-6 w-6 items-center justify-center rounded-[7px] bg-primary-tint text-primary-bright">
+                        <span className="flex h-6 w-6 items-center justify-center rounded-[8px] bg-primary-tint text-primary-bright">
                           <Icone className="h-3.5 w-3.5" />
                         </span>
                         {info.nome}
@@ -289,7 +289,7 @@ export default function ProjetosCliente() {
           {outros.length > 0 && (
             <>
               {escopo.length > 0 && (
-                <div className="mb-3 mt-7 text-xs font-bold uppercase tracking-[.04em] text-muted">Outros projetos</div>
+                <div className="mb-3 mt-7 text-xs font-bold tracking-[.04em] text-muted">Outros projetos</div>
               )}
               <Card className="overflow-hidden p-0">
                 <Cabecalho />
@@ -328,7 +328,7 @@ export default function ProjetosCliente() {
               <div className="print-brand">Demand Hub</div>
             </div>
             <div className="print-meta">
-              <h2>{cliente.nome} — Acompanhamento de projetos</h2>
+              <h2>{cliente.nome} · Acompanhamento de projetos</h2>
               <p>
                 Atualizado em{" "}
                 {new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })}
@@ -349,7 +349,7 @@ export default function ProjetosCliente() {
                 <div className="print-section" key={p.id}>
                   <h3>
                     {p.entregaNumero ? `${rotuloDe(p.entregaNumero)} · ` : ""}
-                    {p.nome} — {p.fase ? faseLabel[p.fase] : statusLabels[p.status] ?? p.status}
+                    {p.nome} · {p.fase ? faseLabel[p.fase] : statusLabels[p.status] ?? p.status}
                     {prazo}
                   </h3>
                   {ativs.length === 0 ? (
@@ -383,7 +383,7 @@ function BotaoVoltar({ onClick }: { onClick: () => void }) {
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1 py-1 text-[12.5px] font-semibold text-muted hover:text-primary-bright"
+      className="inline-flex items-center gap-1 py-1 text-[13px] font-semibold text-muted hover:text-primary-bright"
     >
       <ArrowLeft className="h-3.5 w-3.5" />
       Projetos
