@@ -228,7 +228,9 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   });
   const porId = new Map(visiveis.map((l) => [l.id, l]));
   const entrada = nomeEntrada(origens);
-  const colunas = COLUNAS_UNICAS.map((c) => (c.key === "entrada" ? { ...c, ...entrada } : c));
+  const soInbound = origens.length > 0 && origens.every((o) => ORIGEM_POR_CHAVE[o].grupo === "Inbound");
+  // Lead de anúncio não passa por "Mensagem ou ligação": com o filtro só no Inbound, a coluna some
+  const colunas = COLUNAS_UNICAS.filter((c) => !(soInbound && c.key === "contato")).map((c) => (c.key === "entrada" ? { ...c, ...entrada } : c));
 
   // Instagram: prontos para mandar ao time (mesma regra do funil antigo)
   const prontosParaOTime = marcadas.has("instagram")

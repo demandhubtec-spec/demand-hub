@@ -273,7 +273,7 @@ export function useMarcarAvisoLido() {
 
 /* ───────────── Metas ───────────── */
 
-export type CanalFunil = "google" | "instagram" | "linkedin" | "ligacoes" | "inbound";
+export type CanalFunil = "google" | "instagram" | "linkedin" | "ligacoes" | "inbound" | "relacionamento";
 export type FaseConversa = "abordagem" | "conexao" | "qualificacao" | "agendamento";
 
 export interface Metas {
@@ -297,6 +297,7 @@ export const METAS_PADRAO: Metas = {
     linkedin: { ...BASE_LISTA },
     ligacoes: { contato: 100, atendida: 40, conversa: 60, qualificacao: 40, reuniao: 50, reuniao_realizada: 75, proposta: 60, ganho: 40 },
     inbound: { conversa: 80, qualificacao: 50, reuniao: 50, reuniao_realizada: 75, proposta: 60, ganho: 40 },
+    relacionamento: { ...BASE_LISTA },
   },
   fases: { abordagem: 35, conexao: 70, qualificacao: 45, agendamento: 50 },
 };
