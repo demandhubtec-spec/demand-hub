@@ -711,7 +711,7 @@ montarFlow();pintarFila();carregarTudo();setInterval(carregarTudo,20000);
     // No meio de uma frase (ex.: "Operação" + "AO VIVO" em outra tag) a primeira letra fica minúscula
     if(meio&&x!==t)x=x.replace(/^([^A-Za-zÁ-ú0-9]*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])(?![A-ZÁÉÍÓÚÂÊÔÃÕÇ])/,function(_,a,c){var w=(x.slice(a.length).match(/^[A-Za-zÁ-ú]+/)||[''])[0];return (NOMES[w.toLowerCase()]?a+c:a+c.toLowerCase());});
     return x;}
-  function bloco(el){while(el&&el.parentElement&&/^inline/.test(getComputedStyle(el).display))el=el.parentElement;return el;}
+  function bloco(el){while(el&&el.parentElement&&(/^inline/.test(getComputedStyle(el).display)||/flex/.test(getComputedStyle(el.parentElement).display)&&el.parentElement.textContent.trim().length<60))el=el.parentElement;return el;}
   function noMeio(n){var b=bloco(n.parentElement);if(!b)return false;var w=document.createTreeWalker(b,NodeFilter.SHOW_TEXT,null),t;while((t=w.nextNode())){if(t===n)return false;if(t.nodeValue.trim())return true;}return false;}
   function varre(raiz){
     var w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,null),n;
