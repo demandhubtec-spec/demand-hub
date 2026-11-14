@@ -16,8 +16,8 @@ function Linha({ title, sub, children }: { title: string; sub: string; children:
   return (
     <div className="flex items-center justify-between gap-4 border-b border-border py-3.5 last:border-b-0">
       <div>
-        <div className="text-[13.5px] font-semibold">{title}</div>
-        <div className="mt-0.5 text-[11.5px] text-muted">{sub}</div>
+        <div className="text-[14px] font-semibold">{title}</div>
+        <div className="mt-0.5 text-[12px] text-muted">{sub}</div>
       </div>
       {children}
     </div>
@@ -96,7 +96,7 @@ export function ControlesTab() {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="p-5 px-[22px]">
         <div className="text-sm font-semibold">Liga e desliga</div>
-        <div className="mb-2 mt-0.5 text-[11.5px] text-muted">Cada mudança fica registrada na aba Atividade.</div>
+        <div className="mb-2 mt-0.5 text-[12px] text-muted">Cada mudança fica registrada na aba Atividade.</div>
 
         <Linha title="WhatsApp" sub={cfg.wa_enabled ? "O motor está disparando dentro da janela" : "Pausado: nada sai pelo WhatsApp"}>
           <Switch checked={cfg.wa_enabled} onCheckedChange={(v) => salvar({ wa_enabled: v }, v ? "WhatsApp retomado" : "WhatsApp pausado")} />
@@ -122,19 +122,19 @@ export function ControlesTab() {
 
         <div className="flex items-center justify-between gap-4 border-b border-border py-3.5">
           <div>
-            <div className="flex items-center gap-2 text-[13.5px] font-semibold">
+            <div className="flex items-center gap-2 text-[14px] font-semibold">
               Gmail
               {gmail?.conectado ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-positive-tint px-2 py-[2px] text-[11px] font-semibold text-positive">
+                <span className="inline-flex items-center gap-1 rounded-full bg-positive-tint px-2 py-[2px] text-[12px] font-semibold text-positive">
                   <span className="h-1.5 w-1.5 rounded-full bg-current" /> Conectado
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 rounded-full bg-attention-tint px-2 py-[2px] text-[11px] font-semibold text-attention">
+                <span className="inline-flex items-center gap-1 rounded-full bg-attention-tint px-2 py-[2px] text-[12px] font-semibold text-attention">
                   <span className="h-1.5 w-1.5 rounded-full bg-current" /> Não conectado
                 </span>
               )}
             </div>
-            <div className="mt-0.5 text-[11.5px] text-muted">
+            <div className="mt-0.5 text-[12px] text-muted">
               {gmail?.conectado
                 ? `${gmail.email ?? "Conta conectada"}. Os e-mails saem por ela e as respostas são lidas a cada 10 minutos.`
                 : "Conecte o demandhubtec@gmail.com para os e-mails da cadência saírem."}
@@ -166,7 +166,7 @@ export function ControlesTab() {
 
         <div className="pt-3.5">
           <Label>Número de teste</Label>
-          <div className="mt-1 text-[11.5px] text-muted">
+          <div className="mt-1 text-[12px] text-muted">
             Se preenchido, todo envio vai para esse número e o lead não muda de status.
           </div>
           <div className="mt-2 flex gap-2">
@@ -192,38 +192,38 @@ export function ControlesTab() {
 
       <Card className="p-5 px-[22px]">
         <div className="text-sm font-semibold">Ritmo e janela de envio</div>
-        <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Horário de São Paulo. Intervalos em segundos, sorteados entre o mínimo e o máximo.</div>
+        <div className="mb-3 mt-0.5 text-[12px] text-muted">Horário de São Paulo. Intervalos em segundos, sorteados entre o mínimo e o máximo.</div>
 
-        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 gap-y-2 text-[12.5px]">
+        <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 gap-y-2 text-[13px]">
           <span />
-          <span className="text-[11px] font-semibold uppercase text-muted">Teto/dia</span>
-          <span className="text-[11px] font-semibold uppercase text-muted">Mín. (s)</span>
-          <span className="text-[11px] font-semibold uppercase text-muted">Máx. (s)</span>
+          <span className="text-[12px] font-semibold text-muted">Teto/dia</span>
+          <span className="text-[12px] font-semibold text-muted">Mín. (s)</span>
+          <span className="text-[12px] font-semibold text-muted">Máx. (s)</span>
           <span className="font-semibold">WhatsApp (1ª mensagem)</span>
           {num("wa_daily_cap")}{num("wa_min_interval_sec")}{num("wa_max_interval_sec")}
           <span className="font-semibold">E-mail (cadência)</span>
           {num("email_daily_cap")}{num("email_min_interval_sec")}{num("email_max_interval_sec")}
         </div>
 
-        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 text-[12.5px]">
+        <div className="mt-4 grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-2 text-[13px]">
           <span>
             <b className="font-semibold">Follow-ups de WhatsApp por dia</b>
-            <span className="block text-[11.5px] text-muted">Separado do teto acima, que vale só para as primeiras mensagens. Coloque 0 para desligar todos os follow-ups e retomadas automáticas.</span>
+            <span className="block text-[12px] text-muted">Separado do teto acima, que vale só para as primeiras mensagens. Coloque 0 para desligar todos os follow-ups e retomadas automáticas.</span>
           </span>
           {num("followup_daily_cap")}
           <span>
             <b className="font-semibold">Retomar quem não respondeu depois de (dias)</b>
-            <span className="block text-[11.5px] text-muted">No fim da cadência o lead volta para a aprovação nesse prazo.</span>
+            <span className="block text-[12px] text-muted">No fim da cadência o lead volta para a aprovação nesse prazo.</span>
           </span>
           {num("retomar_dias")}
           <span>
             <b className="font-semibold">Teto do Apify no mês (US$)</b>
-            <span className="block text-[11.5px] text-muted">Vale para a coleta de empresas e para as pesquisas do Léo (CNPJ, Instagram e dono).</span>
+            <span className="block text-[12px] text-muted">Vale para a coleta de empresas e para as pesquisas do Léo (CNPJ, Instagram e dono).</span>
           </span>
           {num("apify_teto_usd")}
           <span>
             <b className="font-semibold">Parte do teto para as pesquisas do Léo (US$)</b>
-            <span className="block text-[11.5px] text-muted">O resto fica para a coleta de empresas novas. Os passos gratuitos do Léo continuam mesmo quando acaba.</span>
+            <span className="block text-[12px] text-muted">O resto fica para a coleta de empresas novas. Os passos gratuitos do Léo continuam mesmo quando acaba.</span>
           </span>
           {num("leo_teto_usd")}
         </div>
@@ -249,7 +249,7 @@ export function ControlesTab() {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 text-[12.5px]">
+        <div className="mt-4 flex items-center gap-2 text-[13px]">
           <span>Das</span>{num("send_start_hour")}<span>h até</span>{num("send_end_hour")}<span>h59</span>
         </div>
 
@@ -261,7 +261,7 @@ export function ControlesTab() {
             value={form.optout_txt ?? ""}
             onChange={(e) => setForm((f) => ({ ...f, optout_txt: e.target.value }))}
           />
-          <div className="mt-1 text-[11.5px] text-muted">Separe por vírgula. Quem responder com uma delas nunca mais recebe nada.</div>
+          <div className="mt-1 text-[12px] text-muted">Separe por vírgula. Quem responder com uma delas nunca mais recebe nada.</div>
         </div>
 
         <div className="mt-4 flex justify-end">

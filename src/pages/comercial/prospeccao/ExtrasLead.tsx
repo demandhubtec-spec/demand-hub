@@ -52,7 +52,7 @@ export function ExtrasLead({ lead }: { lead: OutreachLead }) {
     <div className="mt-3 grid gap-3 sm:grid-cols-2">
       {temIg && (
         <div className="rounded-xl border border-border p-3">
-          <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+          <div className="mb-2 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold text-muted">
             <AtSign className="h-3.5 w-3.5" /> Direct do Instagram · envio manual
             <span className={lead.dm_instagram_enviado_em ? "ml-auto normal-case text-positive" : "ml-auto normal-case"}>
               {lead.dm_instagram_enviado_em ? `Enviado ${dataBR(lead.dm_instagram_enviado_em)}` : "Não enviado"}
@@ -61,7 +61,7 @@ export function ExtrasLead({ lead }: { lead: OutreachLead }) {
           {lead.dm_instagram ? (
             <>
               <div className="whitespace-pre-wrap rounded-lg bg-surface-2 p-2.5 text-[13px] leading-relaxed">{lead.dm_instagram}</div>
-              <div className="mt-2 text-[11.5px] text-muted">Copie, abra o perfil, toque em Mensagem e cole. Depois marque como enviado.</div>
+              <div className="mt-2 text-[12px] text-muted">Copie, abra o perfil, toque em Mensagem e cole. Depois marque como enviado.</div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Button size="sm" onClick={() => copiar(lead.dm_instagram ?? "", "Texto copiado")}>
                   <Copy /> Copiar texto
@@ -93,7 +93,7 @@ export function ExtrasLead({ lead }: { lead: OutreachLead }) {
 
       {mostraSite && (
         <div className="rounded-xl border border-border p-3">
-          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+          <div className="mb-2 flex items-center gap-1.5 text-[12px] font-semibold text-muted">
             <Globe className="h-3.5 w-3.5" /> Prévia de site grátis
           </div>
           {link ? (

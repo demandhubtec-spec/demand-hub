@@ -55,7 +55,7 @@ const tone: Record<string, string> = {
 
 export function Pill({ status, label }: { status: string; label?: string }) {
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2 py-[2px] text-[11px] font-semibold", tone[status] ?? "bg-surface-2 text-muted")}>
+    <span className={cn("inline-flex items-center rounded-full px-2 py-[2px] text-[12px] font-semibold", tone[status] ?? "bg-surface-2 text-muted")}>
       {label ?? waLabels[status] ?? comercialLabels[status] ?? status}
     </span>
   );

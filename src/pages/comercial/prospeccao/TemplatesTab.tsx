@@ -116,7 +116,7 @@ export function TemplatesTab() {
               key={c}
               onClick={() => { setCanal(c); setDraft(null); }}
               className={cn(
-                "rounded-full border px-3 py-1 text-[12.5px] font-semibold",
+                "rounded-full border px-3 py-1 text-[13px] font-semibold",
                 canal === c ? "border-primary bg-primary-tint text-primary-bright" : "border-border text-muted",
               )}
             >
@@ -125,7 +125,7 @@ export function TemplatesTab() {
           ))}
           <Button size="sm" className="ml-auto" onClick={novo}><Plus /> Nova mensagem</Button>
         </div>
-        <div className="mb-2 text-[11.5px] text-muted">O motor sorteia uma das mensagens ligadas a cada envio.</div>
+        <div className="mb-2 text-[12px] text-muted">O motor sorteia uma das mensagens ligadas a cada envio.</div>
         {isLoading ? <EmptyState>Carregando…</EmptyState> : lista.length === 0 ? (
           <EmptyState>Nenhuma mensagem de {canal === "whatsapp" ? "WhatsApp" : "e-mail"} ainda.</EmptyState>
         ) : (
@@ -171,7 +171,7 @@ export function TemplatesTab() {
               <div>
                 <Label>Texto</Label>
                 <Textarea rows={8} value={draft.body} onChange={(e) => setDraft({ ...draft, body: e.target.value })} />
-                <div className="mt-1.5 text-[11.5px] text-muted">
+                <div className="mt-1.5 text-[12px] text-muted">
                   Variações: escreva <code className="font-mono">{"{oi|olá|e aí}"}</code> e o motor sorteia uma.
                   {draft.channel === "whatsapp" && <> Deixe uma <b>linha em branco</b> para quebrar em balões separados (com pausa entre eles).</>}
                   {" "}Clique numa variável para inserir:
@@ -183,19 +183,19 @@ export function TemplatesTab() {
                       type="button"
                       title={v.desc}
                       onClick={() => setDraft({ ...draft, body: `${draft.body}${v.tag}` })}
-                      className="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] hover:border-primary-bright"
+                      className="rounded border border-border bg-surface-2 px-1.5 py-0.5 font-mono text-[12px] hover:border-primary-bright"
                     >
                       {v.tag}
                     </button>
                   ))}
                 </div>
                 {draft.channel === "email" && (
-                  <div className="mt-2 text-[11.5px] text-muted">O rodapé de opt-out é colocado automaticamente: “{RODAPE_EMAIL}”</div>
+                  <div className="mt-2 text-[12px] text-muted">O rodapé de opt-out é colocado automaticamente: “{RODAPE_EMAIL}”</div>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <Switch checked={draft.active} onCheckedChange={(v) => setDraft({ ...draft, active: v })} />
-                <span className="text-[12.5px]">Ligada (entra no sorteio)</span>
+                <span className="text-[13px]">Ligada (entra no sorteio)</span>
                 <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setDraft(null)}>Cancelar</Button>
                 <Button size="sm" onClick={onSalvar} disabled={salvar.isPending}>Salvar</Button>
               </div>
@@ -212,21 +212,21 @@ export function TemplatesTab() {
                 </Select>
                 <Button variant="ghost" size="sm" onClick={() => setSeed((s) => s + 1)}><RefreshCw /> Gerar outra variação</Button>
               </div>
-              {!lead ? <div className="text-[12.5px] text-muted">Importe um lead para ver a prévia.</div> : (
+              {!lead ? <div className="text-[13px] text-muted">Importe um lead para ver a prévia.</div> : (
                 draft.channel === "whatsapp" ? (
                   <div className="space-y-1.5">
                     {previewBody ? (
                       previewBody.split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
-                        <div key={i} className="w-fit max-w-[90%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
+                        <div key={i} className="w-fit max-w-[90%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[14px] text-[#111]">
                           {b.trim()}
                         </div>
                       ))
                     ) : (
-                      <div className="rounded-lg bg-[#DCF8C6] p-3.5 text-[13.5px] text-[#111] opacity-60">Escreva o texto para ver a prévia.</div>
+                      <div className="rounded-lg bg-[#DCF8C6] p-3.5 text-[14px] text-[#111] opacity-60">Escreva o texto para ver a prévia.</div>
                     )}
                   </div>
                 ) : (
-                  <div className="whitespace-pre-wrap rounded-lg bg-surface-2 p-3.5 text-[13.5px]">
+                  <div className="whitespace-pre-wrap rounded-lg bg-surface-2 p-3.5 text-[14px]">
                     <div className="mb-2 font-semibold">{previewSubject}</div>
                     {previewBody || <span className="opacity-60">Escreva o texto para ver a prévia.</span>}
                     {previewBody && <div className="mt-3 text-[12px] opacity-70">{RODAPE_EMAIL}</div>}

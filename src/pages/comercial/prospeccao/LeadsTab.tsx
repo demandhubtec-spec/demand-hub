@@ -168,7 +168,7 @@ function AdicionarLead() {
 function Campo({ label, value, href }: { label: string; value: React.ReactNode; href?: string | null }) {
   return (
     <div>
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</div>
+      <div className="text-[12px] font-semibold text-muted">{label}</div>
       <div className="mt-0.5 break-words text-[13px]">
         {href ? (
           <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary-bright hover:underline">
@@ -261,27 +261,27 @@ function DetalheLead({ lead, onClose }: { lead: OutreachLead; onClose: () => voi
 
         <div className="mt-5 space-y-3">
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Mensagem enviada</div>
+            <div className="text-[12px] font-semibold text-muted">Mensagem enviada</div>
             <div className="mt-1 whitespace-pre-wrap rounded-md bg-surface-2 p-3 text-[13px]">{lead.wa_message || "Ainda não enviada"}</div>
           </div>
           <div>
-            <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">Resposta recebida</div>
+            <div className="text-[12px] font-semibold text-muted">Resposta recebida</div>
             <div className="mt-1 whitespace-pre-wrap rounded-md bg-surface-2 p-3 text-[13px]">{lead.reply_text || "Sem resposta"}</div>
           </div>
           {lead.wa_status === "respondeu" && (
-            <a href="/comercial/sdr" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+            <a href="/comercial/sdr" className="inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline">
               Ver conversa no SDR IA <ExternalLink className="h-3 w-3" />
             </a>
           )}
         </div>
 
         <div className="mt-5">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Linha do tempo</div>
-          {log.length === 0 && <div className="text-[12.5px] text-muted">Nada registrado ainda.</div>}
+          <div className="mb-2 text-[12px] font-semibold text-muted">Linha do tempo</div>
+          {log.length === 0 && <div className="text-[13px] text-muted">Nada registrado ainda.</div>}
           <ul className="space-y-2">
             {log.map((e) => (
-              <li key={e.id} className="flex gap-3 text-[12.5px]">
-                <span className="w-[86px] shrink-0 font-mono text-[11px] text-muted">{fmtData(e.created_at)}</span>
+              <li key={e.id} className="flex gap-3 text-[13px]">
+                <span className="w-[86px] shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
                 <span><b className="font-semibold">{e.event}</b> {detalheTexto(e.detail)}</span>
               </li>
             ))}
@@ -330,7 +330,7 @@ export function LeadsTab() {
   function Filtro({ value, onChange, placeholder, items }: { value: string; onChange: (v: string) => void; placeholder: string; items: { v: string; l: string }[] }) {
     return (
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="h-9 w-auto min-w-[130px] py-1.5 text-[12.5px]"><SelectValue placeholder={placeholder} /></SelectTrigger>
+        <SelectTrigger className="h-9 w-auto min-w-[130px] py-1.5 text-[13px]"><SelectValue placeholder={placeholder} /></SelectTrigger>
         <SelectContent>
           <SelectItem value={TODOS}>{placeholder}</SelectItem>
           {items.map((i) => <SelectItem key={i.v} value={i.v}>{i.l}</SelectItem>)}
@@ -380,14 +380,14 @@ export function LeadsTab() {
               <tr key={l.place_id} className="cursor-pointer hover:bg-surface-2/60" onClick={() => setAberto(l.place_id)}>
                 <Td wrap>
                   <div className="font-semibold">{l.empresa}</div>
-                  <div className="text-[11.5px] text-muted">
+                  <div className="text-[12px] text-muted">
                     {[l.nicho, l.cidade, l.decisor].filter(Boolean).join(" · ")}
                   </div>
                 </Td>
                 <Td>{l.prioridade ?? "-"}</Td>
                 <Td>
                   <Pill status={l.wa_status} />
-                  <div className="mt-0.5 font-mono text-[11px] text-muted">{fmtTelefone(l.whatsapp)}</div>
+                  <div className="mt-0.5 font-mono text-[12px] text-muted">{fmtTelefone(l.whatsapp)}</div>
                 </Td>
                 <Td><Pill status={l.email_status} /></Td>
                 <Td>
@@ -403,7 +403,7 @@ export function LeadsTab() {
                     </Select>
                   </div>
                 </Td>
-                <Td><span className="font-mono text-[11.5px] text-muted">{fmtData(ultimaAtividade(l))}</span></Td>
+                <Td><span className="font-mono text-[12px] text-muted">{fmtData(ultimaAtividade(l))}</span></Td>
                 <Td>
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     {l.wa_status === "pendente" ? (
@@ -427,7 +427,7 @@ export function LeadsTab() {
           </tbody>
         </TableWrap>
       )}
-      <div className="mt-2 text-[11.5px] text-muted">{filtrados.length} de {leads.length} leads</div>
+      <div className="mt-2 text-[12px] text-muted">{filtrados.length} de {leads.length} leads</div>
 
       {leadAberto && <DetalheLead lead={leadAberto} onClose={() => setAberto(null)} />}
     </div>
