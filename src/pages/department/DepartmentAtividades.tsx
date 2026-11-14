@@ -27,7 +27,7 @@ export default function DepartmentAtividades() {
     <section>
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[21px] font-semibold">{info.nome} — Minhas atividades</div>
+          <div className="text-[20px] font-semibold">{info.nome} · Minhas atividades</div>
           <div className="mt-1 text-[13px] text-muted">Marque como concluída quando terminar.</div>
         </div>
         <Button variant="primary" onClick={() => setModalOpen(true)}>
@@ -66,19 +66,19 @@ export default function DepartmentAtividades() {
                   </span>
                   <span className="flex min-w-0 flex-1 flex-col gap-1">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className={cn("text-[13.5px] font-medium transition-opacity", done && "opacity-50 line-through")}>
+                      <span className={cn("text-[14px] font-medium transition-opacity", done && "opacity-50 line-through")}>
                         {a.titulo}
                       </span>
                       <PriorityBadge prioridade={a.prioridade} />
                     </span>
-                    <span className="text-[11.5px] text-muted">
+                    <span className="text-[12px] text-muted">
                       {a.contexto}
                       {a.responsavelNome && ` · ${a.responsavelNome}`}
                     </span>
-                    {a.descricao && <span className="text-[11.5px] text-muted">{a.descricao}</span>}
+                    {a.descricao && <span className="text-[12px] text-muted">{a.descricao}</span>}
                   </span>
-                  <span className="shrink-0 rounded-[5px] bg-surface-2 px-2 py-[3px] font-mono text-[11px] text-muted">
-                    {a.prazo ?? "Sem prazo"}
+                  <span className="shrink-0 rounded-[6px] bg-surface-2 px-2 py-[3px] font-mono text-[12px] text-muted">
+                    {a.prazo ? new Date(a.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "Sem prazo"}
                   </span>
                 </label>
               );

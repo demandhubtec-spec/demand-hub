@@ -20,7 +20,7 @@ export default function DepartmentProjetos() {
   return (
     <section>
       <div className="mb-[22px]">
-        <div className="text-[21px] font-semibold">{info.nome} — Projetos</div>
+        <div className="text-[20px] font-semibold">{info.nome} · Projetos</div>
         <div className="mt-1 text-[13px] text-muted">{projetos.length} projeto(s) neste departamento.</div>
       </div>
 
@@ -45,16 +45,16 @@ export default function DepartmentProjetos() {
               }}
               className="cursor-pointer p-[18px] pb-4 transition-colors hover:border-primary-bright"
             >
-              <div className="mb-1.5 font-mono text-[11px] text-muted">{p.empresa}</div>
-              <div className="mb-3.5 min-h-[38px] text-[14.5px] font-semibold leading-tight">{p.nome}</div>
-              <div className="mb-1.5 flex justify-between text-[11px] text-muted">
+              <div className="mb-1.5 font-mono text-[12px] text-muted">{p.empresa}</div>
+              <div className="mb-3.5 min-h-[38px] text-[14px] font-semibold leading-tight">{p.nome}</div>
+              <div className="mb-1.5 flex justify-between text-[12px] text-muted">
                 <span>Progresso</span>
                 <span>{p.progresso}%</span>
               </div>
-              <div className="mb-3.5 h-1.5 overflow-hidden rounded-[5px] bg-surface-2">
+              <div className="mb-3.5 h-1.5 overflow-hidden rounded-[6px] bg-surface-2">
                 <div
                   className={cn(
-                    "h-full rounded-[5px] bg-primary",
+                    "h-full rounded-[6px] bg-primary",
                     p.status === "concluido" && "bg-positive",
                     p.status === "atrasado" && "bg-negative",
                   )}
@@ -63,7 +63,7 @@ export default function DepartmentProjetos() {
               </div>
               <div className="flex items-center justify-between">
                 <StatusBadge status={p.status} />
-                <span className="font-mono text-[11px] text-muted">
+                <span className="font-mono text-[12px] text-muted">
                   {p.prazo ? `Prazo ${new Date(p.prazo + "T00:00:00").toLocaleDateString("pt-BR")}` : "Sem prazo"}
                 </span>
               </div>
