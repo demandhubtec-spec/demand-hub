@@ -9,6 +9,8 @@ import type { SecaoPlaybook } from "@/hooks/usePlaybook";
  */
 
 export type ListaExtra = "instagram" | "linkedin" | "ligacoes";
+/** Lista do lead: as três de coleta e o cadastro manual (indicação, evento, network...). */
+export type ListaDoLead = ListaExtra | "manual";
 export type EtapaLista =
   | "na_lista"
   | "contato"
@@ -23,7 +25,7 @@ export type EtapaLista =
 
 export interface ListaLead {
   id: string;
-  lista: ListaExtra;
+  lista: ListaDoLead;
   rodada: string | null;
   empresa: string;
   perfil: string | null;
@@ -64,6 +66,48 @@ export function useAtualizarListaLead() {
   return useMutation({
     mutationFn: async ({ id, patch }: { id: string; patch: Partial<ListaLead> }) => {
       const { error } = await supabase.from("comercial_lista_leads").update(patch).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "listas"] }),
+  });
+}
+
+export interface NovoLeadManual {
+  empresa: string;
+  contato: string;
+  whatsapp: string;
+  email: string;
+  origem: string;
+  quem_indicou: string;
+  nicho: string;
+  cidade: string;
+  etapa: EtapaLista;
+  perfil_lead: string;
+  conversa: string;
+}
+
+/** Cadastro manual de lead (indicação, recomendação, network, evento...). Entra no funil; a Gabi não manda nada sozinha. */
+export function useCriarLeadManual() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (n: NovoLeadManual) => {
+      const obs = [n.perfil_lead.trim() && `Perfil: ${n.perfil_lead.trim()}`, n.conversa.trim() && `O que foi conversado: ${n.conversa.trim()}`]
+        .filter(Boolean)
+        .join("\n\n");
+      const { error } = await supabase.from("comercial_lista_leads").insert({
+        lista: "manual",
+        empresa: n.empresa.trim() || n.contato.trim(),
+        perfil: n.contato.trim() || null,
+        whatsapp: n.whatsapp.replace(/\D/g, "") || null,
+        email: n.email.trim() || null,
+        nicho: n.nicho.trim() || null,
+        cidade: n.cidade.trim() || null,
+        fonte: n.origem,
+        comentario: n.quem_indicou.trim() || null,
+        observacoes: obs || null,
+        etapa: n.etapa,
+        payload: { contato: n.contato.trim(), perfil_lead: n.perfil_lead.trim(), conversa: n.conversa.trim(), cadastro: "manual" },
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "listas"] }),
