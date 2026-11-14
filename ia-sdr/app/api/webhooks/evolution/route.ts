@@ -4,7 +4,7 @@
  *   Evento: MESSAGE
  */
 import { waitUntil } from "@vercel/functions";
-import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, prospeccaoDoTelefone, recadoParaRobo, roboPedeRecado, telefoneDoLid } from "@/src/lib/prospeccao.ts";
+import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, opcaoDoMenu, prospeccaoDoTelefone, recadoParaRobo, roboPedeRecado, telefoneDoLid } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, ultimoEventoEm, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
@@ -175,8 +175,9 @@ export async function POST(req: Request) {
         });
         if (salvo) await logEvent(lead.id, "resposta_automatica");
         // Robô pedindo recado/assunto: a Gabi deixa UM recado curto para chegar numa pessoa (v2)
-        if (salvo && ehFluxoV2(prospeccao) && !lead.ai_paused && roboPedeRecado(content) && !(await ultimoEvento(lead.id, "recado_robo").catch(() => null))) {
-          const recado = recadoParaRobo(prospeccao);
+        const opcao = opcaoDoMenu(content);
+        if (salvo && ehFluxoV2(prospeccao) && !lead.ai_paused && (opcao || roboPedeRecado(content)) && !(await ultimoEvento(lead.id, "recado_robo").catch(() => null))) {
+          const recado = opcao ?? recadoParaRobo(prospeccao);
           await logEvent(lead.id, "recado_robo");
           try {
             const id = await sendText(destination(lead), recado);

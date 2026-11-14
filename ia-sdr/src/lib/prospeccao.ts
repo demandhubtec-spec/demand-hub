@@ -303,6 +303,9 @@ const AUTO_FORTE = [
   /nunca solicita pagamento|nao caia em golpe/,
   /contato e exclusivo para mensagens/,
   /para (comecarmos|iniciarmos|agilizar (o |seu )?atendimento)/,
+  // 14/11: menu numérico (Prime Machado) e "recebemos a sua mensagem"
+  /responda (somente |apenas )?com o numero/,
+  /recebemos (a |sua |a sua )?mensage(m|ns)\W+(em breve|logo)/,
   // 13/11: assistentes virtuais e recado de imobiliária (Bella Casa "Bellinha", RRC "deixe seu recado")
   /(sou|aqui e) (a |o )?[a-z]+,? (a |o |sua |seu )?(inteligencia artificial|assistente virtual)/,
   /(deixe|deixa) (o |seu |o seu |um )?recado/,
@@ -342,6 +345,16 @@ const AUTO_FRACO = [
 export function roboPedeRecado(texto: string): boolean {
   const t = sem(texto ?? "");
   return /(deixe|deixa|deixar) (o |seu |o seu |um |sua )?(recado|mensagem)|nome e sobrenome|qual (e )?(o )?(seu )?(nome|assunto)|para que (eu )?possa (te |lhe )?(transferir|encaminhar)|(como|em que) (podemos|posso) (te |lhe )?ajudar/.test(t);
+}
+
+/** Menu numérico de robô: devolve o número da opção que leva a uma pessoa (14/11: Prime Machado "3 Falar com Corretor"). */
+export function opcaoDoMenu(texto: string): string | null {
+  for (const linha of (texto ?? "").split(/\n/)) {
+    const t = sem(linha).replace(/[\u20e3\ufe0f]/g, "");
+    const m = t.match(/(\d{1,2})\D{0,6}(falar com|atendente|atendimento humano|corretor|comercial|outros assuntos|outras? (duvidas|informacoes)|humano)/);
+    if (m) return m[1];
+  }
+  return null;
 }
 
 export function recadoParaRobo(p: Prospeccao): string {
