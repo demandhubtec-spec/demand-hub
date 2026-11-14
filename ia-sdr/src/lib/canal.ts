@@ -71,7 +71,7 @@ export async function pedirOrientacao(leadId: string, pergunta: string, opcoes: 
   const texto = [pergunta.trim(), opcoes.length ? `\nOpções que pensei:\n${opcoes.map((o, i) => `${i + 1}. ${o}`).join("\n")}` : ""].join("");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: texto, origem: "sistema", status: "pendente" });
   await logEvent(leadId, "pediu_orientacao", { pergunta });
-  await avisarKelvin(`🙋 Preciso de você sobre *${nome}*\n\n${texto}\n\nResponda aqui mesmo (texto ou áudio) ou no portal, em Time Comercial IA > Você e a Ana.`);
+  await avisarKelvin(`🙋 Preciso de você sobre *${nome}*\n\n${texto}\n\nResponda aqui mesmo (texto ou áudio) ou no portal, em Time Comercial IA > Você e a Gabi.`);
   return "Pedido de orientação enviado. Responda ao lead com UMA mensagem curta e natural, sem dizer que vai consultar alguém (ex.: \"Boa pergunta, deixa eu confirmar direitinho e já te retorno 😊\"). Não invente a resposta.";
 }
 
@@ -82,7 +82,7 @@ export async function proporRetomada(leadId: string, texto: string, motivo: stri
   await db().from("ana_canal").update({ status: "descartado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: `Retomada para ${nome} (${motivo}):\n«${msg}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: msg });
   await logEvent(leadId, "retomada_proposta", { motivo });
-  await avisarKelvin(`📝 Retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em Time Comercial IA > Você e a Ana.`);
+  await avisarKelvin(`📝 Retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em Time Comercial IA > Você e a Gabi.`);
 }
 
 /** A Ana não conseguiu responder um lead (ex.: WhatsApp fora do ar): avisa o Kelvin para ninguém ficar sem resposta. */
@@ -168,7 +168,7 @@ async function conversasRecentes(horas: number) {
       status: l.status,
       ia_pausada: l.ai_paused,
       sem_resposta: !l.last_outbound_at || l.last_outbound_at < l.last_inbound_at,
-      ultimas: msgs.map((m) => `${m.direction === "in" ? "Lead" : "Ana"} (${hora(m.created_at)}): ${m.content.slice(0, 220)}`),
+      ultimas: msgs.map((m) => `${m.direction === "in" ? "Lead" : "Gabi"} (${hora(m.created_at)}): ${m.content.slice(0, 220)}`),
     });
   }
   return out;
@@ -255,7 +255,7 @@ async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos:
       const msgs = await history(leadId, 15);
       const lv = await getLead(leadId);
       const pv = await prospeccaoDoTelefone(lv.phone).catch(() => null);
-      return JSON.stringify({ nome: await nomeDe(leadId), segmento: pv?.nicho ?? lv.segmento ?? null, cidade: pv?.cidade ?? null, mensagens: msgs.map((m) => `${m.direction === "in" ? "Lead" : m.author === "humano" ? "Kelvin (manual)" : "Ana"} (${hora(m.created_at)}): ${m.content}`) });
+      return JSON.stringify({ nome: await nomeDe(leadId), segmento: pv?.nicho ?? lv.segmento ?? null, cidade: pv?.cidade ?? null, mensagens: msgs.map((m) => `${m.direction === "in" ? "Lead" : m.author === "humano" ? "Kelvin (manual)" : "Gabi"} (${hora(m.created_at)}): ${m.content}`) });
     }
     case "propor_mensagem": {
       const texto = corrigirMarca(humanizar(String(a.texto ?? "")));
@@ -305,7 +305,7 @@ export async function processarOrientacao(o: { leadId: string | null; conteudo: 
   const { data: ultimas } = await db().from("ana_canal").select("autor,conteudo,lead_id,status,created_at").order("created_at", { ascending: false }).limit(14);
   const historico = ((ultimas ?? []) as { autor: string; conteudo: string; created_at: string }[])
     .reverse()
-    .map((m) => `${m.autor === "kelvin" ? "Kelvin" : "Ana"} (${hora(m.created_at)}): ${m.conteudo.slice(0, 500)}`)
+    .map((m) => `${m.autor === "kelvin" ? "Kelvin" : "Gabi"} (${hora(m.created_at)}): ${m.conteudo.slice(0, 500)}`)
     .join("\n");
   const { data: rascunhos } = await db().from("ana_canal").select("lead_id,rascunho").eq("status", "aguardando_ok").order("created_at", { ascending: false }).limit(3);
   const rasc = [];
@@ -313,7 +313,7 @@ export async function processarOrientacao(o: { leadId: string | null; conteudo: 
   const foco = leadFoco ? `${await nomeDe(leadFoco)} (lead_id ${leadFoco})` : "nenhum";
   const regras = await orientacoesPara(leadFoco);
 
-  const system = `Você é a Ana, SDR da DemandIA, conversando no canal interno com o Kelvin, seu gestor. Ele te orienta sobre os leads do WhatsApp.
+  const system = `Você é a Gabi, SDR da DemandIA, conversando no canal interno com o Kelvin, seu gestor. Ele te orienta sobre os leads do WhatsApp.
 
 Como agir:
 - Nunca prometa sem fazer. Se ele pedir algo sobre um lead, USE AS FERRAMENTAS agora: ache o lead (buscar_contatos ou conversas_recentes), leia a conversa (ver_conversa) e aja.
