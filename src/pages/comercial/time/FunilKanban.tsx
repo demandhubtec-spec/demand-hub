@@ -20,7 +20,10 @@ import {
   etapaInboundParaBanco,
   etapaOutbound,
   patchOutbound,
+  ORIGEM_POR_CHAVE,
+  type OrigemLead,
 } from "./funis";
+import { FunilUnificado } from "./FunilUnificado";
 import { useListaLeads } from "@/hooks/useComercial";
 import { FunilLista } from "./FunilLista";
 
@@ -35,6 +38,10 @@ export interface CardItem {
   nota?: "Quente" | "Morno" | "Frio" | null;
   etiqueta?: string | null;
   valor?: number | null;
+  /** Funil unificado: de onde veio o lead (selo no card e barrinha de mistura no topo da coluna). */
+  origem?: OrigemLead | null;
+  /** Só os contatos inbound vão para a lixeira. */
+  podeLixeira?: boolean;
 }
 
 /** Quadro genérico: colunas, cards e arrastar entre colunas. Usado pelos dois funis. */
@@ -99,6 +106,7 @@ export function Quadro<K extends string>({
                   <span className="ml-auto rounded-full bg-surface px-2 text-[12px] font-semibold text-muted">{lista.length}</span>
                 </div>
                 <div className="mt-0.5 text-[12px] text-muted">{col.dica}</div>
+                <Mistura itens={lista} />
               </div>
               <div className="flex min-h-[60px] flex-col gap-2">
                 {lista.map((it) => (
@@ -115,6 +123,7 @@ export function Quadro<K extends string>({
                   >
                     <div className="text-[13px] font-semibold leading-snug">{it.titulo}</div>
                     {it.sub && <div className="mt-0.5 text-[12px] text-muted">{it.sub}</div>}
+                    {it.origem && <SeloOrigem origem={it.origem} className="mt-1.5" />}
                     {(it.nota || it.etiqueta) && (
                       <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                         {it.nota && (
@@ -138,7 +147,7 @@ export function Quadro<K extends string>({
                     {it.aviso && <div className="mt-1 text-[12px] text-attention">{it.aviso}</div>}
                     <div className="mt-1.5 flex items-center gap-2 text-[12px] text-muted">
                       {it.quando && <span>{fmtData(it.quando)}</span>}
-                      {paraLixeira && (
+                      {paraLixeira && it.podeLixeira !== false && (
                         <button
                           title="Mover para a lixeira"
                           className="inline-flex items-center text-muted hover:text-negative"
@@ -334,61 +343,51 @@ function FunilInbound({ abrirConversa }: { abrirConversa: (id: string) => void }
   );
 }
 
-type ListaFunil = "google" | "instagram" | "linkedin" | "ligacoes" | "inbound";
-
-/**
- * Aba Funil: um Kanban por lista. Google Meu Negócio · Lista e Inbound · Anúncios seguem como já eram;
- * Instagram, LinkedIn e Ligações · Lista vêm da tabela das listas (nada é enviado sozinho para eles).
- */
-export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => void }) {
-  const [visao, setVisao] = React.useState<ListaFunil>("google");
-  const { data: leads = [] } = useOutreachLeads();
-  const { contatos } = useContatos();
-  const { data: listas = [] } = useListaLeads();
-  const conta: Record<ListaFunil, number> = {
-    google: leads.filter((l) => l.origem !== "instagram" && etapaOutbound(l) !== null).length,
-    instagram: listas.filter((l) => l.lista === "instagram").length,
-    linkedin: listas.filter((l) => l.lista === "linkedin").length,
-    ligacoes: listas.filter((l) => l.lista === "ligacoes").length,
-    inbound: contatos.filter((c) => c.tipo === "inbound" && !c.lixeira_em).length,
-  };
-  const opcoes: { k: ListaFunil; nome: string; icone: React.ComponentType<{ className?: string }> }[] = [
-    { k: "google", nome: "Google Meu Negócio · Lista", icone: MapPin },
-    { k: "instagram", nome: "Instagram · Lista", icone: Instagram },
-    { k: "linkedin", nome: "LinkedIn · Lista", icone: Linkedin },
-    { k: "ligacoes", nome: "Ligações · Lista", icone: Phone },
-    { k: "inbound", nome: "Inbound · Anúncios", icone: Megaphone },
-  ];
+/** Selo da origem do lead: Google Meu Negócio · Outbound, Anúncio · Inbound, Indicação · Relacionamento... */
+export function SeloOrigem({ origem, className }: { origem: OrigemLead; className?: string }) {
+  const o = ORIGEM_POR_CHAVE[origem];
   return (
-    <div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        {opcoes.map((o) => {
-          const Icone = o.icone;
-          const vazio = o.k === "linkedin" && conta.linkedin === 0;
-          return (
-            <button
-              key={o.k}
-              onClick={() => setVisao(o.k)}
-              className={cn(
-                "inline-flex items-center gap-2 rounded-[12px] border px-3.5 py-2 text-[14px] font-medium transition-colors",
-                visao === o.k ? "border-primary-bright bg-primary-tint text-ink shadow-[0_0_22px_rgba(110,58,255,.28)]" : "border-border bg-surface text-ink/90 hover:border-primary-bright/50",
-                vazio && visao !== o.k && "opacity-55",
-              )}
-            >
-              <Icone className="h-4 w-4 text-primary-bright" />
-              {o.nome}
-              <span className="tabular-nums text-[12px] text-muted">{vazio ? "em breve" : conta[o.k]}</span>
-            </button>
-          );
-        })}
+    <span
+      className={cn("inline-flex h-[22px] items-center gap-1.5 whitespace-nowrap rounded-[6px] px-2 text-[12px] font-medium", className)}
+      style={{ background: o.fundo, color: o.cor }}
+    >
+      <span className="h-1.5 w-1.5 rounded-full" style={{ background: o.cor }} />
+      {o.nome}
+      <span className="opacity-55">·</span>
+      {o.grupo}
+    </span>
+  );
+}
+
+/** Barrinha com a mistura de origens da coluna (só aparece no funil unificado). */
+function Mistura({ itens }: { itens: CardItem[] }) {
+  const conta = new Map<OrigemLead, number>();
+  for (const it of itens) if (it.origem) conta.set(it.origem, (conta.get(it.origem) ?? 0) + 1);
+  if (!conta.size) return null;
+  const partes = [...conta.entries()].sort((a, b) => b[1] - a[1]);
+  return (
+    <div className="mt-2">
+      <div className="flex h-1 gap-0.5 overflow-hidden rounded-full bg-surface-2">
+        {partes.map(([k, n]) => (
+          <span key={k} style={{ flex: n, background: ORIGEM_POR_CHAVE[k].cor }} />
+        ))}
       </div>
-      {visao === "google" ? (
-        <FunilOutbound abrirConversa={abrirConversa} />
-      ) : visao === "inbound" ? (
-        <FunilInbound abrirConversa={abrirConversa} />
-      ) : (
-        <FunilLista key={visao} lista={visao} colunas={visao === "ligacoes" ? COLUNAS_LIGACOES : COLUNAS_LISTA} abrirConversa={abrirConversa} />
-      )}
+      <div className="mt-1 text-[12px] text-muted">
+        {partes.map(([k, n], i) => (
+          <span key={k}>
+            {i > 0 && " · "}
+            <b className="font-semibold" style={{ color: ORIGEM_POR_CHAVE[k].cor }}>
+              {n}
+            </b>{" "}
+            {ORIGEM_POR_CHAVE[k].nome.split(" ")[0]}
+          </span>
+        ))}
+      </div>
     </div>
   );
+}
+
+/** Aba Funil: um funil comercial só, com todas as origens (filtro "Origem do lead"). */
+export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => void }) {
+  return <FunilUnificado abrirConversa={abrirConversa} />;
 }
