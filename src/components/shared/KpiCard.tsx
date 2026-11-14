@@ -15,47 +15,22 @@ interface KpiCardProps {
   icon?: React.ComponentType<{ className?: string }>;
 }
 
-/* Linha colorida no topo do card + brilho suave, no mesmo estilo dos cards do Tonabê OS. */
-const accentTop: Record<Accent, string> = {
-  primary: "after:bg-[linear-gradient(90deg,#5A28E0,#A47BFF)]",
-  positive: "after:bg-positive",
-  attention: "after:bg-attention",
-  negative: "after:bg-negative",
-};
-
-const accentIcon: Record<Accent, string> = {
-  primary: "bg-primary-tint text-primary-bright",
-  positive: "bg-positive-tint text-positive",
-  attention: "bg-attention-tint text-attention",
-  negative: "bg-negative-tint text-negative",
+const accentDelta: Record<Accent, string> = {
+  primary: "text-muted",
+  positive: "text-positive",
+  attention: "text-attention",
+  negative: "text-negative",
 };
 
 export function KpiCard({ label, value, delta, deltaClass = "up", accent = "primary", index = 0, icon: Icon }: KpiCardProps) {
+  // Rótulo em cima, número e uma linha de apoio: sem borda colorida nem ícone (base visual de 14/11)
+  void index;
+  void Icon;
   return (
-    <Card
-      className={cn(
-        "animate-kpiIn px-[18px] pb-4 pt-[18px] after:pointer-events-none after:absolute after:left-0 after:right-0 after:top-0 after:h-[2px] after:opacity-90",
-        accentTop[accent],
-      )}
-      style={{ animationDelay: `${0.04 + index * 0.07}s` }}
-    >
-      {Icon && (
-        <div className={cn("mb-3 flex h-8 w-8 items-center justify-center rounded-[9px]", accentIcon[accent])}>
-          <Icon className="h-[17px] w-[17px]" />
-        </div>
-      )}
-      <div className="brand-num text-[34px]">{value}</div>
-      <div className="eyebrow mt-2.5 text-[10px] leading-snug text-muted">{label}</div>
-      {delta && (
-        <div
-          className={cn(
-            "mt-1.5 font-mono text-[11px] font-semibold",
-            deltaClass === "up" ? "text-positive" : "text-attention",
-          )}
-        >
-          {delta}
-        </div>
-      )}
+    <Card className="flex flex-col gap-1 px-5 py-[18px]">
+      <div className="text-[13px] leading-snug text-muted">{label}</div>
+      <div className="brand-num text-[28px]">{value}</div>
+      {delta && <div className={cn("text-[12px]", deltaClass === "warn" ? "text-attention" : accentDelta[accent])}>{delta}</div>}
     </Card>
   );
 }

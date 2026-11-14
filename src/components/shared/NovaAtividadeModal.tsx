@@ -74,7 +74,7 @@ export function NovaAtividadeModal({ open, onOpenChange, departamentoFixo }: Nov
       onOpenChange(false);
       limpar();
     } catch {
-      showToast("Não foi possível salvar — verifique a conexão com o Supabase");
+      showToast("Não foi possível salvar: verifique a conexão com o Supabase");
     }
   }
 
@@ -140,7 +140,7 @@ export function NovaAtividadeModal({ open, onOpenChange, departamentoFixo }: Nov
                 <SelectItem value="none">Nenhum (tarefa interna)</SelectItem>
                 {projetosDoDept.map((p) => (
                   <SelectItem key={p.id} value={p.id}>
-                    {p.empresa} — {p.nome}
+                    {p.empresa} · {p.nome}
                   </SelectItem>
                 ))}
               </SelectContent>

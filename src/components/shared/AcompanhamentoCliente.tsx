@@ -43,7 +43,7 @@ export function AcompanhamentoCliente({
         <MessageSquare className="h-4 w-4" />
         Comentários do cliente
         {naoLidos > 0 && (
-          <span className="ml-1 rounded-full bg-primary px-1.5 py-px font-mono text-[10.5px] font-bold text-white">{naoLidos}</span>
+          <span className="ml-1 rounded-full bg-primary px-1.5 py-px font-mono text-[12px] font-bold text-white">{naoLidos}</span>
         )}
       </Button>
       <Button variant="ghost" onClick={() => setLinkAberto(true)}>
@@ -118,7 +118,7 @@ function LinkDialog({
                 readOnly
                 value={url}
                 onFocus={(e) => e.target.select()}
-                className="min-w-0 flex-1 rounded-[7px] border border-border bg-surface-2 px-3 py-2 font-mono text-[12px] text-ink"
+                className="min-w-0 flex-1 rounded-[8px] border border-border bg-surface-2 px-3 py-2 font-mono text-[12px] text-ink"
               />
               <Button variant="primary" onClick={copiar}>
                 {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -148,7 +148,7 @@ function LinkDialog({
                 Desligar link
               </Button>
             </div>
-            <p className="text-[11.5px] text-muted">
+            <p className="text-[12px] text-muted">
               "Gerar link novo" desliga o anterior. Use se o link tiver sido repassado para quem não deveria.
             </p>
           </div>
@@ -239,15 +239,15 @@ function ComentariosDialog({
                 key={c.id}
                 className={
                   c.autor_tipo === "cliente"
-                    ? "rounded-[9px] border border-border bg-surface-2 px-3 py-2.5 text-[12.5px]"
-                    : "ml-8 rounded-[9px] border border-primary/30 bg-primary-tint px-3 py-2.5 text-[12.5px]"
+                    ? "rounded-[8px] border border-border bg-surface-2 px-3 py-2.5 text-[13px]"
+                    : "ml-8 rounded-[8px] border border-primary/30 bg-primary-tint px-3 py-2.5 text-[13px]"
                 }
               >
                 <div className="mb-1 flex justify-between gap-2">
-                  <span className="text-[11.5px] font-bold text-primary-bright">{c.autor_nome}</span>
-                  <span className="font-mono text-[10px] text-muted">{quando(c.criado_em)}</span>
+                  <span className="text-[12px] font-bold text-primary-bright">{c.autor_nome}</span>
+                  <span className="font-mono text-[12px] text-muted">{quando(c.criado_em)}</span>
                 </div>
-                <div className="mb-1 font-mono text-[10.5px] text-muted">
+                <div className="mb-1 font-mono text-[12px] text-muted">
                   {c.projeto_id ? nomeEntrega.get(c.projeto_id) ?? "Entrega" : "Geral"}
                 </div>
                 <div className="whitespace-pre-wrap break-words">{c.texto}</div>
@@ -255,7 +255,7 @@ function ComentariosDialog({
                   <button
                     type="button"
                     onClick={() => setAlvo(c.projeto_id ?? "geral")}
-                    className="mt-1.5 text-[11px] font-semibold text-primary-bright hover:underline"
+                    className="mt-1.5 text-[12px] font-semibold text-primary-bright hover:underline"
                   >
                     Responder aqui
                   </button>
@@ -269,7 +269,7 @@ function ComentariosDialog({
           <select
             value={alvo}
             onChange={(e) => setAlvo(e.target.value)}
-            className="w-full rounded-[7px] border border-border bg-surface-2 px-2.5 py-2 text-[12.5px] text-ink"
+            className="w-full rounded-[8px] border border-border bg-surface-2 px-2.5 py-2 text-[13px] text-ink"
           >
             <option value="geral">Geral</option>
             {entregasOrdenadas.map((p) => (
@@ -289,14 +289,14 @@ function ComentariosDialog({
                 }
               }}
               placeholder="Responder ao cliente..."
-              className="max-h-[110px] min-h-[42px] flex-1 resize-none rounded-[7px] border border-border bg-surface-2 px-2.5 py-2 text-[12.5px] text-ink"
+              className="max-h-[110px] min-h-[42px] flex-1 resize-none rounded-[8px] border border-border bg-surface-2 px-2.5 py-2 text-[13px] text-ink"
             />
             <button
               type="button"
               onClick={enviar}
               disabled={responder.isPending || !texto.trim()}
               aria-label="Enviar resposta"
-              className="flex w-[42px] shrink-0 items-center justify-center rounded-[7px] bg-primary text-white hover:brightness-110 disabled:opacity-50"
+              className="flex w-[42px] shrink-0 items-center justify-center rounded-[8px] bg-primary text-white hover:brightness-110 disabled:opacity-50"
             >
               <Send className="h-4 w-4" />
             </button>

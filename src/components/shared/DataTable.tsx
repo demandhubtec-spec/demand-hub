@@ -10,7 +10,7 @@ export function TableWrap({ children }: { children: ReactNode }) {
 
 export function Th({ children }: { children: ReactNode }) {
   return (
-    <th className="whitespace-nowrap border-b border-border bg-surface-2 px-4 py-3 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">
+    <th className="whitespace-nowrap border-b border-border bg-surface-2 px-4 py-3 text-left text-[12px] font-semibold text-muted">
       {children}
     </th>
   );

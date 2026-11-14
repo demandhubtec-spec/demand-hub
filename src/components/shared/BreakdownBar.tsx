@@ -13,8 +13,8 @@ export function BreakdownBar({ items }: BreakdownBarProps) {
               <span className="font-medium text-ink">{item.label}</span>
               <span className="font-mono text-muted">{item.value}</span>
             </div>
-            <div className="h-[7px] overflow-hidden rounded-[5px] bg-surface-2">
-              <div className="h-full rounded-[5px] bg-primary transition-all" style={{ width: `${pct}%` }} />
+            <div className="h-[7px] overflow-hidden rounded-[6px] bg-surface-2">
+              <div className="h-full rounded-[6px] bg-primary transition-all" style={{ width: `${pct}%` }} />
             </div>
           </div>
         );
