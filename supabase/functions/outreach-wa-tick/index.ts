@@ -520,6 +520,19 @@ Deno.serve(async (req) => {
     if (!tpls?.length) return Response.json({ ...out, skip: "sem_template" });
     text = render(tpls[Math.floor(Math.random() * tpls.length)].body, lead);
   }
+  // Número que outra empresa da lista já recebeu (14/11: Heritage e Dra. Giovanna no mesmo WhatsApp da recepção).
+  // Não manda de novo: a Gabi misturaria as duas empresas na mesma conversa.
+  if (!cfg.test_number) {
+    const fim8 = String(lead.whatsapp).replace(/\D/g, "").slice(-8);
+    const { data: irmaos } = fim8.length === 8
+      ? await sb.from("outreach_leads").select("empresa").neq("place_id", lead.place_id).like("whatsapp", `%${fim8}`).not("wa_sent_at", "is", null).limit(1)
+      : { data: [] };
+    if (irmaos?.length) {
+      await sb.from("outreach_leads").update({ wa_status: "ignorado", wa_error: `mesmo WhatsApp de ${irmaos[0].empresa}, já contatada`, updated_at: new Date().toISOString() }).eq("place_id", lead.place_id);
+      await log(lead.place_id, "numero_repetido", { num: lead.whatsapp, outra: irmaos[0].empresa });
+      return Response.json({ ...out, skip: "numero_repetido", lead: lead.empresa });
+    }
+  }
   let to = (cfg.test_number || "").replace(/\D/g, "") || lead.whatsapp;
   let nomeWhats = "";
   if (!cfg.dry_run && !cfg.test_number) {
