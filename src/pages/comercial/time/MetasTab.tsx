@@ -11,6 +11,7 @@ const COLUNAS: { key: CanalFunil; nome: string }[] = [
   { key: "linkedin", nome: "LinkedIn" },
   { key: "ligacoes", nome: "Ligações" },
   { key: "inbound", nome: "Inbound" },
+  { key: "relacionamento", nome: "Relacionamento" },
 ];
 const LINHAS: { key: EtapaLista; nome: string }[] = [
   { key: "contato", nome: "Mensagem ou ligação feita" },
@@ -28,6 +29,7 @@ const SE_APLICA: Record<CanalFunil, EtapaLista[]> = {
   linkedin: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   ligacoes: ["contato", "atendida", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   inbound: ["conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
+  relacionamento: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
 };
 const FASES: { key: FaseConversa; nome: string }[] = [
   { key: "abordagem", nome: "Abordagem (o lead responde)" },

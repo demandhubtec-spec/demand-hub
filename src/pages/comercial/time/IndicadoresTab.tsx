@@ -1,5 +1,5 @@
 import * as React from "react";
-import { AlertTriangle, Check, Lightbulb, Instagram, Linkedin, MapPin, Megaphone, Phone, Settings, Target, TrendingUp } from "lucide-react";
+import { AlertTriangle, Check, Handshake, Lightbulb, Instagram, Linkedin, MapPin, Megaphone, Phone, Settings, Target, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useContatos } from "@/hooks/useCrm";
 import { useOutreachLeads } from "@/hooks/useProspeccao";
@@ -80,6 +80,13 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         .filter((c) => c.tipo === "inbound" && !c.lixeira_em && !fonesLista.has(fim8(c.phone)))
         .map((c) => ({ nivel: nivelInbound(c), nicho: c.segmento, quando: c.created_at })),
     },
+    {
+      key: "relacionamento",
+      nome: "Relacionamento · Cadastro manual",
+      sub: "Indicação, recomendação, network, evento e outros leads cadastrados à mão",
+      icone: Handshake,
+      itens: daLista("manual"),
+    },
   ];
   const canais: Canal[] = brutos.map((c) => {
     const itens = c.itens.filter((i) => noPeriodo(i.quando) && doSegmento(i.nicho));
@@ -122,7 +129,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
     .map((k) => ({ k, n: listas.filter((l) => l.lista === k && l.etapa === "na_lista").length }))
     .filter((x) => x.n > 0);
   const pendentes = (ins?.insights ?? []).filter((i) => i.status === "pendente").length;
-  const NOME_CURTO: Record<CanalFunil, string> = { google: "Google", instagram: "Instagram", linkedin: "LinkedIn", ligacoes: "Ligações", inbound: "Inbound" };
+  const NOME_CURTO: Record<CanalFunil, string> = { google: "Google", instagram: "Instagram", linkedin: "LinkedIn", ligacoes: "Ligações", inbound: "Inbound", relacionamento: "Relacionamento" };
 
   // Rodadas do Instagram
   const rodadas = React.useMemo(() => {

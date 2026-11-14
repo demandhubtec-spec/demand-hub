@@ -39,6 +39,7 @@ export const ETAPAS_FUNIL: Record<CanalFunil, EtapaFunil[]> = {
     { key: "proposta", label: "Negociação" },
     { key: "ganho", label: "Venda" },
   ],
+  relacionamento: LISTA,
   inbound: [
     { key: "na_lista", label: "Leads do anúncio" },
     { key: "conversa", label: "Conversa iniciada" },
