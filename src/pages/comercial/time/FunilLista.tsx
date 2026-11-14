@@ -214,7 +214,7 @@ export function AvisosRepetidos({ lista }: { lista: ListaExtra }) {
   return (
     <div className="mb-3 space-y-2">
       {meus.slice(0, 3).map((a) => (
-        <div key={a.id} className="rounded-[12px] border border-attention/35 bg-attention-tint px-4 py-2.5 text-[13px] text-[#ffd9a8]">
+        <div key={a.id} className="rounded-[12px] border border-attention/35 bg-attention-tint px-4 py-2.5 text-[13px] text-ink">
           <div className="flex flex-wrap items-center gap-3">
             <CopyX className="h-4 w-4 text-attention" />
             <span className="flex-1">{a.texto}</span>

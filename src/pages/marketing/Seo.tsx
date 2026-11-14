@@ -274,7 +274,7 @@ function AbaGoogle({ dias }: { dias: number }) {
         </Button>
       </div>
 
-      <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+      <div className="faixa-numeros">
         <KpiCard index={0} label="Cliques do Google" value={num(r.cliques)} delta={variacao(r.cliques ?? 0, r.cliques_ant ?? 0)} accent="positive" />
         <KpiCard index={1} label="Impressões" value={num(r.impressoes)} delta={variacao(r.impressoes ?? 0, r.impressoes_ant ?? 0)} />
         <KpiCard index={2} label="CTR" value={fmtPct(ctr)} delta="cliques ÷ impressões" />
@@ -431,7 +431,7 @@ function AbaOrigens({ dias }: { dias: number }) {
 
   return (
     <>
-      <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+      <div className="faixa-numeros">
         <KpiCard index={0} label="Visitas no site" value={num(r.visitas_site)} delta={`${num(r.visitantes_site)} pessoas`} />
         <KpiCard index={1} label="Cliques para o diagnóstico" value={num(r.cliques_diagnostico)} delta={fmtPct(pct(r.cliques_diagnostico, r.visitas_site)) + " das visitas do site"} />
         <KpiCard index={2} label="Cliques no WhatsApp" value={num(r.cliques_whatsapp)} delta="a partir do site" />
@@ -538,7 +538,7 @@ function AbaIA() {
         </Button>
       </div>
 
-      <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-4">
+      <div className="faixa-numeros">
         <KpiCard index={0} label="Citada agora" value={`${citadasAgora} de ${ativas.length}`} delta="perguntas na última checagem" accent="positive" />
         <KpiCard index={1} label="Taxa de citação" value={fmtPct(pct(r.citacoes, r.checagens))} delta="últimas 8 semanas" />
         <KpiCard index={2} label="Checagens" value={num(r.checagens)} delta="últimas 8 semanas" />

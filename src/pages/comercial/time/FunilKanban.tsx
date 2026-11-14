@@ -138,7 +138,7 @@ export function Quadro<K extends string>({
                             {it.nota}
                           </span>
                         )}
-                        {it.etiqueta && <span className="rounded-[6px] bg-primary-tint px-1.5 py-0.5 text-[12px] text-[#d9cbff]">{it.etiqueta}</span>}
+                        {it.etiqueta && <span className="rounded-[6px] bg-primary-tint px-1.5 py-0.5 text-[12px] text-primary">{it.etiqueta}</span>}
                       </div>
                     )}
                     {it.valor != null && it.valor > 0 && (

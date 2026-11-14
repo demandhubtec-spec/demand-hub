@@ -299,6 +299,14 @@ const COR: Record<Coluna, string> = {
   aprovado: "border-l-positive",
   descartado: "border-l-negative",
 };
+const PONTO: Record<Coluna, string> = {
+  fila: "bg-muted/50",
+  fazendo: "bg-primary-bright",
+  ajuste: "bg-attention",
+  pendente: "bg-primary",
+  aprovado: "bg-positive",
+  descartado: "bg-negative",
+};
 const DICA: Record<Coluna, string> = {
   fila: "esperando a vez",
   fazendo: `${POR_RODADA} a cada ${MINUTOS_POR_RODADA} min`,
@@ -329,25 +337,28 @@ function QuadroEtapa({ etapa, quadro, visao, onVisao }: { etapa: "rita" | "duda"
       <div className="mb-3 h-1.5 overflow-hidden rounded-full bg-surface-2">
         <div className="h-full rounded-full bg-primary-bright transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+      {/* Etapa 3 do visual: as 6 situações viraram abas com o número; a dica da aba aberta fica embaixo */}
+      <div className="flex flex-wrap gap-x-5 gap-y-1 border-b border-border">
         {COLUNAS.map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => onVisao(c)}
             className={cn(
-              "rounded-[12px] border border-border border-l-4 bg-surface p-2.5 text-left transition hover:bg-surface-2",
-              COR[c],
-              visao === c && "ring-2 ring-primary-bright",
+              "relative top-px inline-flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-2.5 text-[14px]",
+              visao === c ? "border-primary font-semibold text-ink" : "border-transparent font-medium text-muted hover:text-ink",
             )}
           >
-            <div className="text-[12px] text-muted">{ROTULO[etapa][c]}</div>
-            <div className="brand-num text-[20px] leading-tight">{quadro.cols[c].length}</div>
-            <div className="text-[12px] text-muted">
-              {c === "fila" && etapa === "duda" && quadro.esperandoLogo ? `${quadro.esperandoLogo} esperando a logo` : DICA[c]}
-            </div>
+            <span className={cn("h-2 w-2 rounded-full", PONTO[c])} />
+            {ROTULO[etapa][c]}
+            <span className={cn("tabular-nums text-[12px]", c === "pendente" && quadro.cols[c].length ? "rounded-full bg-primary px-1.5 font-semibold text-white" : "text-muted")}>
+              {quadro.cols[c].length}
+            </span>
           </button>
         ))}
+      </div>
+      <div className="mt-2 text-[13px] text-muted first-letter:uppercase">
+        {visao === "fila" && etapa === "duda" && quadro.esperandoLogo ? `${quadro.esperandoLogo} esperando a logo` : DICA[visao]}
       </div>
     </div>
   );

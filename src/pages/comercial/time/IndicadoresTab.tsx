@@ -259,7 +259,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
           )}
         </Card>
         <Card className="border-negative/45 bg-[linear-gradient(160deg,rgba(255,107,129,.12),transparent_60%)] p-5">
-          <Rotulo className="text-[#ffb3c0]">Onde olhar primeiro</Rotulo>
+          <Rotulo className="text-negative">Onde olhar primeiro</Rotulo>
           <div className="mt-3 space-y-3 text-[14px] leading-snug">
             {gargalos.slice(0, 2).map(({ f, l }, i) => (
               <div key={f.canal.key} className="flex gap-2.5">

@@ -966,5 +966,30 @@ funil();montarFlow();pintarFila();pintarAgenda();pintarCanal();carregar();setInt
   new MutationObserver(posicionar).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});posicionar();
 })();
 </script>
+<script id="sem-caixa-alta">
+/* Base visual (14/11/2026): textos escritos todo em MAIÚSCULA viram frase normal ("Operação ao vivo"), mantendo siglas e nomes */
+(function(){
+  var SIGLAS={LGPD:1,PDF:1,CNPJ:1,SEO:1,IA:1,CRM:1,SDR:1,BDR:1,LDR:1,KPI:1,URL:1,CPF:1,ROI:1,CTA:1,US:1};
+  var NOMES={kelvin:'Kelvin',vera:'Vera',nina:'Nina',gabi:'Gabi',ana:'Ana',leo:'Léo','léo':'Léo',rita:'Rita',bia:'Bia',duda:'Duda',rui:'Rui',caio:'Caio',marina:'Marina',davi:'Davi',teo:'Téo','téo':'Téo',lara:'Lara',whatsapp:'WhatsApp',instagram:'Instagram',google:'Google',direct:'Direct',demandia:'DemandIA'};
+  function trecho(t){
+    if(!/[A-ZÁÉÍÓÚÂÊÔÃÕÇ]{3}/.test(t)||/[a-záéíóúâêôãõç]/.test(t)) return t;
+    var lim=t.toLowerCase().replace(/[a-záéíóúâêôãõçà]+/g,function(w){return SIGLAS[w.toUpperCase()]?w.toUpperCase():(NOMES[w]||w);});
+    return lim.replace(/^([^A-Za-zÁ-ú0-9]*)([a-záéíóúâêôãõçà])/,function(_,a,c){return a+c.toUpperCase();});
+  }
+  function arruma(t){return t.split(/( · |\s\/\s)/).map(trecho).join('');}
+  function varre(raiz){
+    var w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,null),n;
+    while((n=w.nextNode())){var p=n.parentNode&&n.parentNode.nodeName;if(p==='SCRIPT'||p==='STYLE')continue;var v=n.nodeValue,x=arruma(v);if(x!==v)n.nodeValue=x;}
+  }
+  function iniciar(){
+    varre(document.body);
+    new MutationObserver(function(ms){ms.forEach(function(m){
+      if(m.type==='characterData'){var v=m.target.nodeValue,x=arruma(v);if(x!==v)m.target.nodeValue=x;}
+      else m.addedNodes.forEach(function(nd){if(nd.nodeType===3){var v=nd.nodeValue,x=arruma(v);if(x!==v)nd.nodeValue=x;}else if(nd.nodeType===1)varre(nd);});
+    });}).observe(document.body,{childList:true,subtree:true,characterData:true});
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();
+})();
+</script>
 </body>
 </html>

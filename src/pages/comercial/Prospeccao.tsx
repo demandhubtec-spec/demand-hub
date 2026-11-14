@@ -1,3 +1,4 @@
+import { FaixaNumeros } from "@/components/shared/FaixaNumeros";
 import * as React from "react";
 import { Navigate } from "react-router-dom";
 import { KpiCard } from "@/components/shared/KpiCard";
@@ -87,19 +88,21 @@ export function NumerosEnvio() {
   const aprovadas = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "aprovada").length;
   const emCadencia = leads.filter((l) => l.cadencia === "ativa").length;
   return (
-    <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-4">
-      <KpiCard label="Em cadência" value={String(emCadencia)} delta={`${aprovadas} aprovados na fila`} index={0} />
-      <KpiCard label="Enviados hoje" value={`${r?.wa_hoje ?? 0} / ${cfg?.wa_daily_cap ?? "-"}`} index={1} />
-      <KpiCard label="Opt-out" value={String(r?.optout ?? "-")} accent="attention" index={2} />
-      <KpiCard label="Erros / sem WhatsApp" value={String(r?.wa_erros ?? "-")} accent="attention" index={3} />
-      <KpiCard label="E-mails enviados" value={String(r?.emails_enviados ?? "-")} index={4} />
-      <KpiCard
-        label="Gasto Apify no mês"
-        value={`US$ ${Number(orc?.gasto_usd ?? 0).toFixed(2)}`}
-        delta={`teto US$ ${orc?.teto_usd ?? 4}`}
-        deltaClass={Number(orc?.gasto_usd ?? 0) >= Number(orc?.teto_usd ?? 4) ? "warn" : "up"}
-        index={5}
-      />
-    </div>
+    <FaixaNumeros
+      itens={[
+        { rotulo: "Enviados hoje", valor: `${r?.wa_hoje ?? 0} / ${cfg?.wa_daily_cap ?? "-"}` },
+        { rotulo: "Aprovados na fila", valor: aprovadas },
+        { rotulo: "Em cadência", valor: emCadencia },
+        { rotulo: "E-mails enviados", valor: r?.emails_enviados ?? "-" },
+        { rotulo: "Pediram para sair", valor: r?.optout ?? "-", tom: "atencao" },
+        { rotulo: "Erros ou sem WhatsApp", valor: r?.wa_erros ?? "-", tom: "atencao" },
+        {
+          rotulo: "Apify no mês",
+          valor: `US$ ${Number(orc?.gasto_usd ?? 0).toFixed(2)}`,
+          sub: `teto US$ ${orc?.teto_usd ?? 4}`,
+          tom: Number(orc?.gasto_usd ?? 0) >= Number(orc?.teto_usd ?? 4) ? "atencao" : undefined,
+        },
+      ]}
+    />
   );
 }

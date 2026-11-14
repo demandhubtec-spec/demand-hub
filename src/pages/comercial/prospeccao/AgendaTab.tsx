@@ -1,3 +1,4 @@
+import { FaixaNumeros } from "@/components/shared/FaixaNumeros";
 import * as React from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, ChevronRight, Mail, MessageCircle, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -284,19 +285,15 @@ export function AgendaTab() {
         </label>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {[
-          { label: "Envios no período", n: filtrados.length },
-          { label: "Primeiros contatos", n: n1 },
-          { label: "Follow-ups no WhatsApp", n: nFollowWa },
-          { label: "E-mails", n: nEmail },
-        ].map((k) => (
-          <Card key={k.label} className="p-3.5 px-4">
-            <div className="text-[12px] text-muted">{k.label}</div>
-            <div className="font-display text-[20px] font-bold">{k.n}</div>
-          </Card>
-        ))}
-      </div>
+      <FaixaNumeros
+        className="mb-0"
+        itens={[
+          { rotulo: "Envios no período", valor: filtrados.length },
+          { rotulo: "Primeiros contatos", valor: n1 },
+          { rotulo: "Follow-ups no WhatsApp", valor: nFollowWa },
+          { rotulo: "E-mails", valor: nEmail },
+        ]}
+      />
 
       <div className="space-y-1 text-[12px] text-muted">
         <div>

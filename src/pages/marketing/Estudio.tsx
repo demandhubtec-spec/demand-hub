@@ -1,5 +1,6 @@
 import * as React from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useSearchParams } from "react-router-dom";
+import { Segmented } from "@/components/ui/segmented";
 import { Check, ChevronLeft, ChevronRight, Copy as CopyIcon, Download, LayoutGrid, List, Pencil, Play, Trash2, Upload, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { chamarSdr } from "@/hooks/useProspeccao";
@@ -57,17 +58,24 @@ export default function Estudio() {
     // O chat da Central conversa com os agentes de verdade pelo servidor da Ana
     w.__demandChamarSdr = chamarSdr;
   }, []);
+  // Etapa 3 do visual (14/11/2026): a aba fica no endereço (?aba=...) e Materiais e Manual de marca ficam juntos
+  const [params, setParams] = useSearchParams();
+  const ABAS = ["central", "aprovar", "calendario", "materiais", "marca", "radar", "config"] as const;
+  type Aba = (typeof ABAS)[number];
+  const bruta = params.get("aba") as Aba | null;
+  const aba: Aba = bruta && (ABAS as readonly string[]).includes(bruta) ? bruta : "central";
+  const principal = aba === "marca" ? "materiais" : aba;
+  const ir = (a: string) => setParams({ aba: a }, { replace: true });
   if (isColaborador) return <Navigate to="/" replace />;
   return (
-    <Tabs defaultValue="central">
+    <Tabs value={principal} onValueChange={ir}>
       <TabsList>
         <TabsTrigger value="central">Central do time</TabsTrigger>
         <TabsTrigger value="aprovar">Aprovações</TabsTrigger>
         <TabsTrigger value="calendario">Calendário</TabsTrigger>
-        <TabsTrigger value="materiais">Materiais</TabsTrigger>
-        <TabsTrigger value="marca">Manual de marca</TabsTrigger>
+        <TabsTrigger value="materiais">Materiais e marca</TabsTrigger>
         <TabsTrigger value="radar">Radar</TabsTrigger>
-        <TabsTrigger value="config">Configurações</TabsTrigger>
+        <TabsTrigger value="config">Ajustes</TabsTrigger>
       </TabsList>
       <TabsContent value="central">
         <iframe
@@ -84,10 +92,15 @@ export default function Estudio() {
         <Calendario />
       </TabsContent>
       <TabsContent value="materiais">
-        <Materiais />
-      </TabsContent>
-      <TabsContent value="marca">
-        <ManualDeMarca />
+        <Segmented
+          value={aba === "marca" ? "marca" : "materiais"}
+          onChange={ir}
+          opcoes={[
+            { value: "materiais", label: "Materiais" },
+            { value: "marca", label: "Manual de marca" },
+          ]}
+        />
+        {aba === "marca" ? <ManualDeMarca /> : <Materiais />}
       </TabsContent>
       <TabsContent value="radar">
         <Radar />
@@ -106,10 +119,10 @@ const diaBonito = (d: string) => {
 
 function Selo({ status }: { status: Pauta["status"] }) {
   const cor =
-    status === "publicado" ? "bg-emerald-500/15 text-emerald-300"
-    : status === "erro" ? "bg-red-500/15 text-red-300"
-    : status === "revisar_copy" || status === "revisar_arte" || status === "aguardando_video" ? "bg-amber-500/15 text-amber-300"
-    : status === "agendado" ? "bg-sky-500/15 text-sky-300"
+    status === "publicado" ? "bg-positive-tint text-positive"
+    : status === "erro" ? "bg-negative-tint text-negative"
+    : status === "revisar_copy" || status === "revisar_arte" || status === "aguardando_video" ? "bg-attention-tint text-attention"
+    : status === "agendado" ? "bg-primary-tint text-primary"
     : "bg-surface-2 text-muted";
   return <span className={cn("rounded-full px-2 py-[2px] text-[12px] font-semibold", cor)}>{STATUS_TEXTO[status]}</span>;
 }
@@ -153,7 +166,7 @@ function CartaoPauta({ p, onOpen }: { p: Pauta; onOpen: (p: Pauta) => void }) {
       </div>
       <div className="mt-1.5 line-clamp-3 text-[13px] font-semibold leading-snug text-ink">{p.tema}</div>
       {p.palavra_gatilho && <div className="mt-1 text-[12px] text-primary-bright">palavra {p.palavra_gatilho}</div>}
-      {p.erro && <div className="mt-1 line-clamp-2 text-[12px] text-red-300">{p.erro}</div>}
+      {p.erro && <div className="mt-1 line-clamp-2 text-[12px] text-negative">{p.erro}</div>}
     </button>
   );
 }
@@ -170,9 +183,9 @@ function Aprovacoes() {
       <p className="mb-3 text-[13px] text-muted">Cada post anda da esquerda para a direita. As colunas em amarelo esperam você: clique no card para ver e aprovar.</p>
       <div className="flex gap-3 overflow-x-auto pb-3">
         {colunas.map((c) => (
-          <div key={c.chave} className={cn("flex w-[260px] shrink-0 flex-col rounded-xl border bg-surface-2/60 p-2.5", c.voce ? "border-amber-400/40" : "border-border")}>
+          <div key={c.chave} className={cn("flex w-[260px] shrink-0 flex-col rounded-xl border bg-surface-2/60 p-2.5", c.voce ? "border-attention/40" : "border-border")}>
             <div className="mb-2 flex items-center gap-2 px-1">
-              <span className={cn("text-[13px] font-semibold", c.voce ? "text-amber-300" : "text-ink")}>{c.titulo}</span>
+              <span className={cn("text-[13px] font-semibold", c.voce ? "text-attention" : "text-ink")}>{c.titulo}</span>
               <span className="ml-auto rounded-full bg-surface px-2 text-[12px] text-muted">{c.itens.length}</span>
             </div>
             <div className="flex max-h-[calc(100vh-260px)] flex-col gap-2 overflow-y-auto pr-0.5">
@@ -227,7 +240,7 @@ function CartaoAprovacao({ pauta, copy, arte, onDone }: { pauta: Pauta; copy?: P
       </div>
       <h3 className="text-[16px] font-semibold text-ink">{pauta.tema}</h3>
       {pauta.gancho && <p className="text-[13px] text-muted">Gancho: {pauta.gancho}</p>}
-      {pauta.erro && <p className="rounded-[8px] bg-red-500/10 p-2 text-[13px] text-red-300">{pauta.erro}</p>}
+      {pauta.erro && <p className="rounded-[8px] bg-negative-tint p-2 text-[13px] text-negative">{pauta.erro}</p>}
 
       {emArte && arte && <ArteVisual arte={arte} />}
       {emArte && arte && copy && <AjustesPorCriativo pauta={pauta} copy={copy} arte={arte} onDone={onDone} />}
@@ -356,7 +369,7 @@ function AjustesPorCriativo({ pauta, copy, arte, onDone }: { pauta: Pauta; copy:
           const miniatura = reels ? fotos[String(i)] : arte.arquivos[i];
           const prompt = v.prompt || `Foto realista, estilo editorial, que mostre: ${(it.titulo ?? "").replace(/\*/g, "")}. ${(it.texto ?? "").replace(/\*/g, "")}`.trim();
           return (
-            <div key={i} className={cn("flex gap-3 rounded-[8px] border p-2.5", v.pedido.trim() || v.modo !== "manter" ? "border-amber-400/50" : "border-border")}>
+            <div key={i} className={cn("flex gap-3 rounded-[8px] border p-2.5", v.pedido.trim() || v.modo !== "manter" ? "border-attention/40" : "border-border")}>
               {miniatura ? (
                 <a href={miniatura} target="_blank" rel="noreferrer" className="shrink-0">
                   <img src={miniatura} alt={`${nome} ${i + 1}`} className="h-[150px] w-auto rounded-[8px] border border-border" loading="lazy" />
@@ -462,12 +475,12 @@ function CopyTexto({ copy, formato, aberto }: { copy: Peca; formato: Pauta["form
 /* ───────────── Calendário ───────────── */
 
 const COR_STATUS: Partial<Record<Pauta["status"], string>> = {
-  revisar_copy: "border-amber-400/50 bg-amber-500/10",
-  revisar_arte: "border-amber-400/50 bg-amber-500/10",
-  aguardando_video: "border-amber-400/50 bg-amber-500/10",
-  agendado: "border-sky-400/40 bg-sky-500/10",
-  publicado: "border-emerald-400/40 bg-emerald-500/10",
-  erro: "border-red-400/50 bg-red-500/10",
+  revisar_copy: "border-attention/40 bg-attention-tint",
+  revisar_arte: "border-attention/40 bg-attention-tint",
+  aguardando_video: "border-attention/40 bg-attention-tint",
+  agendado: "border-primary/40 bg-primary-tint",
+  publicado: "border-positive/40 bg-positive-tint",
+  erro: "border-negative/40 bg-negative-tint",
 };
 
 function Calendario() {
@@ -696,7 +709,7 @@ function ComoFuncionaRadar() {
         <li>O Téo usa esses 10 como inspiração de formato e gancho no plano dos próximos posts (nunca copia o texto).</li>
       </ol>
       {semPermissao > 0 && (
-        <p className="rounded-[8px] bg-amber-500/10 p-2 text-amber-200">
+        <p className="rounded-[8px] bg-attention-tint p-2 text-attention">
           Parado agora: a Meta não está deixando ler os perfis ({semPermissao} de {ativas.length}). Falta a permissão instagram_manage_insights no acesso do app DemandIA Direct. Assim que liberar, o Radar volta sozinho no próximo ciclo.
         </p>
       )}
@@ -904,16 +917,16 @@ function Kairogen() {
           <p className="text-[13px] text-muted">Gera as fotos das peças nos modelos do Kairogen (Nano Banana, GPT Image, Seedream, Flux), direto do portal. Os créditos saem da sua conta lá.</p>
         </div>
         {isLoading ? null : info?.conectado ? (
-          <span className="rounded-full bg-emerald-500/15 px-3 py-1 text-[12px] text-emerald-300">Conectado</span>
+          <span className="rounded-full bg-positive-tint px-3 py-1 text-[12px] text-positive">Conectado</span>
         ) : (
           <Button size="sm" disabled={ocupado || !!codigo} onClick={() => passo("conectar")}>
             Conectar Kairogen
           </Button>
         )}
       </div>
-      {info?.erro ? <p className="rounded-[8px] bg-red-500/10 p-2 text-[13px] text-red-300">{info.erro}</p> : null}
+      {info?.erro ? <p className="rounded-[8px] bg-negative-tint p-2 text-[13px] text-negative">{info.erro}</p> : null}
       {codigo && (
-        <div className="rounded-[8px] border border-amber-400/40 p-3 text-[13px] text-ink">
+        <div className="rounded-[8px] border border-attention/40 p-3 text-[13px] text-ink">
           Abri o Kairogen numa aba nova. Confira se o código lá é <span className="font-mono text-[16px] font-semibold">{codigo.codigo}</span> e clique em autorizar.
           <div className="mt-1 text-[12px] text-muted">
             Não abriu?{" "}
@@ -1053,7 +1066,7 @@ function Fontes() {
           </a>
           <span className="text-muted">{f.nome ?? ""}</span>
           <span className="text-muted">{f.seguidores ? `${f.seguidores.toLocaleString("pt-BR")} seguidores` : f.verificado_em ? "" : "ainda não lido"}</span>
-          {f.erro && <span className="text-red-300">{f.erro}</span>}
+          {f.erro && <span className="text-negative">{f.erro}</span>}
           <Button size="icon" variant="ghost" className="ml-auto" title="Remover" onClick={() => remover.mutate(f.id, { onError: (e) => showToast((e as Error).message) })}>
             <Trash2 />
           </Button>
