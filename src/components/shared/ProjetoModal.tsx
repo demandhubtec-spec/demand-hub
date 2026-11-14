@@ -49,7 +49,7 @@ function comAtual<T extends string>(base: { value: T; label: string }[], atual: 
   return [...base, { value: atual, label: extras[atual] ?? atual }];
 }
 
-const ERRO = "Não foi possível salvar — verifique a conexão com o Supabase";
+const ERRO = "Não foi possível salvar: verifique a conexão com o Supabase";
 
 function formatarData(iso: string | null) {
   if (!iso) return "";
@@ -69,7 +69,7 @@ function formatarHora(iso: string) {
 
 function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("mb-2.5 text-xs font-bold uppercase tracking-[.04em] text-muted", className)}>{children}</div>
+    <div className={cn("mb-2.5 text-xs font-bold tracking-[.04em] text-muted", className)}>{children}</div>
   );
 }
 
@@ -91,7 +91,7 @@ function BriefingInput({
       placeholder={placeholder}
       onChange={(e) => setTexto(e.target.value)}
       onBlur={() => texto !== (value ?? "") && onSave(texto)}
-      className="w-full resize-y rounded-[7px] border border-border bg-surface-2 px-3 py-2.5 text-[13.5px] leading-normal text-ink focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-primary-bright"
+      className="w-full resize-y rounded-[8px] border border-border bg-surface-2 px-3 py-2.5 text-[14px] leading-normal text-ink focus:outline focus:outline-2 focus:outline-offset-1 focus:outline-primary-bright"
     />
   );
 }
@@ -106,7 +106,7 @@ function TitleInput({ value, onSave }: { value: string; onSave: (v: string) => v
       onChange={(e) => setTexto(e.target.value)}
       onBlur={() => texto.trim() && texto !== value && onSave(texto.trim())}
       onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-      className="mb-0.5 w-full border-none bg-transparent px-0 py-0.5 font-display text-[19px] font-bold text-ink focus:border-b-[1.5px] focus:border-primary-bright focus:outline-none"
+      className="mb-0.5 w-full border-none bg-transparent px-0 py-0.5 font-display text-[20px] font-bold text-ink focus:border-b-[1.5px] focus:border-primary-bright focus:outline-none"
     />
   );
 }
@@ -206,18 +206,18 @@ function Chat({ titulo, alvo, perfis }: { titulo: string; alvo: ChatAlvo; perfis
 
   return (
     <div className="flex min-h-0 flex-col border-border bg-surface-2 max-md:max-h-[300px] max-md:border-t md:border-l">
-      <div className="shrink-0 px-4 pb-2.5 pt-3.5 text-xs font-bold uppercase tracking-[.04em] text-muted">{titulo}</div>
+      <div className="shrink-0 px-4 pb-2.5 pt-3.5 text-xs font-bold tracking-[.04em] text-muted">{titulo}</div>
       <div ref={listaRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3.5">
         {isLoading ? null : mensagens.length === 0 ? (
           <div className="px-2.5 py-5 text-center text-xs text-muted">Nenhuma mensagem ainda. Comece a conversa abaixo.</div>
         ) : (
           mensagens.map((m) => (
-            <div key={m.id} className="rounded-[9px] border border-border bg-surface px-[11px] py-[9px] text-[12.5px] leading-[1.45]">
+            <div key={m.id} className="rounded-[8px] border border-border bg-surface px-[11px] py-[9px] text-[13px] leading-[1.45]">
               <div className="mb-[3px] flex justify-between gap-2">
-                <span className="text-[11.5px] font-bold text-primary-bright">
+                <span className="text-[12px] font-bold text-primary-bright">
                   {(m.autor_id && nomePorId.get(m.autor_id)) || "Usuário"}
                 </span>
-                <span className="whitespace-nowrap font-mono text-[10px] text-muted">{formatarHora(m.criado_em)}</span>
+                <span className="whitespace-nowrap font-mono text-[12px] text-muted">{formatarHora(m.criado_em)}</span>
               </div>
               <div className="whitespace-pre-wrap break-words">{m.texto}</div>
             </div>
@@ -235,14 +235,14 @@ function Chat({ titulo, alvo, perfis }: { titulo: string; alvo: ChatAlvo; perfis
             }
           }}
           placeholder="Escrever uma mensagem..."
-          className="max-h-[90px] min-h-[38px] flex-1 resize-none rounded-[7px] border border-border bg-surface px-2.5 py-2 text-[12.5px] text-ink focus:outline focus:outline-[1.5px] focus:outline-primary-bright"
+          className="max-h-[90px] min-h-[38px] flex-1 resize-none rounded-[8px] border border-border bg-surface px-2.5 py-2 text-[13px] text-ink focus:outline focus:outline-[1.5px] focus:outline-primary-bright"
         />
         <button
           type="button"
           onClick={handleEnviar}
           disabled={enviar.isPending || !texto.trim()}
           aria-label="Enviar mensagem"
-          className="flex w-[38px] shrink-0 items-center justify-center rounded-[7px] bg-primary text-white hover:brightness-110 disabled:opacity-50"
+          className="flex w-[38px] shrink-0 items-center justify-center rounded-[8px] bg-primary text-white hover:brightness-110 disabled:opacity-50"
         >
           <Send className="h-4 w-4" />
         </button>
@@ -271,7 +271,7 @@ function Anexos({ projetoId }: { projetoId: string }) {
       await upload.mutateAsync({ projetoId, files: Array.from(files), autorId: session.user.id });
       showToast(files.length > 1 ? `${files.length} anexos adicionados` : "Anexo adicionado");
     } catch {
-      showToast("Não foi possível enviar o arquivo — verifique a conexão com o Supabase");
+      showToast("Não foi possível enviar o arquivo: verifique a conexão com o Supabase");
     }
   }
 
@@ -320,7 +320,7 @@ function Anexos({ projetoId }: { projetoId: string }) {
       )}
       <label
         className={cn(
-          "inline-flex cursor-pointer items-center gap-1.5 rounded-[7px] border border-dashed border-primary-bright px-[13px] py-2 text-[12.5px] font-semibold text-primary-bright hover:bg-primary-tint",
+          "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-dashed border-primary-bright px-[13px] py-2 text-[13px] font-semibold text-primary-bright hover:bg-primary-tint",
           upload.isPending && "pointer-events-none opacity-60",
         )}
       >
@@ -350,7 +350,7 @@ function AtividadeRow({ a, onClick }: { a: AtividadeView; onClick: () => void })
       <StatusBadge status={a.status} />
       <span className="min-w-0 flex-1 truncate text-[13px] font-medium">{a.titulo}</span>
       {estaAtrasada(a.prazo, a.status) && <AtrasadaBadge />}
-      <span className="whitespace-nowrap text-[11px] text-muted">
+      <span className="whitespace-nowrap text-[12px] text-muted">
         {a.responsavelNome || "Sem responsável"}
         {a.prazo ? ` · ${formatarData(a.prazo)}` : ""}
       </span>
@@ -407,14 +407,14 @@ function Header({ voltarLabel, onVoltar }: { voltarLabel: string; onVoltar: () =
       <button
         type="button"
         onClick={onVoltar}
-        className="inline-flex items-center gap-1 py-1 text-[12.5px] font-semibold text-muted hover:text-primary-bright"
+        className="inline-flex items-center gap-1 py-1 text-[13px] font-semibold text-muted hover:text-primary-bright"
       >
         <ArrowLeft className="h-3.5 w-3.5" />
         {voltarLabel}
       </button>
       <DialogPrimitive.Close
         aria-label="Fechar"
-        className="flex h-[30px] w-[30px] items-center justify-center rounded-[7px] text-muted hover:bg-surface-2 hover:text-ink"
+        className="flex h-[30px] w-[30px] items-center justify-center rounded-[8px] text-muted hover:bg-surface-2 hover:text-ink"
       >
         <X className="h-[17px] w-[17px]" />
       </DialogPrimitive.Close>
@@ -471,7 +471,7 @@ function TelaProjeto({
       <Header voltarLabel={p.empresa !== "—" ? p.empresa : "Projetos"} onVoltar={onFechar} />
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_320px] md:grid-rows-1">
         <div className="min-w-0 overflow-y-auto px-[22px] py-5">
-          <div className="mb-2 font-mono text-[11px] text-muted">
+          <div className="mb-2 font-mono text-[12px] text-muted">
             {p.empresa !== "—" ? p.empresa : "Projeto interno"}
             {p.entregaNumero ? ` · Entrega ${String(p.entregaNumero).padStart(2, "0")}` : ""}
           </div>
@@ -542,14 +542,14 @@ function TelaProjeto({
                 type="button"
                 onClick={novaAtividade}
                 disabled={createAtividade.isPending}
-                className="inline-flex items-center gap-1.5 rounded-[7px] border border-border px-3 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-surface-2 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-[8px] border border-border px-3 py-1.5 text-[13px] font-semibold text-ink hover:bg-surface-2 disabled:opacity-60"
               >
                 <Plus className="h-[13px] w-[13px]" />
                 Atividade
               </button>
             </div>
             {atividades.length === 0 ? (
-              <div className="mb-2 rounded-lg border border-dashed border-border py-3.5 text-center text-[12.5px] text-muted">
+              <div className="mb-2 rounded-lg border border-dashed border-border py-3.5 text-center text-[13px] text-muted">
                 Nenhuma atividade criada ainda.
               </div>
             ) : (
@@ -606,8 +606,8 @@ function TelaAtividade({
       <Header voltarLabel={p.nome} onVoltar={onVoltar} />
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_320px] md:grid-rows-1">
         <div className="min-w-0 overflow-y-auto px-[22px] py-5">
-          <div className="mb-2 font-mono text-[11px] text-muted">
-            Atividade de {p.empresa !== "—" ? `${p.empresa} — ` : ""}
+          <div className="mb-2 font-mono text-[12px] text-muted">
+            Atividade de {p.empresa !== "—" ? `${p.empresa} · ` : ""}
             {p.nome}
           </div>
           <DialogPrimitive.Title asChild>

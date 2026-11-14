@@ -48,9 +48,9 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
                       >
                         {fmtPct(l.conversao)}
                       </b>
-                      {l.meta != null && <span className="text-[10.5px] text-muted">meta {l.meta}%</span>}
+                      {l.meta != null && <span className="text-[12px] text-muted">meta {l.meta}%</span>}
                       {l.estado === "gargalo" && (
-                        <span className="rounded-[5px] bg-negative-tint px-1.5 py-0.5 text-[9.5px] uppercase tracking-wider text-negative">gargalo</span>
+                        <span className="rounded-[6px] bg-negative-tint px-1.5 py-0.5 text-[12px] text-negative">gargalo</span>
                       )}
                     </>
                   )}

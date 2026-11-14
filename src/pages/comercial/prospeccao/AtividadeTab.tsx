@@ -34,9 +34,9 @@ export function AtividadeTab() {
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="p-5 px-[22px]">
         <div className="text-sm font-semibold">Atividade</div>
-        <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Últimos 50 eventos · atualiza sozinho</div>
-        {isLoading ? <div className="text-[12.5px] text-muted">Carregando…</div> : log.length === 0 ? (
-          <div className="text-[12.5px] text-muted">Nada registrado ainda.</div>
+        <div className="mb-3 mt-0.5 text-[12px] text-muted">Últimos 50 eventos · atualiza sozinho</div>
+        {isLoading ? <div className="text-[13px] text-muted">Carregando…</div> : log.length === 0 ? (
+          <div className="text-[13px] text-muted">Nada registrado ainda.</div>
         ) : (
           <ul className="space-y-2.5">
             {log.map((e) => {
@@ -47,14 +47,14 @@ export function AtividadeTab() {
               return (
                 <li key={e.id} className="flex gap-3">
                   <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${ic.cls}`} />
-                  <div className="min-w-0 flex-1 text-[12.5px]">
+                  <div className="min-w-0 flex-1 text-[13px]">
                     <div>
                       <b className="font-semibold">{ic.label}</b>
                       {e.place_id && nome.get(e.place_id) && <> · {nome.get(e.place_id)}</>}
                     </div>
                     {det && <div className="truncate text-muted" title={det}>{det}</div>}
                   </div>
-                  <span className="shrink-0 font-mono text-[11px] text-muted">{fmtData(e.created_at)}</span>
+                  <span className="shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
                 </li>
               );
             })}

@@ -210,17 +210,17 @@ export function AutomaticoTab() {
           <div>
             <Label>Primeiros contatos por dia (seg a sex)</Label>
             <Input type="number" min={5} max={60} value={meta} onChange={(e) => setMeta(Number(e.target.value))} />
-            <div className="mt-1 text-[11.5px] text-muted">
+            <div className="mt-1 text-[12px] text-muted">
               Meta da semana: {meta * 5}. Com os follow-ups, dá uns {conversasFrias} chats frios por dia no WhatsApp.
             </div>
             {conversasFrias > 160 && (
-              <div className="mt-1 text-[11.5px] font-semibold text-attention">Acima de 160 chats frios por dia o risco de bloqueio sobe. Considere um segundo número.</div>
+              <div className="mt-1 text-[12px] font-semibold text-attention">Acima de 160 chats frios por dia o risco de bloqueio sobe. Considere um segundo número.</div>
             )}
           </div>
           <div>
             <Label>Empresas por busca no Google Maps</Label>
             <Input type="number" min={10} max={60} value={porBusca} onChange={(e) => setPorBusca(Number(e.target.value))} />
-            <div className="mt-1 text-[11.5px] text-muted">Cerca de US$ {(porBusca * 0.0045).toFixed(2)} por busca.</div>
+            <div className="mt-1 text-[12px] text-muted">Cerca de US$ {(porBusca * 0.0045).toFixed(2)} por busca.</div>
           </div>
         </div>
 
@@ -245,7 +245,7 @@ export function AutomaticoTab() {
               placeholder={municipios.length ? `Digite o nome (${municipios.length} cidades em ${uf})` : "Carregando cidades..."}
             />
             {sugestoes.length > 0 && (
-              <div className="absolute z-10 mt-1 w-full rounded-[7px] border border-border bg-surface shadow-md">
+              <div className="absolute z-10 mt-1 w-full rounded-[8px] border border-border bg-surface shadow-md">
                 {sugestoes.map((m) => (
                   <button key={m} onClick={() => addCidade(m)} className="block w-full px-3 py-1.5 text-left text-[13px] hover:bg-surface-2">
                     {m}
@@ -280,15 +280,15 @@ export function AutomaticoTab() {
         <div className="mt-4">
           <Label>Público-alvo</Label>
           <Textarea rows={2} value={publico} onChange={(e) => setPublico(e.target.value)} placeholder="Ex.: clínicas e escritórios que atendem particular e querem mais clientes da própria cidade" />
-          <div className="mt-1 text-[11.5px] text-muted">A Ana usa isso para escolher exemplos e dores nas mensagens.</div>
+          <div className="mt-1 text-[12px] text-muted">A Ana usa isso para escolher exemplos e dores nas mensagens.</div>
         </div>
 
         <div className="mt-4">
           <Label>Nichos e termos de busca (um nicho por linha)</Label>
           <Textarea rows={8} value={nichos} onChange={(e) => setNichos(e.target.value)} placeholder="Odontologia: dentista, clínica odontológica" />
-          <div className="mt-1 text-[11.5px] text-muted">Cada termo é buscado em cada cidade, em rodízio: a cada semana entram as próximas combinações.</div>
+          <div className="mt-1 text-[12px] text-muted">Cada termo é buscado em cada cidade, em rodízio: a cada semana entram as próximas combinações.</div>
           <div className="mt-2 flex flex-wrap gap-1.5">
-            <span className="self-center text-[11.5px] font-semibold text-muted">Fim de ano:</span>
+            <span className="self-center text-[12px] font-semibold text-muted">Fim de ano:</span>
             {SAZONAIS.map((s) => (
               <button key={s.nicho} onClick={() => addSazonal(s)} className="inline-flex items-center gap-1 rounded-full border border-border px-2.5 py-1 text-[12px] hover:bg-surface-2">
                 <Plus className="h-3 w-3" /> {s.nicho}
@@ -321,7 +321,7 @@ export function AutomaticoTab() {
               <Input type="number" min={0} value={filtros.avaliacoes_max ?? 0} onChange={(e) => setFiltro("avaliacoes_max", Number(e.target.value))} />
             </div>
           </div>
-          <div className="mt-1 text-[11.5px] text-muted">
+          <div className="mt-1 text-[12px] text-muted">
             0 = sem filtro. Só entra quem tem celular com WhatsApp. Toda empresa que entra passa pela análise do perfil no Google, do site e do Instagram antes da Ana escrever.
             Filtros mais fechados pedem mais buscas por semana (e gastam mais do teto).
           </div>
@@ -333,12 +333,12 @@ export function AutomaticoTab() {
       </Card>
 
       <Card className="p-4">
-        <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Histórico</div>
-        {historico.length === 0 && coletas.length === 0 && <div className="text-[12.5px] text-muted">Nada ainda.</div>}
-        <ul className="space-y-1.5 text-[12.5px]">
+        <div className="mb-2 text-[12px] font-semibold text-muted">Histórico</div>
+        {historico.length === 0 && coletas.length === 0 && <div className="text-[13px] text-muted">Nada ainda.</div>}
+        <ul className="space-y-1.5 text-[13px]">
           {historico.map((e) => (
             <li key={e.id} className="flex gap-2">
-              <span className="w-[82px] shrink-0 font-mono text-[11px] text-muted">{fmtData(e.created_at)}</span>
+              <span className="w-[82px] shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
               <span className={e.event === "error" ? "text-attention" : ""}>{typeof e.detail === "object" && e.detail ? String((e.detail as { msg?: string }).msg ?? "") : ""}</span>
             </li>
           ))}
@@ -356,9 +356,9 @@ export function AutomaticoTab() {
 function Indicador({ titulo, valor, nota }: { titulo: string; valor: string; nota?: string }) {
   return (
     <div className="rounded-xl border border-border p-3">
-      <div className="text-[11px] font-semibold uppercase tracking-wide text-muted">{titulo}</div>
+      <div className="text-[12px] font-semibold text-muted">{titulo}</div>
       <div className="mt-1 text-[18px] font-semibold">{valor}</div>
-      {nota && <div className="text-[11.5px] text-muted">{nota}</div>}
+      {nota && <div className="text-[12px] text-muted">{nota}</div>}
     </div>
   );
 }

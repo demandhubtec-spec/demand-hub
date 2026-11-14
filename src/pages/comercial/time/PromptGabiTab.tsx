@@ -152,7 +152,7 @@ export function PromptGabiTab() {
                 value={s.texto}
                 onChange={(e) => mudar(i, "texto", e.target.value)}
                 rows={Math.min(22, Math.max(5, s.texto.split("\n").length + 1))}
-                className="font-mono text-[12.5px] leading-relaxed"
+                className="font-mono text-[13px] leading-relaxed"
                 placeholder="Escreva as regras desta parte, uma por linha."
               />
             </Card>
@@ -164,7 +164,7 @@ export function PromptGabiTab() {
 
         <div className="space-y-3.5 lg:sticky lg:top-4">
           <Card className="p-4">
-            <div className="eyebrow mb-2 text-[10.5px] text-primary-bright">Variáveis</div>
+            <div className="eyebrow mb-2 text-[12px] text-primary-bright">Variáveis</div>
             <div className="mb-2 text-[12px] text-muted">Use no texto e o sistema troca pelos dados de cada empresa.</div>
             <ul className="space-y-1.5">
               {Object.entries(variaveis).map(([k, d]) => (
@@ -183,13 +183,13 @@ export function PromptGabiTab() {
               ))}
             </ul>
             {desconhecidas.length > 0 && (
-              <div className="mt-3 rounded-[10px] border border-attention/40 bg-attention-tint p-2 text-[12px]">
+              <div className="mt-3 rounded-[8px] border border-attention/40 bg-attention-tint p-2 text-[12px]">
                 Variável que o sistema não conhece: {desconhecidas.map((d) => `{{${d}}}`).join(", ")}. Corrija antes de salvar.
               </div>
             )}
           </Card>
           <Card className="p-4 text-[12px] leading-relaxed text-muted">
-            <div className="eyebrow mb-2 text-[10.5px] text-primary-bright">Como funciona</div>
+            <div className="eyebrow mb-2 text-[12px] text-primary-bright">Como funciona</div>
             <p>A Gabi lê as seções nesta ordem, com o título de cada uma. Os dados da empresa, o diagnóstico e o histórico da conversa entram automaticamente depois do texto.</p>
             <p className="mt-2">A seção cujo título fala de follow-up guia as 7 mensagens de retomada. Mantenha a lista numerada de 1 a 7.</p>
             <p className="mt-2">A abertura ("Oi, bom dia! 😊 / Tudo bem?") e a cutucada de 1 hora são fixas no disparo.</p>

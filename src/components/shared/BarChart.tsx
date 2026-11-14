@@ -23,7 +23,7 @@ export function BarChart({ data, formatTooltip }: BarChartProps) {
               }}
               title={formatTooltip ? formatTooltip(d.value) : String(d.value)}
             />
-            <div className="mt-2 font-mono text-[10px] text-muted">{d.label}</div>
+            <div className="mt-2 font-mono text-[12px] text-muted">{d.label}</div>
           </div>
         );
       })}
@@ -44,11 +44,11 @@ export function DualBarChart({ data }: DualBarChartProps) {
         <div key={d.label} className="flex h-full flex-1 flex-col items-center justify-end">
           <div className="flex h-full w-full items-end justify-center gap-[3px]">
             <div
-              className="w-[14px] origin-bottom animate-barGrow rounded-t-[3px] bg-positive"
+              className="w-[14px] origin-bottom animate-barGrow rounded-t-[6px] bg-positive"
               style={{ height: `${Math.max((d.a / max) * 100, 4)}%`, animationDelay: `${0.03 + i * 0.05}s` }}
             />
             <div
-              className="w-[14px] origin-bottom animate-barGrow rounded-t-[3px] bg-negative-tint"
+              className="w-[14px] origin-bottom animate-barGrow rounded-t-[6px] bg-negative-tint"
               style={{
                 height: `${Math.max((d.b / max) * 100, 4)}%`,
                 animationDelay: `${0.03 + i * 0.05}s`,
@@ -56,7 +56,7 @@ export function DualBarChart({ data }: DualBarChartProps) {
               }}
             />
           </div>
-          <div className="mt-2 font-mono text-[10px] text-muted">{d.label}</div>
+          <div className="mt-2 font-mono text-[12px] text-muted">{d.label}</div>
         </div>
       ))}
     </div>

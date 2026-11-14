@@ -51,17 +51,17 @@ export function InboundTab({ abrirConversa }: { abrirConversa: (id: string) => v
         {lista.map((c) => (
           <Card key={c.id} className="flex flex-wrap items-center gap-3 p-3.5">
             <div className="min-w-[200px] flex-1">
-              <div className="text-[13.5px] font-semibold">{c.nomeExibicao}</div>
-              <div className="text-[11.5px] text-muted">
+              <div className="text-[14px] font-semibold">{c.nomeExibicao}</div>
+              <div className="text-[12px] text-muted">
                 {c.nome && c.nome !== c.nomeExibicao ? `${c.nome} · ` : ""}
                 {c.phone} · {ORIGEM_TEXTO[c.origem ?? ""] ?? c.origem ?? "origem não informada"} · desde {fmtData(c.created_at, false)}
               </div>
               {c.necessidade_resumo && <div className="mt-1 text-[12px]">{c.necessidade_resumo}</div>}
             </div>
-            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[11.5px]">{STATUS_ANA[c.status ?? ""] ?? c.status ?? "-"}</span>
-            {c.bant_score != null && <span className="font-mono text-[11.5px] text-muted">BANT {c.bant_score}</span>}
+            <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px]">{STATUS_ANA[c.status ?? ""] ?? c.status ?? "-"}</span>
+            {c.bant_score != null && <span className="font-mono text-[12px] text-muted">BANT {c.bant_score}</span>}
             <select
-              className="rounded-[7px] border border-border bg-surface-2 px-2 py-1.5 text-[12px]"
+              className="rounded-[8px] border border-border bg-surface-2 px-2 py-1.5 text-[12px]"
               value={c.funil_etapa ?? ""}
               onChange={(e) =>
                 etapa.mutate(

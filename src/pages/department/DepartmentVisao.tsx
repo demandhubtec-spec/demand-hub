@@ -45,7 +45,7 @@ export default function DepartmentVisao() {
   return (
     <section>
       <div className="mb-[22px]">
-        <div className="text-[21px] font-semibold">{info.nome} — Visão do departamento</div>
+        <div className="text-[20px] font-semibold">{info.nome} · Visão do departamento</div>
         <div className="mt-1 text-[13px] text-muted">{info.resumo}</div>
       </div>
 
@@ -57,7 +57,7 @@ export default function DepartmentVisao() {
 
       <Card className="p-5 px-[22px]">
         <div className="text-sm font-semibold">Atividades da equipe</div>
-        <div className="mb-[18px] mt-0.5 text-[11.5px] text-muted">O que está em andamento no departamento</div>
+        <div className="mb-[18px] mt-0.5 text-[12px] text-muted">O que está em andamento no departamento</div>
         {atividades.length === 0 ? (
           <EmptyState>Nenhuma atividade cadastrada em {info.nome} ainda.</EmptyState>
         ) : (
@@ -75,7 +75,7 @@ export default function DepartmentVisao() {
                 <tr key={a.id}>
                   <Td wrap>{a.titulo}</Td>
                   <Td>{a.contexto}</Td>
-                  <Td>{a.prazo ?? "—"}</Td>
+                  <Td>{a.prazo ? new Date(a.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "Sem prazo"}</Td>
                   <Td>
                     <StatusBadge status={a.status} />
                   </Td>

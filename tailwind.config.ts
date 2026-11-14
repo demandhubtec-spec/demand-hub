@@ -6,7 +6,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        display: ["'Archivo'", "'Arial Black'", "sans-serif"],
+        // Base visual de 14/11: títulos e números em Geist; Archivo só no logo (font-logo)
+        display: ["'Geist'", "Arial", "sans-serif"],
+        logo: ["'Archivo'", "'Arial Black'", "sans-serif"],
         body: ["'Geist'", "Arial", "sans-serif"],
         mono: ["'Geist Mono'", "ui-monospace", "monospace"],
       },

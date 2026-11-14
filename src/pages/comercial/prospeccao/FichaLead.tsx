@@ -29,7 +29,7 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
         </DialogDescription>
 
         {links.length > 0 && (
-          <div className="-mt-2 mb-4 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px]">
+          <div className="-mt-2 mb-4 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
             {links.map((l) => (
               <a key={l.label} href={l.href ?? undefined} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-primary-bright hover:underline">
                 {l.label} <ExternalLink className="h-3 w-3" />
@@ -40,12 +40,12 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
 
         {lead.reply_text && (
           <div className="mb-4 rounded-md border border-positive/40 bg-positive-tint p-3 text-[13px]">
-            <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-positive">
+            <div className="mb-1 text-[12px] font-semibold text-positive">
               Resposta{lead.respondeu_no_toque ? ` (toque ${lead.respondeu_no_toque})` : ""}
             </div>
             <div className="whitespace-pre-wrap">{lead.reply_text}</div>
             {lead.wa_status === "respondeu" && (
-              <a href="/comercial/sdr" className="mt-2 inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+              <a href="/comercial/sdr" className="mt-2 inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline">
                 Ver a conversa da Ana no SDR IA <ExternalLink className="h-3 w-3" />
               </a>
             )}
@@ -59,16 +59,16 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
         <CardLead lead={lead} abertoInicial />
 
         <div className="mt-5">
-          <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Histórico</div>
-          {log.length === 0 && <div className="text-[12.5px] text-muted">Nada registrado ainda.</div>}
+          <div className="mb-2 text-[12px] font-semibold text-muted">Histórico</div>
+          {log.length === 0 && <div className="text-[13px] text-muted">Nada registrado ainda.</div>}
           <ul className="space-y-2">
             {log.map((e) => {
               const ic = icones[e.event] ?? { icon: CheckCircle2, cls: "text-muted", label: e.event };
               const Icon = ic.icon;
               return (
-                <li key={e.id} className="flex gap-2.5 text-[12.5px]">
+                <li key={e.id} className="flex gap-2.5 text-[13px]">
                   <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${ic.cls}`} />
-                  <span className="w-[82px] shrink-0 font-mono text-[11px] text-muted">{fmtData(e.created_at)}</span>
+                  <span className="w-[82px] shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
                   <span className="min-w-0">
                     <b className="font-semibold">{e.channel === "email" && e.event === "sent" ? "E-mail enviado" : ic.label}</b>{" "}
                     <span className="text-muted">{detalheTexto(e.detail)}</span>

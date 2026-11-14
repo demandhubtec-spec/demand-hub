@@ -130,11 +130,10 @@ export default function Dashboard() {
     <section>
       {/* Cabeçalho do Resumo */}
       <div className="mb-6">
-        <div className="eyebrow mb-2 text-primary-bright">Resumo</div>
-        <h1 className="brand-h text-[clamp(40px,5.6vw,64px)]">
-          {saudacao(now)}, <span className="brand-hl">{primeiroNome}</span>
+        <h1 className="brand-h text-[28px]">
+          {saudacao(now)}, {primeiroNome}
         </h1>
-        <p className="eyebrow mt-3 text-[11px] text-muted">
+        <p className="mt-1.5 text-[14px] text-muted">
           {dataCurta} · o que está com você agora
         </p>
 
@@ -160,7 +159,7 @@ export default function Dashboard() {
       </div>
 
       {/* Indicadores */}
-      <div className="mb-7 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="mb-8 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-5">
         <KpiCard label="Atrasadas" value={String(atrasadas.length)} accent="negative" icon={AlertTriangle} index={0} />
         <KpiCard label="Vencem hoje" value={String(vencemHoje.length)} accent="attention" icon={AlarmClock} index={1} />
         <KpiCard label="Esta semana" value={String(estaSemana.length)} accent="primary" icon={CalendarDays} index={2} />
@@ -178,8 +177,8 @@ export default function Dashboard() {
 
       {/* Principais pendências */}
       <div className="mb-3 flex items-baseline gap-2">
-        <div className="eyebrow text-[11px] text-ink">Principais pendências</div>
-        <div className="text-[11.5px] text-muted">por prioridade e prazo</div>
+        <h2 className="text-[16px] font-semibold">Principais pendências</h2>
+        <div className="text-[13px] text-muted">por prioridade e prazo</div>
       </div>
       {principais.length === 0 ? (
         <EmptyState>
@@ -195,8 +194,8 @@ export default function Dashboard() {
 
       {/* Números da operação */}
       <div className="mb-3 mt-7 flex items-baseline gap-2">
-        <div className="eyebrow text-[11px] text-ink">Operação</div>
-        <div className="text-[11.5px] text-muted">{isColaborador ? "distribuição de projetos" : "faturamento e distribuição de projetos"}</div>
+        <h2 className="text-[16px] font-semibold">Operação</h2>
+        <div className="text-[12px] text-muted">{isColaborador ? "distribuição de projetos" : "faturamento e distribuição de projetos"}</div>
       </div>
       <div className={isColaborador ? "grid grid-cols-1 gap-3.5" : "grid grid-cols-1 gap-3.5 lg:grid-cols-[1.3fr_1fr]"}>
         {!isColaborador && (
@@ -204,13 +203,13 @@ export default function Dashboard() {
           <div className="flex items-start justify-between gap-3">
             <div>
               <div className="text-sm font-semibold">Faturamento · últimos 6 meses</div>
-              <div className="mt-0.5 text-[11.5px] text-muted">Entradas totais por mês</div>
+              <div className="mt-0.5 text-[12px] text-muted">Entradas totais por mês</div>
             </div>
             <div className="text-right">
               <div className="brand-num text-[26px]">
                 R$ {faturamentoMesAtual.toLocaleString("pt-BR")}
               </div>
-              <div className="mt-1 text-[11px] text-muted">neste mês</div>
+              <div className="mt-1 text-[12px] text-muted">neste mês</div>
             </div>
           </div>
           <div className="mt-[18px]">
@@ -220,7 +219,7 @@ export default function Dashboard() {
         )}
         <Card className="p-5 px-[22px]">
           <div className="text-sm font-semibold">Projetos por departamento</div>
-          <div className="mb-[18px] mt-0.5 text-[11.5px] text-muted">{totalProjetos} projetos no total</div>
+          <div className="mb-[18px] mt-0.5 text-[12px] text-muted">{totalProjetos} projetos no total</div>
           {breakdown.length === 0 ? (
             <EmptyState>Nenhum projeto cadastrado ainda.</EmptyState>
           ) : (
@@ -246,9 +245,9 @@ function QuickLink({
   return (
     <Link
       to={to}
-      className="eyebrow inline-flex items-center gap-2 rounded-full border border-border bg-surface/70 px-4 py-[10px] text-[10.5px] text-ink backdrop-blur transition-colors hover:border-primary-bright/60 hover:text-primary-bright"
+      className="inline-flex h-10 items-center gap-2 rounded-[8px] border border-border bg-surface px-4 text-[14px] font-medium text-ink transition-colors hover:bg-surface-2"
     >
-      <Icon className="h-[14px] w-[14px]" />
+      <Icon className="h-4 w-4 text-muted" />
       {children}
     </Link>
   );
@@ -267,23 +266,23 @@ function PendenciaRow({ a, hoje }: { a: AtividadeView; hoje: Date }) {
     <Link
       to={a.departamento ? `/${a.departamento}/atividades` : "/"}
       className={cn(
-        "sheen group relative flex items-center gap-3 overflow-hidden rounded-[14px] border border-border bg-surface py-3 pl-5 pr-4 transition-colors hover:border-primary-bright/40",
+        "sheen group relative flex items-center gap-3 overflow-hidden rounded-[12px] border border-border bg-surface py-3 pl-5 pr-4 transition-colors hover:border-primary-bright/40",
         "before:absolute before:bottom-0 before:left-0 before:top-0 before:w-[3px]",
         bordaPrioridade[a.prioridade],
       )}
     >
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold">{a.titulo}</div>
-        <div className="mt-1 truncate font-mono text-[11px] text-muted">{meta}</div>
+        <div className="mt-1 truncate font-mono text-[12px] text-muted">{meta}</div>
       </div>
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
         {atrasada && (
-          <span className="rounded-md bg-negative-tint px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-wide text-negative">
+          <span className="rounded-md bg-negative-tint px-2 py-[3px] text-[12px] font-semibold text-negative">
             atrasada
           </span>
         )}
         {ehHoje && !atrasada && (
-          <span className="rounded-md bg-attention-tint px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-wide text-attention">
+          <span className="rounded-md bg-attention-tint px-2 py-[3px] text-[12px] font-semibold text-attention">
             hoje
           </span>
         )}

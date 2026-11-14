@@ -17,7 +17,7 @@ export function LogoMark({ size = 36 }: { size?: number }) {
         }}
       />
       <div
-        className="relative flex h-full w-full items-center justify-center rounded-[9px] bg-primary shadow-[0_0_14px_rgba(178,111,214,.4)] transition-all duration-300 group-hover:shadow-[0_0_24px_rgba(178,111,214,.75)] group-hover:scale-105"
+        className="relative flex h-full w-full items-center justify-center rounded-[8px] bg-primary shadow-[0_0_14px_rgba(178,111,214,.4)] transition-all duration-300 group-hover:shadow-[0_0_24px_rgba(178,111,214,.75)] group-hover:scale-105"
       >
         <svg viewBox="0 0 48 48" fill="none" className="h-[60%] w-[60%]">
           <circle cx="24" cy="24" r="15" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" opacity="0.9" />

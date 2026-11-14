@@ -19,7 +19,7 @@ function Chip({ ok, children }: { ok?: boolean | null; children: React.ReactNode
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2 py-[2px] text-[11px] font-semibold",
+        "inline-flex items-center rounded-full border px-2 py-[2px] text-[12px] font-semibold",
         ok === true && "border-positive/40 bg-positive-tint text-positive",
         ok === false && "border-attention/40 bg-attention-tint text-attention",
         (ok === null || ok === undefined) && "border-border text-muted",
@@ -42,7 +42,7 @@ function Baloes({ texto }: { texto: string }) {
   return (
     <div className="space-y-1.5">
       {separarEmBaloes(texto).split(/\n\s*\n/).filter((b) => b.trim()).map((b, i) => (
-        <div key={i} className="w-fit max-w-[95%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">
+        <div key={i} className="w-fit max-w-[95%] whitespace-pre-wrap rounded-lg bg-[#DCF8C6] p-3 text-[14px] text-[#111]">
           {b.trim()}
         </div>
       ))}
@@ -130,7 +130,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
             <span className="font-semibold">{lead.empresa}</span>
             <span
               className={cn(
-                "rounded-full px-2 py-[2px] text-[11px] font-semibold",
+                "rounded-full px-2 py-[2px] text-[12px] font-semibold",
                 prio.nivel === "Alta" ? "bg-positive-tint text-positive" : prio.nivel === "Média" ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
               )}
               title={prio.motivos.join(" · ")}
@@ -138,7 +138,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
               Prioridade {prio.nivel.toLowerCase()} · {prio.nota}
             </span>
           </div>
-          {prio.motivos.length > 0 && <div className="text-[11.5px] text-muted">Por quê: {prio.motivos.join(", ")}</div>}
+          {prio.motivos.length > 0 && <div className="text-[12px] text-muted">Por quê: {prio.motivos.join(", ")}</div>}
           <div className="text-[12px] text-muted">
             {[lead.nicho, lead.cidade, lead.decisor && `Decisor: ${lead.decisor}`, lead.email ? "tem e-mail" : "sem e-mail", (lead.tentativa ?? 1) > 1 && `${lead.tentativa}ª tentativa`]
               .filter(Boolean)
@@ -156,16 +156,16 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
       </div>
 
       {d && (d.pontos_fortes.length > 0 || d.oportunidades.length > 0) && (
-        <div className="mt-3 grid gap-2 text-[12.5px] sm:grid-cols-2">
+        <div className="mt-3 grid gap-2 text-[13px] sm:grid-cols-2">
           {d.pontos_fortes.length > 0 && (
             <div>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-positive">Pontos fortes</div>
+              <div className="mb-1 text-[12px] font-semibold text-positive">Pontos fortes</div>
               <ul className="list-disc space-y-0.5 pl-4">{d.pontos_fortes.map((x, i) => <li key={i}>{x}</li>)}</ul>
             </div>
           )}
           {d.oportunidades.length > 0 && (
             <div>
-              <div className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-attention">Oportunidades</div>
+              <div className="mb-1 text-[12px] font-semibold text-attention">Oportunidades</div>
               <ul className="list-disc space-y-0.5 pl-4">{d.oportunidades.map((x, i) => <li key={i}>{x}</li>)}</ul>
             </div>
           )}
@@ -175,7 +175,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
       <div className="mt-3 space-y-3">
         {visiveis.map((t, i) => (
           <div key={i}>
-            <div className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">
+            <div className="mb-1 flex items-center gap-1.5 text-[12px] font-semibold text-muted">
               {t.canal === "email" ? <Mail className="h-3.5 w-3.5" /> : <MessageCircle className="h-3.5 w-3.5" />}
               Toque {i + 1} · {canalLabel(t.canal)} · {quandoTexto(t)}
               {t.canal === "email" && !lead.email && <span className="normal-case text-attention">(sem e-mail, será pulado)</span>}
@@ -204,7 +204,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
                   value={t.texto}
                   onChange={(e) => setSeq((s) => s.map((x, j) => (j === i ? { ...x, texto: e.target.value } : x)))}
                 />
-                <div className="text-[11.5px] text-muted">
+                <div className="text-[12px] text-muted">
                   {t.canal === "whatsapp" ? "Linha em branco = novo balão. " : "A assinatura da Ana entra sozinha. "}
                   {t.texto.length} caracteres.
                   {/[—–]/.test(t.texto) && <span className="text-attention"> Tem travessão: troque por vírgula ou ponto.</span>}
@@ -215,8 +215,8 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
             ) : (
               <>
                 <div className="mb-1.5">
-                  <div className="w-fit rounded-lg bg-[#DCF8C6] p-3 text-[13.5px] text-[#111]">{saudacaoPrevia(lead)}</div>
-                  <div className="mt-1 text-[11px] text-muted">
+                  <div className="w-fit rounded-lg bg-[#DCF8C6] p-3 text-[14px] text-[#111]">{saudacaoPrevia(lead)}</div>
+                  <div className="mt-1 text-[12px] text-muted">
                     Saudação automática, com bom dia ou boa tarde conforme o horário. O nome só entra se bater com o perfil do WhatsApp ou com o nome da empresa. A Ana espera uns 15 segundos e só depois manda o resto.
                   </div>
                 </div>
@@ -226,7 +226,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
           </div>
         ))}
         {!editando && seq.length > 1 && (
-          <button className="text-[12.5px] font-semibold text-primary-bright" onClick={() => setAberto((a) => !a)}>
+          <button className="text-[13px] font-semibold text-primary-bright" onClick={() => setAberto((a) => !a)}>
             {aberto ? "Mostrar só a primeira mensagem" : `Ver a sequência inteira (${seq.length} toques)`}
           </button>
         )}
@@ -240,7 +240,7 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
       <div className="mt-3 flex flex-wrap gap-2">
         {!seq.length ? (
           <>
-            <div className="w-full text-[12.5px] text-muted">A Ana ainda não escreveu a sequência desta empresa.</div>
+            <div className="w-full text-[13px] text-muted">A Ana ainda não escreveu a sequência desta empresa.</div>
             <Button size="sm" onClick={refazer} disabled={gerar.isPending}>
               <Sparkles /> {gerar.isPending ? "Escrevendo..." : "Gerar sequência"}
             </Button>
@@ -401,7 +401,7 @@ export function AprovacaoTab() {
             key={k}
             onClick={() => setFiltro(k)}
             className={cn(
-              "rounded-full border px-3 py-1 text-[12.5px] font-semibold",
+              "rounded-full border px-3 py-1 text-[13px] font-semibold",
               filtro === k ? "border-primary bg-primary-tint text-primary-bright" : "border-border text-muted",
             )}
           >
@@ -411,7 +411,7 @@ export function AprovacaoTab() {
       </div>
 
       {filtro === "rascunho" && lista.length > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-[12.5px]">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-border p-3 text-[13px]">
           <span className="text-muted">Revisou por amostragem? Aprove a lista da semana de uma vez.</span>
           {!confirmarBloco ? (
             <Button size="sm" className="ml-auto" onClick={() => setConfirmarBloco(true)}>
@@ -431,7 +431,7 @@ export function AprovacaoTab() {
         </div>
       )}
 
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-[12.5px]">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-[13px]">
         <span className="font-semibold text-muted">Prioridade:</span>
         {(["todas", "Alta", "Média", "Baixa"] as FiltroPrioridade[]).map((n) => (
           <button

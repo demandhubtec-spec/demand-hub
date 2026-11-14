@@ -39,7 +39,7 @@ export default function Financas() {
   return (
     <section>
       <div className="mb-[22px]">
-        <div className="text-[21px] font-semibold">Administrativo</div>
+        <div className="text-[20px] font-semibold">Administrativo</div>
         <div className="mt-1 text-[13px] text-muted">Financeiro da DemandHub.</div>
       </div>
 
@@ -53,13 +53,13 @@ export default function Financas() {
       <div className="mb-[22px] grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Card className="p-5 px-[22px]">
           <div className="mb-2 text-xs font-medium text-muted">Entradas do mês</div>
-          <div className="font-display text-[25px] font-bold text-positive">
+          <div className="font-display text-[28px] font-bold text-positive">
             R$ {entradasMes.toLocaleString("pt-BR")}
           </div>
         </Card>
         <Card className="p-5 px-[22px]">
           <div className="mb-2 text-xs font-medium text-muted">Saídas do mês</div>
-          <div className="font-display text-[25px] font-bold text-negative">
+          <div className="font-display text-[28px] font-bold text-negative">
             R$ {saidasMes.toLocaleString("pt-BR")}
           </div>
         </Card>
@@ -67,7 +67,7 @@ export default function Financas() {
           <div className="mb-2 text-xs font-medium text-muted">Saldo do mês</div>
           <div
             className={cn(
-              "font-display text-[25px] font-bold",
+              "font-display text-[28px] font-bold",
               entradasMes - saidasMes >= 0 ? "text-positive" : "text-negative",
             )}
           >
@@ -77,14 +77,14 @@ export default function Financas() {
       </div>
 
       <Card className="mb-[22px] p-5 px-[22px]">
-        <div className="text-sm font-semibold">Fluxo de caixa — últimos 6 meses</div>
-        <div className="mb-[18px] mt-0.5 text-[11.5px] text-muted">Entradas x saídas</div>
+        <div className="text-sm font-semibold">Fluxo de caixa · últimos 6 meses</div>
+        <div className="mb-[18px] mt-0.5 text-[12px] text-muted">Entradas x saídas</div>
         <DualBarChart data={fluxoCaixa} />
         <div className="mt-4 flex gap-[18px]">
-          <div className="flex items-center gap-1.5 text-[11.5px] text-muted">
+          <div className="flex items-center gap-1.5 text-[12px] text-muted">
             <span className="h-2 w-2 rounded-sm bg-positive" /> Entradas
           </div>
-          <div className="flex items-center gap-1.5 text-[11.5px] text-muted">
+          <div className="flex items-center gap-1.5 text-[12px] text-muted">
             <span className="h-2 w-2 rounded-sm" style={{ background: "var(--negative-tint)" }} /> Saídas
           </div>
         </div>
@@ -92,7 +92,7 @@ export default function Financas() {
 
       <Card className="p-5 px-[22px]">
         <div className="text-sm font-semibold">Lançamentos</div>
-        <div className="mb-[18px] mt-0.5 text-[11.5px] text-muted">Todos os lançamentos cadastrados</div>
+        <div className="mb-[18px] mt-0.5 text-[12px] text-muted">Todos os lançamentos cadastrados</div>
         {lancamentos.length === 0 ? (
           <EmptyState>Nenhum lançamento financeiro cadastrado ainda.</EmptyState>
         ) : (

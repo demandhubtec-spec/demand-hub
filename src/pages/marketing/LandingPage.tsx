@@ -93,18 +93,18 @@ export default function LandingPage() {
     <section>
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[21px] font-semibold">Landing page</div>
+          <div className="text-[20px] font-semibold">Landing page</div>
           <div className="mt-1 text-[13px] text-muted">
             Como as pessoas usam a página do diagnóstico: de onde vêm, até onde rolam, onde clicam e onde desistem.
           </div>
         </div>
-        <div className="flex gap-1.5 rounded-[10px] border border-border bg-surface p-1">
+        <div className="flex gap-1.5 rounded-[8px] border border-border bg-surface p-1">
           {PERIODOS.map((p) => (
             <button
               key={p.dias}
               onClick={() => setDias(p.dias)}
               className={cn(
-                "rounded-[7px] px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                "rounded-[8px] px-3 py-1.5 text-[13px] font-medium transition-colors",
                 dias === p.dias ? "bg-primary text-white" : "text-muted hover:text-foreground",
               )}
             >
@@ -131,14 +131,14 @@ export default function LandingPage() {
           <div className="mb-[22px] grid grid-cols-1 gap-3.5 lg:grid-cols-2">
             <Card className="p-5 px-[22px]">
               <div className="text-sm font-semibold">Funil do formulário</div>
-              <div className="mb-4 mt-0.5 text-[11.5px] text-muted">Onde as pessoas param antes de enviar</div>
+              <div className="mb-4 mt-0.5 text-[12px] text-muted">Onde as pessoas param antes de enviar</div>
               <Barras
                 itens={r.funil.map((f) => ({ rotulo: f.etapa, valor: f.n, nota: fmtPct(pct(f.n, r.funil[0]?.n ?? 0)) }))}
               />
             </Card>
             <Card className="p-5 px-[22px]">
               <div className="text-sm font-semibold">Até onde a página é vista</div>
-              <div className="mb-4 mt-0.5 text-[11.5px] text-muted">Parte das visitas que chegou em cada seção</div>
+              <div className="mb-4 mt-0.5 text-[12px] text-muted">Parte das visitas que chegou em cada seção</div>
               {r.secoes.length === 0 ? (
                 <EmptyState>Ainda sem dados de rolagem.</EmptyState>
               ) : (
@@ -150,18 +150,18 @@ export default function LandingPage() {
           <div className="mb-[22px] grid grid-cols-1 gap-3.5 lg:grid-cols-2">
             <Card className="p-5 px-[22px]">
               <div className="text-sm font-semibold">De onde vêm as visitas</div>
-              <div className="mb-4 mt-0.5 text-[11.5px] text-muted">Origem (UTM ou site de onde veio) e quanto cada uma converte</div>
+              <div className="mb-4 mt-0.5 text-[12px] text-muted">Origem (UTM ou site de onde veio) e quanto cada uma converte</div>
               <TabelaOrigem linhas={r.origens.map((o) => ({ nome: o.origem, sessoes: o.sessoes, envios: o.envios }))} vazio="Ainda sem visitas." />
               {r.campanhas.length > 0 && (
                 <>
-                  <div className="mb-2 mt-5 text-[12.5px] font-semibold">Campanhas</div>
+                  <div className="mb-2 mt-5 text-[13px] font-semibold">Campanhas</div>
                   <TabelaOrigem linhas={r.campanhas.map((c) => ({ nome: c.campanha, sessoes: c.sessoes, envios: c.envios }))} vazio="" />
                 </>
               )}
             </Card>
             <Card className="p-5 px-[22px]">
               <div className="text-sm font-semibold">O que mais recebe clique</div>
-              <div className="mb-4 mt-0.5 text-[11.5px] text-muted">
+              <div className="mb-4 mt-0.5 text-[12px] text-muted">
                 Cliques repetidos no mesmo ponto (sinal de que algo não respondeu como a pessoa esperava) aparecem em "travou"
               </div>
               {r.cliques.length === 0 ? (
@@ -195,17 +195,17 @@ export default function LandingPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <div className="text-sm font-semibold">Mapa de calor dos cliques</div>
-            <div className="mt-0.5 text-[11.5px] text-muted">
+            <div className="mt-0.5 text-[12px] text-muted">
               Quanto mais quente, mais cliques. Anéis roxos mostram cliques repetidos no mesmo lugar.
             </div>
           </div>
-          <div className="flex gap-1.5 rounded-[10px] border border-border bg-surface p-1">
+          <div className="flex gap-1.5 rounded-[8px] border border-border bg-surface p-1">
             {(Object.keys(TELAS) as Tela[]).map((t) => (
               <button
                 key={t}
                 onClick={() => setTela(t)}
                 className={cn(
-                  "rounded-[7px] px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                  "rounded-[8px] px-3 py-1.5 text-[13px] font-medium transition-colors",
                   tela === t ? "bg-primary text-white" : "text-muted hover:text-foreground",
                 )}
               >
@@ -214,7 +214,7 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-        <div className="mt-2 text-[11.5px] text-muted">
+        <div className="mt-2 text-[12px] text-muted">
           {cliques.data ? `${cliques.data.length} cliques no período` : "Carregando…"}
         </div>
         <MapaDeCalor tela={tela} pontos={cliques.data ?? []} />
@@ -228,7 +228,7 @@ function Barras({ itens }: { itens: { rotulo: string; valor: number; nota: strin
   return (
     <div className="grid gap-2.5">
       {itens.map((i) => (
-        <div key={i.rotulo} className="grid grid-cols-[150px_1fr_64px] items-center gap-3 text-[12.5px]">
+        <div key={i.rotulo} className="grid grid-cols-[150px_1fr_64px] items-center gap-3 text-[13px]">
           <span className="truncate">{i.rotulo}</span>
           <div className="h-[22px] overflow-hidden rounded-[6px] bg-primary-tint">
             <div className="h-full rounded-[6px] bg-primary" style={{ width: `${Math.max((i.valor / max) * 100, i.valor ? 2 : 0)}%` }} />

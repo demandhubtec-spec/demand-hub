@@ -76,7 +76,7 @@ export default function Clientes() {
       setModalOpen(false);
       limpar();
     } catch {
-      showToast("Não foi possível salvar — verifique a conexão com o Supabase");
+      showToast("Não foi possível salvar: verifique a conexão com o Supabase");
     }
   }
 
@@ -84,7 +84,7 @@ export default function Clientes() {
     <section>
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[21px] font-semibold">Clientes</div>
+          <div className="text-[20px] font-semibold">Clientes</div>
           <div className="mt-1 text-[13px] text-muted">{visiveis.length} clientes cadastrados.</div>
         </div>
         <Button variant="primary" onClick={() => setModalOpen(true)}>
@@ -133,7 +133,7 @@ export default function Clientes() {
                 <Td>
                   {c.nome}
                   {c.privado && (
-                    <span title="Acesso restrito — apenas Kelvin" className="ml-[7px] inline-flex align-middle text-primary-bright">
+                    <span title="Acesso restrito, apenas Kelvin" className="ml-[7px] inline-flex align-middle text-primary-bright">
                       <Lock className="h-3 w-3" />
                     </span>
                   )}
@@ -157,7 +157,7 @@ export default function Clientes() {
                       <button
                         type="button"
                         onClick={() => navigate(`/projetos/${c.id}`)}
-                        className="inline-flex items-center gap-[5px] px-0.5 py-1 text-[12.5px] font-semibold text-primary-bright hover:underline"
+                        className="inline-flex items-center gap-[5px] px-0.5 py-1 text-[13px] font-semibold text-primary-bright hover:underline"
                       >
                         <Folder className="h-3.5 w-3.5" />
                         Ver projetos ({qtd}/{total})
@@ -205,7 +205,7 @@ export default function Clientes() {
             </div>
 
             <div className="mt-1 border-t border-border pt-3.5">
-              <div className="mb-2.5 text-[12.5px] font-semibold text-muted">Projeto inicial (opcional)</div>
+              <div className="mb-2.5 text-[13px] font-semibold text-muted">Projeto inicial (opcional)</div>
               <div className="flex flex-col gap-3.5">
                 <div>
                   <Label htmlFor="fProjetoNome">Nome do projeto</Label>

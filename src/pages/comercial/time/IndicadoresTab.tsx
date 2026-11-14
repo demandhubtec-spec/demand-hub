@@ -10,7 +10,7 @@ import { ETAPAS_FUNIL, contarFunil, desdeDias, fmtPct, linhasFunil, nivelGoogle,
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
 const Rotulo = ({ children, className }: { children: React.ReactNode; className?: string }) => (
-  <div className={cn("font-mono text-[11px] uppercase tracking-[.12em] text-muted", className)}>{children}</div>
+  <div className={cn("text-[12px] text-muted", className)}>{children}</div>
 );
 
 interface Canal {
@@ -177,7 +177,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
             key={p.l}
             onClick={() => setDias(p.v)}
             className={cn(
-              "rounded-[10px] border px-3 py-1.5 text-[13px]",
+              "rounded-[8px] border px-3 py-1.5 text-[13px]",
               dias === p.v ? "border-primary-bright bg-primary-tint text-ink" : "border-border bg-surface text-muted hover:text-ink",
             )}
           >
@@ -188,7 +188,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         <select
           value={segmento}
           onChange={(e) => setSegmento(e.target.value)}
-          className="rounded-[10px] border border-border bg-surface px-3 py-1.5 text-[13px] text-ink"
+          className="rounded-[8px] border border-border bg-surface px-3 py-1.5 text-[13px] text-ink"
         >
           <option value="">Todos</option>
           {segmentos.map((s) => (
@@ -203,12 +203,12 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
       <div className="mb-4 grid gap-4 lg:grid-cols-[1fr_1fr_1fr_1.5fr]">
         <Card className="border-positive/40 bg-[linear-gradient(160deg,rgba(47,210,127,.14),transparent_60%)] p-5">
           <Rotulo>Vendas no mês</Rotulo>
-          <div className="mt-1 text-[44px] font-semibold leading-none text-positive">{vendasMes}</div>
+          <div className="mt-1 text-[28px] font-semibold leading-none text-positive">{vendasMes}</div>
           <div className="mt-2 text-[13px] text-muted">{valorMes > 0 ? `${valorMes.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} fechados` : "somando os canais"}</div>
           {metas && (
             <span
               className={cn(
-                "mt-2 inline-flex items-center gap-1.5 rounded-[7px] px-2 py-0.5 text-[12.5px] font-medium",
+                "mt-2 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[13px] font-medium",
                 vendasMes >= metas.vendas_mes ? "bg-positive-tint text-positive" : "bg-attention-tint text-attention",
               )}
             >
@@ -219,12 +219,12 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         </Card>
         <Card className="p-5">
           <Rotulo>Reuniões realizadas</Rotulo>
-          <div className="mt-1 text-[44px] font-semibold leading-none">{realizadas}</div>
+          <div className="mt-1 text-[28px] font-semibold leading-none">{realizadas}</div>
           <div className="mt-2 text-[13px] text-muted">de {agendadas} agendadas</div>
           {agendadas > 0 && metas && (
             <span
               className={cn(
-                "mt-2 inline-flex items-center gap-1.5 rounded-[7px] px-2 py-0.5 text-[12.5px] font-medium",
+                "mt-2 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[13px] font-medium",
                 pctNao > metas.faltas_max ? "bg-negative-tint text-negative" : "bg-positive-tint text-positive",
               )}
             >
@@ -235,14 +235,14 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         </Card>
         <Card className="p-5">
           <Rotulo>Do topo até a venda</Rotulo>
-          <div className="mt-1 text-[44px] font-semibold leading-none">{fmtPct(topoVenda, 1)}</div>
+          <div className="mt-1 text-[28px] font-semibold leading-none">{fmtPct(topoVenda, 1)}</div>
           <div className="mt-2 text-[13px] text-muted">
             {vendas} {vendas === 1 ? "venda" : "vendas"} de {topo} leads no período
           </div>
           {metas && topoVenda != null && (
             <span
               className={cn(
-                "mt-2 inline-flex items-center gap-1.5 rounded-[7px] px-2 py-0.5 text-[12.5px] font-medium",
+                "mt-2 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-0.5 text-[13px] font-medium",
                 topoVenda >= metas.topo_venda ? "bg-positive-tint text-positive" : "bg-attention-tint text-attention",
               )}
             >
@@ -253,7 +253,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         </Card>
         <Card className="border-negative/45 bg-[linear-gradient(160deg,rgba(255,107,129,.12),transparent_60%)] p-5">
           <Rotulo className="text-[#ffb3c0]">Onde olhar primeiro</Rotulo>
-          <div className="mt-3 space-y-3 text-[13.5px] leading-snug">
+          <div className="mt-3 space-y-3 text-[14px] leading-snug">
             {gargalos.slice(0, 2).map(({ f, l }, i) => (
               <div key={f.canal.key} className="flex gap-2.5">
                 <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", i === 0 ? "bg-negative" : "bg-attention")} />
@@ -295,14 +295,14 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
             <Card key={canal.key} className={cn("p-5", canal.emBreve && "opacity-50")}>
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div>
-                  <div className="flex items-center gap-2.5 text-[16.5px] font-semibold">
+                  <div className="flex items-center gap-2.5 text-[16px] font-semibold">
                     <Icone className="h-5 w-5 text-primary-bright" />
                     {canal.nome}
                   </div>
-                  <div className="mt-0.5 text-[12.5px] text-muted">{canal.sub}</div>
+                  <div className="mt-0.5 text-[13px] text-muted">{canal.sub}</div>
                 </div>
                 {canal.emBreve ? (
-                  <span className="rounded-[7px] border border-border px-2 py-1 font-mono text-[11px] tracking-wider text-muted">EM BREVE</span>
+                  <span className="rounded-[8px] border border-border px-2 py-1 font-mono text-[12px] tracking-wider text-muted">EM BREVE</span>
                 ) : (
                   <div className="text-right">
                     <div className="text-[24px] font-semibold leading-none text-positive">
@@ -339,7 +339,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
       <div className="mt-4 grid gap-4 xl:grid-cols-2">
         <Card className="p-5">
           <Rotulo>Rodadas do Instagram</Rotulo>
-          <div className="mb-4 mt-1 text-[16.5px] font-semibold">Qual concorrente traz lead melhor</div>
+          <div className="mb-4 mt-1 text-[16px] font-semibold">Qual concorrente traz lead melhor</div>
           {rodadas.length === 0 ? (
             <div className="text-[13px] text-muted">Nenhuma rodada importada ainda. Use "Nova rodada" na aba Funil.</div>
           ) : (
@@ -347,14 +347,14 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
               {rodadas.slice(0, 4).map((r) => {
                 const melhor = rodadas.length > 1 && r.nome === melhorRodada?.nome;
                 return (
-                  <div key={r.nome} className={cn("rounded-[13px] border bg-surface-2 p-4", melhor ? "border-positive/45" : "border-border")}>
-                    <div className="flex items-center justify-between text-[14.5px] font-semibold">
+                  <div key={r.nome} className={cn("rounded-[12px] border bg-surface-2 p-4", melhor ? "border-positive/45" : "border-border")}>
+                    <div className="flex items-center justify-between text-[14px] font-semibold">
                       {r.nome}
-                      {melhor && <span className="rounded-full bg-positive-tint px-2 py-0.5 text-[11.5px] text-positive">Melhor</span>}
+                      {melhor && <span className="rounded-full bg-positive-tint px-2 py-0.5 text-[12px] text-positive">Melhor</span>}
                     </div>
                     <div className={cn("mt-2 text-[32px] font-semibold leading-none", melhor && "text-positive")}>{r.leads}</div>
                     <div className="mt-1 text-[12px] text-muted">leads coletados</div>
-                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-muted">
+                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
                       <span>
                         <b className="text-ink">{r.quentes}</b> quentes
                       </span>
@@ -376,7 +376,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         </Card>
         <Card className="p-5">
           <Rotulo>Segmentos · todos os canais</Rotulo>
-          <div className="mb-4 mt-1 text-[16.5px] font-semibold">Onde a conversa vira reunião</div>
+          <div className="mb-4 mt-1 text-[16px] font-semibold">Onde a conversa vira reunião</div>
           {porSegmento.length === 0 ? (
             <div className="text-[13px] text-muted">Ainda não há conversas suficientes por segmento no período.</div>
           ) : (
@@ -384,7 +384,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
               const top = i === 0;
               const baixo = i === porSegmento.length - 1 && porSegmento.length > 2;
               return (
-                <div key={s.nome} className="mb-2.5 grid grid-cols-[150px_1fr_86px] items-center gap-3 text-[13.5px]">
+                <div key={s.nome} className="mb-2.5 grid grid-cols-[150px_1fr_86px] items-center gap-3 text-[14px]">
                   <span className="truncate">{s.nome}</span>
                   <div className="h-3 overflow-hidden rounded-full bg-primary-tint/40">
                     <i
@@ -408,7 +408,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
 function Legenda({ cor, titulo, texto }: { cor: string; titulo: string; texto: string }) {
   return (
     <div className="flex gap-3">
-      <i className={cn("mt-1 inline-block h-3 w-3 shrink-0 rounded-[3px]", cor)} />
+      <i className={cn("mt-1 inline-block h-3 w-3 shrink-0 rounded-[6px]", cor)} />
       <span>
         <b>{titulo}</b>
         <span className="block text-muted">{texto}</span>

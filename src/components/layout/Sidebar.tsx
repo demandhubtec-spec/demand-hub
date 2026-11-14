@@ -46,7 +46,7 @@ interface SidebarProps {
 /** Item principal do menu: fundo roxo suave + barra lateral quando ativo (padrão Tonabê OS). */
 function topItemClass(isActive: boolean, collapsed: boolean) {
   return cn(
-    "nav-sweep relative flex items-center gap-3 rounded-[10px] px-3 py-2.5 text-[13.5px] font-medium transition-colors",
+    "nav-sweep relative flex items-center gap-3 rounded-[8px] px-3 py-2.5 text-[14px] font-medium transition-colors",
     collapsed && "justify-center",
     isActive
       ? "bg-[rgba(110,58,255,.16)] text-white shadow-[inset_0_0_0_1px_rgba(164,123,255,.22)] before:absolute before:left-0 before:top-2 before:bottom-2 before:w-[3px] before:rounded-r-full before:bg-[#A47BFF]"
@@ -57,7 +57,7 @@ function topItemClass(isActive: boolean, collapsed: boolean) {
 function SectionLabel({ children, collapsed }: { children: React.ReactNode; collapsed: boolean }) {
   if (collapsed) return <div className="mx-auto my-2.5 h-px w-6 bg-sidebar-border" />;
   return (
-    <div className="eyebrow px-3 pb-1.5 pt-4 text-[10px] text-[#6E61A0]">{children}</div>
+    <div className="eyebrow px-3 pb-1.5 pt-4 text-[12px] text-[#6E61A0]">{children}</div>
   );
 }
 
@@ -112,7 +112,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                 <div key={group.key}>
                   <button
                     className={cn(
-                      "nav-sweep flex w-full items-center gap-3 rounded-[10px] px-3 py-2.5 text-left text-[13.5px] font-medium transition-colors hover:bg-white/[.05] hover:text-white",
+                      "nav-sweep flex w-full items-center gap-3 rounded-[8px] px-3 py-2.5 text-left text-[14px] font-medium transition-colors hover:bg-white/[.05] hover:text-white",
                       collapsed && "justify-center",
                       group.children.some((c) => location.pathname.startsWith(c.path)) && "text-white",
                     )}
@@ -142,7 +142,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
                             onClick={onCloseMobile}
                             className={({ isActive }) =>
                               cn(
-                                "nav-sweep flex items-center gap-2 rounded-r-[8px] border-l-2 py-2 pl-5 pr-3 text-[12.5px] font-medium transition-colors",
+                                "nav-sweep flex items-center gap-2 rounded-r-[8px] border-l-2 py-2 pl-5 pr-3 text-[13px] font-medium transition-colors",
                                 isActive
                                   ? "border-l-[#A47BFF] bg-[rgba(110,58,255,.12)] font-semibold text-white"
                                   : "border-l-sidebar-border text-[#9A8DCC] hover:bg-white/[.04] hover:text-white",
@@ -268,10 +268,10 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
           {popoverOpen && (
             <div
               ref={popoverRef}
-              className="absolute bottom-[68px] left-4 right-4 flex flex-col gap-0.5 rounded-[9px] border border-sidebar-border bg-sidebar-bg2 p-2 shadow-2xl"
+              className="absolute bottom-[68px] left-4 right-4 flex flex-col gap-0.5 rounded-[8px] border border-sidebar-border bg-sidebar-bg2 p-2 shadow-2xl"
             >
               <button
-                className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[12.5px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-white"
+                className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[13px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-white"
                 onClick={() => {
                   setSpinning(true);
                   showToast("Sistema atualizado");
@@ -285,13 +285,13 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               <NavLink
                 to="/configuracoes/acessos"
                 onClick={() => setPopoverOpen(false)}
-                className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[12.5px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-white"
+                className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[13px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-white"
               >
                 <Settings className="h-[15px] w-[15px]" />
                 Configurações
               </NavLink>
               <button
-                className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[12.5px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-[#FF8A8C]"
+                className="flex items-center gap-2.5 rounded-md px-2.5 py-2.5 text-left text-[13px] font-medium text-[#D8D4E0] hover:bg-white/[.07] hover:text-[#FF8A8C]"
                 onClick={() => {
                   setPopoverOpen(false);
                   signOut();
@@ -303,7 +303,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             </div>
           )}
           {!collapsed && (
-            <div className="mb-2.5 px-1 font-mono text-[10px] leading-relaxed text-[#6E61A0]">
+            <div className="mb-2.5 px-1 font-mono text-[12px] leading-relaxed text-[#6E61A0]">
               DemandIA · Portal
               <br />
               Todos os direitos reservados
@@ -321,8 +321,8 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
               </div>
               {!collapsed && (
                 <div className="min-w-0 text-left leading-tight">
-                  <div className="truncate text-[12.5px] font-semibold text-white">{userName}</div>
-                  <div className="whitespace-nowrap text-[11px] text-[#8E7FC4]">{userRole}</div>
+                  <div className="truncate text-[13px] font-semibold text-white">{userName}</div>
+                  <div className="whitespace-nowrap text-[12px] text-[#8E7FC4]">{userRole}</div>
                 </div>
               )}
             </button>

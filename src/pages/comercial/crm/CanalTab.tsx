@@ -47,13 +47,13 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
 
   return (
     <Card className="flex h-[680px] flex-col overflow-hidden">
-      <div className="border-b border-border p-3 text-[12.5px] text-muted">
+      <div className="border-b border-border p-3 text-[13px] text-muted">
         A Gabi te chama aqui quando precisar de direcionamento. Você também pode orientar sobre qualquer conversa, por texto, áudio ou foto.
         O que você responder para ela no WhatsApp também aparece aqui.
       </div>
       <div className="flex-1 space-y-2 overflow-y-auto bg-surface-2/40 p-3">
-        {isLoading && <div className="text-[12.5px] text-muted">Carregando…</div>}
-        {!isLoading && msgs.length === 0 && <div className="text-[12.5px] text-muted">Nada por aqui ainda.</div>}
+        {isLoading && <div className="text-[13px] text-muted">Carregando…</div>}
+        {!isLoading && msgs.length === 0 && <div className="text-[13px] text-muted">Nada por aqui ainda.</div>}
         {msgs.map((m) => {
           const ana = m.autor === "ana";
           const lead = nome(m.lead_id);
@@ -61,12 +61,12 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
             <div key={m.id} className={cn("flex", ana ? "justify-start" : "justify-end")}>
               <div
                 className={cn(
-                  "max-w-[80%] whitespace-pre-wrap rounded-[10px] px-3 py-2 text-[13px]",
+                  "max-w-[80%] whitespace-pre-wrap rounded-[8px] px-3 py-2 text-[13px]",
                   ana ? "border border-border bg-surface" : "bg-primary/15",
                   (m.status === "pendente" || m.status === "aguardando_ok") && "border-attention/60 ring-1 ring-attention/40",
                 )}
               >
-                <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[10.5px] font-semibold">
+                <div className="mb-1 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold">
                   {ana ? (
                     <span className="inline-flex items-center gap-1 text-primary-bright">
                       <Bot className="h-3 w-3" /> Gabi
@@ -96,7 +96,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                     </Button>
                   </div>
                 )}
-                <div className="mt-1 text-right font-mono text-[10px] text-muted">{fmtData(m.created_at)}</div>
+                <div className="mt-1 text-right font-mono text-[12px] text-muted">{fmtData(m.created_at)}</div>
               </div>
             </div>
           );
@@ -105,7 +105,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-border px-3 pt-2 text-[12px]">
         <span className="text-muted">Sobre:</span>
-        <select className="max-w-[260px] rounded-[7px] border border-border bg-surface-2 px-2 py-1" value={sobre} onChange={(e) => setSobre(e.target.value)}>
+        <select className="max-w-[260px] rounded-[8px] border border-border bg-surface-2 px-2 py-1" value={sobre} onChange={(e) => setSobre(e.target.value)}>
           <option value="">Geral (regra para todas as conversas)</option>
           {contatos.map((c) => (
             <option key={c.id} value={c.id}>

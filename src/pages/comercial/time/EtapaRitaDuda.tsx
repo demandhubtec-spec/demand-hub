@@ -160,10 +160,10 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                       src={l.marca.logo}
                       alt=""
                       referrerPolicy="no-referrer"
-                      className={cn("h-10 w-10 shrink-0 rounded-[10px] object-contain p-0.5", l.marca.logo_fundo === "escuro" ? "bg-[#111]" : "bg-white")}
+                      className={cn("h-10 w-10 shrink-0 rounded-[8px] object-contain p-0.5", l.marca.logo_fundo === "escuro" ? "bg-[#111]" : "bg-white")}
                     />
                   ) : (
-                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[10px] bg-surface-2 text-[13px] font-semibold">{l.empresa.slice(0, 1)}</div>
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-[8px] bg-surface-2 text-[13px] font-semibold">{l.empresa.slice(0, 1)}</div>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5 font-semibold">
@@ -173,7 +173,7 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                     <div className="text-[12px] text-muted">{[l.nicho, l.cidade].filter(Boolean).join(" · ")}</div>
                     {etapa === "duda" && l.marca?.logo_checado && !l.marca?.logo && <div className="text-[12px] text-attention">Não achei a logo. Suba a logo para o site sair com as cores do cliente.</div>}
                     {etapa === "duda" && l.marca?.cores?.primaria && (
-                      <div className="mt-1 flex items-center gap-1 text-[11.5px] text-muted">
+                      <div className="mt-1 flex items-center gap-1 text-[12px] text-muted">
                         {[l.marca.cores.primaria, l.marca.cores.secundaria].filter(Boolean).map((c) => (
                           <span key={c} className="inline-block h-3 w-3 rounded-full border border-border" style={{ background: c! }} />
                         ))}
@@ -184,13 +184,13 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                   {d && (
                     <div className="text-right">
                       <div className={cn("brand-num text-[24px] leading-none", corNota(d.geral?.nota ?? 0))}>{d.geral?.nota ?? "-"}</div>
-                      <div className="text-[10.5px] uppercase tracking-wide text-muted">nota geral</div>
+                      <div className="text-[12px] text-muted">nota geral</div>
                     </div>
                   )}
                 </div>
                 {d && (
                   <>
-                    <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[12.5px]">
+                    <div className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[13px]">
                       <Nota rotulo="Google" a={d.google} />
                       {semSite ? <span className="text-attention">Sem site</span> : <Nota rotulo="Site" a={d.site} />}
                       <Nota rotulo="Instagram" a={d.instagram} />
@@ -204,20 +204,20 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                 )}
                 <div className="mt-3 flex flex-wrap items-center gap-2">
                   {l.relatorio_token && (
-                    <a href={linkRelatorio(l.relatorio_token)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+                    <a href={linkRelatorio(l.relatorio_token)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline">
                       Abrir relatório <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
                   {etapa === "duda" &&
                     (l.marca?.pdf ? (
-                      <a href={l.marca.pdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+                      <a href={l.marca.pdf} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline">
                         <FileText className="h-3 w-3" /> PDF para o cliente
                       </a>
                     ) : (
                       <span className="text-[12px] text-muted">PDF sendo gerado</span>
                     ))}
                   {etapa === "duda" && (visao === "pendente" || visao === "ajuste") && (
-                    <label className="inline-flex cursor-pointer items-center gap-1 text-[12.5px] text-muted hover:text-ink">
+                    <label className="inline-flex cursor-pointer items-center gap-1 text-[13px] text-muted hover:text-ink">
                       <ImageUp className="h-3 w-3" /> {l.marca?.logo ? "Trocar logo" : "Subir logo"}
                       <input
                         type="file"
@@ -233,7 +233,7 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                   )}
                   {etapa === "duda" && !l.site_preview?.token && <span className="text-[12px] text-muted">Site sendo montado</span>}
                   {etapa === "duda" && l.site_preview?.token && (
-                    <a href={linkPrevia(l.site_preview.token)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+                    <a href={linkPrevia(l.site_preview.token)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline">
                       {(l.site_preview as { tipo?: string }).tipo === "melhoria" ? "Abrir versão melhorada do site" : "Abrir site novo (demonstração)"} <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -284,7 +284,7 @@ function SiteAtual({ l }: { l: OutreachLead }) {
   if (!atual) return <span className="text-[12px] text-muted">Cliente sem site hoje</span>;
   const href = /^https?:\/\//i.test(atual) ? atual : `https://${atual}`;
   return (
-    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[12.5px] text-primary-bright hover:underline">
+    <a href={href} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-[13px] text-primary-bright hover:underline">
       {semSiteProprio(atual) ? "Página atual do cliente (sem site próprio)" : "Site atual do cliente"} <ExternalLink className="h-3 w-3" />
     </a>
   );
@@ -341,9 +341,9 @@ function QuadroEtapa({ etapa, quadro, visao, onVisao }: { etapa: "rita" | "duda"
               visao === c && "ring-2 ring-primary-bright",
             )}
           >
-            <div className="text-[11.5px] text-muted">{ROTULO[etapa][c]}</div>
-            <div className="brand-num text-[22px] leading-tight">{quadro.cols[c].length}</div>
-            <div className="text-[11px] text-muted">
+            <div className="text-[12px] text-muted">{ROTULO[etapa][c]}</div>
+            <div className="brand-num text-[20px] leading-tight">{quadro.cols[c].length}</div>
+            <div className="text-[12px] text-muted">
               {c === "fila" && etapa === "duda" && quadro.esperandoLogo ? `${quadro.esperandoLogo} esperando a logo` : DICA[c]}
             </div>
           </button>
@@ -359,7 +359,7 @@ function FilaDeProducao({ etapa, lista, visao }: { etapa: "rita" | "duda"; lista
   const mostra = todos ? lista : lista.slice(0, 60);
   return (
     <Card className="p-0">
-      <div className="border-b border-border px-4 py-2.5 text-[12.5px] text-muted">
+      <div className="border-b border-border px-4 py-2.5 text-[13px] text-muted">
         {visao === "fazendo"
           ? `A ${etapa === "rita" ? "Rita" : "Duda"} está fazendo estas agora. Ficam prontas na próxima rodada (até ${MINUTOS_POR_RODADA} minutos).`
           : `Na ordem em que a ${etapa === "rita" ? "Rita" : "Duda"} vai pegar.`}
@@ -367,10 +367,10 @@ function FilaDeProducao({ etapa, lista, visao }: { etapa: "rita" | "duda"; lista
       <ol className="divide-y divide-border">
         {mostra.map((l, i) => (
           <li key={l.place_id} className="flex items-center gap-3 px-4 py-2 text-[13px]">
-            <span className="w-6 shrink-0 text-right text-[11.5px] text-muted">{i + 1}</span>
+            <span className="w-6 shrink-0 text-right text-[12px] text-muted">{i + 1}</span>
             <span className="min-w-0 flex-1 truncate font-medium">{l.empresa}</span>
             <span className="hidden truncate text-[12px] text-muted sm:block">{[l.nicho, l.cidade].filter(Boolean).join(" · ")}</span>
-            {etapa === "duda" && esperandoLogo(l) && <span className="shrink-0 text-[11.5px] text-attention">esperando a logo</span>}
+            {etapa === "duda" && esperandoLogo(l) && <span className="shrink-0 text-[12px] text-attention">esperando a logo</span>}
           </li>
         ))}
       </ol>

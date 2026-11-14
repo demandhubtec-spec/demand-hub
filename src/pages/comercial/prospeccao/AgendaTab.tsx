@@ -63,17 +63,17 @@ function Chip({ ativo, onClick, children }: { ativo: boolean; onClick: () => voi
 function Linha({ e, onAbrir }: { e: EnvioPrevisto; onAbrir: () => void }) {
   const Icone = e.canal === "email" ? Mail : MessageCircle;
   return (
-    <button onClick={onAbrir} className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-surface-2">
+    <button onClick={onAbrir} className="flex w-full items-center gap-3 rounded-md px-2 py-1.5 text-left text-[13px] hover:bg-surface-2">
       <span className="w-[52px] shrink-0 tabular-nums text-muted">≈ {hhmm(e.quando)}</span>
       <Icone className={cn("h-3.5 w-3.5 shrink-0", e.canal === "email" ? "text-primary-bright" : "text-positive")} />
       <span className="min-w-0 flex-1">
         <span className="font-semibold">{e.lead.empresa}</span>
-        <span className="ml-2 text-[11.5px] text-muted">{[e.lead.nicho, e.lead.cidade].filter(Boolean).join(" · ")}</span>
+        <span className="ml-2 text-[12px] text-muted">{[e.lead.nicho, e.lead.cidade].filter(Boolean).join(" · ")}</span>
       </span>
-      {e.atrasado && <span className="shrink-0 rounded bg-attention-tint px-1.5 text-[11px] text-attention">atrasado</span>}
+      {e.atrasado && <span className="shrink-0 rounded bg-attention-tint px-1.5 text-[12px] text-attention">atrasado</span>}
       <span
         className={cn(
-          "shrink-0 rounded-full px-2 text-[11px] font-semibold",
+          "shrink-0 rounded-full px-2 text-[12px] font-semibold",
           e.toque === 1 ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
         )}
       >
@@ -120,7 +120,7 @@ function Suspenso({
         onClick={() => setAberto((v) => !v)}
         aria-expanded={aberto}
         className={cn(
-          "flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold transition-colors",
+          "flex h-8 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors",
           destaque || aberto ? "border-primary-bright/70 bg-primary-tint text-primary-bright" : "border-border text-ink hover:border-primary-bright/50",
         )}
       >
@@ -218,7 +218,7 @@ export function AgendaTab() {
                     fechar();
                   }}
                   className={cn(
-                    "rounded-md px-2.5 py-1.5 text-left text-[12.5px] hover:bg-surface-2",
+                    "rounded-md px-2.5 py-1.5 text-left text-[13px] hover:bg-surface-2",
                     periodo === p.key ? "font-semibold text-primary-bright" : "text-ink",
                   )}
                 >
@@ -238,7 +238,7 @@ export function AgendaTab() {
           {() => (
             <div className="space-y-3">
               <div>
-                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Canal</div>
+                <div className="mb-1.5 text-[12px] font-semibold text-muted">Canal</div>
                 <div className="flex flex-wrap gap-1.5">
                   <Chip ativo={canal === "todos"} onClick={() => setCanal("todos")}>Todos</Chip>
                   <Chip ativo={canal === "whatsapp"} onClick={() => setCanal("whatsapp")}>WhatsApp</Chip>
@@ -246,7 +246,7 @@ export function AgendaTab() {
                 </div>
               </div>
               <div>
-                <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-muted">Tipo de envio</div>
+                <div className="mb-1.5 text-[12px] font-semibold text-muted">Tipo de envio</div>
                 <div className="flex flex-wrap gap-1.5">
                   {TIPOS.map((t) => (
                     <Chip key={String(t.key)} ativo={tipo === t.key} onClick={() => setTipo(t.key)}>
@@ -273,7 +273,7 @@ export function AgendaTab() {
         {canal !== "todos" && <Pilula onTirar={() => setCanal("todos")}>{canal === "whatsapp" ? "WhatsApp" : "E-mail"}</Pilula>}
         {tipo !== "todos" && <Pilula onTirar={() => setTipo("todos")}>{TIPOS.find((t) => t.key === tipo)?.label}</Pilula>}
 
-        <label className="ml-auto flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-[12.5px] focus-within:border-primary-bright/60">
+        <label className="ml-auto flex h-8 items-center gap-1.5 rounded-full border border-border px-3 text-[13px] focus-within:border-primary-bright/60">
           <Search className="h-3.5 w-3.5 text-muted" />
           <input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar empresa" className="w-[150px] bg-transparent outline-none" />
           {busca && (
@@ -292,8 +292,8 @@ export function AgendaTab() {
           { label: "E-mails", n: nEmail },
         ].map((k) => (
           <Card key={k.label} className="p-3.5 px-4">
-            <div className="text-[11.5px] text-muted">{k.label}</div>
-            <div className="font-display text-[22px] font-bold">{k.n}</div>
+            <div className="text-[12px] text-muted">{k.label}</div>
+            <div className="font-display text-[20px] font-bold">{k.n}</div>
           </Card>
         ))}
       </div>
@@ -329,7 +329,7 @@ export function AgendaTab() {
           <Card key={dia} className="p-3 px-4">
             <button className="flex w-full items-center gap-2 text-left" onClick={() => setAbertos((s) => ({ ...s, [dia]: !expandido }))}>
               {expandido ? <ChevronDown className="h-4 w-4 text-muted" /> : <ChevronRight className="h-4 w-4 text-muted" />}
-              <span className="text-[13.5px] font-semibold">
+              <span className="text-[14px] font-semibold">
                 {SEMANA[diaDaSemana(d)]}, {ddmm(d)}
               </span>
               <span className="text-[12px] text-muted">

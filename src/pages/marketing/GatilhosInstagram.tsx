@@ -154,7 +154,7 @@ export default function GatilhosInstagram() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-[640px]">
-          <h2 className="font-display text-[19px] font-semibold">Gatilhos</h2>
+          <h2 className="font-display text-[20px] font-semibold">Gatilhos</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-muted">
             A pessoa comenta a palavra-chave no post e recebe a resposta no comentário e uma mensagem no Direct com um botão.
             O botão pode levar ao WhatsApp da Ana, à página do diagnóstico ou a um material.
@@ -178,7 +178,7 @@ export default function GatilhosInstagram() {
                   <div className="truncate text-[15px] font-semibold">{g.nome}</div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {g.palavras.map((p) => (
-                      <span key={p} className="rounded-full border border-primary bg-primary-tint px-2.5 py-0.5 text-[11.5px] font-semibold uppercase tracking-wide text-primary-bright">
+                      <span key={p} className="rounded-full border border-primary bg-primary-tint px-2.5 py-0.5 text-[12px] font-semibold text-primary-bright">
                         {p}
                       </span>
                     ))}
@@ -196,11 +196,11 @@ export default function GatilhosInstagram() {
                     {g.midias.length > 4 && <span className="text-[12px] text-muted">+{g.midias.length - 4}</span>}
                   </>
                 ) : (
-                  <span className="text-[12.5px] text-muted">Qualquer post recente</span>
+                  <span className="text-[13px] text-muted">Qualquer post recente</span>
                 )}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-[12.5px] text-muted">
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-3 text-[13px] text-muted">
                 <span>
                   <b className="text-ink">{g.comentarios ?? 0}</b> comentários · <b className="text-ink">{g.envios ?? 0}</b> Directs enviados
                   {" · "}
@@ -331,7 +331,7 @@ function Editor({ inicial, todos, onFechar, onSalvo }: { inicial: Gatilho; todos
               </Campo>
             </div>
             {repetido && (
-              <p className="rounded-lg border border-attention bg-attention-tint px-3 py-2 text-[12.5px] text-attention">
+              <p className="rounded-lg border border-attention bg-attention-tint px-3 py-2 text-[13px] text-attention">
                 O gatilho "{repetido}" já usa essa palavra no mesmo post. Só um deles vai responder.
               </p>
             )}
@@ -339,9 +339,9 @@ function Editor({ inicial, todos, onFechar, onSalvo }: { inicial: Gatilho; todos
             <Campo rotulo="Em quais posts" ajuda="Sem nenhum marcado, vale para os 10 posts mais recentes.">
               <div className="rounded-lg border border-border p-3">
                 {midias.isLoading ? (
-                  <p className="text-[12.5px] text-muted">Buscando posts da conta…</p>
+                  <p className="text-[13px] text-muted">Buscando posts da conta…</p>
                 ) : midias.error ? (
-                  <p className="text-[12.5px] text-muted">Não consegui buscar os posts agora ({(midias.error as Error).message}).</p>
+                  <p className="text-[13px] text-muted">Não consegui buscar os posts agora ({(midias.error as Error).message}).</p>
                 ) : (
                   <div className="grid max-h-[220px] grid-cols-5 gap-2 overflow-y-auto sm:grid-cols-6">
                     {midias.data?.midias.map((m) => {
@@ -399,7 +399,7 @@ function Editor({ inicial, todos, onFechar, onSalvo }: { inicial: Gatilho; todos
                     type="button"
                     onClick={() => set("botao_tipo", b.tipo)}
                     className={cn(
-                      "rounded-lg border px-3 py-2 text-left text-[12.5px] font-semibold transition-colors",
+                      "rounded-lg border px-3 py-2 text-left text-[13px] font-semibold transition-colors",
                       g.botao_tipo === b.tipo ? "border-primary bg-primary-tint text-ink" : "border-border text-muted hover:border-primary-bright",
                     )}
                   >
@@ -461,7 +461,7 @@ function Campo({ rotulo, ajuda, children }: { rotulo: string; ajuda?: string; ch
     <div>
       <Label className="mb-1.5 block">{rotulo}</Label>
       {children}
-      {ajuda && <p className="mt-1 text-[11.5px] text-muted">{ajuda}</p>}
+      {ajuda && <p className="mt-1 text-[12px] text-muted">{ajuda}</p>}
     </div>
   );
 }
@@ -472,10 +472,10 @@ function Previa({ g }: { g: Gatilho }) {
   const resposta = g.respostas_publicas.find((r) => r.trim()) || "Te mandei no direct 📩";
   return (
     <div className="md:sticky md:top-0">
-      <div className="mb-2 text-[11.5px] font-semibold uppercase tracking-wide text-muted">Como fica no celular</div>
+      <div className="mb-2 text-[12px] font-semibold text-muted">Como fica no celular</div>
       <div className="rounded-[28px] border border-border bg-[#0b0b10] p-3 shadow-2xl">
-        <div className="rounded-[20px] bg-black p-4 text-[12.5px] text-white">
-          <div className="mb-3 flex items-center gap-2 text-[11px] text-white/60">
+        <div className="rounded-[20px] bg-black p-4 text-[13px] text-white">
+          <div className="mb-3 flex items-center gap-2 text-[12px] text-white/60">
             <Instagram className="h-3.5 w-3.5" /> Comentários
           </div>
           <div className="space-y-2">
@@ -489,7 +489,7 @@ function Previa({ g }: { g: Gatilho }) {
 
           <div className="my-4 border-t border-white/10" />
 
-          <div className="mb-3 flex items-center gap-2 text-[11px] text-white/60">
+          <div className="mb-3 flex items-center gap-2 text-[12px] text-white/60">
             <MessageCircle className="h-3.5 w-3.5" /> Direct
           </div>
           <div className="max-w-[92%] rounded-2xl rounded-bl-md bg-[#262630] px-3.5 py-2.5 leading-relaxed">
@@ -502,7 +502,7 @@ function Previa({ g }: { g: Gatilho }) {
           </div>
         </div>
       </div>
-      <p className="mt-2 text-[11.5px] text-muted">A prévia usa "{NOME_EXEMPLO}" no lugar de {"{nome}"}.</p>
+      <p className="mt-2 text-[12px] text-muted">A prévia usa "{NOME_EXEMPLO}" no lugar de {"{nome}"}.</p>
     </div>
   );
 }

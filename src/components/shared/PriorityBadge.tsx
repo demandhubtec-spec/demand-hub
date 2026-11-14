@@ -19,7 +19,7 @@ export function PriorityBadge({ prioridade }: { prioridade: AtividadePrioridade 
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-full px-2 py-[3px] text-[10.5px] font-semibold uppercase tracking-wide",
+        "inline-flex shrink-0 items-center rounded-full px-2 py-[3px] text-[12px] font-semibold",
         classes[prioridade],
       )}
     >

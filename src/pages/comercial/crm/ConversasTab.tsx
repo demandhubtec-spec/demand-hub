@@ -43,7 +43,7 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
               <button
                 key={f}
                 onClick={() => setFiltro(f)}
-                className={cn("rounded-full border px-2.5 py-0.5 text-[11.5px]", filtro === f ? "border-primary text-ink" : "border-border text-muted")}
+                className={cn("rounded-full border px-2.5 py-0.5 text-[12px]", filtro === f ? "border-primary text-ink" : "border-border text-muted")}
               >
                 {f === "todas" ? "Todas" : f === "prospeccao" ? "Prospecção" : "Inbound"}
               </button>
@@ -51,7 +51,7 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {isLoading && <div className="p-3 text-[12.5px] text-muted">Carregando…</div>}
+          {isLoading && <div className="p-3 text-[13px] text-muted">Carregando…</div>}
           {lista.map((c) => (
             <ItemLista
               key={c.id}
@@ -83,9 +83,9 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
     <button onClick={onClick} className={cn("block w-full border-b border-border px-3 py-2.5 text-left hover:bg-surface-2", ativo && "bg-surface-2")}>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[13px] font-semibold">{c.nomeExibicao}</span>
-        <span className="shrink-0 font-mono text-[10.5px] text-muted">{horaCurta(c.ultimaAtividade)}</span>
+        <span className="shrink-0 font-mono text-[12px] text-muted">{horaCurta(c.ultimaAtividade)}</span>
       </div>
-      <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted">
+      <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
         <span className={c.tipo === "prospeccao" ? "text-primary-bright" : "text-positive"}>{c.tipo === "prospeccao" ? "Prospecção" : "Inbound"}</span>
         <span>· {STATUS_ANA[c.status ?? ""] ?? c.status}</span>
         {c.ai_paused && <PauseCircle className="h-3 w-3 text-attention" />}
@@ -114,14 +114,14 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         </button>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold">{c.nomeExibicao}</div>
-          <div className="truncate text-[11.5px] text-muted">
+          <div className="truncate text-[12px] text-muted">
             {c.nome && c.nome !== c.nomeExibicao ? `${c.nome} · ` : ""}
             {c.phone} · {c.tipo === "prospeccao" ? "Prospecção ativa" : ORIGEM_TEXTO[c.origem ?? ""] ?? "Inbound"}
           </div>
         </div>
         <label
           className={cn(
-            "inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pl-2.5 pr-1 text-[11px] font-semibold",
+            "inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pl-2.5 pr-1 text-[12px] font-semibold",
             c.ai_paused ? "bg-attention-tint text-attention" : "bg-positive-tint text-positive",
           )}
           title={c.ai_paused ? "Ligar a Gabi nesta conversa" : "Pausar a Gabi nesta conversa"}
@@ -146,8 +146,8 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         </label>
       </div>
       <div className="flex-1 space-y-1.5 overflow-y-auto bg-surface-2/40 p-3">
-        {isLoading && <div className="text-[12.5px] text-muted">Carregando…</div>}
-        {!isLoading && msgs.length === 0 && <div className="text-[12.5px] text-muted">Sem mensagens registradas.</div>}
+        {isLoading && <div className="text-[13px] text-muted">Carregando…</div>}
+        {!isLoading && msgs.length === 0 && <div className="text-[13px] text-muted">Sem mensagens registradas.</div>}
         {msgs.map((m) => {
           const dia = fmtData(m.created_at, false);
           const mostrarDia = dia !== diaAnterior;
@@ -156,19 +156,19 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
           const deles = m.direction === "in";
           return (
             <React.Fragment key={m.id}>
-              {mostrarDia && <div className="py-1 text-center font-mono text-[10.5px] text-muted">{dia}</div>}
+              {mostrarDia && <div className="py-1 text-center font-mono text-[12px] text-muted">{dia}</div>}
               <div className={cn("flex", deles ? "justify-start" : "justify-end")}>
                 <div
                   className={cn(
-                    "max-w-[78%] whitespace-pre-wrap rounded-[10px] px-3 py-2 text-[13px]",
+                    "max-w-[78%] whitespace-pre-wrap rounded-[8px] px-3 py-2 text-[13px]",
                     deles ? "bg-surface border border-border" : "bg-primary/15",
                     robo && "opacity-70",
                   )}
                 >
-                  {!deles && m.author && m.author !== "ia" && <div className="mb-0.5 text-[10.5px] font-semibold text-primary-bright">Você</div>}
-                  {robo && <div className="mb-0.5 text-[10.5px] font-semibold text-muted">Resposta automática da empresa</div>}
+                  {!deles && m.author && m.author !== "ia" && <div className="mb-0.5 text-[12px] font-semibold text-primary-bright">Você</div>}
+                  {robo && <div className="mb-0.5 text-[12px] font-semibold text-muted">Resposta automática da empresa</div>}
                   {robo ? m.content.replace(/^\[resposta automática\]\s*/, "") : m.content === "[reactionMessage]" ? "Reagiu à mensagem 👍" : m.content}
-                  <div className="mt-1 text-right font-mono text-[10px] text-muted">
+                  <div className="mt-1 text-right font-mono text-[12px] text-muted">
                     {new Date(m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>
@@ -178,7 +178,7 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         })}
         <div ref={fim} />
       </div>
-      <div className="border-t border-border px-3 pt-2 text-[11px] text-muted">
+      <div className="border-t border-border px-3 pt-2 text-[12px] text-muted">
         Fale com a Gabi sobre esta conversa: ela monta a mensagem, te mostra na aba Você e a Gabi e só manda com o seu ok.
       </div>
       <Compositor leadId={c.id} placeholder="Ex.: Gabi, não é assim. Pede desculpa e oferece terça às 10h" compacto />

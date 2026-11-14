@@ -7,7 +7,7 @@ export default function Acessos() {
   return (
     <section>
       <div className="mb-[22px]">
-        <div className="text-[21px] font-semibold">Acessos e logins</div>
+        <div className="text-[20px] font-semibold">Acessos e logins</div>
         <div className="mt-1 text-[13px] text-muted">Quem acessa o Demand Hub e o que cada um enxerga.</div>
       </div>
       <TableWrap>

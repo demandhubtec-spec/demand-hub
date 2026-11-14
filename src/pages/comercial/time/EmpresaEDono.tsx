@@ -31,10 +31,10 @@ export function EmpresaEDono({ lead }: { lead: OutreachLead }) {
     ) : null;
 
   return (
-    <div className="mb-4 rounded-md border border-border p-3 text-[12.5px]">
+    <div className="mb-4 rounded-md border border-border p-3 text-[13px]">
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Empresa e dono · Léo</span>
-        <span className="ml-auto text-[11px] text-muted">{etapa ? ETAPA_LEO[etapa] ?? etapa : "na fila do Léo"}</span>
+        <span className="text-[12px] font-semibold text-muted">Empresa e dono · Léo</span>
+        <span className="ml-auto text-[12px] text-muted">{etapa ? ETAPA_LEO[etapa] ?? etapa : "na fila do Léo"}</span>
       </div>
       <div className="space-y-1">
         {linha("CNPJ", lead.cnpj && `${fmtCnpj(lead.cnpj)}${lead.cnpj_situacao ? ` · ${lead.cnpj_situacao.toLowerCase()}` : ""}`)}

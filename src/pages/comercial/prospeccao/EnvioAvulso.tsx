@@ -69,7 +69,7 @@ export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?:
   return (
     <div className="mt-4 rounded-xl border border-border p-3">
       <div className="mb-2 flex items-center gap-2">
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted">Mensagem avulsa</span>
+        <span className="text-[12px] font-semibold text-muted">Mensagem avulsa</span>
         <div className="ml-auto flex gap-1">
           {(["whatsapp", "email"] as const).map((c) => (
             <button
@@ -133,7 +133,7 @@ export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?:
           {pdf && <span className="text-muted">O PDF vai logo depois do 1º balão.</span>}
         </div>
       )}
-      <div className="mt-1 text-[11.5px] text-muted">
+      <div className="mt-1 text-[12px] text-muted">
         {canal === "whatsapp" ? `${baloes.length} balão(ões)${pdf ? " + PDF" : ""}. Sai do WhatsApp da Ana.` : "Sai do e-mail da Ana, com foto e assinatura."}
         {travessao && <span className="text-attention"> Tem travessão: troque por vírgula ou ponto.</span>}
       </div>
@@ -145,7 +145,7 @@ export function EnvioAvulso({ lead, rascunho }: { lead: OutreachLead; rascunho?:
           </Button>
         ) : (
           <>
-            <span className="text-[12.5px]">
+            <span className="text-[13px]">
               Confirma o envio {canal === "email" ? `para ${emails.join(", ")}` : `para o WhatsApp de ${lead.empresa}`}?
             </span>
             <Button size="sm" onClick={mandar} disabled={enviar.isPending}>

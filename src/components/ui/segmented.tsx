@@ -22,7 +22,7 @@ export function Segmented<T extends string>({
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "rounded-full px-3.5 py-1.5 text-[12.5px] font-semibold transition-colors",
+            "rounded-full px-3.5 py-1.5 text-[13px] font-semibold transition-colors",
             value === o.value ? "bg-primary text-white" : "text-muted hover:text-ink",
           )}
         >

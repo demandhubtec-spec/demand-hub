@@ -157,18 +157,18 @@ export default function Seo() {
     <section>
       <div className="mb-[22px] flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[21px] font-semibold">SEO e orgânico</div>
+          <div className="text-[20px] font-semibold">SEO e orgânico</div>
           <div className="mt-1 text-[13px] text-muted">
             Como as pessoas encontram o demandhub.com.br: no Google, nas redes, no ChatGPT e em outras IAs.
           </div>
         </div>
-        <div className="flex gap-1.5 rounded-[10px] border border-border bg-surface p-1">
+        <div className="flex gap-1.5 rounded-[8px] border border-border bg-surface p-1">
           {PERIODOS.map((p) => (
             <button
               key={p.dias}
               onClick={() => setDias(p.dias)}
               className={cn(
-                "rounded-[7px] px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                "rounded-[8px] px-3 py-1.5 text-[13px] font-medium transition-colors",
                 dias === p.dias ? "bg-primary text-white" : "text-muted hover:text-foreground",
               )}
             >
@@ -290,7 +290,7 @@ function AbaGoogle({ dias }: { dias: number }) {
 
       <Card className="mb-[22px] p-5 px-[22px]">
         <div className="text-sm font-semibold">Cliques e impressões por dia</div>
-        <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Barras: impressões (quantas vezes o site apareceu) · linha: cliques</div>
+        <div className="mb-3 mt-0.5 text-[12px] text-muted">Barras: impressões (quantas vezes o site apareceu) · linha: cliques</div>
         <GraficoDias pontos={(r.por_dia ?? []).map((d) => ({ dia: d.dia, barra: d.impressoes, linha: d.cliques }))} />
       </Card>
 
@@ -299,9 +299,9 @@ function AbaGoogle({ dias }: { dias: number }) {
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
               <div className="text-sm font-semibold">Palavras-chave</div>
-              <div className="mt-0.5 text-[11.5px] text-muted">O que as pessoas buscaram quando o site apareceu no Google</div>
+              <div className="mt-0.5 text-[12px] text-muted">O que as pessoas buscaram quando o site apareceu no Google</div>
             </div>
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Filtrar palavra…" className="h-8 w-[200px] text-[12.5px]" />
+            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Filtrar palavra…" className="h-8 w-[200px] text-[13px]" />
           </div>
           <div className="mt-3">
             {consultas.length === 0 ? (
@@ -336,7 +336,7 @@ function AbaGoogle({ dias }: { dias: number }) {
         </Card>
         <Card className="p-5 px-[22px]">
           <div className="text-sm font-semibold">Páginas que aparecem</div>
-          <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Qual página do site o Google mostrou</div>
+          <div className="mb-3 mt-0.5 text-[12px] text-muted">Qual página do site o Google mostrou</div>
           {(r.paginas ?? []).length === 0 ? (
             <EmptyState>Nenhuma página no período.</EmptyState>
           ) : (
@@ -378,7 +378,7 @@ function Posicao({ atual, antes }: { atual: number | null; antes: number | null 
     <span className="inline-flex items-center gap-1.5">
       <span className={cn("font-semibold", atual <= 3 ? "text-positive" : atual <= 10 ? "text-ink" : "text-muted")}>{dec(atual)}</span>
       {d != null && d !== 0 && (
-        <span className={cn("text-[11px]", d > 0 ? "text-positive" : "text-negative")}>
+        <span className={cn("text-[12px]", d > 0 ? "text-positive" : "text-negative")}>
           {d > 0 ? "▲" : "▼"} {dec(Math.abs(d))}
         </span>
       )}
@@ -441,13 +441,13 @@ function AbaOrigens({ dias }: { dias: number }) {
 
       <Card className="mb-[22px] p-5 px-[22px]">
         <div className="text-sm font-semibold">Visitas por dia</div>
-        <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Barras: visitas (site + diagnóstico) · linha: diagnósticos enviados</div>
+        <div className="mb-3 mt-0.5 text-[12px] text-muted">Barras: visitas (site + diagnóstico) · linha: diagnósticos enviados</div>
         <GraficoDias pontos={r.por_dia.map((d) => ({ dia: d.dia, barra: d.site + d.diagnostico, linha: d.envios }))} />
       </Card>
 
       <Card className="p-5 px-[22px]">
         <div className="text-sm font-semibold">De onde vêm as visitas</div>
-        <div className="mb-3 mt-0.5 text-[11.5px] text-muted">
+        <div className="mb-3 mt-0.5 text-[12px] text-muted">
           Origem da primeira página vista em cada visita. Google orgânico, Instagram, ChatGPT e outras IAs aparecem separados; anúncios com UTM aparecem como "(anúncio)".
         </div>
         {r.origens.length === 0 ? (
@@ -548,33 +548,33 @@ function AbaIA() {
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-[1.6fr_1fr]">
         <Card className="p-5 px-[22px]">
           <div className="text-sm font-semibold">Perguntas monitoradas</div>
-          <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Clique numa pergunta para ver o que o ChatGPT respondeu da última vez</div>
+          <div className="mb-3 mt-0.5 text-[12px] text-muted">Clique numa pergunta para ver o que o ChatGPT respondeu da última vez</div>
           <div className="flex flex-col gap-2">
             {r.perguntas.map((p) => (
-              <div key={p.id} className={cn("rounded-[10px] border border-border p-3", !p.ativa && "opacity-55")}>
+              <div key={p.id} className={cn("rounded-[8px] border border-border p-3", !p.ativa && "opacity-55")}>
                 <div className="flex items-start justify-between gap-3">
                   <button className="text-left text-[13px] font-medium hover:text-primary-bright" onClick={() => setAberta(aberta === p.id ? null : p.id)}>
                     {p.pergunta}
                   </button>
                   <div className="flex shrink-0 items-center gap-2">
                     {p.citou == null ? (
-                      <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[11px] text-muted">sem checagem</span>
+                      <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[12px] text-muted">sem checagem</span>
                     ) : p.citou ? (
-                      <span className="rounded-full bg-positive-tint px-2 py-0.5 text-[11px] font-semibold text-positive">citada</span>
+                      <span className="rounded-full bg-positive-tint px-2 py-0.5 text-[12px] font-semibold text-positive">citada</span>
                     ) : (
-                      <span className="rounded-full bg-negative-tint px-2 py-0.5 text-[11px] font-semibold text-negative">não citada</span>
+                      <span className="rounded-full bg-negative-tint px-2 py-0.5 text-[12px] font-semibold text-negative">não citada</span>
                     )}
                   </div>
                 </div>
-                <div className="mt-1 text-[11.5px] text-muted">
+                <div className="mt-1 text-[12px] text-muted">
                   {p.quando ? `Checada em ${dataBR(p.quando)}` : "Ainda não checada"} · citada em {p.citou_vezes} de {p.vezes} checagem(ns) nas últimas 8 semanas
                 </div>
                 {aberta === p.id && (
                   <div className="mt-3 border-t border-border pt-3">
                     {p.fontes && p.fontes.length > 0 && (
-                      <div className="mb-2 text-[11.5px] text-muted">Fontes usadas: {p.fontes.join(", ")}</div>
+                      <div className="mb-2 text-[12px] text-muted">Fontes usadas: {p.fontes.join(", ")}</div>
                     )}
-                    <div className="whitespace-pre-wrap text-[12.5px] leading-relaxed">{p.resposta ?? "Sem resposta guardada."}</div>
+                    <div className="whitespace-pre-wrap text-[13px] leading-relaxed">{p.resposta ?? "Sem resposta guardada."}</div>
                     <div className="mt-3 flex gap-2">
                       <Button size="sm" variant="ghost" onClick={() => checar.mutate(p.id)} disabled={checar.isPending}>
                         Checar só esta
@@ -604,7 +604,7 @@ function AbaIA() {
 
         <Card className="p-5 px-[22px]">
           <div className="text-sm font-semibold">Quem o ChatGPT usa de fonte</div>
-          <div className="mb-3 mt-0.5 text-[11.5px] text-muted">Sites citados nas respostas nas últimas 8 semanas. São os concorrentes na briga por aparecer nas IAs.</div>
+          <div className="mb-3 mt-0.5 text-[12px] text-muted">Sites citados nas respostas nas últimas 8 semanas. São os concorrentes na briga por aparecer nas IAs.</div>
           {r.fontes.length === 0 ? (
             <EmptyState>Ainda sem checagens.</EmptyState>
           ) : (
