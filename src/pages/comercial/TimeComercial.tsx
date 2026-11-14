@@ -86,68 +86,95 @@ export default function TimeComercial() {
     leads.filter((l) => l.wa_status === "pendente" && (l.rita_status === "pendente" || l.duda_status === "pendente")).length;
   const abrirConversa = (id: string) => irPara("conversas", { lead: id });
 
+  // Etapa 3 do visual (14/11/2026): 11 abas viraram 6. As antigas continuam valendo no endereço (?aba=...)
+  // e aparecem como sub-abas dentro da principal: nada sumiu, só foi agrupado.
+  const principal = PRINCIPAL_DA_ABA[aba];
+  const sub = (opcoes: { value: AbaTime; label: string }[]) => <Segmented value={aba} onChange={(v) => irPara(v)} opcoes={opcoes} />;
+
   return (
-    <Tabs value={aba} onValueChange={(v) => irPara(v as AbaTime)}>
+    <Tabs value={principal} onValueChange={(v) => irPara(PRIMEIRA_DA_PRINCIPAL[v as Principal])}>
       <TabsList className="flex-wrap">
-        <TabsTrigger value="central">Central do time</TabsTrigger>
-        <TabsTrigger value="aprovacao">Aprovação{paraRevisar ? ` (${paraRevisar})` : ""}</TabsTrigger>
+        <TabsTrigger value="visao">Visão geral{insightsPendentes ? ` (${insightsPendentes})` : ""}</TabsTrigger>
+        <TabsTrigger value="aprovacao">Aprovações{paraRevisar ? ` (${paraRevisar})` : ""}</TabsTrigger>
+        <TabsTrigger value="conversas">Conversas{esperando ? ` (${esperando})` : ""}</TabsTrigger>
         <TabsTrigger value="envios">Envios</TabsTrigger>
-        <TabsTrigger value="funil">Funil</TabsTrigger>
-        <TabsTrigger value="indicadores">Indicadores</TabsTrigger>
-        <TabsTrigger value="insights">Insights{insightsPendentes ? ` (${insightsPendentes})` : ""}</TabsTrigger>
-        <TabsTrigger value="conversas">Conversas</TabsTrigger>
-        <TabsTrigger value="contatos">Contatos</TabsTrigger>
-        <TabsTrigger value="ana">Você e a Gabi{esperando ? ` (${esperando})` : ""}</TabsTrigger>
-        <TabsTrigger value="playbook">Playbook</TabsTrigger>
-        <TabsTrigger value="config">Configurações</TabsTrigger>
+        <TabsTrigger value="funil">Funil e contatos</TabsTrigger>
+        <TabsTrigger value="ajustes">Ajustes</TabsTrigger>
       </TabsList>
 
-      {["aprovacao", "envios", "config"].includes(aba) && <StatusOperacao />}
+      {["aprovacao", "envios", "ajustes"].includes(principal) && <StatusOperacao />}
 
-      <TabsContent value="central">
-        <iframe
-          src="/central-comercial.html"
-          title="Central do Time Comercial IA"
-          className="block w-full rounded-[12px] border-0"
-          scrolling="no"
-          allow="microphone"
-          style={{ height: alturaCentral ?? "calc(100vh - 140px)", minHeight: 640 }}
-        />
+      <TabsContent value="visao">
+        {sub([
+          { value: "central", label: "Central do time" },
+          { value: "indicadores", label: "Indicadores" },
+          { value: "insights", label: `Insights${insightsPendentes ? ` (${insightsPendentes})` : ""}` },
+        ])}
+        {aba === "central" ? (
+          <iframe
+            src="/central-comercial.html"
+            title="Central do Time Comercial IA"
+            className="block w-full rounded-[12px] border-0"
+            scrolling="no"
+            allow="microphone"
+            style={{ height: alturaCentral ?? "calc(100vh - 140px)", minHeight: 640 }}
+          />
+        ) : aba === "indicadores" ? (
+          <IndicadoresTab irPara={(a) => irPara(a)} />
+        ) : (
+          <InsightsTab />
+        )}
       </TabsContent>
       <TabsContent value="aprovacao">
         <Aprovacoes />
+      </TabsContent>
+      <TabsContent value="conversas">
+        {sub([
+          { value: "conversas", label: "Conversas com os leads" },
+          { value: "ana", label: `Você e a Gabi${esperando ? ` (${esperando})` : ""}` },
+        ])}
+        {aba === "ana" ? <CanalTab abrirConversa={abrirConversa} /> : <ConversasTab leadId={params.get("lead")} escolher={abrirConversa} />}
       </TabsContent>
       <TabsContent value="envios">
         <NumerosEnvio />
         <AgendaTab />
       </TabsContent>
       <TabsContent value="funil">
-        <FunilKanban abrirConversa={abrirConversa} />
+        {sub([
+          { value: "funil", label: "Funil" },
+          { value: "contatos", label: "Contatos" },
+        ])}
+        {aba === "contatos" ? <Contatos abrirConversa={abrirConversa} /> : <FunilKanban abrirConversa={abrirConversa} />}
       </TabsContent>
-      <TabsContent value="indicadores">
-        <IndicadoresTab irPara={(a) => irPara(a)} />
-      </TabsContent>
-      <TabsContent value="insights">
-        <InsightsTab />
-      </TabsContent>
-      <TabsContent value="conversas">
-        <ConversasTab leadId={params.get("lead")} escolher={abrirConversa} />
-      </TabsContent>
-      <TabsContent value="contatos">
-        <Contatos abrirConversa={abrirConversa} />
-      </TabsContent>
-      <TabsContent value="ana">
-        <CanalTab abrirConversa={abrirConversa} />
-      </TabsContent>
-      <TabsContent value="playbook">
-        <PlaybookTab />
-      </TabsContent>
-      <TabsContent value="config">
-        <Configuracoes />
+      <TabsContent value="ajustes">
+        <Configuracoes playbook={aba === "playbook"} />
       </TabsContent>
     </Tabs>
   );
 }
+
+type Principal = "visao" | "aprovacao" | "conversas" | "envios" | "funil" | "ajustes";
+const PRINCIPAL_DA_ABA: Record<AbaTime, Principal> = {
+  central: "visao",
+  indicadores: "visao",
+  insights: "visao",
+  aprovacao: "aprovacao",
+  conversas: "conversas",
+  ana: "conversas",
+  envios: "envios",
+  funil: "funil",
+  contatos: "funil",
+  playbook: "ajustes",
+  config: "ajustes",
+};
+const PRIMEIRA_DA_PRINCIPAL: Record<Principal, AbaTime> = {
+  visao: "central",
+  aprovacao: "aprovacao",
+  conversas: "conversas",
+  envios: "envios",
+  funil: "funil",
+  ajustes: "config",
+};
 
 /**
  * Aprovações por etapa do time: primeiro a lista do Léo, depois o raio-x e as mensagens (Rita, Bia e Rui).
@@ -198,14 +225,15 @@ function Contatos({ abrirConversa }: { abrirConversa: (id: string) => void }) {
   );
 }
 
-/** Configurações: Prompt System da Gabi, prospecção automática, limites e controles, metas do funil, webhook das ligações e o registro do que o robô fez. */
-function Configuracoes() {
+/** Ajustes: Prompt System da Gabi, Playbook, prospecção automática, limites e controles, metas do funil, webhook das ligações e o registro do que o robô fez. */
+function Configuracoes({ playbook }: { playbook: boolean }) {
   const [params, setParams] = useSearchParams();
-  type Visao = "prompt" | "automatico" | "controles" | "metas" | "ligacoes" | "atividade";
-  const visoes: Visao[] = ["prompt", "automatico", "controles", "metas", "ligacoes", "atividade"];
+  type Visao = "prompt" | "playbook" | "automatico" | "controles" | "metas" | "ligacoes" | "atividade";
+  const visoes: Visao[] = ["prompt", "playbook", "automatico", "controles", "metas", "ligacoes", "atividade"];
   const v = params.get("config") as Visao | null;
-  const visao: Visao = v && visoes.includes(v) ? v : "prompt";
-  const setVisao = (n: Visao) => setParams({ aba: "config", config: n }, { replace: true });
+  const visao: Visao = playbook ? "playbook" : v && visoes.includes(v) ? v : "prompt";
+  // O Playbook tem endereço próprio (?aba=playbook), que a Central usa para abrir direto
+  const setVisao = (n: Visao) => setParams(n === "playbook" ? { aba: "playbook" } : { aba: "config", config: n }, { replace: true });
   return (
     <div>
       <Segmented
@@ -213,6 +241,7 @@ function Configuracoes() {
         onChange={setVisao}
         opcoes={[
           { value: "prompt", label: "Prompt System da Gabi" },
+          { value: "playbook", label: "Playbook" },
           { value: "automatico", label: "Automático" },
           { value: "controles", label: "Controles" },
           { value: "metas", label: "Metas do funil" },
@@ -222,6 +251,8 @@ function Configuracoes() {
       />
       {visao === "prompt" ? (
         <PromptGabiTab />
+      ) : visao === "playbook" ? (
+        <PlaybookTab />
       ) : visao === "automatico" ? (
         <AutomaticoTab />
       ) : visao === "controles" ? (
