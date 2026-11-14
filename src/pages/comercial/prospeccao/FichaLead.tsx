@@ -22,7 +22,7 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="left-auto right-0 top-0 h-full max-h-none w-full max-w-[640px] translate-x-0 translate-y-0 overflow-y-auto rounded-none">
+      <DialogContent className="max-h-[86vh] max-w-[720px] overflow-y-auto">
         <DialogTitle>{lead.empresa}</DialogTitle>
         <DialogDescription>
           {[etapa?.label, resumo || null, lead.decisor && `Decisor: ${lead.decisor}`].filter(Boolean).join(" · ")}
