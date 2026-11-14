@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ProjetoModal } from "@/components/shared/ProjetoModal";
 import { departamentoInfo } from "@/data/departamentos";
+import { AbasArea } from "@/components/layout/AbasArea";
 import type { Departamento } from "@/lib/types";
 import { useProjetosDept } from "@/hooks/useProjetos";
 import { cn } from "@/lib/utils";
@@ -19,10 +20,8 @@ export default function DepartmentProjetos() {
 
   return (
     <section>
-      <div className="mb-[22px]">
-        <div className="text-[20px] font-semibold">{info.nome} · Projetos</div>
-        <div className="mt-1 text-[13px] text-muted">{projetos.length} projeto(s) neste departamento.</div>
-      </div>
+      <AbasArea dept={key} />
+      <div className="mb-4 text-[13px] text-muted">{projetos.length} projeto(s) em {info.nome}.</div>
 
       {projetos.length === 0 ? (
         <EmptyState>
