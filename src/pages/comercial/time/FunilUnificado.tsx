@@ -51,6 +51,14 @@ const GRUPOS: { g: GrupoOrigem; sub: string }[] = [
 ];
 const CHAVE_FILTRO = "dh.funil.origens";
 
+/** A Gabi marca o avanço na conversa (qualificado, agendado, cliente). Se ela já foi além da etapa do card, o card acompanha. */
+const ORDEM: EtapaUnica[] = ["entrada", "contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
+function comAvancoDaGabi(e: EtapaUnica, sdr: Contato | undefined): EtapaUnica {
+  if (!sdr || e === "perdido") return e;
+  const g: EtapaUnica | null = sdr.status === "cliente" ? "ganho" : sdr.status === "agendado" ? "reuniao" : sdr.status === "qualificado" ? "qualificacao" : null;
+  return g && ORDEM.indexOf(g) > ORDEM.indexOf(e) ? g : e;
+}
+
 /** Um card do funil, com o registro de onde ele veio. */
 type Registro =
   | { tipo: "google"; lead: OutreachLead }
@@ -120,7 +128,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
       const sdr = l.whatsapp ? sdrPorFone.get(fim8(l.whatsapp)) : undefined;
       out.push({
         id: `g:${l.place_id}`,
-        etapa: daOutbound(e),
+        etapa: comAvancoDaGabi(daOutbound(e), sdr),
         origem: "google",
         reg: { tipo: "google", lead: l },
         item: {
@@ -147,7 +155,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           : null;
       out.push({
         id: `l:${l.id}`,
-        etapa: daLista(etapaLista),
+        etapa: comAvancoDaGabi(daLista(etapaLista), sdr),
         origem,
         reg: { tipo: "lista", lead: l, time },
         item: {
