@@ -95,7 +95,7 @@ export function ControlesTab() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="p-5 px-[22px]">
-        <div className="text-sm font-semibold">Liga e desliga</div>
+        <div className="text-[14px] font-semibold">Liga e desliga</div>
         <div className="mb-2 mt-0.5 text-[12px] text-muted">Cada mudança fica registrada na aba Atividade.</div>
 
         <Linha title="WhatsApp" sub={cfg.wa_enabled ? "O motor está disparando dentro da janela" : "Pausado: nada sai pelo WhatsApp"}>
@@ -191,7 +191,7 @@ export function ControlesTab() {
       </Card>
 
       <Card className="p-5 px-[22px]">
-        <div className="text-sm font-semibold">Ritmo e janela de envio</div>
+        <div className="text-[14px] font-semibold">Ritmo e janela de envio</div>
         <div className="mb-3 mt-0.5 text-[12px] text-muted">Horário de São Paulo. Intervalos em segundos, sorteados entre o mínimo e o máximo.</div>
 
         <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-x-3 gap-y-2 text-[13px]">

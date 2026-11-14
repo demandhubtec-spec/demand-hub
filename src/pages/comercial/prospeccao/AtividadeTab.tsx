@@ -33,7 +33,7 @@ export function AtividadeTab() {
   return (
     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
       <Card className="p-5 px-[22px]">
-        <div className="text-sm font-semibold">Atividade</div>
+        <div className="text-[14px] font-semibold">Atividade</div>
         <div className="mb-3 mt-0.5 text-[12px] text-muted">Últimos 50 eventos · atualiza sozinho</div>
         {isLoading ? <div className="text-[13px] text-muted">Carregando…</div> : log.length === 0 ? (
           <div className="text-[13px] text-muted">Nada registrado ainda.</div>
@@ -54,7 +54,7 @@ export function AtividadeTab() {
                     </div>
                     {det && <div className="truncate text-muted" title={det}>{det}</div>}
                   </div>
-                  <span className="shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
+                  <span className="shrink-0 tabular-nums text-[12px] text-muted">{fmtData(e.created_at)}</span>
                 </li>
               );
             })}
@@ -63,7 +63,7 @@ export function AtividadeTab() {
       </Card>
 
       <div>
-        <div className="mb-2 text-sm font-semibold">Coletas</div>
+        <div className="mb-2 text-[14px] font-semibold">Coletas</div>
         {coletas.length === 0 ? <EmptyState>Nenhuma coleta registrada ainda.</EmptyState> : (
           <TableWrap>
             <thead>

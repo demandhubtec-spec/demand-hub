@@ -173,7 +173,7 @@ export function AutomaticoTab() {
       <Card className="p-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="text-[13px]">
-            <div className="text-[15px] font-semibold">Prospecção automática</div>
+            <div className="text-[16px] font-semibold">Prospecção automática</div>
             <div className="mt-1 max-w-[640px] text-muted">
               Todo domingo à noite o sistema confere a fila da semana. Se faltar empresa, coleta no Google Maps as próximas buscas das cidades e
               nichos abaixo (aplicando os filtros), analisa o perfil no Google, o site e o Instagram, a Ana escreve a sequência e você recebe um
@@ -338,7 +338,7 @@ export function AutomaticoTab() {
         <ul className="space-y-1.5 text-[13px]">
           {historico.map((e) => (
             <li key={e.id} className="flex gap-2">
-              <span className="w-[82px] shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
+              <span className="w-[82px] shrink-0 tabular-nums text-[12px] text-muted">{fmtData(e.created_at)}</span>
               <span className={e.event === "error" ? "text-attention" : ""}>{typeof e.detail === "object" && e.detail ? String((e.detail as { msg?: string }).msg ?? "") : ""}</span>
             </li>
           ))}
@@ -357,7 +357,7 @@ function Indicador({ titulo, valor, nota }: { titulo: string; valor: string; not
   return (
     <div className="rounded-xl border border-border p-3">
       <div className="text-[12px] font-semibold text-muted">{titulo}</div>
-      <div className="mt-1 text-[18px] font-semibold">{valor}</div>
+      <div className="mt-1 text-[20px] font-semibold">{valor}</div>
       {nota && <div className="text-[12px] text-muted">{nota}</div>}
     </div>
   );

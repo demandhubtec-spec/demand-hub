@@ -281,7 +281,7 @@ function DetalheLead({ lead, onClose }: { lead: OutreachLead; onClose: () => voi
           <ul className="space-y-2">
             {log.map((e) => (
               <li key={e.id} className="flex gap-3 text-[13px]">
-                <span className="w-[86px] shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
+                <span className="w-[86px] shrink-0 tabular-nums text-[12px] text-muted">{fmtData(e.created_at)}</span>
                 <span><b className="font-semibold">{e.event}</b> {detalheTexto(e.detail)}</span>
               </li>
             ))}
@@ -387,7 +387,7 @@ export function LeadsTab() {
                 <Td>{l.prioridade ?? "-"}</Td>
                 <Td>
                   <Pill status={l.wa_status} />
-                  <div className="mt-0.5 font-mono text-[12px] text-muted">{fmtTelefone(l.whatsapp)}</div>
+                  <div className="mt-0.5 tabular-nums text-[12px] text-muted">{fmtTelefone(l.whatsapp)}</div>
                 </Td>
                 <Td><Pill status={l.email_status} /></Td>
                 <Td>
@@ -403,7 +403,7 @@ export function LeadsTab() {
                     </Select>
                   </div>
                 </Td>
-                <Td><span className="font-mono text-[12px] text-muted">{fmtData(ultimaAtividade(l))}</span></Td>
+                <Td><span className="tabular-nums text-[12px] text-muted">{fmtData(ultimaAtividade(l))}</span></Td>
                 <Td>
                   <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                     {l.wa_status === "pendente" ? (
