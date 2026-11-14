@@ -23,7 +23,7 @@ import { type CardItem, Quadro } from "./FunilKanban";
 import { type Coluna, etapaListaDoTime, etapaOutboundDaLista, passoDoTime, patchOutbound, placeIdInstagram } from "./funis";
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
-const NOME: Record<ListaExtra, string> = { instagram: "Instagram", linkedin: "LinkedIn", ligacoes: "Ligações" };
+const NOME: Record<string, string> = { instagram: "Instagram", linkedin: "LinkedIn", ligacoes: "Ligações", manual: "Cadastro manual" };
 
 /** Kanban das listas Instagram, LinkedIn e Ligações. Mover o card só muda a etapa; nada é enviado para o lead. */
 export function FunilLista({
@@ -205,7 +205,7 @@ export function FunilLista({
   );
 }
 
-function AvisosRepetidos({ lista }: { lista: ListaExtra }) {
+export function AvisosRepetidos({ lista }: { lista: ListaExtra }) {
   const { data: avisos = [] } = useAvisos();
   const lido = useMarcarAvisoLido();
   const [ver, setVer] = React.useState<string | null>(null);
@@ -242,7 +242,7 @@ function AvisosRepetidos({ lista }: { lista: ListaExtra }) {
   );
 }
 
-function ImportarRodada({ lista, onClose }: { lista: ListaExtra; onClose: () => void }) {
+export function ImportarRodada({ lista, onClose }: { lista: ListaExtra; onClose: () => void }) {
   const importar = useImportarRodada();
   const { showToast } = useToast();
   const mes = new Date().toLocaleDateString("pt-BR", { month: "short", year: "2-digit" }).replace(". de ", "/").replace(" de ", "/").replace(".", "");
@@ -314,7 +314,7 @@ function ImportarRodada({ lista, onClose }: { lista: ListaExtra; onClose: () => 
   );
 }
 
-function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: () => void }) {
+export function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: () => void }) {
   const atualizar = useAtualizarListaLead();
   const { showToast } = useToast();
   const [obs, setObs] = React.useState(lead.observacoes ?? "");
@@ -334,7 +334,7 @@ function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: () => voi
     <Dialog open onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="left-auto right-0 top-0 h-full max-h-none w-full max-w-[520px] translate-x-0 translate-y-0 overflow-y-auto rounded-none">
         <DialogTitle>{lead.empresa}</DialogTitle>
-        <DialogDescription>{NOME[lead.lista]} · Lista</DialogDescription>
+        <DialogDescription>{NOME[lead.lista]}{lead.lista === "manual" ? "" : " · Lista"}</DialogDescription>
         <div className="mt-3 flex flex-wrap gap-2">
           {lead.perfil_url && (
             <a href={lead.perfil_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 text-[13px] hover:border-primary-bright">

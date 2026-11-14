@@ -161,3 +161,56 @@ export function passoDoTime(l: OutreachLead): string | null {
 /** Lista → etapa da prospecção, para mover o card de quem já está no time. */
 export const etapaOutboundDaLista = (e: EtapaLista): EtapaOutbound | null =>
   e === "na_lista" ? "disparar" : e === "contato" ? "enviado" : (COLUNAS_OUTBOUND.some((c) => c.key === e) ? (e as EtapaOutbound) : null);
+
+/* ───────────── Funil comercial unificado (14/11/2026, Kelvin) ─────────────
+ * Um funil só para todas as origens. As etapas de cada origem caem nas mesmas colunas:
+ *  - Google (prospecção): disparar → Entrada, enviado → Mensagem ou ligação.
+ *  - Listas (Instagram, LinkedIn, Ligações, cadastro manual): na_lista → Entrada, atendida → Conversa iniciada.
+ *  - Inbound (anúncio): recebido → Entrada, atendimento → Conversa iniciada (não passa por Mensagem ou ligação).
+ */
+export const COLUNAS_UNICAS = [
+  { key: "entrada", label: "Entrada", dica: "Na lista ou acabou de chegar" },
+  { key: "contato", label: "Mensagem ou ligação", dica: "Já abordado, ainda sem conversa" },
+  { key: "conversa", label: "Conversa iniciada", dica: "Respondeu, atendeu ou a Gabi já está conversando" },
+  { key: "qualificacao", label: "Qualificação", dica: "Decisor, faturamento, dor e momento" },
+  { key: "reuniao", label: "Reunião agendada", dica: "Está na sua agenda" },
+  { key: "reuniao_realizada", label: "Reunião realizada", dica: "Conversou com você" },
+  { key: "proposta", label: "Negociação", dica: "Proposta enviada" },
+  { key: "ganho", label: "Venda", dica: "Venda feita" },
+  { key: "perdido", label: "Perdido", dica: "Sem interesse, sem perfil ou desistiu", fim: true },
+] as const satisfies readonly Coluna<string>[];
+export type EtapaUnica = (typeof COLUNAS_UNICAS)[number]["key"];
+
+export type OrigemLead = "google" | "instagram" | "ligacao" | "linkedin" | "anuncio" | "indicacao" | "recomendacao" | "network" | "evento" | "outro";
+export type GrupoOrigem = "Outbound" | "Inbound" | "Relacionamento";
+export const ORIGENS: { k: OrigemLead; nome: string; grupo: GrupoOrigem; cor: string; fundo: string }[] = [
+  { k: "google", nome: "Google Meu Negócio", grupo: "Outbound", cor: "#2f6fe4", fundo: "#eaf1fe" },
+  { k: "instagram", nome: "Instagram", grupo: "Outbound", cor: "#c2306f", fundo: "#fcebf3" },
+  { k: "ligacao", nome: "Ligação", grupo: "Outbound", cor: "#17865b", fundo: "#e6f6ef" },
+  { k: "linkedin", nome: "LinkedIn", grupo: "Outbound", cor: "#0a66c2", fundo: "#e8f1fb" },
+  { k: "anuncio", nome: "Anúncio", grupo: "Inbound", cor: "#b86e00", fundo: "#fdf3e1" },
+  { k: "indicacao", nome: "Indicação", grupo: "Relacionamento", cor: "#7a3fd1", fundo: "#f3ecfd" },
+  { k: "recomendacao", nome: "Recomendação", grupo: "Relacionamento", cor: "#7a3fd1", fundo: "#f3ecfd" },
+  { k: "network", nome: "Network", grupo: "Relacionamento", cor: "#7a3fd1", fundo: "#f3ecfd" },
+  { k: "evento", nome: "Evento", grupo: "Relacionamento", cor: "#7a3fd1", fundo: "#f3ecfd" },
+  { k: "outro", nome: "Outra origem", grupo: "Relacionamento", cor: "#6b6585", fundo: "#f1f0f5" },
+];
+export const ORIGEM_POR_CHAVE = Object.fromEntries(ORIGENS.map((o) => [o.k, o])) as Record<OrigemLead, (typeof ORIGENS)[number]>;
+/** Origem de um lead cadastrado à mão (campo fonte). */
+export const origemDaFonte = (f: string | null | undefined): OrigemLead =>
+  f && (ORIGENS as { k: string }[]).some((o) => o.k === f) ? (f as OrigemLead) : "outro";
+
+export const daOutbound = (e: EtapaOutbound): EtapaUnica => (e === "disparar" ? "entrada" : e === "enviado" ? "contato" : e);
+export const daLista = (e: EtapaLista): EtapaUnica => (e === "na_lista" ? "entrada" : e === "atendida" ? "conversa" : e);
+export const daInbound = (e: EtapaInbound): EtapaUnica => (e === "recebido" ? "entrada" : e === "atendimento" ? "conversa" : e);
+export const paraOutbound = (u: EtapaUnica): EtapaOutbound => (u === "entrada" ? "disparar" : u === "contato" ? "enviado" : u);
+export const paraLista = (u: EtapaUnica): EtapaLista => (u === "entrada" ? "na_lista" : u);
+export const paraInbound = (u: EtapaUnica): EtapaInbound | null => (u === "entrada" ? "recebido" : u === "contato" ? null : u === "conversa" ? "atendimento" : u);
+
+/** Nome da primeira coluna conforme as origens marcadas no filtro. */
+export function nomeEntrada(origens: OrigemLead[]): { label: string; dica: string } {
+  const grupos = new Set(origens.map((o) => ORIGEM_POR_CHAVE[o].grupo));
+  if (grupos.size === 1 && grupos.has("Inbound")) return { label: "Lead do anúncio", dica: "Chegou pelo anúncio, site ou WhatsApp" };
+  if (grupos.size === 1 && grupos.has("Outbound")) return { label: "Na lista", dica: "Lista aprovada, pronta para o primeiro contato" };
+  return { label: "Entrada", dica: "Na lista ou acabou de chegar" };
+}
