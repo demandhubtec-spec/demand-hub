@@ -108,7 +108,7 @@ export default function TimeComercial() {
         <iframe
           src="/central-comercial.html"
           title="Central do Time Comercial IA"
-          className="block w-full rounded-[14px] border-0"
+          className="block w-full rounded-[12px] border-0"
           scrolling="no"
           allow="microphone"
           style={{ height: alturaCentral ?? "calc(100vh - 140px)", minHeight: 640 }}
