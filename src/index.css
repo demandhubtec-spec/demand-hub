@@ -34,7 +34,7 @@
   --attention-tint: rgba(255, 179, 92, 0.13);
   --negative: #ff6b81;
   --negative-tint: rgba(255, 107, 129, 0.14);
-  --radius: 16px;
+  --radius: 12px;
   --sidebar-w: 258px;
   --sidebar-w-collapsed: 76px;
   --sb-bg: #0b0420;
@@ -50,11 +50,11 @@
 /* Tema claro (padrão desde 14/11/2026): "branco neve", claro sem brilhar, com o menu lateral no roxo da marca */
 [data-theme="light"] {
   --bg: #eef0f4;
-  --surface: #f9fafb;
-  --surface-2: #ece6fb;
-  --border: rgba(46, 30, 110, 0.14);
-  --ink: #0b0420;
-  --muted: #585174;
+  --surface: #ffffff;
+  --surface-2: #f3f1f8;
+  --border: #e3e1ec;
+  --ink: #12101f;
+  --muted: #5f5978;
   --primary: #6e3aff;
   --primary-bright: #6e3aff;
   --primary-tint: #e9e1ff;
@@ -97,14 +97,13 @@ body {
 
 /* Ícones: traço mais firme e pontas arredondadas, como pede o manual */
 svg.lucide {
-  stroke-width: 2.25;
+  stroke-width: 1.75;
 }
 
 h1 {
-  font-family: "Archivo", "Arial Black", sans-serif;
-  font-weight: 800;
-  font-stretch: 75%;
-  text-transform: uppercase;
+  font-family: "Geist", Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0;
 }
 h2,
@@ -163,21 +162,28 @@ a {
   }
 }
 
-/* H1 da marca: Archivo ExtraBold 800 · largura 75% · caixa alta */
+/* Títulos de página (base visual de 14/11): Geist 700, só a primeira maiúscula. Archivo fica só no logo (.brand-logo). */
 .brand-h {
+  font-family: "Geist", Arial, sans-serif;
+  font-weight: 700;
+  text-transform: none;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+/* Números de destaque: Geist 700 com algarismos alinhados */
+.brand-num {
+  font-family: "Geist", Arial, sans-serif;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+/* Logo da marca: Archivo ExtraBold 800 · largura 75% · caixa alta */
+.brand-logo {
   font-family: "Archivo", "Arial Black", sans-serif;
   font-weight: 800;
   font-stretch: 75%;
   text-transform: uppercase;
-  line-height: 0.9;
-  letter-spacing: 0;
-}
-/* Números grandes também em Archivo 800 / 75% */
-.brand-num {
-  font-family: "Archivo", "Arial Black", sans-serif;
-  font-weight: 800;
-  font-stretch: 75%;
-  line-height: 1;
 }
 /* Destaque em Violeta (um por tela) */
 .brand-hl {
@@ -193,13 +199,13 @@ a {
   background-clip: text;
   color: transparent;
 }
-/* Rótulo: Geist Mono 500, pequeno, espaçamento aberto (+12%) */
+/* Rótulo de seção (base visual de 14/11): Geist 600, letra normal, sem caixa alta */
 .eyebrow {
-  font-family: "Geist Mono", ui-monospace, monospace;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  font-size: 11px;
+  font-family: "Geist", Arial, sans-serif;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px !important;
 }
 
 /* Superfície "vidro" escura com fio de luz no topo */
@@ -610,4 +616,15 @@ table tr:last-child td {
     font-size: 10.5px;
     color: #9c97a6;
   }
+}
+
+/* ===== Base visual de 14/11: fundo liso no tema claro e sem efeitos de "tela futurista" ===== */
+[data-theme="light"] body {
+  background-image: none;
+}
+.card-glow::before,
+.card-glow:hover::before,
+.sheen::after,
+.nav-sweep::after {
+  display: none !important;
 }
