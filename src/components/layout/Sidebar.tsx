@@ -303,7 +303,7 @@ export function Sidebar({ collapsed, onToggleCollapse, mobileOpen, onCloseMobile
             </div>
           )}
           {!collapsed && (
-            <div className="mb-2.5 px-1 font-mono text-[12px] leading-relaxed text-[#6E61A0]">
+            <div className="mb-2.5 px-1 tabular-nums text-[12px] leading-relaxed text-[#6E61A0]">
               DemandIA · Portal
               <br />
               Todos os direitos reservados

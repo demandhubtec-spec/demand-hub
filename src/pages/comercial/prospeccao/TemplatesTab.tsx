@@ -203,7 +203,7 @@ export function TemplatesTab() {
 
             <div className="mt-5 border-t border-border pt-4">
               <div className="mb-2 flex flex-wrap items-center gap-2">
-                <div className="text-sm font-semibold">Prévia</div>
+                <div className="text-[14px] font-semibold">Prévia</div>
                 <Select value={lead?.place_id ?? ""} onValueChange={setLeadId}>
                   <SelectTrigger className="h-8 w-[220px] py-1 text-[12px]"><SelectValue placeholder="Escolha um lead" /></SelectTrigger>
                   <SelectContent>

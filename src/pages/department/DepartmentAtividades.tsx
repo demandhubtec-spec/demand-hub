@@ -77,7 +77,7 @@ export default function DepartmentAtividades() {
                     </span>
                     {a.descricao && <span className="text-[12px] text-muted">{a.descricao}</span>}
                   </span>
-                  <span className="shrink-0 rounded-[6px] bg-surface-2 px-2 py-[3px] font-mono text-[12px] text-muted">
+                  <span className="shrink-0 rounded-[6px] bg-surface-2 px-2 py-[3px] tabular-nums text-[12px] text-muted">
                     {a.prazo ? new Date(a.prazo + "T00:00:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) : "Sem prazo"}
                   </span>
                 </label>

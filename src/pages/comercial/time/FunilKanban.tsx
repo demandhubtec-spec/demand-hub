@@ -377,7 +377,7 @@ export function FunilKanban({ abrirConversa }: { abrirConversa: (id: string) => 
             >
               <Icone className="h-4 w-4 text-primary-bright" />
               {o.nome}
-              <span className="font-mono text-[12px] text-muted">{vazio ? "em breve" : conta[o.k]}</span>
+              <span className="tabular-nums text-[12px] text-muted">{vazio ? "em breve" : conta[o.k]}</span>
             </button>
           );
         })}

@@ -68,7 +68,7 @@ export function FichaLead({ lead, onClose }: { lead: OutreachLead; onClose: () =
               return (
                 <li key={e.id} className="flex gap-2.5 text-[13px]">
                   <Icon className={`mt-0.5 h-3.5 w-3.5 shrink-0 ${ic.cls}`} />
-                  <span className="w-[82px] shrink-0 font-mono text-[12px] text-muted">{fmtData(e.created_at)}</span>
+                  <span className="w-[82px] shrink-0 tabular-nums text-[12px] text-muted">{fmtData(e.created_at)}</span>
                   <span className="min-w-0">
                     <b className="font-semibold">{e.channel === "email" && e.event === "sent" ? "E-mail enviado" : ic.label}</b>{" "}
                     <span className="text-muted">{detalheTexto(e.detail)}</span>

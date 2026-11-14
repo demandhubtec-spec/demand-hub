@@ -43,7 +43,7 @@ export function AcompanhamentoCliente({
         <MessageSquare className="h-4 w-4" />
         Comentários do cliente
         {naoLidos > 0 && (
-          <span className="ml-1 rounded-full bg-primary px-1.5 py-px font-mono text-[12px] font-bold text-white">{naoLidos}</span>
+          <span className="ml-1 rounded-full bg-primary px-1.5 py-px tabular-nums text-[12px] font-bold text-white">{naoLidos}</span>
         )}
       </Button>
       <Button variant="ghost" onClick={() => setLinkAberto(true)}>
@@ -110,7 +110,7 @@ function LinkDialog({
         </DialogDescription>
 
         {isLoading ? (
-          <div className="text-sm text-muted">Carregando…</div>
+          <div className="text-[14px] text-muted">Carregando…</div>
         ) : link ? (
           <div className="space-y-3">
             <div className="flex gap-2">
@@ -118,7 +118,7 @@ function LinkDialog({
                 readOnly
                 value={url}
                 onFocus={(e) => e.target.select()}
-                className="min-w-0 flex-1 rounded-[8px] border border-border bg-surface-2 px-3 py-2 font-mono text-[12px] text-ink"
+                className="min-w-0 flex-1 rounded-[8px] border border-border bg-surface-2 px-3 py-2 tabular-nums text-[12px] text-ink"
               />
               <Button variant="primary" onClick={copiar}>
                 {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -232,7 +232,7 @@ function ComentariosDialog({
 
         <div ref={listaRef} className="-mx-1 flex min-h-[120px] flex-1 flex-col gap-2.5 overflow-y-auto px-1">
           {comentarios.length === 0 ? (
-            <div className="py-8 text-center text-xs text-muted">Nenhum comentário ainda.</div>
+            <div className="py-8 text-center text-[12px] text-muted">Nenhum comentário ainda.</div>
           ) : (
             comentarios.map((c) => (
               <div
@@ -245,9 +245,9 @@ function ComentariosDialog({
               >
                 <div className="mb-1 flex justify-between gap-2">
                   <span className="text-[12px] font-bold text-primary-bright">{c.autor_nome}</span>
-                  <span className="font-mono text-[12px] text-muted">{quando(c.criado_em)}</span>
+                  <span className="tabular-nums text-[12px] text-muted">{quando(c.criado_em)}</span>
                 </div>
-                <div className="mb-1 font-mono text-[12px] text-muted">
+                <div className="mb-1 tabular-nums text-[12px] text-muted">
                   {c.projeto_id ? nomeEntrega.get(c.projeto_id) ?? "Entrega" : "Geral"}
                 </div>
                 <div className="whitespace-pre-wrap break-words">{c.texto}</div>

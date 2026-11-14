@@ -130,14 +130,14 @@ export default function LandingPage() {
 
           <div className="mb-[22px] grid grid-cols-1 gap-3.5 lg:grid-cols-2">
             <Card className="p-5 px-[22px]">
-              <div className="text-sm font-semibold">Funil do formulário</div>
+              <div className="text-[14px] font-semibold">Funil do formulário</div>
               <div className="mb-4 mt-0.5 text-[12px] text-muted">Onde as pessoas param antes de enviar</div>
               <Barras
                 itens={r.funil.map((f) => ({ rotulo: f.etapa, valor: f.n, nota: fmtPct(pct(f.n, r.funil[0]?.n ?? 0)) }))}
               />
             </Card>
             <Card className="p-5 px-[22px]">
-              <div className="text-sm font-semibold">Até onde a página é vista</div>
+              <div className="text-[14px] font-semibold">Até onde a página é vista</div>
               <div className="mb-4 mt-0.5 text-[12px] text-muted">Parte das visitas que chegou em cada seção</div>
               {r.secoes.length === 0 ? (
                 <EmptyState>Ainda sem dados de rolagem.</EmptyState>
@@ -149,7 +149,7 @@ export default function LandingPage() {
 
           <div className="mb-[22px] grid grid-cols-1 gap-3.5 lg:grid-cols-2">
             <Card className="p-5 px-[22px]">
-              <div className="text-sm font-semibold">De onde vêm as visitas</div>
+              <div className="text-[14px] font-semibold">De onde vêm as visitas</div>
               <div className="mb-4 mt-0.5 text-[12px] text-muted">Origem (UTM ou site de onde veio) e quanto cada uma converte</div>
               <TabelaOrigem linhas={r.origens.map((o) => ({ nome: o.origem, sessoes: o.sessoes, envios: o.envios }))} vazio="Ainda sem visitas." />
               {r.campanhas.length > 0 && (
@@ -160,7 +160,7 @@ export default function LandingPage() {
               )}
             </Card>
             <Card className="p-5 px-[22px]">
-              <div className="text-sm font-semibold">O que mais recebe clique</div>
+              <div className="text-[14px] font-semibold">O que mais recebe clique</div>
               <div className="mb-4 mt-0.5 text-[12px] text-muted">
                 Cliques repetidos no mesmo ponto (sinal de que algo não respondeu como a pessoa esperava) aparecem em "travou"
               </div>
@@ -194,7 +194,7 @@ export default function LandingPage() {
       <Card className="p-5 px-[22px]">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <div className="text-sm font-semibold">Mapa de calor dos cliques</div>
+            <div className="text-[14px] font-semibold">Mapa de calor dos cliques</div>
             <div className="mt-0.5 text-[12px] text-muted">
               Quanto mais quente, mais cliques. Anéis roxos mostram cliques repetidos no mesmo lugar.
             </div>

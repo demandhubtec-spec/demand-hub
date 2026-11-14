@@ -83,7 +83,7 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
     <button onClick={onClick} className={cn("block w-full border-b border-border px-3 py-2.5 text-left hover:bg-surface-2", ativo && "bg-surface-2")}>
       <div className="flex items-center justify-between gap-2">
         <span className="truncate text-[13px] font-semibold">{c.nomeExibicao}</span>
-        <span className="shrink-0 font-mono text-[12px] text-muted">{horaCurta(c.ultimaAtividade)}</span>
+        <span className="shrink-0 tabular-nums text-[12px] text-muted">{horaCurta(c.ultimaAtividade)}</span>
       </div>
       <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
         <span className={c.tipo === "prospeccao" ? "text-primary-bright" : "text-positive"}>{c.tipo === "prospeccao" ? "Prospecção" : "Inbound"}</span>
@@ -156,7 +156,7 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
           const deles = m.direction === "in";
           return (
             <React.Fragment key={m.id}>
-              {mostrarDia && <div className="py-1 text-center font-mono text-[12px] text-muted">{dia}</div>}
+              {mostrarDia && <div className="py-1 text-center tabular-nums text-[12px] text-muted">{dia}</div>}
               <div className={cn("flex", deles ? "justify-start" : "justify-end")}>
                 <div
                   className={cn(
@@ -168,7 +168,7 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
                   {!deles && m.author && m.author !== "ia" && <div className="mb-0.5 text-[12px] font-semibold text-primary-bright">Você</div>}
                   {robo && <div className="mb-0.5 text-[12px] font-semibold text-muted">Resposta automática da empresa</div>}
                   {robo ? m.content.replace(/^\[resposta automática\]\s*/, "") : m.content === "[reactionMessage]" ? "Reagiu à mensagem 👍" : m.content}
-                  <div className="mt-1 text-right font-mono text-[12px] text-muted">
+                  <div className="mt-1 text-right tabular-nums text-[12px] text-muted">
                     {new Date(m.created_at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </div>

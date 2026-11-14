@@ -9,9 +9,9 @@ export function BreakdownBar({ items }: BreakdownBarProps) {
         const pct = item.total > 0 ? Math.round((item.value / item.total) * 100) : 0;
         return (
           <div key={item.label}>
-            <div className="mb-[5px] flex justify-between text-xs">
+            <div className="mb-[5px] flex justify-between text-[12px]">
               <span className="font-medium text-ink">{item.label}</span>
-              <span className="font-mono text-muted">{item.value}</span>
+              <span className="tabular-nums text-muted">{item.value}</span>
             </div>
             <div className="h-[7px] overflow-hidden rounded-[6px] bg-surface-2">
               <div className="h-full rounded-[6px] bg-primary transition-all" style={{ width: `${pct}%` }} />

@@ -42,7 +42,7 @@ export default function ProjetosHome() {
                 className="cursor-pointer p-[18px] transition-[border-color,transform] duration-200 hover:-translate-y-px hover:border-primary-bright"
               >
                 <div className="mb-1 text-[14px] font-semibold">{departamentoInfo[d].nome}</div>
-                <div className="mb-3 text-xs text-muted">{departamentoInfo[d].resumo}</div>
+                <div className="mb-3 text-[12px] text-muted">{departamentoInfo[d].resumo}</div>
                 <div className="text-[12px] text-muted">{qtd ? `${qtd} projeto(s)` : "Sem projetos ainda"}</div>
               </Card>
             );
@@ -92,7 +92,7 @@ export default function ProjetosHome() {
                     </span>
                   )}
                 </div>
-                <div className="mb-3 text-xs text-muted">{c.segmento}</div>
+                <div className="mb-3 text-[12px] text-muted">{c.segmento}</div>
                 <div className="flex items-center justify-between text-[12px] text-muted">
                   <StatusBadge status={c.status} />
                   <span>{qtd ? `${qtd} projeto(s)` : "Sem projetos ainda"}</span>

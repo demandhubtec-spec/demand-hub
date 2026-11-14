@@ -19,7 +19,7 @@ export default function Ajuda() {
           <Card key={c.title} className="p-5">
             <c.icon className="mb-3 h-[22px] w-[22px] text-primary-bright" />
             <div className="mb-1 text-[14px] font-semibold">{c.title}</div>
-            <div className="text-xs leading-relaxed text-muted">{c.sub}</div>
+            <div className="text-[12px] leading-relaxed text-muted">{c.sub}</div>
           </Card>
         ))}
       </div>

@@ -38,7 +38,7 @@ const FASES: { key: FaseConversa; nome: string }[] = [
 
 function Campo({ valor, onChange, sufixo, largura = 70 }: { valor: number; onChange: (n: number) => void; sufixo: string; largura?: number }) {
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-primary-bright/40 bg-[rgba(11,4,32,.7)] px-2.5 py-1">
+    <span className="inline-flex items-center gap-1.5 rounded-[8px] border border-primary-bright/40 bg-surface-2 px-2.5 py-1">
       <input
         type="number"
         min={0}
@@ -168,7 +168,7 @@ export function LigacoesWebhookTab() {
       </p>
       <div className="mb-1 text-[12px] text-muted">Endereço (POST)</div>
       <div className="mb-4 flex items-center gap-2">
-        <code className="flex-1 truncate rounded-[8px] border border-border bg-[rgba(11,4,32,.7)] px-3 py-2 text-[13px]">{url}</code>
+        <code className="flex-1 truncate rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-[13px]">{url}</code>
         <Button
           variant="ghost"
           size="sm"
@@ -186,7 +186,7 @@ export function LigacoesWebhookTab() {
         você cadastra na Vercel do servidor da Ana. Enquanto ela não existir, o webhook fica desligado.
       </p>
       <div className="mb-1 text-[12px] text-muted">Exemplo de contato</div>
-      <pre className="rounded-[8px] border border-border bg-[rgba(11,4,32,.7)] p-3 text-[12px] leading-relaxed">{exemplo}</pre>
+      <pre className="rounded-[8px] border border-border bg-surface-2 p-3 text-[12px] leading-relaxed">{exemplo}</pre>
       <p className="mt-3 text-[13px] text-muted">
         O status pode vir com palavras comuns: não atendeu, atendida, conversa, qualificado, reunião agendada, reunião realizada, proposta, venda, sem
         interesse. Também aceita uma lista de contatos de uma vez.

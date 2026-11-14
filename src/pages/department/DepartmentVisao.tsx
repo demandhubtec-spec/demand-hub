@@ -56,7 +56,7 @@ export default function DepartmentVisao() {
       </div>
 
       <Card className="p-5 px-[22px]">
-        <div className="text-sm font-semibold">Atividades da equipe</div>
+        <div className="text-[14px] font-semibold">Atividades da equipe</div>
         <div className="mb-[18px] mt-0.5 text-[12px] text-muted">O que está em andamento no departamento</div>
         {atividades.length === 0 ? (
           <EmptyState>Nenhuma atividade cadastrada em {info.nome} ainda.</EmptyState>

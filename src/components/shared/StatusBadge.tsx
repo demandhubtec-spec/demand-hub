@@ -41,7 +41,7 @@ const textColor: Record<string, string> = {
 
 export function StatusBadge({ status }: { status: string }) {
   return (
-    <span className={cn("inline-flex items-center text-xs font-medium", textColor[status])}>
+    <span className={cn("inline-flex items-center text-[12px] font-medium", textColor[status])}>
       <span className={cn("mr-[7px] inline-block h-[7px] w-[7px] rounded-full", dotColor[status])} />
       {statusLabels[status] ?? status}
     </span>

@@ -45,7 +45,7 @@ export default function DepartmentProjetos() {
               }}
               className="cursor-pointer p-[18px] pb-4 transition-colors hover:border-primary-bright"
             >
-              <div className="mb-1.5 font-mono text-[12px] text-muted">{p.empresa}</div>
+              <div className="mb-1.5 tabular-nums text-[12px] text-muted">{p.empresa}</div>
               <div className="mb-3.5 min-h-[38px] text-[14px] font-semibold leading-tight">{p.nome}</div>
               <div className="mb-1.5 flex justify-between text-[12px] text-muted">
                 <span>Progresso</span>
@@ -63,7 +63,7 @@ export default function DepartmentProjetos() {
               </div>
               <div className="flex items-center justify-between">
                 <StatusBadge status={p.status} />
-                <span className="font-mono text-[12px] text-muted">
+                <span className="tabular-nums text-[12px] text-muted">
                   {p.prazo ? `Prazo ${new Date(p.prazo + "T00:00:00").toLocaleDateString("pt-BR")}` : "Sem prazo"}
                 </span>
               </div>

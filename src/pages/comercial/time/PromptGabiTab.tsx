@@ -96,7 +96,7 @@ export function PromptGabiTab() {
     <div>
       <div className="mb-4 flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[15px] font-semibold">Prompt System da Gabi</div>
+          <div className="text-[16px] font-semibold">Prompt System da Gabi</div>
           <div className="mt-0.5 max-w-[760px] text-[13px] text-muted">
             Tudo o que a Gabi faz no WhatsApp da prospecção: objetivo, jeito de falar, apresentação, diagnóstico, agendamento, objeções,
             follow-ups e o que ela nunca pode fazer. Ajustou e salvou, ela segue a nova versão em até 1 minuto.

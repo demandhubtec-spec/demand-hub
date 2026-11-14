@@ -96,7 +96,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                     </Button>
                   </div>
                 )}
-                <div className="mt-1 text-right font-mono text-[12px] text-muted">{fmtData(m.created_at)}</div>
+                <div className="mt-1 text-right tabular-nums text-[12px] text-muted">{fmtData(m.created_at)}</div>
               </div>
             </div>
           );

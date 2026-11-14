@@ -35,7 +35,7 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
                 {l.label}
               </span>
               {!apagado && (
-                <span className="flex items-center gap-1.5 font-mono text-[12px]">
+                <span className="flex items-center gap-1.5 tabular-nums text-[12px]">
                   {i === 0 ? (
                     <span className="text-muted/70">topo</span>
                   ) : (

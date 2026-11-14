@@ -175,7 +175,7 @@ export default function GatilhosInstagram() {
             <Card key={g.id} className={cn("p-5", !g.ativo && "opacity-60")}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-[15px] font-semibold">{g.nome}</div>
+                  <div className="truncate text-[16px] font-semibold">{g.nome}</div>
                   <div className="mt-2 flex flex-wrap gap-1.5">
                     {g.palavras.map((p) => (
                       <span key={p} className="rounded-full border border-primary bg-primary-tint px-2.5 py-0.5 text-[12px] font-semibold text-primary-bright">
