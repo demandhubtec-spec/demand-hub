@@ -510,7 +510,7 @@ function CalendarioMes({ onOpen }: { onOpen: (p: Pauta) => void }) {
         <Button size="icon" variant="ghost" onClick={() => setRef(new Date(ref.getFullYear(), ref.getMonth() - 1, 1))} aria-label="Mês anterior">
           <ChevronLeft />
         </Button>
-        <h3 className="min-w-[160px] text-center text-[15px] font-semibold text-ink">{ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase())}</h3>
+        <h3 className="min-w-[160px] text-center text-[16px] font-semibold text-ink">{ref.toLocaleDateString("pt-BR", { month: "long", year: "numeric" }).replace(/^./, (c) => c.toUpperCase())}</h3>
         <Button size="icon" variant="ghost" onClick={() => setRef(new Date(ref.getFullYear(), ref.getMonth() + 1, 1))} aria-label="Próximo mês">
           <ChevronRight />
         </Button>
@@ -603,12 +603,12 @@ function CalendarioLista({ onOpen }: { onOpen: (p: Pauta) => void }) {
   return (
     <div className="space-y-4">
       <Card className="p-5">
-        <h3 className="mb-2 text-[15px] font-semibold text-ink">Próximos posts</h3>
+        <h3 className="mb-2 text-[16px] font-semibold text-ink">Próximos posts</h3>
         {lista.map(linha)}
       </Card>
       {passadas.length > 0 && (
         <Card className="p-5">
-          <h3 className="mb-2 text-[15px] font-semibold text-ink">Publicados recentes</h3>
+          <h3 className="mb-2 text-[16px] font-semibold text-ink">Publicados recentes</h3>
           {passadas.map(linha)}
         </Card>
       )}
@@ -688,7 +688,7 @@ function ComoFuncionaRadar() {
   const semPermissao = ativas.filter((f) => /permiss/i.test(f.erro ?? "")).length;
   return (
     <Card className="space-y-2 p-5 text-[13px]">
-      <h3 className="text-[15px] font-semibold text-ink">Como o Radar funciona</h3>
+      <h3 className="text-[16px] font-semibold text-ink">Como o Radar funciona</h3>
       <ol className="list-decimal space-y-1 pl-5 text-muted">
         <li>Uma vez por dia a Rita lê os últimos 25 posts de cada perfil de referência ({ativas.length} perfis ligados em Configurações).</li>
         <li>Cada post ganha uma nota: curtidas, comentários e views comparados ao tamanho da conta. Assim um perfil pequeno que bombou aparece na frente de um grande que foi mal.</li>
@@ -718,7 +718,7 @@ function Radar() {
     <div className="space-y-4">
     <ComoFuncionaRadar />
     <Card className="p-5">
-      <h3 className="mb-1 text-[15px] font-semibold text-ink">O que bombou nos últimos 30 dias</h3>
+      <h3 className="mb-1 text-[16px] font-semibold text-ink">O que bombou nos últimos 30 dias</h3>
       <p className="mb-3 text-[13px] text-muted">Nota = engajamento comparado ao tamanho da conta. O Pauteiro usa os melhores como inspiração.</p>
       {refs.map((r) => (
         <div key={r.id} className="border-b border-border py-2 text-[13px] last:border-0">
@@ -771,7 +771,7 @@ function Configuracoes() {
       <Card className="space-y-3 p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h3 className="text-[15px] font-semibold text-ink">Time de Marketing IA ligado</h3>
+            <h3 className="text-[16px] font-semibold text-ink">Time de Marketing IA ligado</h3>
             <p className="text-[13px] text-muted">Desligado, nenhum agente roda e nada é publicado.</p>
           </div>
           <Switch checked={config.ativo} onCheckedChange={(v) => salvar.mutate({ ativo: v }, { onSuccess: ok, onError: erro })} />
@@ -804,7 +804,7 @@ function Configuracoes() {
       </Card>
 
       <Card className="space-y-3 p-5">
-        <h3 className="text-[15px] font-semibold text-ink">Agenda</h3>
+        <h3 className="text-[16px] font-semibold text-ink">Agenda</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Horários (um post por dia, alternando)</Label>
@@ -900,7 +900,7 @@ function Kairogen() {
     <Card className="space-y-3 p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h3 className="text-[15px] font-semibold text-ink">Kairogen</h3>
+          <h3 className="text-[16px] font-semibold text-ink">Kairogen</h3>
           <p className="text-[13px] text-muted">Gera as fotos das peças nos modelos do Kairogen (Nano Banana, GPT Image, Seedream, Flux), direto do portal. Os créditos saem da sua conta lá.</p>
         </div>
         {isLoading ? null : info?.conectado ? (
@@ -914,7 +914,7 @@ function Kairogen() {
       {info?.erro ? <p className="rounded-[8px] bg-red-500/10 p-2 text-[13px] text-red-300">{info.erro}</p> : null}
       {codigo && (
         <div className="rounded-[8px] border border-amber-400/40 p-3 text-[13px] text-ink">
-          Abri o Kairogen numa aba nova. Confira se o código lá é <span className="font-mono text-[15px] font-semibold">{codigo.codigo}</span> e clique em autorizar.
+          Abri o Kairogen numa aba nova. Confira se o código lá é <span className="font-mono text-[16px] font-semibold">{codigo.codigo}</span> e clique em autorizar.
           <div className="mt-1 text-[12px] text-muted">
             Não abriu?{" "}
             <a href={codigo.link} target="_blank" rel="noreferrer" className="text-primary-bright underline">
@@ -991,7 +991,7 @@ function Pilares() {
   if (!config) return null;
   return (
     <Card className="space-y-2 p-5">
-      <h3 className="text-[15px] font-semibold text-ink">Pilares de conteúdo</h3>
+      <h3 className="text-[16px] font-semibold text-ink">Pilares de conteúdo</h3>
       <p className="text-[13px] text-muted">Um por linha, no formato “Nome: do que fala”. O Pauteiro reveza entre eles.</p>
       <Textarea rows={5} value={texto} onChange={(e) => setTexto(e.target.value)} />
       <Button
@@ -1036,7 +1036,7 @@ function Fontes() {
   return (
     <Card className="space-y-3 p-5">
       <div>
-        <h3 className="text-[15px] font-semibold text-ink">Perfis de referência</h3>
+        <h3 className="text-[16px] font-semibold text-ink">Perfis de referência</h3>
         <p className="text-[13px] text-muted">O Radar lê só contas comerciais ou de criador. Conta pessoal ou privada não aparece.</p>
       </div>
       <div className="flex gap-2">
@@ -1138,7 +1138,7 @@ function ManualDeMarca() {
     <div className="space-y-4">
       <Card className="space-y-4 p-5">
         <div>
-          <h3 className="text-[15px] font-semibold text-ink">Manual de marca</h3>
+          <h3 className="text-[16px] font-semibold text-ink">Manual de marca</h3>
           <p className="text-[13px] text-muted">Tudo aqui entra nas copies (Bia), nas artes e nos vídeos (Duda). Mudou, vale a partir da próxima peça.</p>
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
@@ -1238,7 +1238,7 @@ function ManualDeMarca() {
       <Card className="space-y-3 p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h3 className="text-[15px] font-semibold text-ink">Padrão do nosso perfil (@demand_ia)</h3>
+            <h3 className="text-[16px] font-semibold text-ink">Padrão do nosso perfil (@demand_ia)</h3>
             <p className="text-[13px] text-muted">
               A Rita estuda os nossos posts toda semana (texto e imagem) e o time segue essa linha.
               {config.ultimo_perfil ? ` Último estudo: ${config.ultimo_perfil.split("-").reverse().join("/")}.` : " Ainda não estudou."}

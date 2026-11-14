@@ -233,7 +233,7 @@ function AbaGoogle({ dias }: { dias: number }) {
   if (!r.conectado) {
     return (
       <Card className="p-6 px-[22px]">
-        <div className="text-[15px] font-semibold">Conectar o Google Search Console</div>
+        <div className="text-[16px] font-semibold">Conectar o Google Search Console</div>
         <div className="mt-1.5 max-w-[640px] text-[13px] text-muted">
           É de onde vêm as palavras-chave, a posição do site no Google, as impressões e os cliques. Clique no botão, entre com a conta{" "}
           <b className="text-ink">demandhubtec@gmail.com</b> e autorize. A partir daí o portal atualiza sozinho todo dia, com os últimos 3 meses já de início.
@@ -248,7 +248,7 @@ function AbaGoogle({ dias }: { dias: number }) {
   if (!r.ultimo_dia) {
     return (
       <Card className="p-6 px-[22px]">
-        <div className="text-[15px] font-semibold">Google conectado</div>
+        <div className="text-[16px] font-semibold">Google conectado</div>
         <div className="mt-1.5 max-w-[640px] text-[13px] text-muted">
           Ainda não há dados guardados. O Google costuma mostrar os primeiros números alguns dias depois que o site é verificado. Dá para puxar agora:
         </div>
@@ -289,7 +289,7 @@ function AbaGoogle({ dias }: { dias: number }) {
       </div>
 
       <Card className="mb-[22px] p-5 px-[22px]">
-        <div className="text-sm font-semibold">Cliques e impressões por dia</div>
+        <div className="text-[14px] font-semibold">Cliques e impressões por dia</div>
         <div className="mb-3 mt-0.5 text-[12px] text-muted">Barras: impressões (quantas vezes o site apareceu) · linha: cliques</div>
         <GraficoDias pontos={(r.por_dia ?? []).map((d) => ({ dia: d.dia, barra: d.impressoes, linha: d.cliques }))} />
       </Card>
@@ -298,7 +298,7 @@ function AbaGoogle({ dias }: { dias: number }) {
         <Card className="p-5 px-[22px]">
           <div className="flex flex-wrap items-end justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold">Palavras-chave</div>
+              <div className="text-[14px] font-semibold">Palavras-chave</div>
               <div className="mt-0.5 text-[12px] text-muted">O que as pessoas buscaram quando o site apareceu no Google</div>
             </div>
             <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Filtrar palavra…" className="h-8 w-[200px] text-[13px]" />
@@ -335,7 +335,7 @@ function AbaGoogle({ dias }: { dias: number }) {
           </div>
         </Card>
         <Card className="p-5 px-[22px]">
-          <div className="text-sm font-semibold">Páginas que aparecem</div>
+          <div className="text-[14px] font-semibold">Páginas que aparecem</div>
           <div className="mb-3 mt-0.5 text-[12px] text-muted">Qual página do site o Google mostrou</div>
           {(r.paginas ?? []).length === 0 ? (
             <EmptyState>Nenhuma página no período.</EmptyState>
@@ -440,13 +440,13 @@ function AbaOrigens({ dias }: { dias: number }) {
       </div>
 
       <Card className="mb-[22px] p-5 px-[22px]">
-        <div className="text-sm font-semibold">Visitas por dia</div>
+        <div className="text-[14px] font-semibold">Visitas por dia</div>
         <div className="mb-3 mt-0.5 text-[12px] text-muted">Barras: visitas (site + diagnóstico) · linha: diagnósticos enviados</div>
         <GraficoDias pontos={r.por_dia.map((d) => ({ dia: d.dia, barra: d.site + d.diagnostico, linha: d.envios }))} />
       </Card>
 
       <Card className="p-5 px-[22px]">
-        <div className="text-sm font-semibold">De onde vêm as visitas</div>
+        <div className="text-[14px] font-semibold">De onde vêm as visitas</div>
         <div className="mb-3 mt-0.5 text-[12px] text-muted">
           Origem da primeira página vista em cada visita. Google orgânico, Instagram, ChatGPT e outras IAs aparecem separados; anúncios com UTM aparecem como "(anúncio)".
         </div>
@@ -547,7 +547,7 @@ function AbaIA() {
 
       <div className="grid grid-cols-1 gap-3.5 xl:grid-cols-[1.6fr_1fr]">
         <Card className="p-5 px-[22px]">
-          <div className="text-sm font-semibold">Perguntas monitoradas</div>
+          <div className="text-[14px] font-semibold">Perguntas monitoradas</div>
           <div className="mb-3 mt-0.5 text-[12px] text-muted">Clique numa pergunta para ver o que o ChatGPT respondeu da última vez</div>
           <div className="flex flex-col gap-2">
             {r.perguntas.map((p) => (
@@ -603,7 +603,7 @@ function AbaIA() {
         </Card>
 
         <Card className="p-5 px-[22px]">
-          <div className="text-sm font-semibold">Quem o ChatGPT usa de fonte</div>
+          <div className="text-[14px] font-semibold">Quem o ChatGPT usa de fonte</div>
           <div className="mb-3 mt-0.5 text-[12px] text-muted">Sites citados nas respostas nas últimas 8 semanas. São os concorrentes na briga por aparecer nas IAs.</div>
           {r.fontes.length === 0 ? (
             <EmptyState>Ainda sem checagens.</EmptyState>
