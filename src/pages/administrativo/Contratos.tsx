@@ -13,7 +13,7 @@ export default function Contratos() {
   return (
     <section>
       <div className="mb-[22px]">
-        <div className="text-[21px] font-semibold">Administrativo</div>
+        <div className="text-[20px] font-semibold">Administrativo</div>
         <div className="mt-1 text-[13px] text-muted">Contratos da DemandHub.</div>
       </div>
 
