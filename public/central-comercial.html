@@ -976,16 +976,21 @@ funil();montarFlow();pintarFila();pintarAgenda();pintarCanal();carregar();setInt
     var lim=t.toLowerCase().replace(/[a-záéíóúâêôãõçà]+/g,function(w){return SIGLAS[w.toUpperCase()]?w.toUpperCase():(NOMES[w]||w);});
     return lim.replace(/^([^A-Za-zÁ-ú0-9]*)([a-záéíóúâêôãõçà])/,function(_,a,c){return a+c.toUpperCase();});
   }
-  function arruma(t){return t.split(/( · |\s\/\s)/).map(trecho).join('');}
+  function arruma(t,meio){var x=t.split(/( · |\s\/\s)/).map(trecho).join('');
+    // No meio de uma frase (ex.: "Operação" + "AO VIVO" em outra tag) a primeira letra fica minúscula
+    if(meio&&x!==t)x=x.replace(/^([^A-Za-zÁ-ú0-9]*)([A-ZÁÉÍÓÚÂÊÔÃÕÇ])(?![A-ZÁÉÍÓÚÂÊÔÃÕÇ])/,function(_,a,c){var w=(x.slice(a.length).match(/^[A-Za-zÁ-ú]+/)||[''])[0];return (NOMES[w.toLowerCase()]?a+c:a+c.toLowerCase());});
+    return x;}
+  function bloco(el){while(el&&el.parentElement&&/^inline/.test(getComputedStyle(el).display))el=el.parentElement;return el;}
+  function noMeio(n){var b=bloco(n.parentElement);if(!b)return false;var w=document.createTreeWalker(b,NodeFilter.SHOW_TEXT,null),t;while((t=w.nextNode())){if(t===n)return false;if(t.nodeValue.trim())return true;}return false;}
   function varre(raiz){
     var w=document.createTreeWalker(raiz,NodeFilter.SHOW_TEXT,null),n;
-    while((n=w.nextNode())){var p=n.parentNode&&n.parentNode.nodeName;if(p==='SCRIPT'||p==='STYLE')continue;var v=n.nodeValue,x=arruma(v);if(x!==v)n.nodeValue=x;}
+    while((n=w.nextNode())){var p=n.parentNode&&n.parentNode.nodeName;if(p==='SCRIPT'||p==='STYLE')continue;var v=n.nodeValue,x=arruma(v,noMeio(n));if(x!==v)n.nodeValue=x;}
   }
   function iniciar(){
     varre(document.body);
     new MutationObserver(function(ms){ms.forEach(function(m){
-      if(m.type==='characterData'){var v=m.target.nodeValue,x=arruma(v);if(x!==v)m.target.nodeValue=x;}
-      else m.addedNodes.forEach(function(nd){if(nd.nodeType===3){var v=nd.nodeValue,x=arruma(v);if(x!==v)nd.nodeValue=x;}else if(nd.nodeType===1)varre(nd);});
+      if(m.type==='characterData'){var v=m.target.nodeValue,x=arruma(v,noMeio(m.target));if(x!==v)m.target.nodeValue=x;}
+      else m.addedNodes.forEach(function(nd){if(nd.nodeType===3){var v=nd.nodeValue,x=arruma(v,noMeio(nd));if(x!==v)nd.nodeValue=x;}else if(nd.nodeType===1)varre(nd);});
     });}).observe(document.body,{childList:true,subtree:true,characterData:true});
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',iniciar);else iniciar();

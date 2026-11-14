@@ -4,7 +4,7 @@
  * Nada some dos funis antigos: rodadas, notas, "Mandar para o time", "Nova rodada", lixeira do inbound e as fichas continuam aqui.
  */
 import * as React from "react";
-import { ChevronDown, ChevronUp, CircleHelp, ExternalLink, Filter, MessageCircle, Plus, RotateCcw, Send, Trash2, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronUp, CircleHelp, ExternalLink, Filter, MessageCircle, Plus, RotateCcw, Search, Send, Trash2, Upload, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -98,6 +98,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   const [segmento, setSegmento] = React.useState("");
   const [nota, setNota] = React.useState("");
   const [rodada, setRodada] = React.useState("");
+  const [busca, setBusca] = React.useState("");
   const [aberto, setAberto] = React.useState<Linha | null>(null);
   const [fichaCompleta, setFichaCompleta] = React.useState<Registro | null>(null);
   const [novo, setNovo] = React.useState(false);
@@ -219,7 +220,27 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
     a.localeCompare(b, "pt-BR"),
   );
   const rodadas = [...new Set(deLista.filter((l) => l.lista === "instagram" || l.lista === "linkedin").map((l) => l.rodada ?? "Sem rodada"))];
+  // Busca por empresa, nome da pessoa, telefone ou e-mail (14/11/2026)
+  const termo = busca.trim().toLowerCase();
+  const digitos = busca.replace(/\D/g, "");
+  const textoDe = (l: Linha) => {
+    const r = l.reg;
+    const partes =
+      r.tipo === "google"
+        ? [r.lead.empresa, r.lead.nicho, r.lead.cidade, r.lead.whatsapp, r.lead.email]
+        : r.tipo === "lista"
+          ? [r.lead.empresa, r.lead.perfil, r.lead.nicho, r.lead.cidade, r.lead.whatsapp, r.lead.email, r.lead.comentario]
+          : [r.contato.nomeExibicao, r.contato.nome, r.contato.empresa, r.contato.segmento, r.contato.phone, r.contato.email];
+    return partes.filter(Boolean).join(" ").toLowerCase();
+  };
+  const bateBusca = (l: Linha) => {
+    if (!termo) return true;
+    const t = textoDe(l);
+    if (t.includes(termo)) return true;
+    return digitos.length >= 4 && t.replace(/\D/g, "").includes(digitos);
+  };
   const visiveis = daOrigem.filter((l) => {
+    if (!bateBusca(l)) return false;
     const nicho = l.reg.tipo === "inbound" ? l.reg.contato.segmento : l.reg.lead.nicho;
     if (segmento && nicho !== segmento) return false;
     if (nota && (l.reg.tipo !== "lista" || l.reg.lead.nota !== nota)) return false;
@@ -300,6 +321,20 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
+        <label className="flex h-9 w-[280px] items-center gap-2 rounded-[8px] border border-border bg-surface px-3 text-muted focus-within:border-primary">
+          <Search className="h-4 w-4 shrink-0" />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar empresa, pessoa, telefone ou e-mail"
+            className="w-full bg-transparent text-[13px] text-ink outline-none"
+          />
+          {busca && (
+            <button onClick={() => setBusca("")} aria-label="Limpar busca" className="hover:text-ink">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </label>
         <FiltroOrigem marcadas={origens} conta={conta} total={linhas.length} onChange={escolher} />
         {segmentos.length > 0 && (
           <select value={segmento} onChange={(e) => setSegmento(e.target.value)} className={select}>
@@ -358,7 +393,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
       ) : !origens.length ? (
         <EmptyState>Marque pelo menos uma origem no filtro "Origem do lead".</EmptyState>
       ) : !visiveis.length ? (
-        <EmptyState>Nenhum lead com esse filtro.</EmptyState>
+        <EmptyState>{termo ? `Nenhum lead encontrado para "${busca.trim()}" nas origens marcadas.` : "Nenhum lead com esse filtro."}</EmptyState>
       ) : (
         <Quadro
           colunas={colunas}
@@ -376,8 +411,10 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
 
       {aberto && (
         <Prontuario
-          linha={aberto}
-          etapaNome={colunas.find((c) => c.key === aberto.etapa)?.label ?? ""}
+          linha={linhas.find((l) => l.id === aberto.id) ?? aberto}
+          etapaNome={colunas.find((c) => c.key === (linhas.find((l) => l.id === aberto.id) ?? aberto).etapa)?.label ?? ""}
+          etapas={colunas.map((c) => ({ key: c.key, label: c.label }))}
+          mover={(para) => mover(aberto.id, para)}
           sdr={aberto.item.conversa ? contatos.find((c) => c.id === aberto.item.conversa) ?? null : null}
           onClose={() => setAberto(null)}
           abrirConversa={abrirConversa}
@@ -645,6 +682,8 @@ function ComoFunciona({ fechar }: { fechar: () => void }) {
 function Prontuario({
   linha,
   etapaNome,
+  etapas,
+  mover,
   sdr,
   onClose,
   abrirConversa,
@@ -652,6 +691,8 @@ function Prontuario({
 }: {
   linha: Linha;
   etapaNome: string;
+  etapas: { key: EtapaUnica; label: string }[];
+  mover: (para: EtapaUnica) => void;
   sdr: Contato | null;
   onClose: () => void;
   abrirConversa: (id: string) => void;
@@ -705,13 +746,25 @@ function Prontuario({
   );
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="left-auto right-0 top-0 flex h-full max-h-none w-full max-w-[560px] translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none p-0">
+      <DialogContent className="flex h-[min(86vh,780px)] max-w-[780px] flex-col gap-0 overflow-hidden p-0">
         <div className="border-b border-border px-6 pb-0 pt-5">
           <DialogTitle className="pr-8 text-[20px]">{it.titulo}</DialogTitle>
           <DialogDescription className="mt-0.5 text-[13px]">{it.sub || " "}</DialogDescription>
           <div className="mt-2.5 flex flex-wrap gap-1.5">
             <SeloOrigem origem={linha.origem} />
-            <span className="inline-flex h-[22px] items-center rounded-[6px] bg-primary-tint px-2 text-[12px] font-medium text-primary">{etapaNome}</span>
+            {/* Mover de etapa sem arrastar (útil quando achou o lead pela busca) */}
+            <select
+              value={linha.etapa}
+              onChange={(e) => mover(e.target.value as EtapaUnica)}
+              title="Mudar de etapa"
+              className="h-[22px] rounded-[6px] border-0 bg-primary-tint px-2 text-[12px] font-medium text-primary"
+            >
+              {etapas.map((e) => (
+                <option key={e.key} value={e.key}>
+                  {e.key === linha.etapa ? etapaNome : `Mover para ${e.label}`}
+                </option>
+              ))}
+            </select>
             {it.aviso && <span className="inline-flex h-[22px] items-center rounded-[6px] bg-attention-tint px-2 text-[12px] font-medium text-attention">{it.aviso}</span>}
           </div>
           <div className="mt-4 flex gap-5">
