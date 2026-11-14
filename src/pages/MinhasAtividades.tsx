@@ -79,7 +79,7 @@ export default function MinhasAtividades() {
     <section>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="text-[21px] font-semibold">{titulo}</div>
+          <div className="text-[20px] font-semibold">{titulo}</div>
           <div className="mt-1 text-[13px] text-muted">
             Marque a caixinha quando terminar. Clique na atividade para ver detalhes, prazo e conversa.
           </div>
@@ -122,7 +122,7 @@ export default function MinhasAtividades() {
             <Card key={g.k} className="p-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-[22px] py-3">
                 <div className="text-[14px] font-semibold">{g.titulo}</div>
-                <div className="font-mono text-[11px] text-muted">
+                <div className="font-mono text-[12px] text-muted">
                   {g.sub && `${g.sub} · `}
                   {g.itens.length} atividade(s)
                 </div>
@@ -158,7 +158,7 @@ export default function MinhasAtividades() {
                           <span className="flex flex-wrap items-center gap-2">
                             <span
                               className={cn(
-                                "text-[13.5px] font-medium group-hover:text-primary-bright",
+                                "text-[14px] font-medium group-hover:text-primary-bright",
                                 done && "opacity-50 line-through",
                               )}
                             >
@@ -167,11 +167,11 @@ export default function MinhasAtividades() {
                             {atrasada && <AtrasadaBadge />}
                             <PriorityBadge prioridade={a.prioridade} />
                           </span>
-                          <span className="text-[11.5px] text-muted">{a.responsavelNome ?? "Sem responsável"}</span>
+                          <span className="text-[12px] text-muted">{a.responsavelNome ?? "Sem responsável"}</span>
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 rounded-[5px] px-2 py-[3px] font-mono text-[11px]",
+                            "shrink-0 rounded-[6px] px-2 py-[3px] font-mono text-[12px]",
                             atrasada ? "bg-negative-tint text-negative" : "bg-surface-2 text-muted",
                           )}
                         >
