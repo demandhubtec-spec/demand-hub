@@ -380,7 +380,7 @@ export function ProjetoModal({ projeto, onOpenChange, atividadeInicial = null }:
   return (
     <DialogPrimitive.Root open={!!projeto} onOpenChange={onOpenChange}>
       <DialogPrimitive.Portal>
-        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-[rgba(5,5,8,.65)] data-[state=open]:animate-in data-[state=open]:fade-in" />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-[60] bg-[rgba(18,16,31,.38)] backdrop-blur-[2px] data-[state=open]:animate-in data-[state=open]:fade-in" />
         <DialogPrimitive.Content
           aria-describedby={undefined}
           className="fixed left-1/2 top-1/2 z-[61] flex h-[min(760px,calc(100vh-40px))] w-[calc(100%-24px)] max-w-[1040px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-2xl"
