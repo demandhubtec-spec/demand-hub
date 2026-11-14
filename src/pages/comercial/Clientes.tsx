@@ -99,7 +99,7 @@ export default function Clientes() {
             key={f.key}
             onClick={() => setFiltro(f.key)}
             className={cn(
-              "rounded-full border border-border bg-surface px-[13px] py-1.5 text-xs font-medium text-muted",
+              "rounded-full border border-border bg-surface px-[13px] py-1.5 text-[12px] font-medium text-muted",
               filtro === f.key && "border-primary bg-primary text-white",
             )}
           >
@@ -148,7 +148,7 @@ export default function Clientes() {
                 <Td>
                   {(() => {
                     const doCliente = projetos.filter((p) => p.clienteId === c.id);
-                    if (!doCliente.length) return <span className="text-xs text-muted">—</span>;
+                    if (!doCliente.length) return <span className="text-[12px] text-muted">—</span>;
                     const totalEscopo = escopoPorCliente[c.id] ?? 0;
                     // Com escopo fechado: entregas iniciadas / total do contrato (ex.: 1/13).
                     const qtd = totalEscopo ? doCliente.filter((p) => p.entregaNumero).length : doCliente.length;
