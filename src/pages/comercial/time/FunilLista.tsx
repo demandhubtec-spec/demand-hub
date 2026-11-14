@@ -332,7 +332,7 @@ export function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: ()
   ];
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="left-auto right-0 top-0 h-full max-h-none w-full max-w-[520px] translate-x-0 translate-y-0 overflow-y-auto rounded-none">
+      <DialogContent className="max-h-[86vh] max-w-[640px] overflow-y-auto">
         <DialogTitle>{lead.empresa}</DialogTitle>
         <DialogDescription>{NOME[lead.lista]}{lead.lista === "manual" ? "" : " · Lista"}</DialogDescription>
         <div className="mt-3 flex flex-wrap gap-2">
