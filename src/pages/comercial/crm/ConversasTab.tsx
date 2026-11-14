@@ -124,10 +124,10 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
             "inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pl-2.5 pr-1 text-[11px] font-semibold",
             c.ai_paused ? "bg-attention-tint text-attention" : "bg-positive-tint text-positive",
           )}
-          title={c.ai_paused ? "Ligar a Ana nesta conversa" : "Pausar a Ana nesta conversa"}
+          title={c.ai_paused ? "Ligar a Gabi nesta conversa" : "Pausar a Gabi nesta conversa"}
         >
           {c.ai_paused ? <PauseCircle className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-          {c.ai_paused ? "Ana pausada" : "Ana atendendo"}
+          {c.ai_paused ? "Gabi pausada" : "Gabi atendendo"}
           <Switch
             checked={!c.ai_paused}
             disabled={alternar.isPending || c.status === "opt_out"}
@@ -136,12 +136,12 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
                 { id: c.id, ligar, status: c.status },
                 {
                   onSuccess: () =>
-                    showToast(ligar ? "Ana ligada. Ela responde a partir da próxima mensagem do contato." : "Ana pausada nesta conversa."),
+                    showToast(ligar ? "Gabi ligada. Ela responde a partir da próxima mensagem do contato." : "Gabi pausada nesta conversa."),
                   onError: () => showToast("Não consegui mudar agora. Tente de novo."),
                 },
               )
             }
-            aria-label={c.ai_paused ? "Ligar a Ana" : "Pausar a Ana"}
+            aria-label={c.ai_paused ? "Ligar a Gabi" : "Pausar a Gabi"}
           />
         </label>
       </div>
@@ -179,9 +179,9 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         <div ref={fim} />
       </div>
       <div className="border-t border-border px-3 pt-2 text-[11px] text-muted">
-        Fale com a Ana sobre esta conversa: ela monta a mensagem, te mostra na aba Você e a Ana e só manda com o seu ok.
+        Fale com a Gabi sobre esta conversa: ela monta a mensagem, te mostra na aba Você e a Gabi e só manda com o seu ok.
       </div>
-      <Compositor leadId={c.id} placeholder="Ex.: Ana, não é assim. Pede desculpa e oferece terça às 10h" compacto />
+      <Compositor leadId={c.id} placeholder="Ex.: Gabi, não é assim. Pede desculpa e oferece terça às 10h" compacto />
     </>
   );
 }
