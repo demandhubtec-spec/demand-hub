@@ -120,7 +120,7 @@ export default function LandingPage() {
 
       {r && (
         <>
-          <div className="mb-[22px] grid grid-cols-2 gap-3.5 lg:grid-cols-5">
+          <div className="faixa-numeros">
             <KpiCard index={0} label="Visitantes" value={String(r.visitantes)} delta={`${r.sessoes} visitas`} />
             <KpiCard index={1} label="Diagnósticos enviados" value={String(r.envios)} accent="positive" />
             <KpiCard index={2} label="Conversão" value={fmtPct(conv)} delta="envios ÷ visitas" accent="positive" />
