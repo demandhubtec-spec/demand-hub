@@ -286,6 +286,8 @@ const AUTO_FORTE = [
   // 14/11: menu numérico (Prime Machado) e "recebemos a sua mensagem"
   /responda (somente |apenas )?com o numero/,
   /recebemos (a |sua |a sua )?mensage(m|ns)\W+(em breve|logo)/,
+  // 14/11: Prime Machado, "Em breve alguém da nossa equipe vai te responder por aqui"
+  /em breve alguem (da |de )?(nossa |sua )?(equipe|time)/,
   // 13/11: assistentes virtuais e recado de imobiliária (Bella Casa "Bellinha", RRC "deixe seu recado")
   /(sou|aqui e) (a |o )?[a-z]+,? (a |o |sua |seu )?(inteligencia artificial|assistente virtual)/,
   /(deixe|deixa) (o |seu |o seu |um )?recado/,
