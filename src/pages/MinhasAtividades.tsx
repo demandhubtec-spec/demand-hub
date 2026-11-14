@@ -122,7 +122,7 @@ export default function MinhasAtividades() {
             <Card key={g.k} className="p-0">
               <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-border px-[22px] py-3">
                 <div className="text-[14px] font-semibold">{g.titulo}</div>
-                <div className="font-mono text-[12px] text-muted">
+                <div className="tabular-nums text-[12px] text-muted">
                   {g.sub && `${g.sub} · `}
                   {g.itens.length} atividade(s)
                 </div>
@@ -171,7 +171,7 @@ export default function MinhasAtividades() {
                         </span>
                         <span
                           className={cn(
-                            "shrink-0 rounded-[6px] px-2 py-[3px] font-mono text-[12px]",
+                            "shrink-0 rounded-[6px] px-2 py-[3px] tabular-nums text-[12px]",
                             atrasada ? "bg-negative-tint text-negative" : "bg-surface-2 text-muted",
                           )}
                         >

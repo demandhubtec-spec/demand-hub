@@ -13,7 +13,7 @@ export default function Faq() {
           <details key={f.pergunta} className="border-b border-border py-3.5 last:border-b-0" open={i === 0}>
             <summary className="flex cursor-pointer list-none items-center justify-between text-[14px] font-semibold [&::-webkit-details-marker]:hidden">
               {f.pergunta}
-              <span className="text-lg text-muted">+</span>
+              <span className="text-[20px] text-muted">+</span>
             </summary>
             <div className="mt-2.5 text-[13px] leading-relaxed text-muted">{f.resposta}</div>
           </details>

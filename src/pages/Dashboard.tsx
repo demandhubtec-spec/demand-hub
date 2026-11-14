@@ -202,11 +202,11 @@ export default function Dashboard() {
         <Card className="p-5 px-[22px]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-sm font-semibold">Faturamento · últimos 6 meses</div>
+              <div className="text-[14px] font-semibold">Faturamento · últimos 6 meses</div>
               <div className="mt-0.5 text-[12px] text-muted">Entradas totais por mês</div>
             </div>
             <div className="text-right">
-              <div className="brand-num text-[26px]">
+              <div className="brand-num text-[28px]">
                 R$ {faturamentoMesAtual.toLocaleString("pt-BR")}
               </div>
               <div className="mt-1 text-[12px] text-muted">neste mês</div>
@@ -218,7 +218,7 @@ export default function Dashboard() {
         </Card>
         )}
         <Card className="p-5 px-[22px]">
-          <div className="text-sm font-semibold">Projetos por departamento</div>
+          <div className="text-[14px] font-semibold">Projetos por departamento</div>
           <div className="mb-[18px] mt-0.5 text-[12px] text-muted">{totalProjetos} projetos no total</div>
           {breakdown.length === 0 ? (
             <EmptyState>Nenhum projeto cadastrado ainda.</EmptyState>
@@ -273,7 +273,7 @@ function PendenciaRow({ a, hoje }: { a: AtividadeView; hoje: Date }) {
     >
       <div className="min-w-0 flex-1">
         <div className="truncate text-[14px] font-semibold">{a.titulo}</div>
-        <div className="mt-1 truncate font-mono text-[12px] text-muted">{meta}</div>
+        <div className="mt-1 truncate tabular-nums text-[12px] text-muted">{meta}</div>
       </div>
       <div className="hidden shrink-0 items-center gap-2 sm:flex">
         {atrasada && (
