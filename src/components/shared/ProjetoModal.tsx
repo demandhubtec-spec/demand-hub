@@ -69,7 +69,7 @@ function formatarHora(iso: string) {
 
 function SectionTitle({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={cn("mb-2.5 text-xs font-bold tracking-[.04em] text-muted", className)}>{children}</div>
+    <div className={cn("mb-2.5 text-[12px] font-bold tracking-[.04em] text-muted", className)}>{children}</div>
   );
 }
 
@@ -206,10 +206,10 @@ function Chat({ titulo, alvo, perfis }: { titulo: string; alvo: ChatAlvo; perfis
 
   return (
     <div className="flex min-h-0 flex-col border-border bg-surface-2 max-md:max-h-[300px] max-md:border-t md:border-l">
-      <div className="shrink-0 px-4 pb-2.5 pt-3.5 text-xs font-bold tracking-[.04em] text-muted">{titulo}</div>
+      <div className="shrink-0 px-4 pb-2.5 pt-3.5 text-[12px] font-bold tracking-[.04em] text-muted">{titulo}</div>
       <div ref={listaRef} className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-y-auto px-3.5">
         {isLoading ? null : mensagens.length === 0 ? (
-          <div className="px-2.5 py-5 text-center text-xs text-muted">Nenhuma mensagem ainda. Comece a conversa abaixo.</div>
+          <div className="px-2.5 py-5 text-center text-[12px] text-muted">Nenhuma mensagem ainda. Comece a conversa abaixo.</div>
         ) : (
           mensagens.map((m) => (
             <div key={m.id} className="rounded-[8px] border border-border bg-surface px-[11px] py-[9px] text-[13px] leading-[1.45]">
@@ -217,7 +217,7 @@ function Chat({ titulo, alvo, perfis }: { titulo: string; alvo: ChatAlvo; perfis
                 <span className="text-[12px] font-bold text-primary-bright">
                   {(m.autor_id && nomePorId.get(m.autor_id)) || "Usuário"}
                 </span>
-                <span className="whitespace-nowrap font-mono text-[12px] text-muted">{formatarHora(m.criado_em)}</span>
+                <span className="whitespace-nowrap tabular-nums text-[12px] text-muted">{formatarHora(m.criado_em)}</span>
               </div>
               <div className="whitespace-pre-wrap break-words">{m.texto}</div>
             </div>
@@ -294,13 +294,13 @@ function Anexos({ projetoId }: { projetoId: string }) {
   return (
     <>
       {anexos.length === 0 ? (
-        <div className="mb-2.5 text-xs text-muted">Nenhum anexo ainda.</div>
+        <div className="mb-2.5 text-[12px] text-muted">Nenhum anexo ainda.</div>
       ) : (
         <div className="mb-2.5 flex flex-wrap gap-2">
           {anexos.map((a) => (
             <span
               key={a.id}
-              className="inline-flex items-center gap-[7px] rounded-full border border-border bg-surface-2 py-1.5 pl-2.5 pr-3 text-xs"
+              className="inline-flex items-center gap-[7px] rounded-full border border-border bg-surface-2 py-1.5 pl-2.5 pr-3 text-[12px]"
             >
               <AnexoIcone tipo={a.tipo} />
               <button type="button" onClick={() => handleAbrir(a)} className="max-w-[220px] truncate hover:text-primary-bright">
@@ -310,7 +310,7 @@ function Anexos({ projetoId }: { projetoId: string }) {
                 type="button"
                 onClick={() => handleRemover(a)}
                 aria-label={`Remover ${a.nome}`}
-                className="pl-0.5 text-sm leading-none text-muted hover:text-negative"
+                className="pl-0.5 text-[14px] leading-none text-muted hover:text-negative"
               >
                 ×
               </button>
@@ -471,7 +471,7 @@ function TelaProjeto({
       <Header voltarLabel={p.empresa !== "—" ? p.empresa : "Projetos"} onVoltar={onFechar} />
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_320px] md:grid-rows-1">
         <div className="min-w-0 overflow-y-auto px-[22px] py-5">
-          <div className="mb-2 font-mono text-[12px] text-muted">
+          <div className="mb-2 tabular-nums text-[12px] text-muted">
             {p.empresa !== "—" ? p.empresa : "Projeto interno"}
             {p.entregaNumero ? ` · Entrega ${String(p.entregaNumero).padStart(2, "0")}` : ""}
           </div>
@@ -586,7 +586,7 @@ function TelaAtividade({
     return (
       <>
         <Header voltarLabel={p.nome} onVoltar={onVoltar} />
-        <div className="p-8 text-center text-sm text-muted">{isLoading ? "Carregando..." : "Atividade não encontrada."}</div>
+        <div className="p-8 text-center text-[14px] text-muted">{isLoading ? "Carregando..." : "Atividade não encontrada."}</div>
       </>
     );
   }
@@ -606,7 +606,7 @@ function TelaAtividade({
       <Header voltarLabel={p.nome} onVoltar={onVoltar} />
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[1fr_auto] md:grid-cols-[1fr_320px] md:grid-rows-1">
         <div className="min-w-0 overflow-y-auto px-[22px] py-5">
-          <div className="mb-2 font-mono text-[12px] text-muted">
+          <div className="mb-2 tabular-nums text-[12px] text-muted">
             Atividade de {p.empresa !== "—" ? `${p.empresa} · ` : ""}
             {p.nome}
           </div>

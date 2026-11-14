@@ -23,7 +23,7 @@ export function BarChart({ data, formatTooltip }: BarChartProps) {
               }}
               title={formatTooltip ? formatTooltip(d.value) : String(d.value)}
             />
-            <div className="mt-2 font-mono text-[12px] text-muted">{d.label}</div>
+            <div className="mt-2 tabular-nums text-[12px] text-muted">{d.label}</div>
           </div>
         );
       })}
@@ -56,7 +56,7 @@ export function DualBarChart({ data }: DualBarChartProps) {
               }}
             />
           </div>
-          <div className="mt-2 font-mono text-[12px] text-muted">{d.label}</div>
+          <div className="mt-2 tabular-nums text-[12px] text-muted">{d.label}</div>
         </div>
       ))}
     </div>
