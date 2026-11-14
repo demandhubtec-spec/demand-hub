@@ -121,11 +121,11 @@ export function InsightsTab() {
               <Rotulo>
                 {f.n} · {f.nome}
               </Rotulo>
-              <div className="mt-1 text-[15.5px] font-semibold">{f.pergunta}</div>
+              <div className="mt-1 text-[16px] font-semibold">{f.pergunta}</div>
               <div className="text-[13px] text-muted">{f.conta}</div>
               <div
                 className={cn(
-                  "mt-2 text-[32px] font-semibold leading-none",
+                  "mt-2 text-[28px] font-semibold leading-none",
                   e.st === "ok" && "text-positive",
                   e.st === "atencao" && "text-attention",
                   e.st === "gargalo" && "text-negative",
@@ -238,7 +238,7 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
         ))}
         <span className="ml-auto text-[12px] text-muted">baseado em {i.conversas} conversas</span>
       </div>
-      <div className="mb-4 text-[18px] font-semibold leading-snug">{i.titulo}</div>
+      <div className="mb-4 text-[20px] font-semibold leading-snug">{i.titulo}</div>
       <div className="grid gap-5 lg:grid-cols-2">
         <div>
           <Rotulo className="mb-2">Causa raiz</Rotulo>
@@ -246,7 +246,7 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
           {i.trecho.length > 0 && (
             <>
               <Rotulo className="mb-2 mt-4">Trecho de uma conversa</Rotulo>
-              <div className="rounded-[12px] border border-border bg-[rgba(11,4,32,.6)] p-3">
+              <div className="rounded-[12px] border border-border bg-surface-2 p-3">
                 {i.trecho.map((t, k) =>
                   t.de === "nota" ? (
                     <div key={k} className="py-1 text-center text-[12px] text-muted">
@@ -275,10 +275,10 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               rows={6}
-              className="w-full rounded-[12px] border border-primary-bright/50 bg-[rgba(11,4,32,.6)] p-3 font-mono text-[12px] leading-relaxed text-ink"
+              className="w-full rounded-[12px] border border-primary-bright/50 bg-surface-2 p-3 font-mono text-[12px] leading-relaxed text-ink"
             />
           ) : (
-            <div className="space-y-1 rounded-[12px] border border-border bg-[rgba(11,4,32,.6)] p-3 font-mono text-[12px] leading-relaxed">
+            <div className="space-y-1 rounded-[12px] border border-border bg-surface-2 p-3 font-mono text-[12px] leading-relaxed">
               {i.remover && <div className="rounded-[6px] bg-negative-tint px-2 py-0.5 text-[#ffb3c0] line-through">{i.remover}</div>}
               {incluir.map((l) => (
                 <div key={l} className="rounded-[6px] bg-positive-tint px-2 py-0.5 text-[#a6f0c9]">

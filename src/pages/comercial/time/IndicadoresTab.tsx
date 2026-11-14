@@ -302,10 +302,10 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
                   <div className="mt-0.5 text-[13px] text-muted">{canal.sub}</div>
                 </div>
                 {canal.emBreve ? (
-                  <span className="rounded-[8px] border border-border px-2 py-1 font-mono text-[12px] tracking-wider text-muted">EM BREVE</span>
+                  <span className="rounded-[8px] border border-border px-2 py-1 tabular-nums text-[12px] text-muted">Em breve</span>
                 ) : (
                   <div className="text-right">
-                    <div className="text-[24px] font-semibold leading-none text-positive">
+                    <div className="text-[28px] font-semibold leading-none text-positive">
                       {venda} {venda === 1 ? "venda" : "vendas"}
                     </div>
                     <div className="mt-1 text-[12px] text-muted">
@@ -352,7 +352,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
                       {r.nome}
                       {melhor && <span className="rounded-full bg-positive-tint px-2 py-0.5 text-[12px] text-positive">Melhor</span>}
                     </div>
-                    <div className={cn("mt-2 text-[32px] font-semibold leading-none", melhor && "text-positive")}>{r.leads}</div>
+                    <div className={cn("mt-2 text-[28px] font-semibold leading-none", melhor && "text-positive")}>{r.leads}</div>
                     <div className="mt-1 text-[12px] text-muted">leads coletados</div>
                     <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-muted">
                       <span>
@@ -392,7 +392,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
                       style={{ width: `${Math.max(4, (s.pct / maxSeg) * 100)}%` }}
                     />
                   </div>
-                  <span className={cn("text-right font-mono text-[12px]", top ? "text-positive" : baixo ? "text-negative" : "text-muted")}>
+                  <span className={cn("text-right tabular-nums text-[12px]", top ? "text-positive" : baixo ? "text-negative" : "text-muted")}>
                     {s.pct}% · {s.base}
                   </span>
                 </div>

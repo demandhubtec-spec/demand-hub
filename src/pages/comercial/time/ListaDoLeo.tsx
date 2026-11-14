@@ -171,7 +171,7 @@ export function ListaDoLeo() {
                 setNicho(n);
                 setMarcados(new Set());
               }}
-              className={`rounded-full border px-3 py-1 text-[12.5px] ${nicho === n ? "border-primary bg-primary/15 text-ink" : "border-border text-muted hover:text-ink"}`}
+              className={`rounded-full border px-3 py-1 text-[13px] ${nicho === n ? "border-primary bg-primary/15 text-ink" : "border-border text-muted hover:text-ink"}`}
             >
               {n || "Todos"} ({q})
             </button>

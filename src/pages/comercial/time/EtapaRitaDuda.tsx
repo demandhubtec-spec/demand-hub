@@ -183,7 +183,7 @@ export function EtapaRitaDuda({ etapa }: { etapa: Etapa }) {
                   </div>
                   {d && (
                     <div className="text-right">
-                      <div className={cn("brand-num text-[24px] leading-none", corNota(d.geral?.nota ?? 0))}>{d.geral?.nota ?? "-"}</div>
+                      <div className={cn("brand-num text-[28px] leading-none", corNota(d.geral?.nota ?? 0))}>{d.geral?.nota ?? "-"}</div>
                       <div className="text-[12px] text-muted">nota geral</div>
                     </div>
                   )}
