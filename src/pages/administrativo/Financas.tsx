@@ -52,19 +52,19 @@ export default function Financas() {
 
       <div className="mb-[22px] grid grid-cols-1 gap-3.5 sm:grid-cols-3">
         <Card className="p-5 px-[22px]">
-          <div className="mb-2 text-xs font-medium text-muted">Entradas do mês</div>
+          <div className="mb-2 text-[12px] font-medium text-muted">Entradas do mês</div>
           <div className="font-display text-[28px] font-bold text-positive">
             R$ {entradasMes.toLocaleString("pt-BR")}
           </div>
         </Card>
         <Card className="p-5 px-[22px]">
-          <div className="mb-2 text-xs font-medium text-muted">Saídas do mês</div>
+          <div className="mb-2 text-[12px] font-medium text-muted">Saídas do mês</div>
           <div className="font-display text-[28px] font-bold text-negative">
             R$ {saidasMes.toLocaleString("pt-BR")}
           </div>
         </Card>
         <Card className="p-5 px-[22px]">
-          <div className="mb-2 text-xs font-medium text-muted">Saldo do mês</div>
+          <div className="mb-2 text-[12px] font-medium text-muted">Saldo do mês</div>
           <div
             className={cn(
               "font-display text-[28px] font-bold",
@@ -77,7 +77,7 @@ export default function Financas() {
       </div>
 
       <Card className="mb-[22px] p-5 px-[22px]">
-        <div className="text-sm font-semibold">Fluxo de caixa · últimos 6 meses</div>
+        <div className="text-[14px] font-semibold">Fluxo de caixa · últimos 6 meses</div>
         <div className="mb-[18px] mt-0.5 text-[12px] text-muted">Entradas x saídas</div>
         <DualBarChart data={fluxoCaixa} />
         <div className="mt-4 flex gap-[18px]">
@@ -91,7 +91,7 @@ export default function Financas() {
       </Card>
 
       <Card className="p-5 px-[22px]">
-        <div className="text-sm font-semibold">Lançamentos</div>
+        <div className="text-[14px] font-semibold">Lançamentos</div>
         <div className="mb-[18px] mt-0.5 text-[12px] text-muted">Todos os lançamentos cadastrados</div>
         {lancamentos.length === 0 ? (
           <EmptyState>Nenhum lançamento financeiro cadastrado ainda.</EmptyState>
@@ -118,7 +118,7 @@ export default function Financas() {
                     <StatusBadge status={l.tipo} />
                   </Td>
                   <Td>
-                    <span className={cn("font-mono font-semibold", l.tipo === "entrada" ? "text-positive" : "text-negative")}>
+                    <span className={cn("tabular-nums font-semibold", l.tipo === "entrada" ? "text-positive" : "text-negative")}>
                       {l.tipo === "entrada" ? "+ " : "− "}R$ {l.valor.toLocaleString("pt-BR")}
                     </span>
                   </Td>
