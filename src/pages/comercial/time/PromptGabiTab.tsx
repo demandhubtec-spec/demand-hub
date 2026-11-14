@@ -152,7 +152,7 @@ export function PromptGabiTab() {
                 value={s.texto}
                 onChange={(e) => mudar(i, "texto", e.target.value)}
                 rows={Math.min(22, Math.max(5, s.texto.split("\n").length + 1))}
-                className="font-mono text-[13px] leading-relaxed"
+                className="text-[14px] leading-relaxed"
                 placeholder="Escreva as regras desta parte, uma por linha."
               />
             </Card>
@@ -209,7 +209,7 @@ export function PromptGabiTab() {
                 <X />
               </Button>
             </div>
-            <pre className="flex-1 overflow-auto whitespace-pre-wrap px-4 py-3 font-mono text-[12px] leading-relaxed">{previa.prompt}</pre>
+            <pre className="flex-1 overflow-auto whitespace-pre-wrap px-4 py-3 text-[13px] leading-relaxed">{previa.prompt}</pre>
           </Card>
         </div>
       )}

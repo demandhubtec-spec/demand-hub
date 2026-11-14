@@ -36,7 +36,7 @@ const Tag = ({ children, tom = "roxo" }: { children: React.ReactNode; tom?: "rox
       tom === "vermelho" && "bg-negative-tint text-negative",
       tom === "laranja" && "bg-attention-tint text-attention",
       tom === "verde" && "bg-positive-tint text-positive",
-      tom === "roxo" && "bg-primary-tint text-[#d9cbff]",
+      tom === "roxo" && "bg-primary-tint text-primary",
     )}
   >
     {children}
@@ -275,13 +275,13 @@ function InsightAberto({ insight: i, metricaAtual }: { insight: Insight; metrica
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
               rows={6}
-              className="w-full rounded-[12px] border border-primary-bright/50 bg-surface-2 p-3 font-mono text-[12px] leading-relaxed text-ink"
+              className="w-full rounded-[12px] border border-primary-bright/50 bg-surface-2 p-3 text-[13px] leading-relaxed text-ink"
             />
           ) : (
-            <div className="space-y-1 rounded-[12px] border border-border bg-surface-2 p-3 font-mono text-[12px] leading-relaxed">
-              {i.remover && <div className="rounded-[6px] bg-negative-tint px-2 py-0.5 text-[#ffb3c0] line-through">{i.remover}</div>}
+            <div className="space-y-1 rounded-[12px] border border-border bg-surface-2 p-3 text-[13px] leading-relaxed">
+              {i.remover && <div className="rounded-[6px] bg-negative-tint px-2 py-0.5 text-negative line-through">{i.remover}</div>}
               {incluir.map((l) => (
-                <div key={l} className="rounded-[6px] bg-positive-tint px-2 py-0.5 text-[#a6f0c9]">
+                <div key={l} className="rounded-[6px] bg-positive-tint px-2 py-0.5 text-positive">
                   {l}
                 </div>
               ))}
