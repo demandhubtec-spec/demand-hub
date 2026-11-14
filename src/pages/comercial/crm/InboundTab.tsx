@@ -59,7 +59,7 @@ export function InboundTab({ abrirConversa }: { abrirConversa: (id: string) => v
               {c.necessidade_resumo && <div className="mt-1 text-[12px]">{c.necessidade_resumo}</div>}
             </div>
             <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px]">{STATUS_ANA[c.status ?? ""] ?? c.status ?? "-"}</span>
-            {c.bant_score != null && <span className="font-mono text-[12px] text-muted">BANT {c.bant_score}</span>}
+            {c.bant_score != null && <span className="tabular-nums text-[12px] text-muted">BANT {c.bant_score}</span>}
             <select
               className="rounded-[8px] border border-border bg-surface-2 px-2 py-1.5 text-[12px]"
               value={c.funil_etapa ?? ""}
