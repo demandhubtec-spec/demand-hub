@@ -4,6 +4,7 @@ import { manuaisAtuais, playbookAtual, promptDaSdr } from "./playbook.ts";
 import { nomeDaSdr } from "./sdrs.ts";
 import { preencherVariaveis, promptGabiEmTexto, secaoFollowUp } from "./prompt-gabi.ts";
 import { formatBR, toLocal } from "./time.ts";
+import { nomeCurto } from "./travas.ts";
 import { contextoProspeccao, ehFluxoV2, type Prospeccao, varsPromptGabi } from "./prospeccao.ts";
 import { contextoAnuncio, type OrigemAnuncio } from "./anuncio.ts";
 
@@ -199,6 +200,9 @@ Escreva o follow-up nº ${attempt} de 7 pelo WhatsApp, seguindo à risca as regr
 ${bloco(fu)}${bloco(jeito)}${bloco(nunca)}## Esta mensagem
 - É o follow-up nº ${attempt}: use o ângulo nº ${attempt} da lista acima.
 - Comece com "${saudacao} Tudo bem? Aqui é a ${nomeDaSdr(lead.agente)}, da DemandIA 😊" (pode adaptar levemente, mas com saudação e apresentação).
+- Diagnóstico: ${p?.diag_enviado_em ? `JÁ ENVIADO em ${formatBR(new Date(p.diag_enviado_em))}: pode perguntar se conseguiram olhar.` : "NÃO foi enviado. Não pergunte se viram, se conseguiram olhar nem ofereça reenviar: ofereça mandar pela primeira vez."}
+- Chame a empresa de "${nomeCurto(p?.empresa ?? lead.empresa, p?.cidade)}" (nome curto), nunca pelo nome completo do Google.
+- Posição no Google só se for até o 20º lugar. Nada de "querida"/"querido"; "com carinho" no máximo uma vez.
 - Use só números que estão no diagnóstico e no histórico. Nunca use travessão (— ou –).
 - Responda só com o texto da mensagem.
 

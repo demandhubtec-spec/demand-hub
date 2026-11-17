@@ -192,6 +192,35 @@ export function useAlternarAna() {
   });
 }
 
+/**
+ * "Não é lead" (16/11): fornecedor, contato pessoal ou robô de pedidos (Oral Center, Distribuidor Gás).
+ * A SDR para de responder e de mandar follow-up, e na prospecção o contato sai do funil.
+ */
+export function useNaoELead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, phone }: { id: string; phone: string }) => {
+      const { error } = await supabase
+        .from("sdr_leads")
+        .update({ status: "desqualificado", ai_paused: true, next_followup_at: null })
+        .eq("id", id);
+      if (error) throw error;
+      const fim = (phone ?? "").replace(/\D/g, "").slice(-8);
+      if (fim.length === 8) {
+        const { error: e2 } = await supabase
+          .from("outreach_leads")
+          .update({ status_comercial: "descartado", cadencia: "parada", proximo_toque_em: null, proximo_canal: null, retorno_em: null })
+          .like("whatsapp", `%${fim}`);
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["crm"] });
+      qc.invalidateQueries({ queryKey: ["prospeccao"] });
+    },
+  });
+}
+
 /* ---------- Canal "Você e a Ana" ---------- */
 
 export interface MsgCanal {

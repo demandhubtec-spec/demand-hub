@@ -14,7 +14,10 @@ import { horarioProspeccaoV2, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } fr
 import { followUpPrompt, followUpPromptProspeccaoV2 } from "./prompt.ts";
 import { humanizar } from "./estilo.ts";
 import { formatBR, toLocal } from "./time.ts";
-import { ehFluxoV2, prospeccaoDoTelefone } from "./prospeccao.ts";
+import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
+import { aplicarTravasDeTexto, faltaLinkDoModelo, perguntaSeViu, situacaoDaRecusa } from "./travas.ts";
+import { encerrarLead } from "./tools.ts";
+import { linkPrevia } from "./extras.ts";
 
 const MAX = SDR_CONFIG.followUp.maxTentativas;
 
@@ -80,8 +83,17 @@ export async function runFollowUps(now = new Date()) {
         continue;
       }
 
+      // Trava 4 (16/11): a última mensagem de gente foi um "não" → nenhum follow-up; o lead é encerrado
+      const hist = await history(lead.id, 30);
+      const recusa = situacaoDaRecusa(hist);
+      if (recusa.ultimaFoiRecusa) {
+        await encerrarLead(fresh, "desqualificado", "não mandou follow-up porque o lead disse que não tem interesse");
+        await logEvent(lead.id, "followup_cancelado_recusa", { recusas: recusa.recusas });
+        continue;
+      }
+
       const attempt = fresh.followup_attempts + 1;
-      const msgs = toChat(await history(lead.id, 30));
+      const msgs = toChat(hist);
       msgs.push({ role: "user", content: `[Sistema: o lead não respondeu. Escreva o follow-up nº ${attempt}.]` });
       // Garante alternância caso a última mensagem já fosse do usuário
       const merged = msgs.reduce<typeof msgs>((acc, m) => {
@@ -100,9 +112,23 @@ export async function runFollowUps(now = new Date()) {
       const extraCombinado = combinado
         ? "\n\nIMPORTANTE: este é o retorno que você combinou com ele (dia e horário que ele pediu). Abra lembrando com leveza que ficou de falar hoje e retome o assunto de onde parou, com uma pergunta simples. Não diga que ele não respondeu."
         : "";
+      // Trava 6 (16/11): ~15 follow-ups perguntaram "conseguiu dar uma olhadinha?" a quem nunca recebeu o diagnóstico
+      const diagNaoFoi = v2 && !!prosp && !prosp.diag_enviado_em;
+      const viuSemTerRecebido = (t: string) => diagNaoFoi && perguntaSeViu(t);
       let text = await pedir(extraCombinado);
       if (text && repetida(text)) text = await pedir(extraCombinado + "\n\nATENÇÃO: sua última versão repetia uma mensagem que você já mandou. Escreva algo diferente, com outro ângulo.");
-      if (!text || repetida(text)) continue;
+      if (text && viuSemTerRecebido(text)) text = await pedir(extraCombinado + "\n\nATENÇÃO: o diagnóstico NUNCA foi enviado para esta empresa. Não pergunte se viram, se conseguiram olhar nem ofereça reenviar: ofereça mandar pela primeira vez (\"posso te mandar por aqui?\").");
+      if (!text || repetida(text) || viuSemTerRecebido(text)) {
+        // Não saiu um texto bom: tenta de novo daqui a 2 horas em vez de gastar a IA a cada 10 minutos
+        await updateLead(lead.id, { next_followup_at: new Date(now.getTime() + 2 * 3600e3).toISOString() });
+        await logEvent(lead.id, "followup_adiado", { motivo: !text ? "vazio" : repetida(text) ? "repetido" : "perguntou se viu sem ter recebido" });
+        continue;
+      }
+      // Trava 1 e detalhes: saudação da hora certa, sem "querida", sem letra de outro alfabeto
+      text = aplicarTravasDeTexto(text, now);
+      // Trava 2: falou do modelo de site e o link nunca foi mandado nesta conversa
+      const link = prosp && !temSiteProprio(prosp) && prosp.site_preview?.token ? linkPrevia(prosp.site_preview.token) : null;
+      if (faltaLinkDoModelo(text, link, hist.filter((m) => m.direction === "out").map((m) => m.content))) text = `${text}\n\n${link}`;
 
       const id = await sendText(destination(fresh), text);
       await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind: "followup", content: text, evolution_message_id: id });

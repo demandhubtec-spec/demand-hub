@@ -22,8 +22,10 @@ import {
 import { destination, sendBubbles } from "./evolution.ts";
 import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
-import { ehFluxoV2, prospeccaoDoTelefone } from "./prospeccao.ts";
-import { runTool, TOOLS } from "./tools.ts";
+import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
+import { encerrarLead, runTool, TOOLS } from "./tools.ts";
+import { aplicarTravasDeTexto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, situacaoDaRecusa } from "./travas.ts";
+import { linkPrevia } from "./extras.ts";
 import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
 import {
@@ -102,7 +104,19 @@ async function reply(leadId: string) {
   // Pediu para sair da demo na última mensagem (o webhook já registrou): a Ana faz a virada agora
   if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
 
+  // Trava 4 (16/11): o lead disse "não". Uma pergunta leve é permitida; no segundo "não", só agradece e encerra.
+  const recusa = !emDemo && !doDono ? situacaoDaRecusa(hist) : { ultimaFoiRecusa: false, recusas: 0, semRespostaDepoisDoNao: false };
+  const avisoRecusa = recusa.ultimaFoiRecusa
+    ? recusa.recusas >= 2
+      ? "\n\n## ATENÇÃO: recusa repetida\nO lead já disse mais de uma vez que não tem interesse. Agradeça com carinho em UMA frase curta, deixe a porta aberta, NÃO faça pergunta nenhuma e chame encerrar_contato com motivo \"desqualificado\" (ou \"opt_out\" se pediu para não mandar mais mensagem)."
+      : "\n\n## ATENÇÃO: o lead acabou de dizer que não tem interesse\nAcolha e faça no máximo UMA pergunta leve (o que pesa mais: o momento ou já têm alguém cuidando). Não ofereça horário, não mande diagnóstico e não insista. Se ele pediu para não mandar mais mensagem, agradeça e chame encerrar_contato com motivo \"opt_out\"."
+    : "";
+
   let finalText = "";
+  // Travas 2 e 3 (16/11): o que a ferramenta do diagnóstico fez nesta resposta
+  let diagChamado = false;
+  let linkModelo: string | null = null;
+  let reescreveuEnvio = false;
   // A Ana combinou um dia e horário para retomar: o follow-up padrão não pode passar por cima
   let retornoCombinado = false;
   for (let step = 0; step < 6; step++) {
@@ -115,7 +129,7 @@ async function reply(leadId: string) {
           tools: [TOOL_ENCERRAR_DEMO],
         })
       : await callLLM({
-          system: systemPrompt(lead, meeting, agora, prospeccao, orientacoes, anuncio, demoIni ? contextoPosDemo(demoAcabouAgora) : ""),
+          system: systemPrompt(lead, meeting, agora, prospeccao, orientacoes, anuncio, (demoIni ? contextoPosDemo(demoAcabouAgora) : "") + avisoRecusa),
           messages,
           // encerrar_demo fica na lista para o histórico da virada continuar válido
           tools: demoIni ? [...TOOLS, TOOL_ENCERRAR_DEMO] : TOOLS,
@@ -124,7 +138,29 @@ async function reply(leadId: string) {
     messages.push({ role: "assistant", content: msg.content ?? null, tool_calls: msg.tool_calls });
 
     if (!msg.tool_calls?.length) {
-      finalText = humanizar(msg.content ?? "");
+      const texto = humanizar(msg.content ?? "");
+      // Trava 3: disse que mandou o diagnóstico sem chamar a ferramenta → o sistema chama antes de mandar o texto
+      if (!emDemo && prospeccao && !diagChamado && !reescreveuEnvio && dizQueEnviouDiagnostico(texto)) {
+        diagChamado = true;
+        let out = "";
+        try {
+          out = await runTool("enviar_diagnostico", {}, leadId);
+        } catch (e) {
+          console.error("trava do diagnóstico: envio falhou", e);
+        }
+        if (out.startsWith("PDF enviado") || out.includes("já foi enviado")) {
+          linkModelo = linkDoModeloNaFerramenta(out);
+          await logEvent(leadId, "trava_diagnostico", { acao: "enviou_antes_do_texto" });
+          finalText = texto;
+          break;
+        }
+        // Não deu para mandar: pede para reescrever sem dizer que enviou
+        reescreveuEnvio = true;
+        await logEvent(leadId, "trava_diagnostico", { acao: "reescrever", motivo: out.slice(0, 160) });
+        messages.push({ role: "user", content: `[Sistema: sua mensagem diz que o diagnóstico foi enviado, mas ele NÃO foi. ${out || "O envio falhou."} Reescreva a resposta sem dizer que enviou nem que separou.]` });
+        continue;
+      }
+      finalText = texto;
       break;
     }
 
@@ -145,6 +181,10 @@ async function reply(leadId: string) {
       try {
         out = await runTool(call.function.name, parseArgs(call), leadId);
         if (call.function.name === "combinar_retorno" && out.startsWith("Retorno guardado")) retornoCombinado = true;
+        if (call.function.name === "enviar_diagnostico") {
+          diagChamado = true;
+          linkModelo = linkDoModeloNaFerramenta(out) ?? linkModelo;
+        }
       } catch (e) {
         console.error(`Erro na ferramenta ${call.function.name}:`, e);
         out = `Erro ao executar ${call.function.name}. Siga a conversa sem essa ação ou use encaminhar_humano.`;
@@ -154,6 +194,18 @@ async function reply(leadId: string) {
   }
 
   if (!finalText) return;
+
+  // Trava 1 (e detalhes): saudação pela hora certa, sem "querida", sem letra de outro alfabeto
+  if (!emDemo) finalText = aplicarTravasDeTexto(finalText, new Date());
+  // Trava 2: falou do modelo de site (ou acabou de mandar o diagnóstico de quem não tem site) e o link não foi junto
+  if (!emDemo && prospeccao) {
+    const link = linkModelo ?? (!temSiteProprio(prospeccao) && prospeccao.site_preview?.token ? linkPrevia(prospeccao.site_preview.token) : null);
+    const jaMandado = hist.filter((m) => m.direction === "out").map((m) => m.content);
+    if (faltaLinkDoModelo(finalText, link, jaMandado, !!linkModelo)) {
+      finalText = `${finalText}\n\n${link}`;
+      await logEvent(leadId, "trava_link_modelo", { link });
+    }
+  }
 
   lead = await getLead(leadId);
   // Se a IA pausou a si mesma (handoff) ela ainda manda a mensagem de transição.
@@ -167,7 +219,17 @@ async function reply(leadId: string) {
   // Agenda o primeiro follow-up caso o lead não responda
   // No teste do Kelvin não tem follow-up
   // (em 06/11 a Ana combinou "domingo à tarde" com um lead e o follow-up jogou para segunda às 8h)
-  if (!doDono && !lead.ai_paused && OPEN_STATUSES.includes(lead.status) && !retornoCombinado) {
+  // Trava 4: depois de um "não", nenhum follow-up. Segundo "não" (ou a IA não encerrou) → lead encerrado.
+  if (recusa.ultimaFoiRecusa && !doDono) {
+    patch.next_followup_at = null;
+    await logEvent(leadId, "recusa_detectada", { recusas: recusa.recusas });
+    if (recusa.recusas >= 2 && OPEN_STATUSES.includes(lead.status)) {
+      await updateLead(leadId, patch);
+      await encerrarLead(lead, "desqualificado", "agradeceu e encerrou depois do segundo \"não\"");
+      await logEvent(leadId, "ia_respondeu", { chars: finalText.length });
+      return;
+    }
+  } else if (!doDono && !lead.ai_paused && OPEN_STATUSES.includes(lead.status) && !retornoCombinado) {
     patch.followup_attempts = 0;
     // Prospecção v2: follow-ups no ritmo dela (7 em até 14 dias)
     patch.next_followup_at = nextFollowUpAt(now, 0, ehFluxoV2(prospeccao) ? PROSPECCAO_V2 : undefined)?.toISOString() ?? null;

@@ -335,14 +335,18 @@ async function detectReplies(cfg: any) {
       .like("phone", `%${tail}`).gt("last_inbound_at", l.wa_sent_at).limit(1);
     if (!sl?.length) continue;
     // sdr_messages.direction é 'in' | 'out' (antes buscava 'inbound' e nunca achava o texto)
-    const { data: msg } = await sb.from("sdr_messages").select("content")
+    // 16/11: resposta automática (robô, boas-vindas, menu) não conta como resposta. Festa Fácil e Clínica
+    // Campinense ficaram "respondeu" só com o robô, saíram da cutucada e ficaram sem follow-up nenhum.
+    const { data: msg } = await sb.from("sdr_messages").select("content, created_at")
       .eq("lead_id", sl[0].id).eq("direction", "in").gt("created_at", l.wa_sent_at)
+      .not("content", "like", "[resposta automática]%")
       .order("created_at", { ascending: true }).limit(1);
-    const text = msg?.[0]?.content || "";
+    if (!msg?.length) continue;
+    const text = msg[0].content || "";
     const optout = (cfg.optout_words || []).some((w: string) => text.toLowerCase().includes(w));
     await sb.from("outreach_leads").update({
       wa_status: optout ? "optout" : "respondeu",
-      replied_at: sl[0].last_inbound_at, reply_text: text.slice(0, 1000),
+      replied_at: msg[0].created_at, reply_text: text.slice(0, 1000),
       email_status: l.email_status === "pendente" ? "ignorado" : l.email_status,
       // Qualquer resposta para a cadência: a Ana assume a conversa (ou o lead sai, se pediu)
       cadencia: optout ? "parada" : "respondeu",

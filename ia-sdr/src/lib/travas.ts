@@ -1,0 +1,152 @@
+/**
+ * Travas no código para as mensagens da Gabi e da Marina (auditoria de 16/11/2026, Kelvin).
+ * Não dependem da IA lembrar de uma regra: o sistema confere o texto antes de mandar.
+ */
+import { toLocal } from "./time.ts";
+
+const sem = (s: string) => (s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+
+/** "bom dia" até 11:59, "boa tarde" até 17:59, depois "boa noite" (horário de Brasília). */
+export function saudacaoDaHora(now: Date): "bom dia" | "boa tarde" | "boa noite" {
+  const h = toLocal(now).h;
+  return h < 12 ? "bom dia" : h < 18 ? "boa tarde" : "boa noite";
+}
+
+/**
+ * 1. Saudação pela hora certa: troca "Bom dia/Boa tarde/Boa noite" do começo da mensagem pela saudação
+ * da hora do envio (16/11: "Boa tarde, Dra. Bárbara!" às 08:33; follow-ups das 8h copiavam a conversa anterior).
+ * Só mexe na saudação de abertura (primeiros 60 caracteres), mantendo maiúscula/minúscula.
+ */
+export function corrigirSaudacao(texto: string, now: Date): string {
+  const certa = saudacaoDaHora(now);
+  const re = /\b(bom dia|boa tarde|boa noite)\b/i;
+  const m = re.exec(texto ?? "");
+  if (!m || m.index > 60) return texto;
+  if (m[1].toLowerCase() === certa) return texto;
+  const nova = m[1][0] === m[1][0].toUpperCase() ? certa[0].toUpperCase() + certa.slice(1) : certa;
+  return texto.slice(0, m.index) + nova + texto.slice(m.index + m[1].length);
+}
+
+/**
+ * 3. A mensagem diz que o diagnóstico foi enviado ("Prontinho, separei aqui!", "te mandei o diagnóstico")?
+ * (16/11: Dra. Caroline Cardo recebeu "Prontinho, separei aqui!" e o PDF nunca saiu.)
+ */
+export function dizQueEnviouDiagnostico(texto: string): boolean {
+  const t = sem(texto);
+  return (
+    /\bseparei (aqui|pra voces|para voces)\b|\bsegue (aqui )?(o |a )?(diagnostico|analise|pdf|relatorio)/.test(t) ||
+    /\b(te |lhe |acabei de )?(mandei|enviei|encaminhei)\b.{0,30}\b(diagnostico|analise|pdf|relatorio)/.test(t)
+  );
+}
+
+/** Link do modelo de site que a ferramenta enviar_diagnostico devolveu. */
+export function linkDoModeloNaFerramenta(saidaDaFerramenta: string): string | null {
+  const m = /link do modelo de site:\s*(\S+)/i.exec(saidaDaFerramenta ?? "");
+  return m ? m[1].replace(/[.,;]+$/, "") : null;
+}
+
+/**
+ * 2. Link do modelo sempre junto: a mensagem fala do modelo de site, o link existe, não está no texto
+ * e nunca foi mandado nesta conversa → precisa ir num balão logo depois.
+ * (16/11: Clínica Dr. Rafael, Nutrivale e Casa Rosa ouviram "O que acharam do modelo?" sem link.)
+ */
+export function faltaLinkDoModelo(texto: string, link: string | null, jaMandado: string[] = [], forcar = false): boolean {
+  if (!link) return false;
+  if ((texto ?? "").includes(link)) return false;
+  if (jaMandado.some((m) => (m ?? "").includes(link))) return false;
+  return forcar || /\bmodelo\b|\bprevia\b|\brascunho do site\b/.test(sem(texto));
+}
+
+/**
+ * 4. O lead disse que não tem interesse? ("não temos interesse", "sem interesse", "não precisamos",
+ * "pode tirar meu número"). Uma pergunta de volta é permitida; um segundo "não" encerra.
+ */
+const RECUSA = [
+  /\bnao (temos|tenho|ha|teriamos|tenhamos|estamos com|estou com) (nenhum |mais )?interesse/,
+  /\bsem interesse\b/,
+  /\bnao (estamos|estou) interessad/,
+  /\bnao (e|eh) do (nosso|meu) interesse/,
+  /\bnao (queremos|precisamos|pretendemos contratar)\b/,
+  /\bnao (quero|preciso)( (nao|disso|desse|nada|agora|no momento|contratar)\b|\s*[.!,]|\s*$)/,
+  /\bnao,? obrigad[oa]\b/,
+  /\b(dispenso|dispensamos)\b/,
+  /\b(pode|podem) (tirar|remover|excluir) (meu|nosso|o) (numero|contato)/,
+  /\bnao (me )?(mande|mandem|envie|enviem) mais/,
+  /\bpar(e|em) de (mandar|enviar)/,
+  /\bja (temos|tenho) (quem|alguem|agencia|empresa)\b.*\bnao\b/,
+];
+export function recusou(texto: string | null | undefined): boolean {
+  const t = sem(String(texto ?? "")).replace(/^\[resposta automatica\].*$/s, "");
+  if (!t.trim()) return false;
+  // "não quero perder" / "não precisamos esperar" não é recusa: o verbo precisa terminar a ideia
+  if (/\bnao (queremos|quero|precisamos|preciso)\s+(perder|esperar|deixar|que)\b/.test(t)) return false;
+  return RECUSA.some((r) => r.test(t));
+}
+
+/** Mensagens que vieram da empresa e não são de robô. */
+export function inboundsDeGente<T extends { direction: string; content: string }>(msgs: T[]): T[] {
+  return msgs.filter((m) => m.direction === "in" && !String(m.content ?? "").startsWith("[resposta automática]"));
+}
+
+/**
+ * Situação da recusa no histórico: a última mensagem de gente foi um "não"? Quantos "não" vieram?
+ * Encerra quando o lead disse não duas vezes, ou disse não e não respondeu a nossa pergunta depois disso.
+ */
+export function situacaoDaRecusa(msgs: { direction: string; content: string }[]): { ultimaFoiRecusa: boolean; recusas: number; semRespostaDepoisDoNao: boolean } {
+  const gente = inboundsDeGente(msgs);
+  const recusas = gente.filter((m) => recusou(m.content)).length;
+  const ultima = gente[gente.length - 1];
+  const ultimaFoiRecusa = !!ultima && recusou(ultima.content);
+  // Depois do último "não" de gente só vieram mensagens nossas (ou de robô): a pessoa não respondeu à pergunta
+  let semRespostaDepoisDoNao = false;
+  if (ultimaFoiRecusa) {
+    const idx = msgs.lastIndexOf(ultima);
+    semRespostaDepoisDoNao = msgs.slice(idx + 1).some((m) => m.direction === "out");
+  }
+  return { ultimaFoiRecusa, recusas, semRespostaDepoisDoNao };
+}
+
+/**
+ * 6. Follow-up que pergunta se viram algo que nunca foi enviado ("conseguiu dar uma olhadinha?",
+ * "chegou a ver?", "posso reenviar?"). Só vale como erro quando o diagnóstico não foi enviado.
+ */
+export function perguntaSeViu(texto: string): boolean {
+  const t = sem(texto);
+  return /consegui(u|ram|u dar|ram dar)? (dar )?(uma )?(olhad|olhar|ver)|chegou a (ver|olhar|dar uma olhad)|chegaram a (ver|olhar)|deu (pra|para) (ver|olhar)|\b(o )?que acha(ram|u) do diagnostico|reenvi|mandar de novo|enviar de novo|retomar de onde paramos/.test(t);
+}
+
+/**
+ * 7. Nome curto da empresa: o nome do Google às vezes vem com especialidade, cidade e bairro
+ * ("Dra. Luana Aranha - Geriatria e Clínica Médica em Campinas", "Dra Larissa Avelino SOUSAS").
+ */
+export function nomeCurto(empresa: string | null | undefined, cidade?: string | null): string {
+  let n = String(empresa ?? "").trim();
+  if (!n) return n;
+  n = n.split(/\s+[-–—|]\s+|\s*\|\s*|\s+-(?=\S)|(?<=\S)[-–—]\s+/)[0].trim();
+  n = n.replace(/\s*\([^)]*\)\s*$/, "").trim();
+  const c = (cidade ?? "").trim();
+  if (c) n = n.replace(new RegExp(`\\s+(em|de|-)?\\s*${c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "").trim();
+  // Palavra final toda em maiúscula colada no nome (bairro): "Dra Larissa Avelino SOUSAS"
+  const partes = n.split(/\s+/);
+  if (partes.length >= 3 && /^[A-ZÀ-Ú]{4,}$/.test(partes[partes.length - 1]) && partes.slice(0, -1).some((p) => /[a-zà-ú]/.test(p))) partes.pop();
+  return partes.join(" ").replace(/[,;:]+$/, "").trim() || String(empresa).trim();
+}
+
+/** Tira caracteres de outro alfabeto que parecem latinos (16/11: "reenviе" com "е" cirílico). */
+export function limparCaracteresEstranhos(texto: string): string {
+  const mapa: Record<string, string> = { "а": "a", "е": "e", "о": "o", "р": "p", "с": "c", "у": "y", "х": "x", "і": "i", "А": "A", "Е": "E", "О": "O", "Р": "P", "С": "C", "Х": "X" };
+  return (texto ?? "").replace(/[аеорсухіАЕОРСХ]/g, (ch) => mapa[ch] ?? ch);
+}
+
+/** "querida"/"querido" para desconhecido soa forçado e erra o gênero (16/11: "E com você, querida?" para o Marcelo). */
+export function tirarQuerida(texto: string): string {
+  return (texto ?? "")
+    .replace(/,\s*querid[oa]\b(?=[\s?!.,]|$)/gi, "")
+    .replace(/\bquerid[oa],\s*/gi, "")
+    .replace(/[ \t]{2,}/g, " ");
+}
+
+/** Todas as travas de texto que valem para qualquer mensagem da SDR. */
+export function aplicarTravasDeTexto(texto: string, now: Date): string {
+  return tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)));
+}

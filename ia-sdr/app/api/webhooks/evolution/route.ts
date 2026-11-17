@@ -19,7 +19,7 @@ import { interpretarMidia } from "@/src/lib/midia.ts";
 import { emailsNoTexto, rascunhoDoEmailPassado } from "@/src/lib/rascunho-email.ts";
 import { processarOrientacao, registrar } from "@/src/lib/canal.ts";
 import { sdrDaInstancia } from "@/src/lib/instancias.ts";
-import type { Sdr } from "@/src/lib/sdrs.ts";
+import { nomeDaSdr, type Sdr } from "@/src/lib/sdrs.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -194,7 +194,7 @@ export async function POST(req: Request) {
         // Robô pedindo recado/assunto: a Gabi deixa UM recado curto para chegar numa pessoa (v2)
         const opcao = opcaoDoMenu(content);
         if (salvo && ehFluxoV2(prospeccao) && !lead.ai_paused && (opcao || roboPedeRecado(content)) && !(await ultimoEvento(lead.id, "recado_robo").catch(() => null))) {
-          const recado = opcao ?? recadoParaRobo(prospeccao);
+          const recado = opcao ?? recadoParaRobo(prospeccao, nomeDaSdr(lead.agente));
           await logEvent(lead.id, "recado_robo");
           try {
             const id = await sendText(destination(lead), recado);

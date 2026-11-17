@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { cn } from "@/lib/utils";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
-import { ORIGEM_TEXTO, useAlternarAna, useContatos, useConversa, type Contato } from "@/hooks/useCrm";
+import { ORIGEM_TEXTO, useAlternarAna, useContatos, useConversa, useNaoELead, type Contato } from "@/hooks/useCrm";
 import { fmtData } from "../prospeccao/shared";
 import { STATUS_ANA } from "./InboundTab";
 import { Compositor } from "./Compositor";
@@ -101,7 +101,9 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
   // Gabi ou Marina (16/11): cada conversa fica com a SDR do número em que acontece
   const SDR = c.agente === "marina" ? "Marina" : "Gabi";
   const alternar = useAlternarAna();
+  const naoELead = useNaoELead();
   const { showToast } = useToast();
+  const foraDoFunil = c.status === "desqualificado" || c.status === "opt_out";
   const fim = React.useRef<HTMLDivElement>(null);
   // Em navegadores novos o scrollIntoView devolve uma Promise: o efeito não pode retornar isso
   React.useEffect(() => {
@@ -122,6 +124,28 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
             {c.phone} · {c.tipo === "prospeccao" ? "Prospecção ativa" : ORIGEM_TEXTO[c.origem ?? ""] ?? "Inbound"} · número da {SDR}
           </div>
         </div>
+        {!foraDoFunil ? (
+          <button
+            type="button"
+            disabled={naoELead.isPending}
+            onClick={() => {
+              if (!window.confirm(`Marcar ${c.nomeExibicao} como "não é lead"? A ${SDR} para de responder e não manda mais follow-up.`)) return;
+              naoELead.mutate(
+                { id: c.id, phone: c.phone },
+                {
+                  onSuccess: () => showToast(`Marcado como não é lead. A ${SDR} não fala mais com esse contato.`),
+                  onError: () => showToast("Não consegui marcar agora. Tente de novo."),
+                },
+              );
+            }}
+            className="rounded-full border border-border px-2.5 py-1 text-[12px] font-semibold text-muted hover:text-foreground"
+            title="Fornecedor, contato pessoal ou robô: a SDR nunca responde nem faz follow-up"
+          >
+            Não é lead
+          </button>
+        ) : (
+          <span className="rounded-full bg-surface-2 px-2.5 py-1 text-[12px] font-semibold text-muted">Fora do funil</span>
+        )}
         <label
           className={cn(
             "inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pl-2.5 pr-1 text-[12px] font-semibold",

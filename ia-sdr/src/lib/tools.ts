@@ -15,6 +15,7 @@ import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
 import { pedirOrientacao } from "./canal.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { linkPrevia } from "./extras.ts";
+import { nomeDaSdr } from "./sdrs.ts";
 
 export const TOOLS: Tool[] = [
   {
@@ -208,6 +209,30 @@ async function podeAgendar(lead: Lead): Promise<boolean> {
   if (evaluateBant(lead).qualificado) return true;
   const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
   return !!p;
+}
+
+/**
+ * Encerra o lead: sem follow-up, e na prospecção vai para "Fora" com a cadência parada.
+ * Usado pela ferramenta encerrar_contato e pela trava de recusa (16/11: quem disse "não" duas vezes
+ * continuava recebendo follow-up).
+ */
+export async function encerrarLead(lead: Lead, motivo: "opt_out" | "desqualificado", oQueFez: string) {
+  await updateLead(lead.id, { status: motivo, next_followup_at: null });
+  const pe = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+  if (pe?.place_id) {
+    await db()
+      .from("outreach_leads")
+      .update({
+        status_comercial: "descartado",
+        cadencia: "parada",
+        proximo_toque_em: null,
+        proximo_canal: null,
+        retorno_em: null,
+        ...(motivo === "opt_out" ? { wa_status: "optout" } : {}),
+      })
+      .eq("place_id", pe.place_id);
+    if (ehFluxoV2(pe)) await notifyOwner(`🚫 ${pe.empresa}: ${motivo === "opt_out" ? "não quer mais contato" : "encerrado"}. A ${nomeDaSdr(lead.agente)} ${oQueFez}.\nwa.me/${lead.phone}`);
+  }
 }
 
 export async function runTool(name: string, input: Input, leadId: string): Promise<string> {
@@ -468,26 +493,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
     }
 
     case "encerrar_contato": {
-      await updateLead(leadId, {
-        status: input.motivo === "opt_out" ? "opt_out" : "desqualificado",
-        next_followup_at: null,
-      });
-      // Na prospecção, quem pediu para sair vai para "Fora" e a cadência para de vez
-      const pe = await prospeccaoDoTelefone(lead.phone).catch(() => null);
-      if (pe?.place_id) {
-        await db()
-          .from("outreach_leads")
-          .update({
-            status_comercial: "descartado",
-            cadencia: "parada",
-            proximo_toque_em: null,
-            proximo_canal: null,
-            retorno_em: null,
-            ...(input.motivo === "opt_out" ? { wa_status: "optout" } : {}),
-          })
-          .eq("place_id", pe.place_id);
-        if (ehFluxoV2(pe)) await notifyOwner(`🚫 ${pe.empresa}: ${input.motivo === "opt_out" ? "não quer mais contato" : "encerrado"}. A Gabi agradeceu e parou.\nwa.me/${lead.phone}`);
-      }
+      await encerrarLead(lead, input.motivo === "opt_out" ? "opt_out" : "desqualificado", "agradeceu e parou");
       return "Follow-ups encerrados para este lead. Agora responda ao lead com UMA mensagem curta, gentil e sem insistir (ex.: agradecer o retorno e deixar a porta aberta). Nunca deixe a mensagem dele sem resposta.";
     }
 

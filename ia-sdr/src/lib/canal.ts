@@ -10,6 +10,7 @@ import { addMessage, db, getLead, history, logEvent, updateLead, type Lead } fro
 import { carregarPlaybook, manuaisAtuais, playbookAtual } from "./playbook.ts";
 import { env } from "./env.ts";
 import { destination, sendBubbles, sendText } from "./evolution.ts";
+import { corrigirSaudacao } from "./travas.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { nomeDaSdr } from "./sdrs.ts";
 
@@ -79,7 +80,8 @@ export async function pedirOrientacao(leadId: string, pergunta: string, opcoes: 
 /** Retomada de conversa parada: vira proposta no canal e só sai com o ok do Kelvin. */
 export async function proporRetomada(leadId: string, texto: string, motivo: string): Promise<void> {
   const nome = await nomeDe(leadId);
-  const msg = corrigirMarca(humanizar(texto));
+  // A mensagem pode ter sido escrita horas antes do ok: a saudação vai pela hora do envio (16/11)
+  const msg = corrigirSaudacao(corrigirMarca(humanizar(texto)), new Date());
   await db().from("ana_canal").update({ status: "descartado" }).eq("lead_id", leadId).eq("status", "aguardando_ok");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: `Retomada para ${nome} (${motivo}):\n«${msg}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: msg });
   await logEvent(leadId, "retomada_proposta", { motivo });
@@ -179,7 +181,8 @@ async function conversasRecentes(horas: number) {
 /** Envia de verdade para o lead (só com o ok do Kelvin). */
 async function enviarAoLead(leadId: string, texto: string) {
   const lead = await getLead(leadId);
-  const msg = corrigirMarca(humanizar(texto));
+  // A mensagem pode ter sido escrita horas antes do ok: a saudação vai pela hora do envio (16/11)
+  const msg = corrigirSaudacao(corrigirMarca(humanizar(texto)), new Date());
   await sendBubbles(destination(lead), msg, async (content, id) => {
     await addMessage({ lead_id: leadId, direction: "out", author: "ia", content, evolution_message_id: id });
   });

@@ -9,6 +9,7 @@
 import { db } from "./db.ts";
 import { formatBR } from "./time.ts";
 import { linkPrevia } from "./extras.ts";
+import { nomeCurto } from "./travas.ts";
 
 export interface Prospeccao {
   place_id?: string;
@@ -168,7 +169,8 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
 export function varsPromptGabi(p: Prospeccao): Record<string, string> {
   const w = palavrasDoNicho(p.nicho);
   return {
-    empresa: p.empresa || "a empresa",
+    // Nome curto (16/11): "Dra. Luana Aranha - Geriatria e Clínica Médica em Campinas" vira "Dra. Luana Aranha"
+    empresa: nomeCurto(p.empresa, p.cidade) || "a empresa",
     cidade: p.cidade || "da região",
     nicho_plural: w.plural,
     publico: w.publico,
@@ -189,7 +191,7 @@ function contextoProspeccaoV2(p: Prospeccao): string {
 
 ## Dados deste lead (prospecção ativa)
 Você chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Primeira mensagem: "${v(p.wa_message)}".
-Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
+Empresa: ${v(nomeCurto(p.empresa, p.cidade))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
 ${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}
 Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
 }
@@ -206,7 +208,7 @@ Não foi o lead que nos procurou: VOCÊ mandou a primeira mensagem para ele em $
 Mensagens que ele já recebeu de você (as que podem não ter sido lidas também contam; não repita o que já disse):
 ${toquesRecebidos(p) || `"${v(p.wa_message)}"`}
 
-Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(p.empresa)} | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
+Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(nomeCurto(p.empresa, p.cidade))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
 ${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}${analisePendente(p)}
 Objetivo desta conversa (é para isso que você trabalha): chegar até o responsável (quem cuida do marketing, do comercial ou do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista, oferecendo o diagnóstico gratuito. Toda mensagem sua deve aproximar a conversa desse objetivo, com leveza.
 Situação do objetivo agora: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"} · contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.
@@ -339,10 +341,10 @@ export function opcaoDoMenu(texto: string): string | null {
   return null;
 }
 
-export function recadoParaRobo(p: Prospeccao): string {
+export function recadoParaRobo(p: Prospeccao, sdr = "Gabi"): string {
   const w = palavrasDoNicho(p.nicho);
   const tipo = `${w.artigo} ${w.singular}`;
-  return `Oi! Aqui é a Gabi, da DemandIA 😊 O assunto é um diagnóstico gratuito de como ${tipo} aparece no Google, para o responsável. Fico no aguardo!`;
+  return `Oi! Aqui é a ${sdr}, da DemandIA 😊 O assunto é um diagnóstico gratuito de como ${tipo} aparece no Google, para o responsável. Fico no aguardo!`;
 }
 
 /**

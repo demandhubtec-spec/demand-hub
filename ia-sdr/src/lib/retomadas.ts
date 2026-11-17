@@ -16,6 +16,8 @@ import { humanizar, REGRAS_DE_ESTILO } from "./estilo.ts";
 import { formatBR } from "./time.ts";
 import { proporRetomada } from "./canal.ts";
 import { proximosHorarios } from "./tools.ts";
+import { nomeDaSdr } from "./sdrs.ts";
+import { aplicarTravasDeTexto, nomeCurto } from "./travas.ts";
 
 const MAX_RETOMADAS = 2;
 /**
@@ -63,7 +65,8 @@ export async function runRetomadas(now = new Date()) {
     const { data: ls } = await db().from("sdr_leads").select("*").ilike("phone", `%${fim8(p.whatsapp)}`).limit(1);
     const lead = (ls ?? [])[0] as Lead | undefined;
     if (!lead) continue;
-    if (["opt_out", "desqualificado", "agendado"].includes(lead.status)) continue;
+    // "humano" = o Kelvin está conduzindo a conversa (16/11: Dentarys, Baldin, Dra. Fernanda): nenhuma SDR chama
+    if (["opt_out", "desqualificado", "agendado", "humano"].includes(lead.status)) continue;
     if (isBlocked(lead.phone, lead.whatsapp_jid)) continue;
     if (await activeMeeting(lead.id)) continue;
 
@@ -126,7 +129,7 @@ async function escrever(lead: Lead, p: LeadProsp, motivo: string, now: Date): Pr
   }, []);
 
   const horarios = await proximosHorarios(now).catch(() => [] as string[]);
-  const system = `Você é a Gabi, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo um diagnóstico gratuito do perfil dela no Google, e a conversa parou.
+  const system = `Você é a ${nomeDaSdr(lead.agente)}, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo um diagnóstico gratuito do perfil dela no Google, e a conversa parou.
 Motivo desta mensagem: ${motivo}.
 Objetivo: chegar até o responsável (marketing, comercial ou quem cuida do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista em presença digital.
 Situação: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"}; contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}.
@@ -140,6 +143,10 @@ Escreva UMA mensagem curta de retomada (1 a 3 frases, no máximo 2 balões separ
 - Nunca diga que enviou algo que não está no histórico. Não explique como resolver os problemas: isso é o que o especialista mostra.
 - Tom leve, sem cobrar e sem "só passando". Não repita frases que você já mandou.
 - Não se apresente de novo se já se apresentou. Não use "grátis": diga "gratuito".
+- Chame a empresa pelo nome curto (${nomeCurto(p.empresa, p.cidade)}), nunca pelo nome completo do Google.
+- Posição no Google só se for até o 20º lugar; acima disso, fale de fotos, descrição, avaliações ou site.
+- Horário sempre com dia da semana e data (ex.: "quarta, 18/11, às 10h"), nunca "amanhã" junto com o nome do dia.
+- Nada de "querida" ou "querido": use o nome da pessoa quando souber.
 - Responda só com o texto da mensagem.
 
 ${REGRAS_DE_ESTILO}
@@ -147,7 +154,7 @@ ${REGRAS_DE_ESTILO}
 Agora: ${formatBR(now)}`;
 
   const r = await callLLM({ system, messages: merged, maxTokens: 800 });
-  const texto = humanizar(r.message.content ?? "");
+  const texto = aplicarTravasDeTexto(humanizar(r.message.content ?? ""), now);
   // Nunca repete uma frase que já foi mandada nessa conversa
   const ja = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
   if (texto.split(/\n+/).some((l) => ja.has(l.trim().toLowerCase()))) return "";

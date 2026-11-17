@@ -242,7 +242,14 @@ export function WhatsAppSdrsTab() {
             <div>
               <div className="text-[14px] font-semibold">Marina fazendo primeiros contatos</div>
               <div className="text-[12px] text-muted">
-                {marina?.existe && marina.conectado ? "Ligado: ela entra na fila de aprovados junto com a Gabi." : "Ligue depois de conectar o número dela."}
+                {/* 16/11: o texto dizia "Ligado" mesmo com o disparo desligado */}
+                {cfg.marina_enabled
+                  ? marina?.existe && marina.conectado
+                    ? "Ligado: ela entra na fila de aprovados junto com a Gabi."
+                    : "Ligado, mas o número dela está desconectado: ela não dispara até reconectar."
+                  : marina?.existe && marina.conectado
+                    ? "Desligado: a Marina não faz primeiros contatos. Ligue para ela entrar na fila."
+                    : "Desligado. Ligue depois de conectar o número dela."}
               </div>
             </div>
             <Switch
