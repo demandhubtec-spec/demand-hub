@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import type { FichaGabi } from "@/pages/comercial/prospeccao/agenda";
 
 // Atualização "quase em tempo real": polling a cada 12s (seção 6 do handoff).
 const REFRESH = 12_000;
@@ -261,6 +262,22 @@ export function useOutreachLeads() {
     refetchInterval: REFRESH,
     queryFn: () =>
       q<OutreachLead[]>(supabase.from("outreach_leads").select("*").order("created_at", { ascending: false }).limit(2000)),
+  });
+}
+
+/** Fichas da Gabi com follow-up agendado (para a aba Envios prever os follow-ups da abordagem v2). */
+export function useFollowupsGabi() {
+  return useQuery({
+    queryKey: ["outreach", "followups-gabi"],
+    refetchInterval: REFRESH,
+    queryFn: () =>
+      q<FichaGabi[]>(
+        supabase
+          .from("sdr_leads")
+          .select("phone,status,ai_paused,followup_attempts,next_followup_at")
+          .order("updated_at", { ascending: false })
+          .limit(3000),
+      ),
   });
 }
 

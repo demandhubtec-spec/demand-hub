@@ -2,28 +2,38 @@
  * Abordagem v2 (13/11/2026, Kelvin): o 1º contato é só "Oi, boa tarde! 😊 / Tudo bem?". Se ninguém responder
  * em 1 hora (seg a sex 8h às 18h, sábado até meio-dia), a Gabi manda UMA cutucada: "Oi! Fico no aguardo do atendimento por aqui 😊".
  * Depois disso, quem cuida são os follow-ups (7 em até 14 dias, só WhatsApp).
+ *
+ * 16/11 (Kelvin): antes só entrava quem recebeu o 1º contato entre 1 e 6 horas atrás. Quem recebeu o "Oi" depois
+ * das ~17h (ou sábado depois das ~11h) caía fora da janela, nunca recebia a cutucada e, sem ela, nunca entrava nos
+ * follow-ups. Agora entra todo mundo da v2 que ainda não foi cutucado e não respondeu (até 5 dias depois do 1º
+ * contato), e a cutucada sai no próximo horário permitido.
  */
 import { addMessage, db, leadDoTelefone, logEvent, ultimoEvento, updateLead, upsertLeadByPhone } from "./db.ts";
 import { destination, sendText } from "./evolution.ts";
 import { horarioProspeccaoV2, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { FLUXO_V2_DESDE } from "./prospeccao.ts";
+import { CUTUCADA_ATE_DIAS, CUTUCADAS_POR_RODADA, type CandidatoCutucada, ordenarCandidatos } from "./cutucada-fila.ts";
+
+export { CUTUCADA_ATE_DIAS, CUTUCADAS_POR_RODADA, ordenarCandidatos };
 
 export const TEXTO_CUTUCADA = "Oi! Fico no aguardo do atendimento por aqui 😊";
 
 export async function runCutucadas(now = new Date()) {
   if (!horarioProspeccaoV2(now)) return { skipped: "fora do horário" };
   const umaHora = new Date(now.getTime() - 60 * 60_000).toISOString();
-  const seisHoras = new Date(now.getTime() - 6 * 60 * 60_000).toISOString();
+  const limite = new Date(Math.max(new Date(FLUXO_V2_DESDE).getTime(), now.getTime() - CUTUCADA_ATE_DIAS * 86_400_000)).toISOString();
   const { data } = await db()
     .from("outreach_leads")
-    .select("place_id,empresa,whatsapp,wa_sent_at")
+    .select("place_id,empresa,whatsapp,wa_sent_at,ultimo_toque_em")
     .eq("wa_status", "enviado")
-    .gte("wa_sent_at", FLUXO_V2_DESDE)
+    .gte("wa_sent_at", limite)
     .lte("wa_sent_at", umaHora)
-    .gte("wa_sent_at", seisHoras)
-    .limit(30);
+    .order("wa_sent_at", { ascending: true })
+    .limit(500);
+  const fila = ordenarCandidatos((data ?? []) as CandidatoCutucada[], now, FLUXO_V2_DESDE);
   let enviadas = 0;
-  for (const o of (data ?? []) as { place_id: string; empresa: string; whatsapp: string; wa_sent_at: string }[]) {
+  for (const o of fila) {
+    if (enviadas >= CUTUCADAS_POR_RODADA) break;
     // Quem nunca respondeu pode não ter ficha na Gabi: o WhatsApp devolve o envio como LID e o registro
     // caía num número interno (13/11: Clínica Ito, Baronesa, Ivone... ficaram sem cutucada). Cria pela ficha do disparo.
     const tel = (o.whatsapp ?? "").replace(/\D/g, "");
@@ -43,7 +53,7 @@ export async function runCutucadas(now = new Date()) {
     await db().from("outreach_leads").update({ ultimo_toque_em: now.toISOString() }).eq("place_id", o.place_id);
     const id = await sendText(destination(lead), TEXTO_CUTUCADA);
     await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind: "followup", content: TEXTO_CUTUCADA, evolution_message_id: id });
-    await logEvent(lead.id, "cutucada", { place_id: o.place_id });
+    await logEvent(lead.id, "cutucada", { place_id: o.place_id, atrasada: new Date(o.wa_sent_at).getTime() < now.getTime() - 6 * 3600_000 });
     // A partir daqui, os follow-ups da Gabi (7 em até 14 dias)
     await updateLead(lead.id, {
       followup_attempts: 0,
@@ -52,5 +62,5 @@ export async function runCutucadas(now = new Date()) {
     });
     enviadas++;
   }
-  return { enviadas };
+  return { enviadas, pendentes: Math.max(fila.length - enviadas, 0) };
 }

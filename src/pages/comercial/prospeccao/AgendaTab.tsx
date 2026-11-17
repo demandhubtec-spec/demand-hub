@@ -2,14 +2,14 @@ import { FaixaNumeros } from "@/components/shared/FaixaNumeros";
 import * as React from "react";
 import { AlertTriangle, CalendarDays, ChevronDown, ChevronRight, Mail, MessageCircle, Search, SlidersHorizontal, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
-import { useEnviosHoje, useOutreachConfig, useOutreachLeads } from "@/hooks/useProspeccao";
+import { useEnviosHoje, useFollowupsGabi, useOutreachConfig, useOutreachLeads } from "@/hooks/useProspeccao";
 import { cn } from "@/lib/utils";
-import { type EnvioPrevisto, FERIADOS, diaDaSemana, inicioDoDia, preverEnvios, ymd } from "./agenda";
+import { type EnvioPrevisto, FERIADOS, diaDaSemana, inicioDoDia, preverEnvios, preverV2, ymd } from "./agenda";
 import { FichaLead } from "./FichaLead";
 
 type Periodo = "hoje" | "amanha" | "semana" | "7" | "15" | "30";
 type Canal = "todos" | "whatsapp" | "email";
-type Tipo = "todos" | "primeiro" | "follow" | 2 | 3 | 4 | 5 | 6;
+type Tipo = "todos" | "primeiro" | "cutucada" | "follow";
 
 const PERIODOS: { key: Periodo; label: string }[] = [
   { key: "hoje", label: "Hoje" },
@@ -22,13 +22,17 @@ const PERIODOS: { key: Periodo; label: string }[] = [
 const TIPOS: { key: Tipo; label: string }[] = [
   { key: "todos", label: "Todos" },
   { key: "primeiro", label: "1º contato" },
+  { key: "cutucada", label: "Cutucada" },
   { key: "follow", label: "Follow-ups" },
-  { key: 2, label: "Toque 2" },
-  { key: 3, label: "Toque 3" },
-  { key: 4, label: "Toque 4" },
-  { key: 5, label: "Toque 5" },
-  { key: 6, label: "Toque 6" },
 ];
+
+const ehFollow = (e: EnvioPrevisto) => e.tipo === "gabi" || e.tipo === "cadencia";
+function rotulo(e: EnvioPrevisto) {
+  if (e.tipo === "primeiro") return "1º contato";
+  if (e.tipo === "cutucada") return "Cutucada";
+  if (e.tipo === "gabi") return `Follow-up ${e.toque} de ${e.total}`;
+  return `Toque ${e.toque} de ${e.total}`;
+}
 
 const DIA = 864e5;
 const SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -71,14 +75,16 @@ function Linha({ e, onAbrir }: { e: EnvioPrevisto; onAbrir: () => void }) {
         <span className="font-semibold">{e.lead.empresa}</span>
         <span className="ml-2 text-[12px] text-muted">{[e.lead.nicho, e.lead.cidade].filter(Boolean).join(" · ")}</span>
       </span>
+      {e.seNaoResponder && <span className="shrink-0 text-[12px] text-muted">se não responder</span>}
       {e.atrasado && <span className="shrink-0 rounded bg-attention-tint px-1.5 text-[12px] text-attention">atrasado</span>}
       <span
         className={cn(
           "shrink-0 rounded-full px-2 text-[12px] font-semibold",
-          e.toque === 1 ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
+          e.tipo === "primeiro" ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
         )}
+        title={e.seNaoResponder ? "Só sai se a pessoa não responder até lá" : undefined}
       >
-        {e.toque === 1 ? "1º contato" : `Toque ${e.toque} de ${e.total}`}
+        {rotulo(e)}
       </span>
     </button>
   );
@@ -158,6 +164,7 @@ export function AgendaTab() {
   const { data: leads = [] } = useOutreachLeads();
   const { data: cfg } = useOutreachConfig();
   const { data: feitos } = useEnviosHoje();
+  const { data: fichasGabi = [] } = useFollowupsGabi();
   const [periodo, setPeriodo] = React.useState<Periodo>("amanha");
   const [canal, setCanal] = React.useState<Canal>("todos");
   const [tipo, setTipo] = React.useState<Tipo>("todos");
@@ -172,10 +179,12 @@ export function AgendaTab() {
     return () => clearInterval(t);
   }, []);
 
-  const previstos = React.useMemo(
-    () => (cfg ? preverEnvios(leads, cfg, feitos ?? { waNovos: 0, waFollow: 0, email: 0 }, 31, agora) : []),
-    [leads, cfg, feitos, agora],
-  );
+  const previstos = React.useMemo(() => {
+    if (!cfg) return [];
+    const base = preverEnvios(leads, cfg, feitos ?? { waNovos: 0, waFollow: 0, email: 0 }, 31, agora);
+    // Abordagem v2: cutucada e follow-ups da Gabi (a cadência antiga não roda mais para esses leads)
+    return [...base, ...preverV2(leads, fichasGabi, base, cfg, agora)].sort((a, b) => a.quando.getTime() - b.quando.getTime());
+  }, [leads, cfg, feitos, fichasGabi, agora]);
 
   const [de, ate] = janela(periodo, agora);
   const termo = busca.trim().toLowerCase();
@@ -184,19 +193,20 @@ export function AgendaTab() {
       e.quando >= de &&
       e.quando < ate &&
       (canal === "todos" || e.canal === canal) &&
-      (tipo === "todos" || (tipo === "primeiro" ? e.toque === 1 : tipo === "follow" ? e.toque > 1 : e.toque === tipo)) &&
+      (tipo === "todos" || (tipo === "follow" ? ehFollow(e) : e.tipo === tipo)) &&
       (!termo || e.lead.empresa.toLowerCase().includes(termo)),
   );
 
   const porDia = new Map<string, EnvioPrevisto[]>();
   for (const e of filtrados) porDia.set(ymd(e.quando), [...(porDia.get(ymd(e.quando)) ?? []), e]);
 
-  const n1 = filtrados.filter((e) => e.toque === 1).length;
-  const nFollowWa = filtrados.filter((e) => e.toque > 1 && e.canal === "whatsapp").length;
+  const n1 = filtrados.filter((e) => e.tipo === "primeiro").length;
+  const nCutucada = filtrados.filter((e) => e.tipo === "cutucada").length;
+  const nFollowWa = filtrados.filter((e) => ehFollow(e) && e.canal === "whatsapp").length;
   const nEmail = filtrados.filter((e) => e.canal === "email").length;
   const paraAprovar = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "rascunho").length;
   const naFila = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "aprovada" && l.whatsapp).length;
-  const ultimoPrimeiro = [...previstos].reverse().find((e) => e.toque === 1);
+  const ultimoPrimeiro = [...previstos].reverse().find((e) => e.tipo === "primeiro");
   const feriados = [...FERIADOS].filter((f) => f >= ymd(de) && f < ymd(ate));
   const diasLongos = Number(periodo) >= 15;
   const leadAberto = aberto ? leads.find((l) => l.place_id === aberto) : null;
@@ -290,6 +300,7 @@ export function AgendaTab() {
         itens={[
           { rotulo: "Envios no período", valor: filtrados.length },
           { rotulo: "Primeiros contatos", valor: n1 },
+          { rotulo: "Cutucadas", valor: nCutucada },
           { rotulo: "Follow-ups no WhatsApp", valor: nFollowWa },
           { rotulo: "E-mails", valor: nEmail },
         ]}
@@ -298,7 +309,9 @@ export function AgendaTab() {
       <div className="space-y-1 text-[12px] text-muted">
         <div>
           Horários aproximados: o robô sorteia de {Math.round((cfg?.wa_min_interval_sec ?? 300) / 60)} a {Math.round((cfg?.wa_max_interval_sec ?? 540) / 60)} minutos entre um
-          WhatsApp e outro. Follow-ups saem antes dos primeiros contatos. Sábado só de manhã e só follow-up.
+          WhatsApp e outro. O 1º contato é só a saudação e o "Tudo bem?"; se ninguém responder em 1 hora, sai a
+          cutucada ("Fico no aguardo do atendimento por aqui") e depois os follow-ups da Gabi (7 em até 14 dias,
+          seg a sex 8h às 18h, sábado até meio-dia). Cutucadas e follow-ups só saem se a pessoa não responder.
         </div>
         <div>
           {naFila} aprovados na fila
@@ -318,8 +331,9 @@ export function AgendaTab() {
       {[...porDia.entries()].map(([dia, itens]) => {
         const d = itens[0].quando;
         const expandido = abertos[dia] ?? !diasLongos;
-        const p = itens.filter((e) => e.toque === 1).length;
-        const fw = itens.filter((e) => e.toque > 1 && e.canal === "whatsapp").length;
+        const p = itens.filter((e) => e.tipo === "primeiro").length;
+        const cu = itens.filter((e) => e.tipo === "cutucada").length;
+        const fw = itens.filter((e) => ehFollow(e) && e.canal === "whatsapp").length;
         const em = itens.filter((e) => e.canal === "email").length;
         const wa = itens.filter((e) => e.canal === "whatsapp");
         return (
@@ -330,14 +344,14 @@ export function AgendaTab() {
                 {SEMANA[diaDaSemana(d)]}, {ddmm(d)}
               </span>
               <span className="text-[12px] text-muted">
-                {[p && `${p} primeiros contatos`, fw && `${fw} follow-ups no WhatsApp`, em && `${em} e-mails`].filter(Boolean).join(" · ")}
+                {[p && `${p} primeiros contatos`, cu && `${cu} cutucadas`, fw && `${fw} follow-ups no WhatsApp`, em && `${em} e-mails`].filter(Boolean).join(" · ")}
                 {wa.length > 0 && ` · WhatsApp das ${hhmm(wa[0].quando)} às ${hhmm(wa[wa.length - 1].quando)}`}
               </span>
             </button>
             {expandido && (
               <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                 {itens.map((e) => (
-                  <Linha key={`${e.lead.place_id}-${e.toque}`} e={e} onAbrir={() => setAberto(e.lead.place_id)} />
+                  <Linha key={`${e.lead.place_id}-${e.tipo}-${e.toque}`} e={e} onAbrir={() => setAberto(e.lead.place_id)} />
                 ))}
               </div>
             )}

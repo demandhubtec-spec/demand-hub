@@ -20,6 +20,14 @@ export interface EnvioPrevisto {
   total: number;
   /** Estava vencido antes de hoje e ainda não saiu */
   atrasado: boolean;
+  /**
+   * primeiro = 1º contato; cadencia = toque da cadência antiga (2 a 6);
+   * cutucada = "Fico no aguardo do atendimento" 1 h depois do 1º contato sem resposta (abordagem v2);
+   * gabi = follow-up da Gabi (abordagem v2, 7 em até 14 dias, texto escrito pela IA na hora).
+   */
+  tipo: "primeiro" | "cadencia" | "cutucada" | "gabi";
+  /** Só para os previstos "se ninguém responder" (cutucada e follow-ups ainda não agendados no banco). */
+  seNaoResponder?: boolean;
 }
 
 export interface FeitosHoje {
@@ -124,6 +132,7 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
       toque: primeiro ? 1 : st.toque + 1,
       total: Math.max(st.seq.length, 1),
       atrasado: st.atrasado,
+      tipo: primeiro ? "primeiro" : "cadencia",
     });
     const prox = avancar(st, quando, cfg);
     ativos = ativos.filter((x) => x !== st);
@@ -186,4 +195,102 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
     }
   }
   return out.sort((a, b) => a.quando.getTime() - b.quando.getTime());
+}
+
+// ---------------------------------------------------------------------------------------------
+// Abordagem v2 (13/11/2026): cutucada + follow-ups da Gabi (ia-sdr: cutucada.ts e jobs.ts/runFollowUps).
+// A cadência antiga não roda mais para quem recebeu o 1º contato a partir de 13/11, então sem isso a
+// aba Envios mostrava sempre 0 follow-ups.
+
+/** Mantenha igual a ia-sdr/src/lib/prospeccao.ts (FLUXO_V2_DESDE) e ia-sdr/src/lib/followup.ts (PROSPECCAO_V2). */
+export const FLUXO_V2_DESDE = "2026-11-13T03:00:00Z";
+const V2_INTERVALOS = [1, 1, 2, 2, 2, 3, 3];
+const V2_MAX = 7;
+/** Mantenha igual a ia-sdr/src/lib/cutucada-fila.ts */
+const CUTUCADA_ATE_DIAS = 5;
+const STATUS_COM_FOLLOWUP = ["novo", "em_qualificacao", "qualificado"];
+
+/** Ficha da Gabi (sdr_leads), só o que a previsão usa. */
+export interface FichaGabi {
+  phone: string | null;
+  status: string | null;
+  ai_paused: boolean | null;
+  followup_attempts: number | null;
+  next_followup_at: string | null;
+}
+
+const fim8 = (t?: string | null) => String(t ?? "").replace(/\D/g, "").slice(-8);
+
+/** Primeiro horário em que a Gabi manda mensagem da prospecção v2: seg a sex 8h às 18h, sábado 8h ao meio-dia. */
+export function proximoHorarioV2(d: Date): Date {
+  let t = d;
+  for (let i = 0; i < 15; i++) {
+    const dow = diaDaSemana(t);
+    const min = Math.round((t.getTime() - inicioDoDia(t).getTime()) / 60e3);
+    const fecha = dow === 6 ? 12 * 60 : 18 * 60;
+    if (dow !== 0 && !FERIADOS.has(ymd(t))) {
+      if (min < 8 * 60) return naHora(t, 8);
+      if (min < fecha) return t;
+    }
+    t = naHora(new Date(inicioDoDia(t).getTime() + DIA + 12 * 3600e3), 8);
+  }
+  return t;
+}
+
+/**
+ * Prevê a cutucada e os follow-ups da Gabi da abordagem v2:
+ *  - quem já tem follow-up agendado na Gabi (sdr_leads.next_followup_at): esse e os seguintes até o 7º;
+ *  - quem recebeu o 1º contato e ainda não foi cutucado: a cutucada (1 h depois, no próximo horário) e os 7 follow-ups;
+ *  - os 1ºs contatos previstos em `primeiros`: o mesmo, se ninguém responder.
+ * Tudo supõe que a pessoa não responde; se responder, a Gabi assume e a previsão some.
+ */
+export function preverV2(
+  leads: OutreachLead[],
+  fichas: FichaGabi[],
+  primeiros: EnvioPrevisto[],
+  cfg: OutreachConfig,
+  agora = new Date(),
+): EnvioPrevisto[] {
+  const out: EnvioPrevisto[] = [];
+  const hoje0 = inicioDoDia(agora);
+  const followupsLigados = (cfg.followup_daily_cap ?? 40) > 0;
+  const porTel = new Map<string, FichaGabi>();
+  for (const f of fichas) if (fim8(f.phone).length === 8) porTel.set(fim8(f.phone), f);
+
+  const cadeia = (lead: OutreachLead, inicio: Date, tentativa: number, atrasado: boolean, seNaoResponder: boolean) => {
+    if (!followupsLigados) return;
+    let t = inicio;
+    for (let n = tentativa; n <= V2_MAX; n++) {
+      out.push({ lead, quando: t, canal: "whatsapp", toque: n, total: V2_MAX, atrasado: atrasado && n === tentativa, tipo: "gabi", seNaoResponder });
+      t = proximoHorarioV2(new Date(t.getTime() + V2_INTERVALOS[n % V2_INTERVALOS.length] * DIA));
+    }
+  };
+  const cutucadaEDepois = (lead: OutreachLead, enviadoEm: Date) => {
+    const quando = proximoHorarioV2(new Date(Math.max(enviadoEm.getTime() + 3600e3, agora.getTime())));
+    out.push({ lead, quando, canal: "whatsapp", toque: 0, total: 1, atrasado: enviadoEm < new Date(hoje0.getTime() - DIA), tipo: "cutucada", seNaoResponder: true });
+    cadeia(lead, proximoHorarioV2(new Date(quando.getTime() + V2_INTERVALOS[0] * DIA)), 1, false, true);
+  };
+
+  const limite = Math.max(new Date(FLUXO_V2_DESDE).getTime(), agora.getTime() - CUTUCADA_ATE_DIAS * DIA);
+  for (const l of leads) {
+    if (!l.wa_sent_at || l.wa_sent_at < FLUXO_V2_DESDE || !l.whatsapp) continue;
+    if (["optout", "sem_whatsapp", "erro", "ignorado"].includes(l.wa_status)) continue;
+    const ficha = porTel.get(fim8(l.whatsapp));
+    if (ficha?.ai_paused || ficha?.status === "opt_out") continue;
+    // Já tem follow-up agendado na Gabi
+    if (ficha?.next_followup_at) {
+      if (!STATUS_COM_FOLLOWUP.includes(ficha.status ?? "")) continue;
+      const tent = (ficha.followup_attempts ?? 0) + 1;
+      if (tent > V2_MAX) continue;
+      const due = new Date(ficha.next_followup_at);
+      cadeia(l, proximoHorarioV2(new Date(Math.max(due.getTime(), agora.getTime()))), tent, due < hoje0, false);
+      continue;
+    }
+    // Ainda esperando a cutucada: recebeu o "Oi" e ninguém respondeu nem foi cutucado
+    const env = new Date(l.wa_sent_at);
+    const ult = l.ultimo_toque_em ? new Date(l.ultimo_toque_em).getTime() : 0;
+    if (l.wa_status === "enviado" && env.getTime() >= limite && ult <= env.getTime() + 60e3) cutucadaEDepois(l, env);
+  }
+  for (const p of primeiros) if (p.tipo === "primeiro" && p.canal === "whatsapp") cutucadaEDepois(p.lead, p.quando);
+  return out;
 }
