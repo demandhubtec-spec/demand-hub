@@ -36,6 +36,8 @@ export interface SdrLead {
   /** Na lixeira: some do funil e dos indicadores, mas continua guardado e pode ser restaurado. */
   lixeira_em?: string | null;
   funil_etapa: EtapaOportunidade | null;
+  /** SDR responsável (16/11): por qual número a conversa acontece. Antes da migration 0035: undefined (= Gabi). */
+  agente?: "gabi" | "marina" | null;
 }
 
 export interface SdrMensagem {

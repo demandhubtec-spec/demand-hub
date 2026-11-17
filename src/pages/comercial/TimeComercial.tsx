@@ -18,6 +18,9 @@ import { ConversasTab } from "./crm/ConversasTab";
 import { CanalTab } from "./crm/CanalTab";
 import { PlaybookTab } from "./time/PlaybookTab";
 import { PromptGabiTab } from "./time/PromptGabiTab";
+import { WhatsAppSdrsTab } from "./time/WhatsAppSdrsTab";
+import { useContatos } from "@/hooks/useCrm";
+import { sdrDoContato } from "./crm/CanalTab";
 import { FunilKanban } from "./time/FunilKanban";
 import { ListaDoLeo } from "./time/ListaDoLeo";
 import { EtapaRitaDuda } from "./time/EtapaRitaDuda";
@@ -26,7 +29,7 @@ import { InsightsTab } from "./time/InsightsTab";
 import { LigacoesWebhookTab, MetasTab } from "./time/MetasTab";
 import { useInsights } from "@/hooks/useComercial";
 
-export const ABAS_TIME = ["central", "aprovacao", "envios", "funil", "indicadores", "insights", "conversas", "contatos", "ana", "playbook", "config"] as const;
+export const ABAS_TIME = ["central", "aprovacao", "envios", "funil", "indicadores", "insights", "conversas", "contatos", "ana", "marina", "playbook", "config"] as const;
 export type AbaTime = (typeof ABAS_TIME)[number];
 
 /** Endereços antigos do CRM (?aba=...) caem na aba certa daqui. */
@@ -80,6 +83,10 @@ export default function TimeComercial() {
   if (isColaborador || (perfil && perfil.papel !== "dono")) return <Navigate to="/" replace />;
 
   const esperando = canal.filter((m) => m.status === "pendente" || m.status === "aguardando_ok").length;
+  // Gabi e Marina (16/11): cada aba "Você e a ..." conta o que espera você nos leads dela
+  const { contatos } = useContatos();
+  const esperandoMarina = canal.filter((m) => (m.status === "pendente" || m.status === "aguardando_ok") && m.lead_id && sdrDoContato(contatos, m.lead_id) === "marina").length;
+  const esperandoGabi = esperando - esperandoMarina;
   const paraRevisar =
     leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "rascunho").length +
     leads.filter((l) => l.wa_status === "pendente" && l.leo_status === "pendente" && ["sem", "gerando"].includes(l.msg_status)).length +
@@ -131,9 +138,16 @@ export default function TimeComercial() {
       <TabsContent value="conversas">
         {sub([
           { value: "conversas", label: "Conversas com os leads" },
-          { value: "ana", label: `Você e a Gabi${esperando ? ` (${esperando})` : ""}` },
+          { value: "ana", label: `Você e a Gabi${esperandoGabi ? ` (${esperandoGabi})` : ""}` },
+          { value: "marina", label: `Você e a Marina${esperandoMarina ? ` (${esperandoMarina})` : ""}` },
         ])}
-        {aba === "ana" ? <CanalTab abrirConversa={abrirConversa} /> : <ConversasTab leadId={params.get("lead")} escolher={abrirConversa} />}
+        {aba === "ana" ? (
+          <CanalTab key="gabi" abrirConversa={abrirConversa} />
+        ) : aba === "marina" ? (
+          <CanalTab key="marina" agente="marina" abrirConversa={abrirConversa} />
+        ) : (
+          <ConversasTab leadId={params.get("lead")} escolher={abrirConversa} />
+        )}
       </TabsContent>
       <TabsContent value="envios">
         <NumerosEnvio />
@@ -161,6 +175,7 @@ const PRINCIPAL_DA_ABA: Record<AbaTime, Principal> = {
   aprovacao: "aprovacao",
   conversas: "conversas",
   ana: "conversas",
+  marina: "conversas",
   envios: "envios",
   funil: "funil",
   contatos: "funil",
@@ -228,8 +243,8 @@ function Contatos({ abrirConversa }: { abrirConversa: (id: string) => void }) {
 /** Ajustes: Prompt System da Gabi, Playbook, prospecção automática, limites e controles, metas do funil, webhook das ligações e o registro do que o robô fez. */
 function Configuracoes({ playbook }: { playbook: boolean }) {
   const [params, setParams] = useSearchParams();
-  type Visao = "prompt" | "playbook" | "automatico" | "controles" | "metas" | "ligacoes" | "atividade";
-  const visoes: Visao[] = ["prompt", "playbook", "automatico", "controles", "metas", "ligacoes", "atividade"];
+  type Visao = "prompt" | "prompt_marina" | "whatsapp" | "playbook" | "automatico" | "controles" | "metas" | "ligacoes" | "atividade";
+  const visoes: Visao[] = ["prompt", "prompt_marina", "whatsapp", "playbook", "automatico", "controles", "metas", "ligacoes", "atividade"];
   const v = params.get("config") as Visao | null;
   const visao: Visao = playbook ? "playbook" : v && visoes.includes(v) ? v : "prompt";
   // O Playbook tem endereço próprio (?aba=playbook), que a Central usa para abrir direto
@@ -241,6 +256,8 @@ function Configuracoes({ playbook }: { playbook: boolean }) {
         onChange={setVisao}
         opcoes={[
           { value: "prompt", label: "Prompt System da Gabi" },
+          { value: "prompt_marina", label: "Prompt System da Marina" },
+          { value: "whatsapp", label: "WhatsApp das SDRs" },
           { value: "playbook", label: "Playbook" },
           { value: "automatico", label: "Automático" },
           { value: "controles", label: "Controles" },
@@ -250,7 +267,11 @@ function Configuracoes({ playbook }: { playbook: boolean }) {
         ]}
       />
       {visao === "prompt" ? (
-        <PromptGabiTab />
+        <PromptGabiTab key="gabi" />
+      ) : visao === "prompt_marina" ? (
+        <PromptGabiTab key="marina" agente="marina" />
+      ) : visao === "whatsapp" ? (
+        <WhatsAppSdrsTab />
       ) : visao === "playbook" ? (
         <PlaybookTab />
       ) : visao === "automatico" ? (

@@ -21,10 +21,12 @@ const iguais = (a: SecaoPlaybook[], b: SecaoPlaybook[]) => JSON.stringify(a) ===
  * Prompt System da Gabi: o texto que guia tudo o que ela faz no WhatsApp (abordagem, conversa,
  * objeções, agendamento e follow-ups). Editou e salvou, ela segue a nova versão em até 1 minuto.
  */
-export function PromptGabiTab() {
+export function PromptGabiTab({ agente = "gabi" }: { agente?: "gabi" | "marina" }) {
+  // Gabi ou Marina (16/11): mesma tela, cada uma com o próprio texto
+  const NOME = agente === "marina" ? "Marina" : "Gabi";
   const { showToast } = useToast();
-  const { data, isLoading, isError } = usePromptGabi();
-  const salvar = useSalvarPromptGabi();
+  const { data, isLoading, isError } = usePromptGabi(agente);
+  const salvar = useSalvarPromptGabi(agente);
   const [padrao, setPadrao] = React.useState<Padrao | null>(null);
   const [erroPadrao, setErroPadrao] = React.useState<string | null>(null);
   const [rascunho, setRascunho] = React.useState<SecaoPlaybook[] | null>(null);
@@ -32,7 +34,7 @@ export function PromptGabiTab() {
   const [carregandoPrevia, setCarregandoPrevia] = React.useState(false);
 
   React.useEffect(() => {
-    chamarSdr<Padrao>("/api/prospeccao/prompt-gabi", { acao: "padrao" })
+    chamarSdr<Padrao>("/api/prospeccao/prompt-gabi", { acao: "padrao", agente })
       .then(setPadrao)
       .catch((e: Error) => setErroPadrao(e.message));
   }, []);
@@ -66,7 +68,7 @@ export function PromptGabiTab() {
     try {
       await salvar.mutateAsync(secoes);
       setRascunho(null);
-      showToast("Salvo. A Gabi já segue esta versão em até 1 minuto.");
+      showToast(`Salvo. A ${NOME} já segue esta versão em até 1 minuto.`);
     } catch (e) {
       showToast(`Erro: ${(e as Error).message}`);
     }
@@ -81,7 +83,7 @@ export function PromptGabiTab() {
   async function verPrevia() {
     setCarregandoPrevia(true);
     try {
-      setPrevia(await chamarSdr<{ prompt: string; empresa: string | null }>("/api/prospeccao/prompt-gabi", { acao: "previa", secoes }));
+      setPrevia(await chamarSdr<{ prompt: string; empresa: string | null }>("/api/prospeccao/prompt-gabi", { acao: "previa", secoes, agente }));
     } catch (e) {
       showToast(`Erro na prévia: ${(e as Error).message}`);
     } finally {
@@ -89,16 +91,16 @@ export function PromptGabiTab() {
     }
   }
 
-  if (isLoading || (!padrao && !erroPadrao && usandoPadrao)) return <div className="text-[13px] text-muted">Carregando o Prompt System da Gabi…</div>;
+  if (isLoading || (!padrao && !erroPadrao && usandoPadrao)) return <div className="text-[13px] text-muted">Carregando o Prompt System da {NOME}…</div>;
   if (isError) return <EmptyState>Não consegui abrir o Prompt System. Tente recarregar a página.</EmptyState>;
 
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[16px] font-semibold">Prompt System da Gabi</div>
+          <div className="text-[16px] font-semibold">Prompt System da {NOME}</div>
           <div className="mt-0.5 max-w-[760px] text-[13px] text-muted">
-            Tudo o que a Gabi faz no WhatsApp da prospecção: objetivo, jeito de falar, apresentação, diagnóstico, agendamento, objeções,
+            Tudo o que a {NOME} faz no WhatsApp da prospecção: objetivo, jeito de falar, apresentação, diagnóstico, agendamento, objeções,
             follow-ups e o que ela nunca pode fazer. Ajustou e salvou, ela segue a nova versão em até 1 minuto.
           </div>
           <div className="mt-1.5 text-[12px] text-muted">
@@ -190,7 +192,7 @@ export function PromptGabiTab() {
           </Card>
           <Card className="p-4 text-[12px] leading-relaxed text-muted">
             <div className="eyebrow mb-2 text-[12px] text-primary-bright">Como funciona</div>
-            <p>A Gabi lê as seções nesta ordem, com o título de cada uma. Os dados da empresa, o diagnóstico e o histórico da conversa entram automaticamente depois do texto.</p>
+            <p>A {NOME} lê as seções nesta ordem, com o título de cada uma. Os dados da empresa, o diagnóstico e o histórico da conversa entram automaticamente depois do texto.</p>
             <p className="mt-2">A seção cujo título fala de follow-up guia as 7 mensagens de retomada. Mantenha a lista numerada de 1 a 7.</p>
             <p className="mt-2">A abertura ("Oi, bom dia! 😊 / Tudo bem?") e a cutucada de 1 hora são fixas no disparo.</p>
           </Card>
@@ -202,7 +204,7 @@ export function PromptGabiTab() {
           <Card className="flex max-h-[85vh] w-full max-w-[860px] flex-col p-0" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <div className="min-w-0 flex-1">
-                <div className="text-[14px] font-semibold">Como a Gabi vai ler</div>
+                <div className="text-[14px] font-semibold">Como a {NOME} vai ler</div>
                 <div className="text-[12px] text-muted">{previa.empresa ? `Exemplo com os dados de ${previa.empresa}.` : "Exemplo sem lead."} Inclui as alterações ainda não salvas.</div>
               </div>
               <Button variant="icon" size="icon" title="Fechar" onClick={() => setPrevia(null)}>

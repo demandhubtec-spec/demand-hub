@@ -12,6 +12,7 @@ import { addMessage, db, leadDoTelefone, logEvent, ultimoEvento, updateLead, ups
 import { destination, sendText } from "./evolution.ts";
 import { horarioProspeccaoV2, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { FLUXO_V2_DESDE } from "./prospeccao.ts";
+import { sdrValida } from "./sdrs.ts";
 import { CUTUCADA_ATE_DIAS, CUTUCADAS_POR_RODADA, type CandidatoCutucada, ordenarCandidatos } from "./cutucada-fila.ts";
 
 export { CUTUCADA_ATE_DIAS, CUTUCADAS_POR_RODADA, ordenarCandidatos };
@@ -24,7 +25,7 @@ export async function runCutucadas(now = new Date()) {
   const limite = new Date(Math.max(new Date(FLUXO_V2_DESDE).getTime(), now.getTime() - CUTUCADA_ATE_DIAS * 86_400_000)).toISOString();
   const { data } = await db()
     .from("outreach_leads")
-    .select("place_id,empresa,whatsapp,wa_sent_at,ultimo_toque_em")
+    .select("place_id,empresa,whatsapp,wa_sent_at,ultimo_toque_em,agente")
     .eq("wa_status", "enviado")
     .gte("wa_sent_at", limite)
     .lte("wa_sent_at", umaHora)
@@ -37,7 +38,8 @@ export async function runCutucadas(now = new Date()) {
     // Quem nunca respondeu pode não ter ficha na Gabi: o WhatsApp devolve o envio como LID e o registro
     // caía num número interno (13/11: Clínica Ito, Baronesa, Ivone... ficaram sem cutucada). Cria pela ficha do disparo.
     const tel = (o.whatsapp ?? "").replace(/\D/g, "");
-    const lead = (await leadDoTelefone(o.whatsapp).catch(() => null)) ?? (tel ? await upsertLeadByPhone(tel, `${tel}@s.whatsapp.net`).catch(() => null) : null);
+    // A ficha nasce com a SDR que mandou o "Oi" (Gabi ou Marina): a cutucada sai pelo mesmo número
+    const lead = (await leadDoTelefone(o.whatsapp).catch(() => null)) ?? (tel ? await upsertLeadByPhone(tel, `${tel}@s.whatsapp.net`, undefined, sdrValida(o.agente)).catch(() => null) : null);
     if (!lead || lead.ai_paused || lead.status === "opt_out") continue;
     if (await ultimoEvento(lead.id, "cutucada").catch(() => null)) continue;
     // Respondeu depois do 1º contato (gente de verdade, não robô)? Não cutuca

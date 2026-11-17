@@ -18,6 +18,8 @@ import { db } from "@/src/lib/db.ts";
 import { interpretarMidia } from "@/src/lib/midia.ts";
 import { emailsNoTexto, rascunhoDoEmailPassado } from "@/src/lib/rascunho-email.ts";
 import { processarOrientacao, registrar } from "@/src/lib/canal.ts";
+import { sdrDaInstancia } from "@/src/lib/instancias.ts";
+import type { Sdr } from "@/src/lib/sdrs.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -32,6 +34,19 @@ const MEDIA_LABEL: Record<string, string> = {
   contactMessage: "[contato]",
 };
 
+/**
+ * A conversa fica com o número em que ela está acontecendo: se a pessoa escreveu (ou nós escrevemos)
+ * pelo número da outra SDR, a ficha passa para ela, para a resposta sair pelo mesmo número.
+ */
+async function garantirSdr<T extends { id: string; agente?: Sdr }>(lead: T, sdr: Sdr): Promise<T> {
+  if ((lead.agente ?? "gabi") === sdr) return lead;
+  // Antes da migration 0035 a coluna não existe: segue como estava
+  if (lead.agente === undefined && sdr === "gabi") return lead;
+  await updateLead(lead.id, { agente: sdr }).catch(() => null);
+  await logEvent(lead.id, "sdr_trocada", { de: lead.agente ?? "gabi", para: sdr }).catch(() => null);
+  return { ...lead, agente: sdr };
+}
+
 export async function POST(req: Request) {
   const url = new URL(req.url);
   if (url.searchParams.get("secret") !== env.webhookSecret) {
@@ -41,11 +56,13 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const msg = parseWebhook(body);
   if (!msg) return Response.json({ ignored: true });
-  if (env.evolutionInstance && msg.instanceName && msg.instanceName !== env.evolutionInstance) {
-    return Response.json({ ignored: "outra instância" });
-  }
+  // Qual número recebeu: o da Gabi ou o da Marina (16/11). Instância que não é de nenhuma das duas: ignora.
+  const sdr = await sdrDaInstancia(msg.instanceName, msg.instanceToken);
+  if (!sdr) return Response.json({ ignored: "outra instância" });
   // Conversa com o próprio Kelvin não é lead: o que ele escreve para a Ana vira orientação no canal interno
   const doKelvin = (env.ownerPhone && msg.phone === env.ownerPhone) || (env.alertPhone && msg.phone === env.alertPhone);
+  // O canal do Kelvin é o número da Gabi; o que ele manda ou recebe no número da Marina não é lead nem orientação
+  if (doKelvin && sdr !== "gabi") return Response.json({ ok: true, ignorado: "kelvin_no_numero_da_marina" });
   // Modo teste do Kelvin: pediu a demo pelo WhatsApp pessoal? Por 30 minutos ele conversa como cliente.
   let testeDoDono = false;
   if (SDR_CONFIG.demo.testeDoDono && doKelvin && !msg.fromMe) {
@@ -88,7 +105,7 @@ export async function POST(req: Request) {
       (async () => {
         await new Promise((r) => setTimeout(r, 5000)); // dá tempo da IA registrar o envio dela
         if (await messageExists(msg.id)) return; // foi a IA
-        const lead = await upsertLeadByPhone(msg.phone, msg.jid);
+        const lead = await garantirSdr(await upsertLeadByPhone(msg.phone, msg.jid, undefined, sdr), sdr);
         // Disparo da prospecção ativa (mesma instância): registra no histórico sem pausar a IA
         const prospeccao = await prospeccaoDoTelefone(msg.phone).catch(() => null);
         if (ehDisparoDaProspeccao(prospeccao, msg.text!)) {
@@ -107,7 +124,7 @@ export async function POST(req: Request) {
   }
 
   const push = limparNomeDoPush(msg.pushName);
-  const lead = await upsertLeadByPhone(msg.phone, msg.jid, push.nome ?? undefined);
+  const lead = await garantirSdr(await upsertLeadByPhone(msg.phone, msg.jid, push.nome ?? undefined, sdr), sdr);
   if (push.email && !lead.email) await updateLead(lead.id, { email: push.email }).catch(() => null);
   // Áudio, imagem ou documento: a Ana entende o conteúdo (transcrição / leitura) em vez de pedir texto
   const interpretado = !msg.text && msg.media ? await interpretarMidia(msg.media) : null;

@@ -87,6 +87,7 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
       </div>
       <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
         <span className={c.tipo === "prospeccao" ? "text-primary-bright" : "text-positive"}>{c.tipo === "prospeccao" ? "Prospecção" : "Inbound"}</span>
+        {c.agente === "marina" && <span className="text-attention"> · Marina</span>}
         <span>· {STATUS_ANA[c.status ?? ""] ?? c.status}</span>
         {c.ai_paused && <PauseCircle className="h-3 w-3 text-attention" />}
         {esperando && <span className="ml-auto h-2 w-2 rounded-full bg-positive" title="Última mensagem foi do contato" />}
@@ -97,6 +98,8 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
 
 function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
   const { data: msgs = [], isLoading } = useConversa(c.id);
+  // Gabi ou Marina (16/11): cada conversa fica com a SDR do número em que acontece
+  const SDR = c.agente === "marina" ? "Marina" : "Gabi";
   const alternar = useAlternarAna();
   const { showToast } = useToast();
   const fim = React.useRef<HTMLDivElement>(null);
@@ -116,7 +119,7 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
           <div className="truncate text-[14px] font-semibold">{c.nomeExibicao}</div>
           <div className="truncate text-[12px] text-muted">
             {c.nome && c.nome !== c.nomeExibicao ? `${c.nome} · ` : ""}
-            {c.phone} · {c.tipo === "prospeccao" ? "Prospecção ativa" : ORIGEM_TEXTO[c.origem ?? ""] ?? "Inbound"}
+            {c.phone} · {c.tipo === "prospeccao" ? "Prospecção ativa" : ORIGEM_TEXTO[c.origem ?? ""] ?? "Inbound"} · número da {SDR}
           </div>
         </div>
         <label
@@ -124,10 +127,10 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
             "inline-flex cursor-pointer items-center gap-2 rounded-full py-1 pl-2.5 pr-1 text-[12px] font-semibold",
             c.ai_paused ? "bg-attention-tint text-attention" : "bg-positive-tint text-positive",
           )}
-          title={c.ai_paused ? "Ligar a Gabi nesta conversa" : "Pausar a Gabi nesta conversa"}
+          title={c.ai_paused ? `Ligar a ${SDR} nesta conversa` : `Pausar a ${SDR} nesta conversa`}
         >
           {c.ai_paused ? <PauseCircle className="h-3 w-3" /> : <Bot className="h-3 w-3" />}
-          {c.ai_paused ? "Gabi pausada" : "Gabi atendendo"}
+          {c.ai_paused ? `${SDR} pausada` : `${SDR} atendendo`}
           <Switch
             checked={!c.ai_paused}
             disabled={alternar.isPending || c.status === "opt_out"}
@@ -136,12 +139,12 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
                 { id: c.id, ligar, status: c.status },
                 {
                   onSuccess: () =>
-                    showToast(ligar ? "Gabi ligada. Ela responde a partir da próxima mensagem do contato." : "Gabi pausada nesta conversa."),
+                    showToast(ligar ? `${SDR} ligada. Ela responde a partir da próxima mensagem do contato.` : `${SDR} pausada nesta conversa.`),
                   onError: () => showToast("Não consegui mudar agora. Tente de novo."),
                 },
               )
             }
-            aria-label={c.ai_paused ? "Ligar a Gabi" : "Pausar a Gabi"}
+            aria-label={c.ai_paused ? `Ligar a ${SDR}` : `Pausar a ${SDR}`}
           />
         </label>
       </div>
@@ -179,9 +182,9 @@ function Conversa({ c, voltar }: { c: Contato; voltar: () => void }) {
         <div ref={fim} />
       </div>
       <div className="border-t border-border px-3 pt-2 text-[12px] text-muted">
-        Fale com a Gabi sobre esta conversa: ela monta a mensagem, te mostra na aba Você e a Gabi e só manda com o seu ok.
+        Fale com a {SDR} sobre esta conversa: ela monta a mensagem, te mostra na aba Você e a {SDR} e só manda com o seu ok.
       </div>
-      <Compositor leadId={c.id} placeholder="Ex.: Gabi, não é assim. Pede desculpa e oferece terça às 10h" compacto />
+      <Compositor leadId={c.id} placeholder={`Ex.: ${SDR}, não é assim. Pede desculpa e oferece terça às 10h`} compacto />
     </>
   );
 }

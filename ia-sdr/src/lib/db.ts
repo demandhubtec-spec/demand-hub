@@ -34,6 +34,8 @@ export interface Lead {
   next_followup_at: string | null;
   last_inbound_at: string | null;
   last_outbound_at: string | null;
+  /** SDR responsável (Gabi ou Marina): por qual número a conversa acontece. Antes da migration 0035: undefined (= Gabi). */
+  agente?: "gabi" | "marina";
 }
 
 export interface Meeting {
@@ -69,13 +71,14 @@ export async function getLead(id: string): Promise<Lead> {
   return must(await db().from("sdr_leads").select("*").eq("id", id).single(), "getLead");
 }
 
-export async function upsertLeadByPhone(phone: string, jid: string, pushName?: string): Promise<Lead> {
+export async function upsertLeadByPhone(phone: string, jid: string, pushName?: string, agente?: "gabi" | "marina"): Promise<Lead> {
   // Busca também a variação com/sem o 9 (o WhatsApp pode trazer o número sem ele)
   const found = await db().from("sdr_leads").select("*").in("phone", phoneVariants(phone)).limit(1).maybeSingle();
   if (found.data) return found.data as Lead;
+  // A SDR só vai no insert quando não é a Gabi (o padrão do banco): funciona antes e depois da migration 0035
   const created = await db()
     .from("sdr_leads")
-    .insert({ phone, whatsapp_jid: jid, nome: pushName || null })
+    .insert({ phone, whatsapp_jid: jid, nome: pushName || null, ...(agente && agente !== "gabi" ? { agente } : {}) })
     .select("*")
     .single();
   if (created.error?.code === "23505") return getLeadByPhone(phone); // corrida: outro request criou

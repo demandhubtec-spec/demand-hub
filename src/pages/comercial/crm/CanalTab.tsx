@@ -17,7 +17,12 @@ import { Compositor } from "./Compositor";
  */
 type Filtro = "todas" | "nao_lidas" | "esperando" | "sem_resposta";
 const GERAL = "__geral__";
-const CHAVE_LIDO = "dh.gabi.lido";
+const CHAVE_LIDO_GABI = "dh.gabi.lido";
+
+/** SDR do lead (contato sem SDR, ou que ainda não carregou, é da Gabi). */
+export function sdrDoContato(contatos: { id: string; agente?: string | null }[], leadId: string): "gabi" | "marina" {
+  return contatos.find((c) => c.id === leadId)?.agente === "marina" ? "marina" : "gabi";
+}
 
 interface Conversa {
   id: string; // lead_id ou GERAL
@@ -29,9 +34,9 @@ interface Conversa {
   semResposta: boolean;
 }
 
-function lerLidos(): Record<string, string> {
+function lerLidos(chave: string): Record<string, string> {
   try {
-    return JSON.parse(localStorage.getItem(CHAVE_LIDO) ?? "{}") as Record<string, string>;
+    return JSON.parse(localStorage.getItem(chave) ?? "{}") as Record<string, string>;
   } catch {
     return {};
   }
@@ -39,15 +44,21 @@ function lerLidos(): Record<string, string> {
 
 const esperandoVoce = (m: MsgCanal) => m.status === "pendente" || m.status === "aguardando_ok";
 
-export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => void }) {
-  const { data: msgs = [], isLoading, isError } = useCanal();
-  const { contatos } = useContatos();
+export function CanalTab({ abrirConversa, agente = "gabi" }: { abrirConversa: (id: string) => void; agente?: "gabi" | "marina" }) {
+  const { data: todas = [], isLoading, isError } = useCanal();
+  const { contatos: todosContatos } = useContatos();
+  // Duas SDRs (16/11): cada aba mostra só os leads dela; a conversa "Geral" (regras para todas) aparece nas duas
+  const NOME = agente === "marina" ? "Marina" : "Gabi";
+  const CHAVE_LIDO = agente === "marina" ? "dh.marina.lido" : CHAVE_LIDO_GABI;
+  const daSdr = React.useCallback((leadId: string | null) => !leadId || sdrDoContato(todosContatos, leadId) === agente, [todosContatos, agente]);
+  const contatos = React.useMemo(() => todosContatos.filter((c) => (c.agente ?? "gabi") === agente), [todosContatos, agente]);
+  const msgs = React.useMemo(() => todas.filter((m) => daSdr(m.lead_id ?? null)), [todas, daSdr]);
   const decidir = useDecidirRascunho();
   const { showToast } = useToast();
   const [filtro, setFiltro] = React.useState<Filtro>("todas");
   const [busca, setBusca] = React.useState("");
   const [aberta, setAberta] = React.useState<string | null>(null);
-  const [lidos, setLidos] = React.useState<Record<string, string>>(lerLidos);
+  const [lidos, setLidos] = React.useState<Record<string, string>>(() => lerLidos(CHAVE_LIDO));
 
   async function responder(id: string, acao: "aprovar" | "descartar") {
     try {
@@ -141,7 +152,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
     setAberta(null);
   };
 
-  if (isError) return <EmptyState>Falta rodar o SQL do canal com a Gabi no Supabase para liberar esta aba.</EmptyState>;
+  if (isError) return <EmptyState>Falta rodar o SQL do canal com a {NOME} no Supabase para liberar esta aba.</EmptyState>;
 
   const chip = (f: Filtro, t: string) => (
     <button
@@ -171,7 +182,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
             onChange={(e) => e.target.value && (setAberta(e.target.value), setFiltro("todas"))}
             className="w-full rounded-[8px] border border-border bg-surface px-2.5 py-1.5 text-[13px] text-muted"
           >
-            <option value="">+ Orientar a Gabi sobre outro lead…</option>
+            <option value="">+ Orientar a {NOME} sobre outro lead…</option>
             {contatos.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.nomeExibicao}
@@ -234,7 +245,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
       <div className={cn("flex min-h-0 flex-col", !aberta && "max-md:hidden")}>
         {!atual ? (
           <div className="flex flex-1 items-center justify-center p-6 text-center text-[14px] text-muted">
-            Escolha uma conversa à esquerda. A Gabi te chama aqui quando precisa de direcionamento.
+            Escolha uma conversa à esquerda. A {NOME} te chama aqui quando precisa de direcionamento.
           </div>
         ) : (
           <>
@@ -273,7 +284,7 @@ export function CanalTab({ abrirConversa }: { abrirConversa: (id: string) => voi
                       <div className="mb-0.5 flex flex-wrap items-center gap-1.5 text-[12px] font-semibold">
                         {gabi ? (
                           <span className="inline-flex items-center gap-1 text-primary">
-                            <Bot className="h-3 w-3" /> Gabi
+                            <Bot className="h-3 w-3" /> {NOME}
                           </span>
                         ) : (
                           <span className="text-ink">Você{m.origem === "whatsapp" ? " · pelo WhatsApp" : ""}</span>

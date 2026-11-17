@@ -5,13 +5,14 @@
  */
 import { db } from "./db.ts";
 import { ID_PROMPT_GABI, PROMPT_GABI_PADRAO } from "./prompt-gabi.ts";
+import { comNomeDaSdr, sdrValida } from "./sdrs.ts";
 
 export interface SecaoPlaybook {
   titulo: string;
   texto: string;
 }
 
-let cache: { em: number; texto: string; manuais: Record<string, string>; promptGabi: SecaoPlaybook[] | null } | null = null;
+let cache: { em: number; texto: string; manuais: Record<string, string>; promptGabi: SecaoPlaybook[] | null; promptMarina?: SecaoPlaybook[] | null } | null = null;
 const TTL = 60_000;
 
 /** Seções em texto corrido para entrar no prompt (sem markdown pesado). */
@@ -35,7 +36,7 @@ export async function carregarPlaybook(agora = Date.now()): Promise<string> {
   if (cache && agora - cache.em < TTL) return cache.texto;
   try {
     const [{ data: linhas }, { data: ms }] = await Promise.all([
-      db().from("comercial_playbook").select("id,secoes").in("id", ["principal", ID_PROMPT_GABI]),
+      db().from("comercial_playbook").select("id,secoes").in("id", ["principal", ID_PROMPT_GABI, "prompt_marina"]),
       db().from("agentes_manuais").select("id,nome,cargo,secoes"),
     ]);
     const valida = (x: unknown): SecaoPlaybook[] =>
@@ -43,14 +44,15 @@ export async function carregarPlaybook(agora = Date.now()): Promise<string> {
     const linha = (id: string) => ((linhas ?? []) as { id: string; secoes: unknown }[]).find((l) => l.id === id);
     const secoes = valida(linha("principal")?.secoes);
     const pg = valida(linha(ID_PROMPT_GABI)?.secoes);
+    const pm = valida(linha("prompt_marina")?.secoes);
     const manuais: Record<string, string> = {};
     for (const m of (ms ?? []) as { id: string; nome: string; cargo: string; secoes: SecaoPlaybook[] }[]) {
       manuais[m.id] = `## Manual de trabalho: ${m.nome} (${m.cargo})\n${playbookEmTexto((m.secoes ?? []).filter((s) => s && typeof s.titulo === "string"))}`;
     }
-    cache = { em: agora, texto: playbookEmTexto(secoes), manuais, promptGabi: pg.length ? pg : null };
+    cache = { em: agora, texto: playbookEmTexto(secoes), manuais, promptGabi: pg.length ? pg : null, promptMarina: pm.length ? pm : null };
   } catch (e) {
     console.error("playbook não carregou", e);
-    cache = { em: agora, texto: cache?.texto ?? "", manuais: cache?.manuais ?? {}, promptGabi: cache?.promptGabi ?? null };
+    cache = { em: agora, texto: cache?.texto ?? "", manuais: cache?.manuais ?? {}, promptGabi: cache?.promptGabi ?? null, promptMarina: cache?.promptMarina ?? null };
   }
   return cache.texto;
 }
@@ -58,6 +60,15 @@ export async function carregarPlaybook(agora = Date.now()): Promise<string> {
 /** Prompt System da Gabi salvo no portal (ou o padrão, se ainda não salvaram nada). */
 export function promptGabiAtual(): SecaoPlaybook[] {
   return cache?.promptGabi ?? PROMPT_GABI_PADRAO;
+}
+
+/**
+ * Prompt System da SDR do lead (16/11): a Marina tem o dela (portal > Ajustes > Prompt System da Marina).
+ * Enquanto não salvarem nada para ela, vale o da Gabi com o nome trocado.
+ */
+export function promptDaSdr(sdr: unknown): SecaoPlaybook[] {
+  if (sdrValida(sdr) === "gabi") return promptGabiAtual();
+  return cache?.promptMarina ?? promptGabiAtual().map((x) => ({ titulo: comNomeDaSdr(x.titulo, "marina"), texto: comNomeDaSdr(x.texto, "marina") }));
 }
 
 /** Último playbook carregado (para o montador do prompt, que é síncrono). */

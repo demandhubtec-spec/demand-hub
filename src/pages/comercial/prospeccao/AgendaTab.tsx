@@ -73,6 +73,7 @@ function Linha({ e, onAbrir }: { e: EnvioPrevisto; onAbrir: () => void }) {
       <Icone className={cn("h-3.5 w-3.5 shrink-0", e.canal === "email" ? "text-primary-bright" : "text-positive")} />
       <span className="min-w-0 flex-1">
         <span className="font-semibold">{e.lead.empresa}</span>
+        {e.sdr === "marina" && <span className="ml-2 rounded bg-attention-tint px-1.5 text-[11px] font-semibold text-attention">Marina</span>}
         <span className="ml-2 text-[12px] text-muted">{[e.lead.nicho, e.lead.cidade].filter(Boolean).join(" · ")}</span>
       </span>
       {e.seNaoResponder && <span className="shrink-0 text-[12px] text-muted">se não responder</span>}
@@ -351,7 +352,7 @@ export function AgendaTab() {
             {expandido && (
               <div className="mt-2 space-y-0.5 border-t border-border pt-2">
                 {itens.map((e) => (
-                  <Linha key={`${e.lead.place_id}-${e.tipo}-${e.toque}`} e={e} onAbrir={() => setAberto(e.lead.place_id)} />
+                  <Linha key={`${e.lead.place_id}-${e.tipo}-${e.toque}-${e.quando.getTime()}`} e={e} onAbrir={() => setAberto(e.lead.place_id)} />
                 ))}
               </div>
             )}

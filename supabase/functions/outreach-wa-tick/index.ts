@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { AsyncLocalStorage } from "node:async_hooks";
 // ---- render de templates (spintax + variáveis) ----
 // Mantenha igual a src/lib/outreach-render.ts (prévia do portal) e ia-sdr/src/lib/outreach-render.ts (e-mail).
 const NICHO_PLURAL: Record<string, string> = {
@@ -77,7 +78,7 @@ async function enviarBaloes(path: string, to: string, text: string): Promise<{ o
   for (let i = 0; i < parts.length; i++) {
     const r = await fetch(`${EVO_URL}${path}`, {
       method: "POST",
-      headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+      headers: { apikey: tok(), "Content-Type": "application/json" },
       body: JSON.stringify({ number: to, text: parts[i], delay: Math.min(1200 + parts[i].length * 25, 4000) }),
     });
     // 504: o servidor do WhatsApp demorou para responder, mas a mensagem sai mesmo assim
@@ -109,7 +110,7 @@ async function enviarPdf(path: string, to: string): Promise<{ ok: boolean; statu
   if (!p.url) return p.link ? await enviarBaloes(path, to, p.link) : { ok: true, status: 200, body: "" };
   const r = await fetch(`${EVO_URL}/send/media`, {
     method: "POST",
-    headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+    headers: { apikey: tok(), "Content-Type": "application/json" },
     body: JSON.stringify({ number: to, url: p.url, type: "document", filename: p.nome, caption: "", delay: 1500 }),
     signal: AbortSignal.timeout(40000),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response);
@@ -246,7 +247,7 @@ async function enviarAbordagemComAudio(path: string, to: string, nome: string, c
   try {
     await fetch(`${EVO_URL}/message/presence`, {
       method: "POST",
-      headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+      headers: { apikey: tok(), "Content-Type": "application/json" },
       body: JSON.stringify({ number: to, state: "composing", isAudio: true, delay: seg * 1000 }),
       signal: AbortSignal.timeout((seg + 15) * 1000),
     });
@@ -255,7 +256,7 @@ async function enviarAbordagemComAudio(path: string, to: string, nome: string, c
   if (falta > 0) await sleep(falta);
   const r = await fetch(`${EVO_URL}/send/media`, {
     method: "POST",
-    headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+    headers: { apikey: tok(), "Content-Type": "application/json" },
     body: JSON.stringify({ number: to, url: cfg.audio_abordagem_url, type: "audio", delay: 0 }),
     signal: AbortSignal.timeout(40000),
   }).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }) as unknown as Response);
@@ -293,7 +294,29 @@ function semSaudacao(texto: string) {
 
 const sb = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const EVO_URL = (Deno.env.get("EVOLUTION_API_URL") || "").replace(/\/$/, "");
-const EVO_TOKEN = Deno.env.get("EVOLUTION_INSTANCE_TOKEN") || "";
+const EVO_TOKEN_GABI = Deno.env.get("EVOLUTION_INSTANCE_TOKEN") || "";
+/**
+ * Duas SDRs, dois números (16/11/2026): cada envio roda "dentro" do número de quem manda (Gabi ou Marina).
+ * O token vem do contexto da chamada, nunca de uma variável global trocada no meio (duas chamadas podem
+ * rodar ao mesmo tempo na mesma instância da função).
+ */
+type Sdr = "gabi" | "marina";
+const NUMERO = new AsyncLocalStorage<{ sdr: Sdr; token: string }>();
+const tok = () => NUMERO.getStore()?.token ?? EVO_TOKEN_GABI;
+const comNumero = <T,>(sdr: Sdr, token: string, fn: () => Promise<T>) => NUMERO.run({ sdr, token }, fn);
+/** Token de cada SDR: Gabi pela variável de sempre; Marina pela tabela wa_instancias (criada pelo portal). */
+async function tokensDasSdrs(): Promise<Record<Sdr, string | null>> {
+  const { data } = await sb.from("wa_instancias").select("agente,token");
+  const marina = (data ?? []).find((i: { agente: string }) => i.agente === "marina") as { token?: string } | undefined;
+  return { gabi: EVO_TOKEN_GABI, marina: marina?.token ?? null };
+}
+/** Quem faz o próximo 1º contato: a SDR com vaga, proporcional ao teto. Igual a proximaSdr em ia-sdr/src/lib/sdrs.ts. */
+function proximaSdr(feitos: Record<Sdr, number>, tetos: Record<Sdr, number>, liberadas: Sdr[]): Sdr | null {
+  const ordem: Sdr[] = ["gabi", "marina"];
+  const comVaga = liberadas.filter((x) => (tetos[x] ?? 0) > 0 && (feitos[x] ?? 0) < tetos[x]);
+  if (!comVaga.length) return null;
+  return comVaga.sort((a, b) => (feitos[a] ?? 0) / tetos[a] - (feitos[b] ?? 0) / tetos[b] || ordem.indexOf(a) - ordem.indexOf(b))[0];
+}
 const CRON_SECRET = Deno.env.get("OUTREACH_CRON_SECRET") || "";
 
 const log = (place_id: string | null, event: string, detail: any = {}) =>
@@ -341,7 +364,7 @@ function jidDoNumero(jid: string | undefined, numero: string): string {
 async function checkNumber(num: string): Promise<{ ok: boolean; jid?: string; name?: string } | null> {
   try {
     const r = await fetch(`${EVO_URL}/user/check`, {
-      method: "POST", headers: { apikey: EVO_TOKEN, "Content-Type": "application/json" },
+      method: "POST", headers: { apikey: tok(), "Content-Type": "application/json" },
       body: JSON.stringify({ number: [num] }),
     });
     const u = (await r.json())?.data?.Users?.[0];
@@ -355,7 +378,7 @@ async function statusInstancia(): Promise<"ok" | "caiu" | "lento"> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), 8000);
   try {
-    const r = await fetch(`${EVO_URL}/instance/status`, { headers: { apikey: EVO_TOKEN }, signal: ctrl.signal });
+    const r = await fetch(`${EVO_URL}/instance/status`, { headers: { apikey: tok() }, signal: ctrl.signal });
     if (!r.ok) return r.status >= 500 ? "lento" : "caiu";
     const j = await r.json();
     const d = j?.data ?? j;
@@ -393,9 +416,9 @@ const TEXTO_ROBO = [
 ];
 
 /** Manda o próximo toque de WhatsApp da cadência que já venceu. Retorna null se não havia nada. */
-async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
+async function followUp(cfg: any, tokens: Record<Sdr, string | null>): Promise<Record<string, unknown> | null> {
   const { data: due } = await sb.from("outreach_leads")
-    .select("place_id, empresa, decisor, whatsapp, sequencia, toque_atual, wa_status, marca, relatorio_token")
+    .select("place_id, empresa, decisor, whatsapp, sequencia, toque_atual, wa_status, marca, relatorio_token, agente")
     .eq("cadencia", "ativa").eq("proximo_canal", "whatsapp")
     .lte("proximo_toque_em", new Date().toISOString())
     .order("proximo_toque_em", { ascending: true }).limit(1);
@@ -406,6 +429,13 @@ async function followUp(cfg: any): Promise<Record<string, unknown> | null> {
     .eq("channel", "whatsapp").eq("event", "followup").gte("created_at", spTodayStartISO());
   if ((hoje || 0) >= (cfg.followup_daily_cap ?? 40)) return null;
 
+  // Sai pelo número de quem fez o 1º contato; se o número dela não estiver disponível, espera
+  const sdrDoLead: Sdr = lead.agente === "marina" ? "marina" : "gabi";
+  if (!tokens[sdrDoLead]) return null;
+  return comNumero(sdrDoLead, tokens[sdrDoLead]!, () => followUpDoLead(cfg, lead, hoje || 0));
+}
+
+async function followUpDoLead(cfg: any, lead: any, _hoje: number): Promise<Record<string, unknown>> {
   const toque = Array.isArray(lead.sequencia) ? lead.sequencia[lead.toque_atual] : null;
   if (!toque?.texto || !lead.whatsapp || ["respondeu", "optout"].includes(lead.wa_status)) {
     await sb.rpc("outreach_avancar_cadencia", { p_place_id: lead.place_id, p_resultado: "pulado" });
@@ -474,43 +504,91 @@ Deno.serve(async (req) => {
     ? await sb.from("outreach_log").select("place_id").eq("event", "sent_test").not("place_id", "is", null).gte("created_at", spTodayStartISO())
     : { data: [] as { place_id: string }[] };
   const jaTestados = [...new Set((testesHoje ?? []).map((x) => x.place_id))];
-  const { count: enviadosHoje } = await sb.from("outreach_leads").select("place_id", { count: "exact", head: true })
-    .gte("wa_sent_at", spTodayStartISO());
-  const count = cfg.test_number ? (testesHoje ?? []).length : enviadosHoje;
-  const tetoNovos = (count || 0) >= cfg.wa_daily_cap;
 
-  const inst = cfg.dry_run ? true : await instanceOk();
-  if (inst === "lento") {
-    // Servidor lento: não é queda, tenta de novo daqui a 3 minutos sem gerar alerta
+  // Números das SDRs. A Marina só entra com o número criado e "Marina disparando" ligado no portal.
+  const tokens = await tokensDasSdrs().catch(() => ({ gabi: EVO_TOKEN_GABI, marina: null }) as Record<Sdr, string | null>);
+  const tetos: Record<Sdr, number> = { gabi: cfg.wa_daily_cap ?? 30, marina: cfg.marina_daily_cap ?? 10 };
+  const liberadas: Sdr[] = ["gabi"];
+  if (cfg.marina_enabled && tokens.marina && !cfg.test_number) liberadas.push("marina");
+
+  // Quanto cada uma já mandou hoje (lead sem SDR é da Gabi)
+  const hoje0 = spTodayStartISO();
+  const contaHoje = async (sdr: Sdr) => {
+    let q = sb.from("outreach_leads").select("place_id", { count: "exact", head: true }).gte("wa_sent_at", hoje0);
+    q = sdr === "gabi" ? q.or("agente.is.null,agente.eq.gabi") : q.eq("agente", sdr);
+    return (await q).count ?? 0;
+  };
+  const feitos: Record<Sdr, number> = cfg.test_number
+    ? { gabi: (testesHoje ?? []).length, marina: 0 }
+    : { gabi: await contaHoje("gabi"), marina: liberadas.includes("marina") ? await contaHoje("marina") : 0 };
+
+  // Número fora do ar não dispara (a outra SDR segue). Instância lenta: tenta daqui a 3 minutos.
+  const okDe: Partial<Record<Sdr, boolean | "lento">> = {};
+  const numeroOk = async (sdr: Sdr) => {
+    if (cfg.dry_run) return true;
+    if (okDe[sdr] === undefined) okDe[sdr] = await comNumero(sdr, tokens[sdr]!, () => instanceOk());
+    return okDe[sdr];
+  };
+  const gabiOk = await numeroOk("gabi");
+  if (gabiOk === "lento" && !liberadas.includes("marina")) {
     await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 3 * 60e3).toISOString() }).eq("id", 1);
     return Response.json({ ...out, skip: "servidor_lento" });
   }
-  if (!inst) {
+  if (!gabiOk && !liberadas.includes("marina")) {
     await log(null, "instance_down");
     await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 10 * 60e3).toISOString() }).eq("id", 1);
     return Response.json({ ...out, skip: "instancia_desconectada" });
   }
 
-  // 1) Follow-up da cadência que já venceu (vem antes das abordagens novas)
+  // 1) Follow-up da cadência que já venceu (vem antes das abordagens novas), pelo número de cada lead
   if (!cfg.dry_run && !cfg.test_number) {
-    const r = await followUp(cfg);
+    const r = await followUp(cfg, tokens);
     if (r) return Response.json({ ...out, ...r });
   }
 
-  // 2) Abordagem nova (1º toque), até o teto diário de abordagens
-  // Sábado de manhã também sai contato novo (Kelvin, 13/11); depois do meio-dia já parou lá em cima
-  if (tetoNovos) return Response.json({ ...out, skip: "teto_diario", count });
+  // 2) Abordagem nova (1º toque): Gabi e Marina na mesma fila, cada uma até o próprio teto
+  const disponiveis: Sdr[] = [];
+  for (const sdr of liberadas) if ((await numeroOk(sdr)) === true) disponiveis.push(sdr);
+  const sdr = proximaSdr(feitos, tetos, disponiveis);
+  if (!sdr) {
+    const algumaComVaga = liberadas.some((x) => feitos[x] < tetos[x]);
+    if (algumaComVaga) {
+      // Quem tem vaga está com o número fora: espera e avisa no registro
+      await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 5 * 60e3).toISOString() }).eq("id", 1);
+      return Response.json({ ...out, skip: "numero_fora_do_ar", feitos });
+    }
+    return Response.json({ ...out, skip: "teto_diario", feitos });
+  }
 
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
   let fila = sb.from("outreach_leads").select("*")
     .eq("wa_status", "pendente").not("whatsapp", "is", null);
   if (cfg.exigir_aprovacao !== false) fila = fila.eq("msg_status", "aprovada");
   if (jaTestados.length) fila = fila.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
-  const { data: leads } = await fila
-    .order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(1);
-  const lead = leads?.[0];
-  if (!lead) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });
+  const { data: candidatos } = await fila
+    .order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(10);
+  if (!candidatos?.length) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });
 
+  // Nunca duas SDRs no mesmo contato: quem já conversa com a gente (ficha na Gabi ou na Marina) só recebe
+  // pela SDR dessa conversa. Se ela não tem vaga agora, o lead espera e vai o próximo da fila.
+  let lead: any = null;
+  let quem: Sdr = sdr;
+  for (const c of candidatos) {
+    const fim8c = String(c.whatsapp).replace(/\D/g, "").slice(-8);
+    const { data: ficha } = fim8c.length === 8
+      ? await sb.from("sdr_leads").select("agente").like("phone", `%${fim8c}`).limit(1)
+      : { data: [] };
+    const dona = (ficha?.[0]?.agente === "marina" ? "marina" : ficha?.length ? "gabi" : null) as Sdr | null;
+    if (!dona) { lead = c; quem = sdr; break; }
+    if (disponiveis.includes(dona) && feitos[dona] < tetos[dona]) { lead = c; quem = dona; break; }
+  }
+  if (!lead) return Response.json({ ...out, skip: "fila_aguardando_sdr", sdr });
+
+  return comNumero(quem, tokens[quem]!, () => primeiroContato(cfg, lead, quem, out));
+});
+
+/** 1º contato de um lead pelo número da SDR escolhida (o token vem do contexto). */
+async function primeiroContato(cfg: any, lead: any, quem: Sdr, out: any): Promise<Response> {
   let text: string;
   const primeiro = Array.isArray(lead.sequencia) ? lead.sequencia[0]?.texto : null;
   if (lead.msg_status === "aprovada" && (primeiro || lead.msg_rascunho)) {
@@ -521,7 +599,7 @@ Deno.serve(async (req) => {
     text = render(tpls[Math.floor(Math.random() * tpls.length)].body, lead);
   }
   // Número que outra empresa da lista já recebeu (14/11: Heritage e Dra. Giovanna no mesmo WhatsApp da recepção).
-  // Não manda de novo: a Gabi misturaria as duas empresas na mesma conversa.
+  // Não manda de novo (por nenhuma das SDRs): a conversa misturaria as duas empresas.
   if (!cfg.test_number) {
     const fim8 = String(lead.whatsapp).replace(/\D/g, "").slice(-8);
     const { data: irmaos } = fim8.length === 8
@@ -550,21 +628,18 @@ Deno.serve(async (req) => {
   await sb.from("outreach_config").update({ next_wa_at: nextAt }).eq("id", 1);
 
   if (cfg.dry_run) {
-    await log(lead.place_id, "dry_run", { to, text });
-    return Response.json({ ...out, dry_run: true, to, text, next: nextAt });
+    await log(lead.place_id, "dry_run", { to, text, sdr: quem });
+    return Response.json({ ...out, dry_run: true, to, text, sdr: quem, next: nextAt });
   }
 
-  // Marca o horário antes de enviar: o webhook do SDR reconhece o disparo e não pausa a IA
-  if (!cfg.test_number) await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString() }).eq("place_id", lead.place_id);
-  // 1º contato em duas etapas: a saudação vai sozinha, a gente espera o robô de boas-vindas da empresa
-  // (WhatsApp Business) responder, e só depois vai a apresentação da Ana com o contexto.
+  // Marca o horário (e a SDR) antes de enviar: o webhook reconhece o disparo e não pausa a IA
+  if (!cfg.test_number) await sb.from("outreach_leads").update({ ultimo_toque_em: new Date().toISOString(), agente: quem }).eq("place_id", lead.place_id);
   const nome = nomeParaSaudar(lead, nomeWhats);
   PDF_DO_LEAD = pdfDoLead(lead);
   // Abordagem v2: só a saudação e o "Tudo bem?" (sem texto, sem PDF, sem áudio)
   const env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string } =
     await enviarSoSaudacao(cfg.evolution_send_path, to);
   void nome; void text;
-  const comAudio = !!env.audio;
   if (env.erroAudio) await log(lead.place_id, "audio_erro", { erro: env.erroAudio });
   const r = env.r;
   text = env.enviado;
@@ -573,25 +648,18 @@ Deno.serve(async (req) => {
     if (!cfg.test_number) {
       const agora = new Date().toISOString();
       await sb.from("outreach_leads").update({
-        wa_status: "enviado", wa_sent_at: agora, wa_message: text,
+        wa_status: "enviado", wa_sent_at: agora, wa_message: text, agente: quem,
         updated_at: agora,
       }).eq("place_id", lead.place_id);
-      if (comAudio) {
-        // O toque 1 da sequência (a análise) sai no próximo dia útil, se a pessoa não responder antes
-        await sb.from("outreach_leads").update({
-          cadencia: "ativa", cadencia_inicio: agora, toque_atual: 0, ultimo_toque_em: agora, ultimo_canal: "whatsapp",
-          proximo_canal: lead.sequencia[0]?.canal || "whatsapp", proximo_toque_em: proximoDiaUtil930(),
-        }).eq("place_id", lead.place_id).eq("cadencia", "nao_iniciada");
-      }
-      // Abordagem v2: sem a cadência antiga; os follow-ups agora são da Gabi (IA SDR), 7 em até 14 dias
+      // Abordagem v2: sem a cadência antiga; os follow-ups são da SDR do lead (IA SDR), 7 em até 14 dias
     }
-    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, audio: comAudio, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
-    return Response.json({ ...out, sent: lead.empresa, to, next: nextAt });
+    await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, sdr: quem, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
+    return Response.json({ ...out, sent: lead.empresa, sdr: quem, to, next: nextAt });
   }
   const attempts = lead.wa_attempts + 1;
   const low = body.toLowerCase();
   const status = /not on whatsapp|not registered|not exist|invalid|não existe/.test(low) ? "sem_whatsapp" : attempts >= 2 ? "erro" : "pendente";
   await sb.from("outreach_leads").update({ wa_status: status, wa_attempts: attempts, wa_error: `${r.status}: ${body.slice(0, 300)}`, updated_at: new Date().toISOString() }).eq("place_id", lead.place_id);
-  await log(lead.place_id, "error", { status: r.status, body: body.slice(0, 300) });
-  return Response.json({ ...out, error: r.status, body: body.slice(0, 300) });
-});
+  await log(lead.place_id, "error", { status: r.status, sdr: quem, body: body.slice(0, 300) });
+  return Response.json({ ...out, error: r.status, sdr: quem, body: body.slice(0, 300) });
+}

@@ -9,15 +9,27 @@ import { isBlocked } from "./bloqueio.ts";
 import { env } from "./env.ts";
 import type { MidiaRecebida } from "./midia.ts";
 import { dadosDoAnuncio, type DadosAnuncio } from "./anuncio.ts";
+import type { Sdr } from "./sdrs.ts";
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-export async function sendText(number: string, text: string): Promise<string | null> {
+/**
+ * Token do número que manda para esse contato: o da SDR responsável por ele (Gabi ou Marina).
+ * Avisos para o Kelvin saem sempre pelo número da Gabi. `sdr` força uma SDR (disparo novo, por exemplo).
+ */
+async function tokenPara(number: string, sdr?: Sdr): Promise<string> {
+  const { sdrDoContato, tokenDaSdr } = await import("./instancias.ts");
+  const qual: Sdr = sdr ?? (number === env.alertPhone || number === env.ownerPhone ? "gabi" : await sdrDoContato(number));
+  return qual === "gabi" ? env.evolutionInstanceToken : tokenDaSdr(qual);
+}
+
+export async function sendText(number: string, text: string, sdr?: Sdr): Promise<string | null> {
   // Trava final: nunca manda mensagem para número bloqueado (exceto avisos para o Kelvin)
   if (number !== env.alertPhone && number !== env.ownerPhone && isBlocked(number)) {
     console.warn("sendText: número bloqueado, envio cancelado", number);
     return null;
   }
+  const apikey = await tokenPara(number, sdr);
   // delay em ms: mostra "digitando..." antes de enviar
   const body = JSON.stringify({ number, text, delay: Math.min(1200 + text.length * 25, 4000) });
   // Servidor do WhatsApp lento (03/11): uma resposta da Ana se perdeu por falha e outra por "demora = enviado"
@@ -29,7 +41,7 @@ export async function sendText(number: string, text: string): Promise<string | n
     try {
       res = await fetch(`${env.evolutionUrl}/send/text`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
+        headers: { "Content-Type": "application/json", apikey },
         body,
         signal: AbortSignal.timeout(25_000),
       });
@@ -52,14 +64,14 @@ export async function sendText(number: string, text: string): Promise<string | n
 }
 
 /** Manda um arquivo (PDF) pelo WhatsApp. A URL precisa ser pública (bucket "materiais" do Supabase). */
-export async function sendDocument(number: string, url: string, filename: string, caption = ""): Promise<string | null> {
+export async function sendDocument(number: string, url: string, filename: string, caption = "", sdr?: Sdr): Promise<string | null> {
   if (number !== env.alertPhone && number !== env.ownerPhone && isBlocked(number)) {
     console.warn("sendDocument: número bloqueado, envio cancelado", number);
     return null;
   }
   const res = await fetch(`${env.evolutionUrl}/send/media`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: env.evolutionInstanceToken },
+    headers: { "Content-Type": "application/json", apikey: await tokenPara(number, sdr) },
     body: JSON.stringify({ number, url, type: "document", filename, caption, delay: 1500 }),
   });
   if (!res.ok) throw new Error(`Evolution sendDocument ${res.status}: ${await res.text()}`);
@@ -105,6 +117,8 @@ export interface InboundMessage {
   text: string | null; // null = mídia que não é texto
   messageType: string; // chave do WhatsApp, ex: conversation, audioMessage, imageMessage
   instanceName?: string;
+  /** Token da instância que recebeu (Evolution GO manda junto): diz se foi o número da Gabi ou da Marina. */
+  instanceToken?: string;
   /** Outros números reais que o WhatsApp manda junto (quando o chat usa LID). */
   altPhones: string[];
   /** Mídia recebida (o Evolution GO manda o arquivo em base64 junto com a mensagem). */
@@ -231,6 +245,7 @@ export function parseWebhook(body: any): InboundMessage | null {
       text: extractText(m),
       messageType: messageKind(m),
       instanceName: body.instanceName,
+      instanceToken: typeof body.instanceToken === "string" ? body.instanceToken : undefined,
       altPhones: altPhonesFrom(info),
       media: extractMedia(m),
       anuncio: dadosDoAnuncio(m),

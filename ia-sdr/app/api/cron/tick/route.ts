@@ -5,7 +5,7 @@
  */
 import { env } from "@/src/lib/env.ts";
 import { runFollowUps, runMeetingReminders } from "@/src/lib/jobs.ts";
-import { ensureWhatsAppConnected } from "@/src/lib/whatsapp-health.ts";
+import { ensureWhatsAppsConnected } from "@/src/lib/whatsapp-health.ts";
 import { lembrarPedidos } from "@/src/lib/canal.ts";
 import { runRetomadas } from "@/src/lib/retomadas.ts";
 import { runDemoAcompanhamento } from "@/src/lib/demo-jobs.ts";
@@ -31,7 +31,7 @@ async function handler(req: Request) {
   // Léo (ficha das empresas) e Rita/Duda (diagnósticos) começam já, em paralelo com o resto
   const fichas = Promise.all([etapa(rodarLeoComVez, 200_000), etapa(runRitaEDuda, 200_000)]);
   // Garante que o WhatsApp está conectado; depois manda lembretes e follow-ups.
-  const whatsapp = await etapa(ensureWhatsAppConnected, 40_000);
+  const whatsapp = await etapa(ensureWhatsAppsConnected, 70_000);
   // Follow-ups ligados? O Kelvin desliga tudo colocando 0 em "Follow-ups de WhatsApp por dia" (Prospecção > Controles)
   const { data: cfg } = await db().from("outreach_config").select("followup_daily_cap").eq("id", 1).maybeSingle();
   const followupsLigados = ((cfg as { followup_daily_cap?: number } | null)?.followup_daily_cap ?? 40) > 0;

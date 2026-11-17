@@ -110,6 +110,8 @@ export interface OutreachLead {
   responsavel_contato?: string | null;
   retomadas?: number | null;
   retomada_em?: string | null;
+  /** SDR que fez (ou vai fazer) o 1º contato: Gabi ou Marina (16/11) */
+  agente?: "gabi" | "marina" | null;
 }
 
 export interface SitePreview {
@@ -162,6 +164,9 @@ export interface OutreachConfig {
   exigir_aprovacao: boolean;
   followup_daily_cap: number;
   retomar_dias: number;
+  /** Marina, segunda SDR com número próprio (16/11): ligada, teto de primeiros contatos por dia */
+  marina_enabled?: boolean;
+  marina_daily_cap?: number;
   apify_teto_usd?: number;
   leo_teto_usd?: number;
   // Prospecção automática

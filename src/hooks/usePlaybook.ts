@@ -82,18 +82,21 @@ export function useSalvarManual() {
  */
 export const ID_PROMPT_GABI = "prompt_gabi";
 
-export function usePromptGabi() {
+/** Prompt System da SDR: Gabi (prompt_gabi) ou Marina (prompt_marina, 16/11). */
+export function usePromptGabi(agente: "gabi" | "marina" = "gabi") {
+  const id = agente === "marina" ? "prompt_marina" : ID_PROMPT_GABI;
   return useQuery({
-    queryKey: ["comercial", "prompt-gabi"],
+    queryKey: ["comercial", "prompt", agente],
     queryFn: async (): Promise<Playbook> => {
-      const { data, error } = await supabase.from("comercial_playbook").select("secoes,atualizado_em").eq("id", ID_PROMPT_GABI).maybeSingle();
+      const { data, error } = await supabase.from("comercial_playbook").select("secoes,atualizado_em").eq("id", id).maybeSingle();
       if (error) throw error;
       return { secoes: (data?.secoes as SecaoPlaybook[] | undefined) ?? [], atualizado_em: data?.atualizado_em ?? null };
     },
   });
 }
 
-export function useSalvarPromptGabi() {
+export function useSalvarPromptGabi(agente: "gabi" | "marina" = "gabi") {
+  const id = agente === "marina" ? "prompt_marina" : ID_PROMPT_GABI;
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (secoes: SecaoPlaybook[]) => {
@@ -102,9 +105,9 @@ export function useSalvarPromptGabi() {
       const limpas = secoes.map((s) => ({ titulo: s.titulo.trim(), texto: s.texto.replace(/\s+$/g, "") })).filter((s) => s.titulo || s.texto.trim());
       const { error } = await supabase
         .from("comercial_playbook")
-        .upsert({ id: ID_PROMPT_GABI, secoes: limpas, atualizado_em: new Date().toISOString(), atualizado_por: u.user?.id ?? null });
+        .upsert({ id, secoes: limpas, atualizado_em: new Date().toISOString(), atualizado_por: u.user?.id ?? null });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "prompt-gabi"] }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "prompt", agente] }),
   });
 }

@@ -1,5 +1,5 @@
 /**
- * Prompt System da Gabi pelo portal (Configurações > Prompt System da Gabi). Só o perfil "dono".
+ * Prompt System da Gabi (e da Marina, com agente: "marina") pelo portal (Configurações > Prompt System da Gabi). Só o perfil "dono".
  *
  *   POST { acao: "padrao" }                 → { secoes, variaveis }   (o texto original, para restaurar)
  *   POST { acao: "previa", secoes, telefone? } → { prompt, empresa }  (como a Gabi vai ler, com um lead real)
@@ -11,6 +11,7 @@ import { carregarPlaybook } from "@/src/lib/playbook.ts";
 import { PROMPT_GABI_PADRAO, VARIAVEIS_PROMPT_GABI, promptGabiEmTexto } from "@/src/lib/prompt-gabi.ts";
 import { prospeccaoDoTelefone, varsPromptGabi, type Prospeccao } from "@/src/lib/prospeccao.ts";
 import type { SecaoPlaybook } from "@/src/lib/playbook.ts";
+import { comNomeDaSdr } from "@/src/lib/sdrs.ts";
 
 export const runtime = "nodejs";
 
@@ -39,9 +40,11 @@ export async function POST(req: Request) {
   const { data: perfil } = await db().from("perfis").select("papel").eq("id", u.user.id).maybeSingle();
   if (perfil?.papel !== "dono") return json({ error: "forbidden" }, 403);
 
-  const body = (await req.json().catch(() => ({}))) as { acao?: string; secoes?: SecaoPlaybook[]; telefone?: string };
+  const body = (await req.json().catch(() => ({}))) as { acao?: string; secoes?: SecaoPlaybook[]; telefone?: string; agente?: string };
+  // Gabi ou Marina (16/11): o padrão da Marina é o da Gabi com o nome trocado
+  const padrao = PROMPT_GABI_PADRAO.map((x) => ({ titulo: comNomeDaSdr(x.titulo, body.agente), texto: comNomeDaSdr(x.texto, body.agente) }));
 
-  if (body.acao === "padrao") return json({ secoes: PROMPT_GABI_PADRAO, variaveis: VARIAVEIS_PROMPT_GABI });
+  if (body.acao === "padrao") return json({ secoes: padrao, variaveis: VARIAVEIS_PROMPT_GABI });
 
   if (body.acao === "previa") {
     await carregarPlaybook();
@@ -59,7 +62,7 @@ export async function POST(req: Request) {
     }
     const secoes = (body.secoes ?? []).filter((s) => s && typeof s.titulo === "string" && typeof s.texto === "string");
     const vars = p ? varsPromptGabi(p) : {};
-    return json({ prompt: promptGabiEmTexto(secoes.length ? secoes : PROMPT_GABI_PADRAO, vars), empresa: p?.empresa ?? null });
+    return json({ prompt: promptGabiEmTexto(secoes.length ? secoes : padrao, vars), empresa: p?.empresa ?? null });
   }
 
   return json({ error: "ação inválida" }, 400);

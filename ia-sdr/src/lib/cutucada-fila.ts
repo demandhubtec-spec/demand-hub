@@ -11,6 +11,8 @@ export interface CandidatoCutucada {
   whatsapp: string;
   wa_sent_at: string;
   ultimo_toque_em: string | null;
+  /** SDR que mandou o 1º contato (depois da migration 0035) */
+  agente?: string | null;
 }
 
 /**

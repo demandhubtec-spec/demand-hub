@@ -28,6 +28,15 @@ export interface EnvioPrevisto {
   tipo: "primeiro" | "cadencia" | "cutucada" | "gabi";
   /** Só para os previstos "se ninguém responder" (cutucada e follow-ups ainda não agendados no banco). */
   seNaoResponder?: boolean;
+  /** Quem manda: Gabi ou Marina (16/11). */
+  sdr: "gabi" | "marina";
+}
+
+/** Igual a proximaSdr do ia-sdr: a SDR com vaga, proporcional ao teto (Gabi 30, Marina 10 → a Marina entra a cada ~4). */
+function proximaSdr(feitos: { gabi: number; marina: number }, tetos: { gabi: number; marina: number }): "gabi" | "marina" | null {
+  const com = (["gabi", "marina"] as const).filter((x) => tetos[x] > 0 && feitos[x] < tetos[x]);
+  if (!com.length) return null;
+  return [...com].sort((a, b) => feitos[a] / tetos[a] - feitos[b] / tetos[b] || (a === "gabi" ? -1 : 1))[0];
 }
 
 export interface FeitosHoje {
@@ -133,6 +142,7 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
       total: Math.max(st.seq.length, 1),
       atrasado: st.atrasado,
       tipo: primeiro ? "primeiro" : "cadencia",
+      sdr: st.lead.agente === "marina" ? "marina" : "gabi",
     });
     const prox = avancar(st, quando, cfg);
     ativos = ativos.filter((x) => x !== st);
@@ -152,6 +162,9 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
       const fim = sabado ? naHora(dia, 12) : naHora(dia, cfg.send_end_hour + 1);
       let fu = ehHoje ? feitos.waFollow : 0;
       let nv = ehHoje ? feitos.waNovos : 0;
+      // Gabi e Marina dividem a mesma fila (Marina só com o disparo dela ligado). O que já saiu hoje conta como da Gabi.
+      const tetos = { gabi: cfg.wa_daily_cap, marina: cfg.marina_enabled ? (cfg.marina_daily_cap ?? 10) : 0 };
+      const porSdr = { gabi: nv, marina: 0 };
       while (t < fim) {
         const vencidos = ativos.filter((s) => s.canal === "whatsapp" && s.due <= t).sort((a, b) => a.due.getTime() - b.due.getTime());
         if (vencidos.length && fu < (cfg.followup_daily_cap ?? 40)) {
@@ -160,10 +173,12 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
           t = new Date(t.getTime() + passoWa);
           continue;
         }
-        if (!sabado && nv < cfg.wa_daily_cap && fila.length) {
-          const l = fila.shift()!;
+        const quem = !sabado && fila.length ? proximaSdr(porSdr, tetos) : null;
+        if (quem) {
+          const l = { ...fila.shift()!, agente: quem };
           const st: Estado = { lead: l, seq: l.sequencia ?? [], toque: 0, inicio: t, ultimo: null, due: t, canal: "whatsapp", atrasado: false };
           registrar(st, t, true);
+          porSdr[quem]++;
           nv++;
           t = new Date(t.getTime() + passoWa);
           continue;
@@ -261,13 +276,13 @@ export function preverV2(
     if (!followupsLigados) return;
     let t = inicio;
     for (let n = tentativa; n <= V2_MAX; n++) {
-      out.push({ lead, quando: t, canal: "whatsapp", toque: n, total: V2_MAX, atrasado: atrasado && n === tentativa, tipo: "gabi", seNaoResponder });
+      out.push({ lead, quando: t, canal: "whatsapp", toque: n, total: V2_MAX, atrasado: atrasado && n === tentativa, tipo: "gabi", seNaoResponder, sdr: lead.agente === "marina" ? "marina" : "gabi" });
       t = proximoHorarioV2(new Date(t.getTime() + V2_INTERVALOS[n % V2_INTERVALOS.length] * DIA));
     }
   };
   const cutucadaEDepois = (lead: OutreachLead, enviadoEm: Date) => {
     const quando = proximoHorarioV2(new Date(Math.max(enviadoEm.getTime() + 3600e3, agora.getTime())));
-    out.push({ lead, quando, canal: "whatsapp", toque: 0, total: 1, atrasado: enviadoEm < new Date(hoje0.getTime() - DIA), tipo: "cutucada", seNaoResponder: true });
+    out.push({ lead, quando, canal: "whatsapp", toque: 0, total: 1, atrasado: enviadoEm < new Date(hoje0.getTime() - DIA), tipo: "cutucada", seNaoResponder: true, sdr: lead.agente === "marina" ? "marina" : "gabi" });
     cadeia(lead, proximoHorarioV2(new Date(quando.getTime() + V2_INTERVALOS[0] * DIA)), 1, false, true);
   };
 

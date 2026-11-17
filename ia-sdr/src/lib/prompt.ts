@@ -1,6 +1,7 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import type { Lead, Meeting } from "./db.ts";
-import { manuaisAtuais, playbookAtual, promptGabiAtual } from "./playbook.ts";
+import { manuaisAtuais, playbookAtual, promptDaSdr } from "./playbook.ts";
+import { nomeDaSdr } from "./sdrs.ts";
 import { preencherVariaveis, promptGabiEmTexto, secaoFollowUp } from "./prompt-gabi.ts";
 import { formatBR, toLocal } from "./time.ts";
 import { contextoProspeccao, ehFluxoV2, type Prospeccao, varsPromptGabi } from "./prospeccao.ts";
@@ -103,7 +104,7 @@ Foi VOCÊ quem procurou esta empresa, oferecendo um diagnóstico gratuito do per
 export function systemPrompt(lead: Lead, meeting: Meeting | null, now: Date, prospeccao: Prospeccao | null = null, orientacoes: string[] = [], anuncio: OrigemAnuncio | null = null, extra = ""): string {
   if (prospeccao && ehFluxoV2(prospeccao)) return systemPromptGabiV2(lead, meeting, now, prospeccao, orientacoes, anuncio, extra);
   const q = C.qualificacao;
-  return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
+  return `Você é ${nomeDaSdr(lead.agente)}, SDR da ${C.empresa.nome}, conversando com leads pelo WhatsApp.
 
 Se no histórico aparecer a Ana se apresentando, ela é sua colega que fazia esse atendimento antes; agora é você quem conversa. Se o lead estranhar, diga com naturalidade que assumiu o contato no lugar dela.
 
@@ -155,8 +156,8 @@ function periodoDoDia(now: Date): string {
  * de apoio, hora e ficha do lead); o que ela faz e fala vem todo do Prompt System.
  */
 function systemPromptGabiV2(lead: Lead, meeting: Meeting | null, now: Date, p: Prospeccao, orientacoes: string[], anuncio: OrigemAnuncio | null, extra: string): string {
-  const prompt = promptGabiEmTexto(promptGabiAtual(), varsPromptGabi(p));
-  return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}, conversando pelo WhatsApp com uma empresa que VOCÊ procurou (prospecção ativa).
+  const prompt = promptGabiEmTexto(promptDaSdr(lead.agente), varsPromptGabi(p));
+  return `Você é ${nomeDaSdr(lead.agente)}, da ${C.empresa.nome}, conversando pelo WhatsApp com uma empresa que VOCÊ procurou (prospecção ativa).
 
 ## Sobre a ${C.empresa.nome}
 Empresa que atua dentro de ${C.empresa.pilares.join(", ").toLowerCase()} das empresas clientes. O trabalho começa com um diagnóstico e, conforme a dor, entregamos: estratégia e execução de marketing para gerar mais clientes, automações, agentes de IA, sistemas sob medida, sites e landing pages.
@@ -186,18 +187,18 @@ ${fichaCurta(lead, meeting)}${contextoProspeccao(p)}${contextoAnuncio(anuncio)}$
 export function followUpPromptProspeccaoV2(lead: Lead, attempt: number, now: Date, p: Prospeccao | null = null): string {
   const h = toLocal(now).h;
   const saudacao = h < 12 ? "Oi, bom dia!" : h < 18 ? "Oi, boa tarde!" : "Oi, boa noite!";
-  const secoes = promptGabiAtual();
+  const secoes = promptDaSdr(lead.agente);
   const vars = p ? varsPromptGabi(p) : {};
   const jeito = secoes.find((s) => /jeito|tom|fala/i.test(s.titulo));
   const nunca = secoes.find((s) => /nunca|proibid/i.test(s.titulo));
   const fu = secaoFollowUp(secoes);
   const bloco = (x: { titulo: string; texto: string } | null | undefined) => (x ? `## ${x.titulo}\n${preencherVariaveis(x.texto, vars)}\n\n` : "");
-  return `Você é ${C.nomeAssistente}, da ${C.empresa.nome}. Foi você quem procurou esta empresa (prospecção ativa) e a conversa parou.
+  return `Você é ${nomeDaSdr(lead.agente)}, da ${C.empresa.nome}. Foi você quem procurou esta empresa (prospecção ativa) e a conversa parou.
 Escreva o follow-up nº ${attempt} de 7 pelo WhatsApp, seguindo à risca as regras do seu gestor abaixo (Prompt System).
 
 ${bloco(fu)}${bloco(jeito)}${bloco(nunca)}## Esta mensagem
 - É o follow-up nº ${attempt}: use o ângulo nº ${attempt} da lista acima.
-- Comece com "${saudacao} Tudo bem? Aqui é a Gabi, da DemandIA 😊" (pode adaptar levemente, mas com saudação e apresentação).
+- Comece com "${saudacao} Tudo bem? Aqui é a ${nomeDaSdr(lead.agente)}, da DemandIA 😊" (pode adaptar levemente, mas com saudação e apresentação).
 - Use só números que estão no diagnóstico e no histórico. Nunca use travessão (— ou –).
 - Responda só com o texto da mensagem.
 
@@ -206,7 +207,7 @@ ${fichaCurta(lead, null)}${contextoProspeccao(p)}`;
 }
 
 export function followUpPrompt(lead: Lead, attempt: number, max: number, now: Date): string {
-  return `Você é ${C.nomeAssistente}, SDR da ${C.empresa.nome}. O lead parou de responder no WhatsApp.
+  return `Você é ${nomeDaSdr(lead.agente)}, SDR da ${C.empresa.nome}. O lead parou de responder no WhatsApp.
 Escreva UMA mensagem curta de follow-up (tentativa ${attempt} de ${max}) para retomar a conversa de onde parou.
 
 Regras:

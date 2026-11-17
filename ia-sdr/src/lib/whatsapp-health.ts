@@ -15,6 +15,8 @@
 import { db, logEvent } from "./db.ts";
 import { env } from "./env.ts";
 import { sendText } from "./evolution.ts";
+import { instanciaDaSdr, tokenDaSdr } from "./instancias.ts";
+import { nomeDaSdr, type Sdr } from "./sdrs.ts";
 
 export interface WaStatus {
   connected: boolean;
@@ -28,10 +30,10 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const STATE_KEY = "whatsapp_health";
 const AVISO_INTERVALO_MS = 24 * 60 * 60 * 1000;
 
-async function evo(path: string, method: "GET" | "POST", timeoutMs = 25_000): Promise<Response> {
+async function evoDe(path: string, method: "GET" | "POST", timeoutMs = 25_000, token = env.evolutionInstanceToken): Promise<Response> {
   return fetch(`${env.evolutionUrl}${path}`, {
     method,
-    headers: { apikey: env.evolutionInstanceToken, "Content-Type": "application/json" },
+    headers: { apikey: token, "Content-Type": "application/json" },
     signal: AbortSignal.timeout(timeoutMs),
   });
 }
@@ -41,9 +43,9 @@ export function parseStatus(json: unknown): WaStatus {
   return { connected: d.Connected === true, loggedIn: d.LoggedIn === true };
 }
 
-export async function getStatus(): Promise<WaStatus> {
+export async function getStatusDe(token = env.evolutionInstanceToken): Promise<WaStatus> {
   try {
-    const res = await evo("/instance/status", "GET");
+    const res = await evoDe("/instance/status", "GET", 25_000, token);
     // Erro do servidor (5xx) é instabilidade do Evolution, não desconexão do WhatsApp.
     if (res.status >= 500) return { connected: false, loggedIn: false, unreachable: true, error: `status ${res.status}` };
     if (!res.ok) return { connected: false, loggedIn: false, error: `status ${res.status}: ${(await res.text()).slice(0, 200)}` };
@@ -65,8 +67,8 @@ interface HealthState {
   last_status: WaStatus | null;
 }
 
-async function loadState(): Promise<HealthState> {
-  const { data } = await db().from("sdr_integrations").select("value").eq("key", STATE_KEY).maybeSingle();
+async function carregarEstado(key = STATE_KEY): Promise<HealthState> {
+  const { data } = await db().from("sdr_integrations").select("value").eq("key", key).maybeSingle();
   const saved = (data?.value ?? {}) as Partial<HealthState>;
   return {
     down_since: saved.down_since ?? null,
@@ -76,8 +78,8 @@ async function loadState(): Promise<HealthState> {
   };
 }
 
-async function saveState(s: HealthState) {
-  await db().from("sdr_integrations").upsert({ key: STATE_KEY, value: s, updated_at: new Date().toISOString() });
+async function salvarEstado(s: HealthState, key = STATE_KEY) {
+  await db().from("sdr_integrations").upsert({ key, value: s, updated_at: new Date().toISOString() });
 }
 
 /** Decide se manda aviso: só depois de reconexão real e no máximo 1 vez a cada 24h. */
@@ -86,7 +88,20 @@ export function shouldAlert(reconnected: boolean, lastAlertAt: string | null, no
   return !lastAlertAt || now.getTime() - new Date(lastAlertAt).getTime() >= AVISO_INTERVALO_MS;
 }
 
-export async function ensureWhatsAppConnected(now = new Date()) {
+/** Vigia os números das duas SDRs (a Marina só depois de criada pelo portal). */
+export async function ensureWhatsAppsConnected(now = new Date()) {
+  const gabi = await ensureWhatsAppConnected(now, "gabi");
+  const marina = (await instanciaDaSdr("marina").catch(() => null)) ? await ensureWhatsAppConnected(now, "marina").catch((e) => ({ ok: false, action: String(e) })) : null;
+  return marina ? { ...gabi, marina } : gabi;
+}
+
+export async function ensureWhatsAppConnected(now = new Date(), sdr: Sdr = "gabi") {
+  const token = sdr === "gabi" ? env.evolutionInstanceToken : await tokenDaSdr(sdr);
+  const key = sdr === "gabi" ? STATE_KEY : `${STATE_KEY}_${sdr}`;
+  const getStatus = () => getStatusDe(token);
+  const loadState = () => carregarEstado(key);
+  const saveState = (s: HealthState) => salvarEstado(s, key);
+  const evo = (path: string, method: "GET" | "POST", timeoutMs = 25_000) => evoDe(path, method, timeoutMs, token);
   const state = await loadState();
   let status = await getStatus();
 
@@ -135,7 +150,7 @@ export async function ensureWhatsAppConnected(now = new Date()) {
     if (env.ownerPhone && shouldAlert(true, state.last_alert_at, now)) {
       const ok = await sendText(
         env.ownerPhone,
-        "✅ O WhatsApp da IA tinha desconectado e foi reconectado sozinho. A Ana segue atendendo normalmente. (Este aviso aparece no máximo 1 vez por dia.)",
+        `✅ O WhatsApp da ${nomeDaSdr(sdr)} tinha desconectado e foi reconectado sozinho. Ela segue atendendo normalmente. (Este aviso aparece no máximo 1 vez por dia.)`,
       ).then(() => true, () => false);
       if (ok) next.last_alert_at = now.toISOString();
     }
@@ -146,3 +161,6 @@ export async function ensureWhatsAppConnected(now = new Date()) {
   await saveState(next);
   return { ok: reconnected, action: "reconectou", status };
 }
+
+/** Status do número da Gabi (compatível com quem já chamava assim). */
+export const getStatus = () => getStatusDe(env.evolutionInstanceToken);
