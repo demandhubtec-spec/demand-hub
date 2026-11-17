@@ -565,12 +565,22 @@ Deno.serve(async (req) => {
   }
 
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
-  let fila = sb.from("outreach_leads").select("*")
-    .eq("wa_status", "pendente").not("whatsapp", "is", null);
-  if (cfg.exigir_aprovacao !== false) fila = fila.eq("msg_status", "aprovada");
-  if (jaTestados.length) fila = fila.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
-  const { data: candidatos } = await fila
-    .order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(10);
+  // 16/11 (Kelvin): metade dos primeiros contatos do dia vem do Google e metade da lista do Instagram,
+  // alternando; quando uma das filas acaba, a outra segue sozinha.
+  const { count: igHoje } = cfg.test_number
+    ? { count: 0 }
+    : await sb.from("outreach_leads").select("place_id", { count: "exact", head: true }).gte("wa_sent_at", hoje0).like("place_id", "ig\\_%");
+  const preferirIg = (igHoje ?? 0) * 2 <= feitos.gabi + feitos.marina;
+  const montarFila = (soIg: boolean) => {
+    let fila = sb.from("outreach_leads").select("*")
+      .eq("wa_status", "pendente").not("whatsapp", "is", null);
+    if (cfg.exigir_aprovacao !== false) fila = fila.eq("msg_status", "aprovada");
+    if (jaTestados.length) fila = fila.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
+    fila = soIg ? fila.like("place_id", "ig\\_%") : fila.not("place_id", "like", "ig\\_%");
+    return fila.order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(10);
+  };
+  let { data: candidatos } = await montarFila(preferirIg);
+  if (!candidatos?.length) ({ data: candidatos } = await montarFila(!preferirIg));
   if (!candidatos?.length) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });
 
   // Nunca duas SDRs no mesmo contato: quem já conversa com a gente (ficha na Gabi ou na Marina) só recebe

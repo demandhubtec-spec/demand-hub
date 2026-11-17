@@ -126,9 +126,17 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
       atrasado: new Date(l.proximo_toque_em!) < hoje0,
     }));
   const exigir = cfg.exigir_aprovacao !== false;
-  const fila = leads
+  const ordenada = leads
     .filter((l) => l.wa_status === "pendente" && l.whatsapp && (!exigir || l.msg_status === "aprovada"))
     .sort(ordemFila);
+  // 16/11 (Kelvin): o disparo alterna Google e lista do Instagram (metade de cada por dia), igual ao servidor
+  const ig = ordenada.filter((l) => l.place_id.startsWith("ig_"));
+  const google = ordenada.filter((l) => !l.place_id.startsWith("ig_"));
+  const fila: typeof ordenada = [];
+  for (let i = 0; i < Math.max(ig.length, google.length); i++) {
+    if (ig[i]) fila.push(ig[i]);
+    if (google[i]) fila.push(google[i]);
+  }
 
   const passoWa = ((cfg.wa_min_interval_sec + cfg.wa_max_interval_sec) / 2 + 30) * 1000;
   const passoEmail = ((cfg.email_min_interval_sec + Math.max(cfg.email_max_interval_sec, cfg.email_min_interval_sec)) / 2 + 30) * 1000;
