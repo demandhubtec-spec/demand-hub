@@ -15,7 +15,7 @@ import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
 import { pedirOrientacao } from "./canal.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { linkPrevia } from "./extras.ts";
-import { nomeDaSdr } from "./sdrs.ts";
+import { nomeDaSdr, sdrValida } from "./sdrs.ts";
 
 export const TOOLS: Tool[] = [
   {
@@ -175,12 +175,15 @@ export const TOOLS: Tool[] = [
 type Input = Record<string, any>;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-async function notifyOwner(text: string) {
+/** Avisa o Kelvin pelo número da SDR do lead (16/11: a Marina pelo dela); se falhar, pelo da Gabi. */
+async function notifyOwner(text: string, sdr: unknown = "gabi") {
   if (!env.ownerPhone) return;
+  const quem = sdrValida(sdr);
   try {
-    await sendText(env.ownerPhone, text);
+    await sendText(env.ownerPhone, text, quem);
   } catch (e) {
     console.error("Falha ao avisar o dono:", e);
+    if (quem !== "gabi") await sendText(env.ownerPhone, `(${nomeDaSdr(quem)}) ${text}`, "gabi").catch(() => null);
   }
 }
 
@@ -190,7 +193,7 @@ async function avisarAgendaFora(lead: Lead, e: unknown) {
   if (Date.now() - ultimoAvisoAgenda < 6 * 3600e3) return;
   ultimoAvisoAgenda = Date.now();
   const msg = String((e as Error)?.message ?? e).slice(0, 160);
-  await notifyOwner(`⚠️ A Google Agenda da Ana não respondeu (${msg}). Ela segue oferecendo horários do expediente, mas reconecte a agenda para não marcar em cima de compromisso. Lead: ${lead.empresa ?? lead.nome ?? lead.phone}`).catch(() => {});
+  await notifyOwner(`⚠️ A Google Agenda da Ana não respondeu (${msg}). Ela segue oferecendo horários do expediente, mas reconecte a agenda para não marcar em cima de compromisso. Lead: ${lead.empresa ?? lead.nome ?? lead.phone}`, lead.agente).catch(() => {});
 }
 
 /** Próximos horários livres reais da agenda (para a retomada já chegar com 2 opções concretas). */
@@ -231,7 +234,7 @@ export async function encerrarLead(lead: Lead, motivo: "opt_out" | "desqualifica
         ...(motivo === "opt_out" ? { wa_status: "optout" } : {}),
       })
       .eq("place_id", pe.place_id);
-    if (ehFluxoV2(pe)) await notifyOwner(`🚫 ${pe.empresa}: ${motivo === "opt_out" ? "não quer mais contato" : "encerrado"}. A ${nomeDaSdr(lead.agente)} ${oQueFez}.\nwa.me/${lead.phone}`);
+    if (ehFluxoV2(pe)) await notifyOwner(`🚫 ${pe.empresa}: ${motivo === "opt_out" ? "não quer mais contato" : "encerrado"}. A ${nomeDaSdr(lead.agente)} ${oQueFez}.\nwa.me/${lead.phone}`, lead.agente);
   }
 }
 
@@ -370,7 +373,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           followup_attempts: 0,
         });
         await notifyOwner(
-          `📅 Nova reunião marcada pela IA\n${formatBR(start)}\n${lead.nome ?? ""} — ${lead.empresa ?? ""}\nFaturamento: R$ ${lead.faturamento_mensal?.toLocaleString("pt-BR") ?? "—"}\nDor: ${(lead.dores ?? []).join("; ")}\n${ev.meetLink ?? ""}`,
+          `📅 Nova reunião marcada pela IA\n${formatBR(start)}\n${lead.nome ?? ""} — ${lead.empresa ?? ""}\nFaturamento: R$ ${lead.faturamento_mensal?.toLocaleString("pt-BR") ?? "—"}\nDor: ${(lead.dores ?? []).join("; ")}\n${ev.meetLink ?? ""}`, lead.agente
         );
         return JSON.stringify({
           ok: true,
@@ -385,7 +388,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         console.error(e);
         await updateLead(leadId, { status: "agendado", email: lead.email ?? emails[0], next_followup_at: null, followup_attempts: 0 });
         await notifyOwner(
-          `📅 REUNIÃO MARCADA, mas a Google Agenda falhou: crie o convite à mão\n${formatBR(start)} (${SDR_CONFIG.reuniao.duracaoMin} min)\n${lead.nome ?? ""} ${lead.empresa ? `(${lead.empresa})` : ""}\nE-mail: ${emails.join(", ")}\nWhatsApp: +${lead.phone}`,
+          `📅 REUNIÃO MARCADA, mas a Google Agenda falhou: crie o convite à mão\n${formatBR(start)} (${SDR_CONFIG.reuniao.duracaoMin} min)\n${lead.nome ?? ""} ${lead.empresa ? `(${lead.empresa})` : ""}\nE-mail: ${emails.join(", ")}\nWhatsApp: +${lead.phone}`, lead.agente
         );
         return JSON.stringify({
           ok: true,
@@ -415,7 +418,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       }
       await db().from("sdr_meetings").update({ status: "cancelada" }).eq("id", m.id);
       await updateLead(leadId, { status: evaluateBant(lead).qualificado ? "qualificado" : "em_qualificacao" });
-      await notifyOwner(`❌ Reunião cancelada pelo lead ${lead.nome ?? lead.phone} (${formatBR(new Date(m.starts_at))}). Motivo: ${input.motivo}`);
+      await notifyOwner(`❌ Reunião cancelada pelo lead ${lead.nome ?? lead.phone} (${formatBR(new Date(m.starts_at))}). Motivo: ${input.motivo}`, lead.agente);
       return "Reunião cancelada. Se o lead quiser remarcar, use ver_horarios.";
     }
 
@@ -430,10 +433,10 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       const pausar = !p || tipo === "pedido_de_pessoa" || tipo === "reclamacao";
       if (pausar) {
         await updateLead(leadId, { ai_paused: true, status: "humano", next_followup_at: null });
-        await notifyOwner(`🙋 Lead pediu atendimento humano\n${lead.nome ?? ""} (+${lead.phone})\nMotivo: ${input.motivo}\nwa.me/${lead.phone}`);
+        await notifyOwner(`🙋 Lead pediu atendimento humano\n${lead.nome ?? ""} (+${lead.phone})\nMotivo: ${input.motivo}\nwa.me/${lead.phone}`, lead.agente);
         return "IA pausada nesta conversa. Avise o lead que alguém da nossa equipe vai responder pessoalmente em breve (sem dizer nomes).";
       }
-      await notifyOwner(`📌 ${p?.empresa ?? lead.empresa ?? lead.nome ?? ""} (+${lead.phone})\n${input.motivo}\nwa.me/${lead.phone}`);
+      await notifyOwner(`📌 ${p?.empresa ?? lead.empresa ?? lead.nome ?? ""} (+${lead.phone})\n${input.motivo}\nwa.me/${lead.phone}`, lead.agente);
       return "Equipe avisada. NÃO diga ao lead que alguém da equipe vai responder: continue você mesma a conversa, rumo à conversa de 30 minutos com o nosso especialista.";
     }
 
@@ -442,7 +445,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       const empresa = p?.empresa ?? lead.empresa ?? lead.nome ?? `+${lead.phone}`;
       await logEvent(leadId, "lead_quente", input);
       await notifyOwner(
-        `🔥 LEAD QUENTE: ligue em até 1 hora\n${empresa}${input.quem ? `\nQuem: ${input.quem}` : ""}\n${input.resumo ?? ""}\nLigar: +${lead.phone}\nwa.me/${lead.phone}`,
+        `🔥 LEAD QUENTE: ligue em até 1 hora\n${empresa}${input.quem ? `\nQuem: ${input.quem}` : ""}\n${input.resumo ?? ""}\nLigar: +${lead.phone}\nwa.me/${lead.phone}`, lead.agente
       );
       return "Especialista avisado para ligar. Continue a conversa normalmente e ofereça 2 horários reais (ver_horarios) para a conversa de 30 minutos.";
     }
@@ -479,7 +482,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com 2 horários do próximo dia útil.";
       const pdf = p.marca?.pdf;
       if (!pdf) {
-        await notifyOwner(`⚠️ ${p.empresa}: a Gabi ia mandar o diagnóstico, mas o PDF ainda não está pronto.\nwa.me/${lead.phone}`);
+        await notifyOwner(`⚠️ ${p.empresa}: a ${nomeDaSdr(lead.agente)} ia mandar o diagnóstico, mas o PDF ainda não está pronto.\nwa.me/${lead.phone}`, lead.agente);
         return "O PDF ainda não está pronto. Diga com carinho que vai mandar o diagnóstico daqui a pouquinho e siga a conversa (não diga que enviou).";
       }
       const nome = `Diagnóstico ${String(p.empresa ?? "").replace(/[|/\\]+.*$/, "").trim() || "digital"}.pdf`;

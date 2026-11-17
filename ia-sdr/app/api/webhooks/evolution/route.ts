@@ -61,11 +61,10 @@ export async function POST(req: Request) {
   if (!sdr) return Response.json({ ignored: "outra instância" });
   // Conversa com o próprio Kelvin não é lead: o que ele escreve para a Ana vira orientação no canal interno
   const doKelvin = (env.ownerPhone && msg.phone === env.ownerPhone) || (env.alertPhone && msg.phone === env.alertPhone);
-  // O canal do Kelvin é o número da Gabi; o que ele manda ou recebe no número da Marina não é lead nem orientação
-  if (doKelvin && sdr !== "gabi") return Response.json({ ok: true, ignorado: "kelvin_no_numero_da_marina" });
+  // 16/11: o Kelvin conversa com a Marina no número dela, como faz com a Gabi (avisos, pedidos, aprovações)
   // Modo teste do Kelvin: pediu a demo pelo WhatsApp pessoal? Por 30 minutos ele conversa como cliente.
   let testeDoDono = false;
-  if (SDR_CONFIG.demo.testeDoDono && doKelvin && !msg.fromMe) {
+  if (SDR_CONFIG.demo.testeDoDono && doKelvin && !msg.fromMe && sdr === "gabi") {
     if (ehPedidoDeDemo(msg.text)) testeDoDono = true;
     else {
       const eu = await leadDoTelefone(msg.phone).catch(() => null);
@@ -83,7 +82,7 @@ export async function POST(req: Request) {
         if (!conteudo) return;
         const tipo = msg.media?.tipo === "audio" ? "audio" : msg.media?.tipo === "imagem" ? "imagem" : "texto";
         await registrar({ autor: "kelvin", tipo, conteudo, origem: "whatsapp" });
-        await processarOrientacao({ leadId: null, conteudo, origem: "whatsapp" });
+        await processarOrientacao({ leadId: null, conteudo, origem: "whatsapp", sdr });
       })().catch((e) => console.error("canal da Ana (WhatsApp) falhou", e)),
     );
     return Response.json({ ok: true, canal: true });

@@ -12,7 +12,7 @@ import { env } from "./env.ts";
 import { destination, sendBubbles, sendText } from "./evolution.ts";
 import { corrigirSaudacao } from "./travas.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
-import { nomeDaSdr } from "./sdrs.ts";
+import { nomeDaSdr, sdrValida, type Sdr } from "./sdrs.ts";
 
 export interface MsgCanal {
   lead_id?: string | null;
@@ -30,8 +30,26 @@ export async function registrar(m: MsgCanal) {
   return data as { id: string };
 }
 
-async function avisarKelvin(texto: string) {
-  if (env.alertPhone) await sendText(env.alertPhone, texto).catch(() => null);
+/**
+ * Avisa o Kelvin no WhatsApp pessoal dele pelo número da SDR do assunto (16/11: a Marina fala com ele
+ * pelo número dela, como a Gabi). Se o número da Marina falhar, o aviso sai pelo da Gabi.
+ */
+async function avisarKelvin(texto: string, sdr: unknown = "gabi") {
+  if (!env.alertPhone) return;
+  const quem = sdrValida(sdr);
+  try {
+    await sendText(env.alertPhone, texto, quem);
+  } catch (e) {
+    if (quem === "gabi") return;
+    console.error(`aviso pelo número da ${nomeDaSdr(quem)} falhou; vai pelo da Gabi`, e);
+    await sendText(env.alertPhone, `(${nomeDaSdr(quem)}) ${texto}`, "gabi").catch(() => null);
+  }
+}
+
+/** De qual SDR é o lead (para o aviso sair pelo número dela). */
+async function sdrDoLead(leadId: string | null | undefined): Promise<Sdr> {
+  if (!leadId) return "gabi";
+  return sdrValida((await getLead(leadId).catch(() => null))?.agente);
 }
 
 const nomeDoLead = (l: Pick<Lead, "nome" | "empresa" | "phone">, empresa?: string | null) => empresa ?? l.empresa ?? l.nome ?? `+${l.phone}`;
@@ -73,7 +91,7 @@ export async function pedirOrientacao(leadId: string, pergunta: string, opcoes: 
   const texto = [pergunta.trim(), opcoes.length ? `\nOpções que pensei:\n${opcoes.map((o, i) => `${i + 1}. ${o}`).join("\n")}` : ""].join("");
   await registrar({ lead_id: leadId, autor: "ana", conteudo: texto, origem: "sistema", status: "pendente" });
   await logEvent(leadId, "pediu_orientacao", { pergunta });
-  await avisarKelvin(`🙋 ${nomeDaSdr(lead.agente)}: preciso de você sobre *${nome}*\n\n${texto}\n\nResponda aqui mesmo (texto ou áudio) ou no portal, em Time Comercial IA > Você e a ${nomeDaSdr(lead.agente)}.`);
+  await avisarKelvin(`🙋 ${nomeDaSdr(lead.agente)}: preciso de você sobre *${nome}*\n\n${texto}\n\nResponda aqui mesmo (texto ou áudio) ou no portal, em Time Comercial IA > Você e a ${nomeDaSdr(lead.agente)}.`, lead.agente);
   return "Pedido de orientação enviado. Responda ao lead com UMA mensagem curta e natural, sem dizer que vai consultar alguém (ex.: \"Boa pergunta, deixa eu confirmar direitinho e já te retorno 😊\"). Não invente a resposta.";
 }
 
@@ -86,7 +104,7 @@ export async function proporRetomada(leadId: string, texto: string, motivo: stri
   await registrar({ lead_id: leadId, autor: "ana", conteudo: `Retomada para ${nome} (${motivo}):\n«${msg}»\n\nPosso mandar?`, origem: "sistema", status: "aguardando_ok", rascunho: msg });
   await logEvent(leadId, "retomada_proposta", { motivo });
   const sdr = nomeDaSdr((await getLead(leadId).catch(() => null))?.agente);
-  await avisarKelvin(`📝 ${sdr}: retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em Time Comercial IA > Você e a ${sdr}.`);
+  await avisarKelvin(`📝 ${sdr}: retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em Time Comercial IA > Você e a ${sdr}.`, await sdrDoLead(leadId));
 }
 
 /** A Ana não conseguiu responder um lead (ex.: WhatsApp fora do ar): avisa o Kelvin para ninguém ficar sem resposta. */
@@ -94,7 +112,7 @@ export async function avisarFalha(leadId: string, erro: string): Promise<void> {
   const nome = await nomeDe(leadId);
   const texto = `Não consegui responder ${nome}: o envio pelo WhatsApp falhou. Me diga o que mandar e eu reenvio.`;
   await registrar({ lead_id: leadId, autor: "ana", conteudo: texto, origem: "sistema", status: "pendente" });
-  await avisarKelvin(`⚠️ ${texto}\n\nErro: ${erro.slice(0, 120)}`);
+  await avisarKelvin(`⚠️ ${texto}\n\nErro: ${erro.slice(0, 120)}`, await sdrDoLead(leadId));
 }
 
 /** O Kelvin aprovou (ou descartou) um rascunho pelo botão do portal. */
@@ -112,7 +130,7 @@ export async function decidirRascunho(canalId: string, acao: "aprovar" | "descar
 }
 
 /** Último pedido de orientação ainda sem resposta (até 2 dias). */
-async function pedidoPendente(): Promise<{ id: string; lead_id: string } | null> {
+async function pedidoPendente(sdr?: Sdr): Promise<{ id: string; lead_id: string } | null> {
   const desde = new Date(Date.now() - 2 * 864e5).toISOString();
   const { data } = await db()
     .from("ana_canal")
@@ -122,9 +140,12 @@ async function pedidoPendente(): Promise<{ id: string; lead_id: string } | null>
     .not("lead_id", "is", null)
     .gte("created_at", desde)
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return (data as { id: string; lead_id: string } | null) ?? null;
+    .limit(10);
+  const lista = (data ?? []) as { id: string; lead_id: string }[];
+  if (!sdr) return lista[0] ?? null;
+  // Kelvin respondendo no número da Marina: o pedido em aberto é o de um lead dela
+  for (const p of lista) if ((await sdrDoLead(p.lead_id)) === sdr) return p;
+  return null;
 }
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
@@ -249,7 +270,7 @@ const FERRAMENTAS_CANAL: Tool[] = [
   },
 ];
 
-async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos: string[]): Promise<string> {
+async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos: string[], sdr?: Sdr): Promise<string> {
   const leadId = typeof a.lead_id === "string" ? a.lead_id : "";
   switch (nome) {
     case "buscar_contatos":
@@ -274,10 +295,14 @@ async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos:
       return "Proposta registrada e enviada ao Kelvin. Agora só confirme em uma frase que está esperando o ok dele.";
     }
     case "aprovar_e_enviar": {
-      let q = db().from("ana_canal").select("id,lead_id,rascunho").eq("status", "aguardando_ok").order("created_at", { ascending: false }).limit(1);
+      let q = db().from("ana_canal").select("id,lead_id,rascunho").eq("status", "aguardando_ok").order("created_at", { ascending: false }).limit(10);
       if (leadId) q = q.eq("lead_id", leadId);
       const { data } = await q;
-      const r = (data ?? [])[0] as { id: string; lead_id: string; rascunho: string | null } | undefined;
+      // "ok" no número da Marina aprova o rascunho de um lead dela, nunca o de um lead da Gabi
+      let r: { id: string; lead_id: string; rascunho: string | null } | undefined;
+      for (const x of (data ?? []) as { id: string; lead_id: string; rascunho: string | null }[]) {
+        if (leadId || !sdr || (await sdrDoLead(x.lead_id)) === sdr) { r = x; break; }
+      }
       if (!r?.rascunho) return "Não há rascunho esperando ok. Pergunte ao Kelvin qual mensagem mandar.";
       const enviado = await enviarAoLead(r.lead_id, r.rascunho);
       return `Enviado para ${await nomeDe(r.lead_id)}: «${enviado}»`;
@@ -304,22 +329,28 @@ async function rodarFerramenta(nome: string, a: Record<string, unknown>, avisos:
  * O Kelvin falou com a Ana (portal ou WhatsApp). Ela entende do que se trata (lead citado, pedido pendente,
  * rascunho esperando ok), usa as ferramentas para agir de verdade e responde contando o que fez.
  */
-export async function processarOrientacao(o: { leadId: string | null; conteudo: string; origem: "portal" | "whatsapp" }) {
-  const pendente = o.leadId ? null : await pedidoPendente();
+export async function processarOrientacao(o: { leadId: string | null; conteudo: string; origem: "portal" | "whatsapp"; sdr?: Sdr }) {
+  // No WhatsApp, quem conversa com o Kelvin é a SDR do número em que ele escreveu (16/11: Marina no número dela)
+  const doNumero = o.origem === "whatsapp" ? sdrValida(o.sdr) : undefined;
+  const pendente = o.leadId ? null : await pedidoPendente(doNumero);
   const leadFoco = o.leadId ?? pendente?.lead_id ?? null;
   const { data: ultimas } = await db().from("ana_canal").select("autor,conteudo,lead_id,status,created_at").order("created_at", { ascending: false }).limit(14);
   const historico = ((ultimas ?? []) as { autor: string; conteudo: string; created_at: string }[])
     .reverse()
     .map((m) => `${m.autor === "kelvin" ? "Kelvin" : "SDR"} (${hora(m.created_at)}): ${m.conteudo.slice(0, 500)}`)
     .join("\n");
-  const { data: rascunhos } = await db().from("ana_canal").select("lead_id,rascunho").eq("status", "aguardando_ok").order("created_at", { ascending: false }).limit(3);
+  const { data: rascunhos } = await db().from("ana_canal").select("lead_id,rascunho").eq("status", "aguardando_ok").order("created_at", { ascending: false }).limit(10);
   const rasc = [];
-  for (const r of (rascunhos ?? []) as { lead_id: string; rascunho: string }[]) rasc.push(`- ${await nomeDe(r.lead_id)} (lead_id ${r.lead_id}): «${r.rascunho}»`);
+  for (const r of (rascunhos ?? []) as { lead_id: string; rascunho: string }[]) {
+    if (rasc.length >= 3) break;
+    if (doNumero && (await sdrDoLead(r.lead_id)) !== doNumero) continue;
+    rasc.push(`- ${await nomeDe(r.lead_id)} (lead_id ${r.lead_id}): «${r.rascunho}»`);
+  }
   const foco = leadFoco ? `${await nomeDe(leadFoco)} (lead_id ${leadFoco})` : "nenhum";
   const regras = await orientacoesPara(leadFoco);
 
-  // Quem responde o Kelvin é a SDR do lead em foco (Gabi ou Marina); sem lead em foco, a Gabi
-  const sdrFoco = nomeDaSdr(leadFoco ? (await getLead(leadFoco).catch(() => null))?.agente : "gabi");
+  // Quem responde o Kelvin: no WhatsApp, a SDR do número em que ele escreveu; no portal, a SDR do lead em foco
+  const sdrFoco = nomeDaSdr(doNumero ?? (leadFoco ? (await getLead(leadFoco).catch(() => null))?.agente : "gabi"));
   const system = `Você é a ${sdrFoco}, SDR da DemandIA, conversando no canal interno com o Kelvin, seu gestor. Ele te orienta sobre os leads do WhatsApp.${sdrFoco === "Marina" ? " A Gabi é a outra SDR, no outro número; cada uma cuida das próprias conversas." : ""}
 
 Como agir:
@@ -359,7 +390,7 @@ ${historico}`;
     for (const call of msg.tool_calls) {
       let out: string;
       try {
-        out = await rodarFerramenta(call.function.name, parseArgs(call), avisos);
+        out = await rodarFerramenta(call.function.name, parseArgs(call), avisos, doNumero);
       } catch (e) {
         out = `Erro: ${String((e as Error).message ?? e).slice(0, 200)}`;
       }
@@ -371,8 +402,8 @@ ${historico}`;
   await registrar({ lead_id: leadFoco, autor: "ana", conteudo: resposta, origem: "sistema" });
   // No WhatsApp: primeiro a proposta (se houver), depois a resposta. No portal, tudo já aparece no canal.
   if (o.origem === "whatsapp") {
-    for (const a of avisos) await avisarKelvin(a);
-    await avisarKelvin(resposta);
+    for (const a of avisos) await avisarKelvin(a, doNumero);
+    await avisarKelvin(resposta, doNumero);
   }
   return { lead: leadFoco, resposta };
 }
@@ -389,7 +420,7 @@ export async function lembrarPedidos(now = new Date()) {
     .limit(5);
   for (const p of (data ?? []) as { id: string; lead_id: string | null; conteudo: string }[]) {
     const lead = p.lead_id ? await getLead(p.lead_id).catch(() => null) : null;
-    await avisarKelvin(`⏰ Ainda estou esperando sua orientação${lead ? ` sobre *${nomeDoLead(lead)}*` : ""}:\n\n${p.conteudo.slice(0, 400)}`);
+    await avisarKelvin(`⏰ Ainda estou esperando sua orientação${lead ? ` sobre *${nomeDoLead(lead)}*` : ""}:\n\n${p.conteudo.slice(0, 400)}`, lead?.agente);
     await db().from("ana_canal").update({ lembrado_em: now.toISOString() }).eq("id", p.id);
   }
   return (data ?? []).length;
