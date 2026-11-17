@@ -99,3 +99,19 @@ test("9 e detalhes: sem querida e sem letra cirílica", () => {
   assert.equal(limparCaracteresEstranhos("posso reenviе"), "posso reenvie");
   assert.equal(aplicarTravasDeTexto("Boa tarde, querida! Tudo bem?", MANHA), "Bom dia! Tudo bem?");
 });
+
+test("tom: nunca joinha", async () => {
+  const { tirarJoinha } = await import("../src/lib/travas.ts");
+  assert.equal(tirarJoinha("Combinado! 👍"), "Combinado! 😊");
+  assert.equal(tirarJoinha("Combinado 😊 👍"), "Combinado 😊");
+  assert.equal(tirarJoinha("Oi 😊"), "Oi 😊");
+});
+
+test("Instagram: alimentação e cidade curta", async () => {
+  const { palavrasDoNicho, cidadeCurta, veioDoInstagram } = await import("../src/lib/prospeccao.ts").catch(() => ({}) as never);
+  if (!palavrasDoNicho) return; // sem @supabase/supabase-js neste ambiente
+  assert.equal(palavrasDoNicho("Alimentação").publico, "clientes");
+  assert.equal(palavrasDoNicho("Restaurante").plural, "negócios de alimentação");
+  assert.equal(cidadeCurta("Brás de Pina, Rio de Janeiro / RJ"), "Rio de Janeiro");
+  assert.ok(veioDoInstagram({ place_id: "ig_coxinha" } as never));
+});

@@ -26,6 +26,8 @@ export interface Prospeccao {
   wa_message: string | null;
   wa_sent_at: string | null;
   diagnostico?: unknown;
+  /** Raio-x digital da Rita (Instagram, site e Google): o diagnóstico de quem veio da lista do Instagram. */
+  diagnosticos?: unknown;
   /** Cadência: os toques escritos pela Ana e quantos já foram feitos. */
   sequencia?: { n: number; canal: string; assunto?: string; texto: string }[] | null;
   toque_atual?: number | null;
@@ -73,7 +75,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
+    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,diagnosticos,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -157,6 +159,9 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
   if (/imob|corretor/.test(n)) return { plural: "imobiliárias", singular: "imobiliária", artigo: "a", publico: "clientes", busca: "imobiliária" };
   if (/advoc|jur/.test(n)) return { plural: "escritórios", singular: "escritório", artigo: "o", publico: "clientes", busca: "advogado" };
   if (/vet|pet/.test(n)) return { plural: "clínicas veterinárias", singular: "clínica", artigo: "a", publico: "clientes", busca: "veterinário" };
+  // 16/11: lista do Instagram, quase toda de alimentação (restaurante, hamburgueria, doces, salgados, marmita)
+  if (/aliment|restaur|lanch|pizz|hamburg|burger|confeit|doce|salgad|marmit|a[cç]a[ií]|gelat|sorvet|padar|caf[eé]|bar\b|churras|gastronom|comida|food|delivery|chef/.test(n))
+    return { plural: "negócios de alimentação", singular: "negócio", artigo: "o", publico: "clientes", busca: "delivery" };
   if (/odonto|dent/.test(n)) return { plural: "clínicas odontológicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: "dentista" };
   if (/endocrin/.test(n)) return { plural: "clínicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: "endocrinologista" };
   if (/cl[ií]nic|m[eé]dic|endocrin|consult|sa[uú]de|oncolog|geriatr|nutri|fisio|psic|anest|diagn/.test(n))
@@ -165,13 +170,25 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
   return { plural: "empresas", singular: "empresa", artigo: "a", publico: "clientes", busca: /ver[aã]o|climatiz|ar.?condic/.test(n) ? "ar-condicionado" : "o serviço de vocês" };
 }
 
+export function cidadeCurta(c: string | null | undefined): string {
+  const semUf = String(c ?? "").split("/")[0].trim();
+  const partes = semUf.split(",").map((x) => x.trim()).filter(Boolean);
+  return partes[partes.length - 1] ?? "";
+}
+
+/** Veio da lista do Instagram (comentou em post de perfil parceiro)? */
+export function veioDoInstagram(p: Prospeccao | null | undefined): boolean {
+  return !!p?.place_id?.startsWith("ig_") || /^\[Lista do Instagram\]/.test(p?.observacoes ?? "");
+}
+
 /** Valores das {{variáveis}} do Prompt System da Gabi para este lead. */
 export function varsPromptGabi(p: Prospeccao): Record<string, string> {
   const w = palavrasDoNicho(p.nicho);
   return {
     // Nome curto (16/11): "Dra. Luana Aranha - Geriatria e Clínica Médica em Campinas" vira "Dra. Luana Aranha"
     empresa: nomeCurto(p.empresa, p.cidade) || "a empresa",
-    cidade: p.cidade || "da região",
+    // "Brás de Pina, Rio de Janeiro / RJ" vira "Rio de Janeiro"
+    cidade: cidadeCurta(p.cidade) || "da região",
     nicho_plural: w.plural,
     publico: w.publico,
     tipo: `${w.artigo} ${w.singular}`,
@@ -192,8 +209,24 @@ function contextoProspeccaoV2(p: Prospeccao): string {
 ## Dados deste lead (prospecção ativa)
 Você chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Primeira mensagem: "${v(p.wa_message)}".
 Empresa: ${v(nomeCurto(p.empresa, p.cidade))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
-${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}
+${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDiagnóstico verificado (raio-x do Instagram, do site e do Google; pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}
 Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
+}
+
+/**
+ * Lead da lista do Instagram (16/11, Kelvin): a abordagem é pelo WhatsApp, nunca pelo Direct, com o mesmo
+ * roteiro (diagnóstico, site, Instagram), na linguagem do segmento (a maioria é alimentação).
+ */
+function contextoInstagram(p: Prospeccao): string {
+  const obs = (p.observacoes ?? "").replace(/^\[Lista do Instagram\]\s*/, "").trim();
+  return `
+## Este lead veio do Instagram
+Encontramos esta empresa pelo Instagram (${p.instagram ?? "perfil no Instagram"}). O que sabemos: ${obs || "não informado"}.
+- A conversa é pelo WhatsApp. Não cite o comentário nem o post de outro perfil, e não diga que achou a empresa no Google.
+- Na apresentação, fale do Instagram primeiro ("vi o Instagram de vocês"), depois do site e do Google.
+- O diagnóstico mostra o Instagram, o site e o Google. Ao mandar, comece pelo que ele mostra do Instagram (perfil, bio, link, como o cliente chega até o pedido).
+- Linguagem do segmento: em alimentação, fale de pedidos, cardápio, delivery, clientes e movimento, nunca de "pacientes". Em outros segmentos, use as palavras do negócio deles.
+- O resto do roteiro é o mesmo: diagnóstico gratuito, modelo de site para quem não tem site e reunião de 20 minutos com o nosso especialista.`;
 }
 
 /** Bloco que entra no prompt da Ana quando o contato veio da prospecção ativa. */

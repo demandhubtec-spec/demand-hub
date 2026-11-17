@@ -148,5 +148,12 @@ export function tirarQuerida(texto: string): string {
 
 /** Todas as travas de texto que valem para qualquer mensagem da SDR. */
 export function aplicarTravasDeTexto(texto: string, now: Date): string {
-  return tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)));
+  return tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now))));
+}
+
+/** Nunca emoji de joinha (Kelvin, 16/11): soa seco. Sai do texto (e, se era o único emoji, entra um 😊 no lugar). */
+export function tirarJoinha(texto: string): string {
+  if (!/👍/u.test(texto ?? "")) return texto;
+  const sem = texto.replace(/\s?👍[\u{1F3FB}-\u{1F3FF}]?\uFE0F?/gu, "");
+  return /\p{Extended_Pictographic}/u.test(sem) ? sem.trim() : `${sem.trim()} 😊`;
 }

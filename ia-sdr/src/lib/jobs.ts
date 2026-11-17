@@ -189,7 +189,7 @@ export async function runMeetingReminders(now = new Date()) {
 
   for (const m of (toRemind ?? []) as Meeting[]) {
     const lead = await getLead(m.lead_id);
-    const text = `Daqui a pouco, às ${formatBR(new Date(m.starts_at)).split(" às ")[1]}, começa nossa reunião 🙂\n\nLink do Meet: ${m.meet_link ?? "está no convite do seu e-mail"}`;
+    const text = `Daqui a pouco, às ${formatBR(new Date(m.starts_at)).split(" às ")[1]}, começa nossa reunião 😊\n\nLink do Meet: ${m.meet_link ?? "está no convite do seu e-mail"}`;
     await sendAndLog(lead, text, "lembrete");
     await sb.from("sdr_meetings").update({ reminder_sent_at: iso }).eq("id", m.id);
     reminders++;
