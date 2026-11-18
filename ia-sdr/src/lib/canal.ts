@@ -200,7 +200,7 @@ async function conversasRecentes(horas: number) {
 }
 
 /** Envia de verdade para o lead (só com o ok do Kelvin). */
-async function enviarAoLead(leadId: string, texto: string) {
+export async function enviarAoLead(leadId: string, texto: string) {
   const lead = await getLead(leadId);
   // A mensagem pode ter sido escrita horas antes do ok: a saudação vai pela hora do envio (16/11)
   const msg = corrigirSaudacao(corrigirMarca(humanizar(texto)), new Date());

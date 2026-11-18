@@ -367,7 +367,14 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
     .or("rita_status.is.null,rita_status.eq.ajuste")
     .order("leo_decidido_em", { ascending: true })
     .limit(POR_RODADA);
-  const leads = (data ?? []) as unknown as LeadRita[];
+  // 17/11 (Kelvin): leads antigos (da época da Ana, já contatados) que pediram o diagnóstico ganham o PDF também
+  const { data: pedidos } = await db()
+    .from("outreach_leads")
+    .select(CAMPOS)
+    .eq("pdf_pedido", true)
+    .is("diagnosticos", null)
+    .limit(POR_RODADA);
+  const leads = [...((data ?? []) as unknown as LeadRita[]), ...((pedidos ?? []) as unknown as LeadRita[])].slice(0, POR_RODADA * 2);
   if (leads.length) {
     // Instagram de todos (empresa + até 3 concorrentes), numa coleta só, se couber no teto
     const usuarios = new Set<string>();
@@ -393,15 +400,17 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
   // Duda: diagnóstico aprovado → site de demonstração para quem não tem site (o relatório já está no ar)
   const { data: d } = await db()
     .from("outreach_leads")
-    .select("place_id,empresa,nicho,cidade,decisor,endereco,nota,avaliacoes,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,site,instagram,whatsapp,marca,diagnosticos,site_preview,duda_nota,duda_status")
-    .eq("wa_status", "pendente")
+    .select("place_id,empresa,nicho,cidade,decisor,endereco,nota,avaliacoes,fotos,tem_descricao,tem_horario,responde_avaliacoes,termo_busca,posicao_busca,total_busca,site,instagram,whatsapp,marca,diagnosticos,site_preview,duda_nota,duda_status,wa_status,pdf_pedido")
+    .in("wa_status", ["pendente", "enviado", "respondeu", "sem_resposta"])
     .eq("rita_status", "aprovado")
     .or("duda_status.is.null,duda_status.eq.ajuste")
     // Ajuste pedido pelo Kelvin vem primeiro; antes, sem ordem, um ajuste podia ficar de fora das 20 da rodada
     .order("duda_status", { ascending: true, nullsFirst: false })
     .limit(60);
   let duda = 0;
-  for (const l of ((d ?? []) as unknown as LeadDuda[]).filter((x) => !esperandoLogo(x)).slice(0, POR_RODADA)) {
+  // Só quem ainda vai receber o 1º contato, ou lead antigo que pediu o PDF (17/11)
+  const daDuda = ((d ?? []) as unknown as (LeadDuda & { wa_status?: string; pdf_pedido?: boolean })[]).filter((x) => x.wa_status === "pendente" || x.pdf_pedido);
+  for (const l of daDuda.filter((x) => !esperandoLogo(x)).slice(0, POR_RODADA)) {
     try {
       const patch: Record<string, unknown> = { duda_status: "pendente", duda_nota: null };
       // Logo guardada com a gente: link do Instagram expira e o PDF/relatório ficaria sem a logo
