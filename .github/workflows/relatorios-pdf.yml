@@ -5,7 +5,7 @@ name: Relatórios em PDF
 
 on:
   schedule:
-    - cron: "*/15 11-23 * * *"
+    - cron: "*/15 10-23 * * *"
   workflow_dispatch:
 
 concurrency:

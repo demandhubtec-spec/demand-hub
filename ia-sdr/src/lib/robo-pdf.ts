@@ -41,9 +41,9 @@ export async function trabalhoDoRobo(): Promise<{ logos: number; pdfs: number }>
 export async function dispararRoboPdf(agora = new Date()): Promise<Record<string, unknown>> {
   const token = process.env.GITHUB_ROBO_TOKEN;
   if (!token) return { skipped: "sem GITHUB_ROBO_TOKEN" };
-  // O robô trabalha das 8h às 20h (Brasília), como no agendamento dele
+  // O robô trabalha das 7h às 20h (Brasília): às 7h45 os PDFs do dia já estão prontos (Kelvin, 17/11)
   const hora = (agora.getUTCHours() + 21) % 24;
-  if (hora < 8 || hora >= 20) return { skipped: "fora do horário" };
+  if (hora < 7 || hora >= 20) return { skipped: "fora do horário" };
 
   const { data: ultimo } = await db()
     .from("outreach_log")
