@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Proposta VIP Implantes · DemandIA</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#0B0420">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600;700&family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,700;1,800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B0420; --line:rgba(196,181,253,.14);
+  --violet:#8B5CF6; --lilac:#C4B5FD; --cyan:#22D3EE; --pink:#F472B6;
+  --text:#F4F1FF; --muted:#A79FC9; --ok:#34D399;
+  --grad:linear-gradient(135deg,#8B5CF6 0%,#6D28D9 45%,#22D3EE 120%);
+  /* VIP Implantes */
+  --vnavy:#080937; --vblue:#1800AC; --vblue2:#2A3BE0; --vsky:#E9ECFF;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;line-height:1.55;overflow-x:hidden}
+h1,h2,h3,h4{font-family:Sora,Inter,sans-serif;line-height:1.15;letter-spacing:-.02em}
+a{color:inherit}
+img{display:block;max-width:100%}
+.wrap{max-width:1160px;margin:0 auto;padding:0 22px}
+section{padding:96px 0;position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font:600 12px Sora;letter-spacing:.14em;text-transform:uppercase;color:var(--lilac);background:rgba(139,92,246,.12);border:1px solid var(--line);padding:7px 14px;border-radius:99px}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan)}
+.h2{font-size:clamp(28px,4vw,44px);font-weight:800;margin:18px 0 14px}
+.lead{color:var(--muted);font-size:18px;max-width:680px}
+.grad-text{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.btn{display:inline-flex;align-items:center;gap:10px;border:0;cursor:pointer;font:700 15px Sora;padding:16px 26px;border-radius:14px;background:var(--grad);color:#fff;text-decoration:none;box-shadow:0 10px 40px -10px rgba(139,92,246,.7);transition:transform .2s}
+.btn:hover{transform:translateY(-2px)}
+.btn.ghost{background:transparent;border:1px solid var(--line);box-shadow:none}
+.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));border:1px solid var(--line);border-radius:22px}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:50;background:rgba(11,4,32,.78);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+nav .wrap{display:flex;align-items:center;justify-content:space-between;height:66px;gap:20px}
+.logo{display:flex;align-items:center;gap:10px;font:800 20px Sora}
+.logo b{width:34px;height:34px;border-radius:10px;background:var(--grad);display:grid;place-items:center;font-size:15px}
+.logo span em{font-style:normal;color:var(--lilac)}
+nav ul{display:flex;gap:22px;list-style:none;font-size:14px;color:var(--muted)}
+nav ul a{text-decoration:none}
+nav ul a:hover{color:#fff}
+@media(max-width:760px){nav ul{display:none}}
+
+/* HERO */
+.hero{padding:100px 0 80px;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:-30% -10% auto auto;width:720px;height:720px;background:radial-gradient(circle,rgba(139,92,246,.35),transparent 60%)}
+.hero::after{content:"";position:absolute;left:-200px;bottom:-200px;width:560px;height:560px;background:radial-gradient(circle,rgba(34,211,238,.18),transparent 60%)}
+.hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:50px;align-items:center;position:relative;z-index:2}
+.hero h1{font-size:clamp(38px,5.8vw,70px);font-weight:800;margin:22px 0 0}
+.bf{display:inline-flex;gap:10px;align-items:center;background:#000;border:1px solid #333;border-radius:12px;padding:8px 14px;font:700 13px Sora;margin-top:30px}
+.bf span{background:#fff;color:#000;padding:3px 8px;border-radius:6px}
+.cobrand{position:relative;display:grid;place-items:center;aspect-ratio:1;max-width:400px;margin-left:auto;width:100%}
+.cobrand .ring{position:absolute;inset:0;border-radius:50%;border:1px solid var(--line)}
+.cobrand .ring.r2{inset:12%;border-color:rgba(139,92,246,.3)}
+.cobrand .vip{position:relative;width:74%;aspect-ratio:1.55;border-radius:28px;display:grid;place-items:center;background:radial-gradient(circle at 80% 15%,rgba(42,59,224,.55),transparent 55%),linear-gradient(145deg,var(--vblue),var(--vnavy));box-shadow:0 30px 80px -20px rgba(24,0,172,.8);border:1px solid rgba(255,255,255,.14)}
+.cobrand .vip img{width:76%;height:auto}
+.cobrand .x{position:absolute;bottom:10%;left:50%;transform:translateX(-50%);white-space:nowrap;display:flex;align-items:center;gap:8px;background:rgba(11,4,32,.9);border:1px solid var(--line);border-radius:14px;padding:10px 14px;font:800 14px Sora}
+.cobrand .x .logo{font-size:16px;gap:8px}
+.cobrand .x .logo b{width:26px;height:26px;font-size:12px;border-radius:8px}
+.cobrand .x small{font:600 13px Inter;color:var(--muted)}
+@media(max-width:900px){.hero-grid{grid-template-columns:1fr}.cobrand{margin:0 auto;max-width:320px}}
+
+/* PROBLEM */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px}
+.stat{padding:28px}
+.stat .n{font:800 40px Sora}
+.stat p{color:var(--muted);font-size:15px;margin-top:6px}
+@media(max-width:800px){.stats{grid-template-columns:1fr}}
+
+/* FLOW */
+.flow{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-top:50px}
+.flow .step{padding:24px 20px;position:relative}
+.flow .ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;font-size:22px;background:rgba(139,92,246,.18);border:1px solid var(--line);margin-bottom:16px}
+.flow h4{font-size:16px;margin-bottom:6px}
+.flow p{font-size:13.5px;color:var(--muted)}
+.flow .num{position:absolute;top:18px;right:18px;font:700 12px Sora;color:var(--lilac);opacity:.6}
+@media(max-width:1000px){.flow{grid-template-columns:1fr 1fr}}
+@media(max-width:560px){.flow{grid-template-columns:1fr}}
+
+/* PREVIEW TABS */
+.ptabs{display:flex;gap:10px;flex-wrap:wrap;margin:36px 0 26px}
+.ptab{cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);padding:12px 18px;border-radius:12px;font:600 14px Sora;display:flex;gap:8px;align-items:center}
+.ptab.on{background:var(--grad);color:#fff;border-color:transparent}
+.pane{display:none}
+.pane.on{display:block;animation:fade .45s ease}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.pane-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:26px;align-items:start}
+@media(max-width:960px){.pane-grid{grid-template-columns:1fr}}
+.side{padding:26px}
+.side h3{font-size:22px;margin-bottom:10px}
+.side p{color:var(--muted);font-size:15px}
+.checks{list-style:none;margin-top:16px;display:grid;gap:10px;font-size:14.5px}
+.checks li{display:flex;gap:10px}
+.checks li::before{content:"✓";flex:none;width:22px;height:22px;border-radius:7px;background:rgba(52,211,153,.15);color:var(--ok);display:grid;place-items:center;font-size:12px;font-weight:800}
+.tag{display:inline-block;font:700 11px Sora;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;border-radius:8px;background:rgba(34,211,238,.12);color:var(--cyan);margin-bottom:12px}
+.tip{margin-top:14px;font-size:13px;color:var(--muted);background:rgba(255,255,255,.03);border-left:3px solid var(--violet);padding:10px 14px;border-radius:0 10px 10px 0}
+
+/* ===== VIP brand helpers ===== */
+.vlogo{height:38px;width:auto}
+.vf{font-family:Montserrat,sans-serif}
+
+/* BROWSER MOCK (página de agendamento) */
+.browser{border-radius:18px;overflow:hidden;border:1px solid var(--line);background:#fff;box-shadow:0 40px 80px -30px rgba(0,0,0,.7)}
+.bbar{background:#ECEAF3;display:flex;align-items:center;gap:8px;padding:10px 14px}
+.bbar i{width:11px;height:11px;border-radius:50%;background:#FF5F57}.bbar i:nth-child(2){background:#FEBC2E}.bbar i:nth-child(3){background:#28C840}
+.bbar .url{flex:1;margin-left:10px;background:#fff;border-radius:8px;font-size:12px;color:#555;padding:6px 12px}
+.lp-wrap{background:#e7e5ef}
+.lp{height:580px;overflow-y:auto;color:var(--vnavy);font-family:Montserrat,sans-serif;background:#fff;scrollbar-width:thin}
+.lp-nav{display:flex;justify-content:space-between;align-items:center;padding:10px 24px;position:sticky;top:0;background:var(--vnavy);z-index:2}
+.lp-nav .wa{background:#1FAF62;color:#fff;font-weight:700;font-size:12px;padding:9px 14px;border-radius:99px}
+.lp-hero{position:relative;padding:44px 24px 40px;background:radial-gradient(circle at 85% 20%,rgba(42,59,224,.55),transparent 45%),linear-gradient(135deg,var(--vnavy) 0%,var(--vblue) 100%);color:#fff;display:grid;grid-template-columns:1.2fr .8fr;gap:22px;align-items:center;overflow:hidden}
+.lp-hero::after{content:"";position:absolute;right:-60px;bottom:-60px;width:220px;height:220px;border:2px solid rgba(255,255,255,.15);border-radius:50%}
+.lp-hero .pill{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;background:rgba(255,255,255,.14);padding:6px 10px;border-radius:99px;margin-bottom:12px}
+.lp-hero h2{font:800 30px/1.1 Montserrat;letter-spacing:-.01em}
+.lp-hero h2 em{font-style:italic;color:#AFC0FF}
+.lp-hero p{opacity:.88;font-size:13.5px;margin:12px 0 18px}
+.lp-btn{display:inline-block;background:#fff;color:var(--vblue);font-weight:800;font-size:13px;padding:13px 18px;border-radius:10px}
+.lp-ill{position:relative;justify-self:center;width:100%;max-width:220px;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),rgba(255,255,255,.04) 70%);border:2px solid rgba(255,255,255,.25);display:grid;place-items:center}
+.lp-ill .tooth{width:46%;color:#fff;filter:drop-shadow(0 12px 24px rgba(0,0,0,.35))}
+.lp-ill .nm{position:absolute;left:50%;bottom:-12px;transform:translateX(-50%);white-space:nowrap;background:#fff;color:var(--vnavy);font-size:11.5px;font-weight:800;padding:7px 12px;border-radius:99px;box-shadow:0 8px 20px rgba(0,0,0,.25)}
+.lp-trust{display:flex;justify-content:center;gap:26px;flex-wrap:wrap;padding:18px 20px;background:var(--vsky);font-size:12.5px;font-weight:700;color:var(--vblue)}
+.lp-sec{padding:32px 24px}
+.lp-sec h3{font:800 22px Montserrat;color:var(--vnavy);margin-bottom:6px;text-align:center}
+.lp-sec h3 em{color:var(--vblue);font-style:italic}
+.lp-sec .sub{text-align:center;font-size:13px;color:#5a5f86;margin-bottom:18px}
+.lp-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.lp-3 div{background:#fff;border:1px solid #e4e7fb;border-radius:14px;padding:16px;font-size:12.5px;color:#5a5f86;box-shadow:0 6px 20px -12px rgba(24,0,172,.35)}
+.lp-3 div b{display:block;color:var(--vnavy);font-size:14px;margin:8px 0 4px}
+.lp-3 div .ico{width:36px;height:36px;border-radius:10px;background:var(--vblue);color:#fff;display:grid;place-items:center;font-size:17px}
+.lp-about{display:grid;grid-template-columns:130px 1fr;gap:22px;align-items:center;background:var(--vnavy);color:#fff;padding:30px 24px}
+.lp-about .badge-ic{width:110px;aspect-ratio:1;border-radius:28px;background:linear-gradient(145deg,var(--vblue2),var(--vblue));display:grid;place-items:center;justify-self:center}
+.lp-about .badge-ic svg{width:44%;color:#fff}
+.lp-about h4{font:800 20px Montserrat;margin-bottom:6px}
+.lp-about h4 em{color:#AFC0FF}
+.lp-about p{font-size:13px;opacity:.85}
+.lp-about ul{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.lp-about li{font-size:11.5px;font-weight:700;background:rgba(255,255,255,.1);padding:6px 10px;border-radius:99px}
+.lp-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;font-size:12px;color:#5a5f86;font-weight:600}
+.lp-steps span{display:grid;place-items:center;width:38px;height:38px;margin:0 auto 8px;border-radius:50%;background:var(--vblue);color:#fff;font-weight:800}
+.lp-cta{margin:0 24px 26px;border-radius:20px;padding:26px;background:linear-gradient(135deg,var(--vblue),var(--vnavy));color:#fff;text-align:center}
+.lp-cta h4{font:800 20px Montserrat;margin-bottom:6px}
+.lp-cta p{font-size:13px;opacity:.85;margin-bottom:14px}
+.lp-form{display:grid;gap:8px;max-width:360px;margin:0 auto 12px}
+.lp-form div{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:11px;font-size:12px;text-align:left;color:rgba(255,255,255,.75)}
+.lp-foot{padding:16px 24px;font-size:11px;color:#8f93b5;display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--vnavy)}
+.lp-foot img{height:30px}
+.lp.mobile{width:375px;margin:0 auto}
+.lp.mobile .lp-hero,.lp.mobile .lp-about{grid-template-columns:1fr}
+.lp.mobile .lp-about .badge-ic{width:90px}
+.lp.mobile .lp-3,.lp.mobile .lp-steps{grid-template-columns:1fr 1fr}
+.devsw{display:flex;gap:8px;margin-bottom:14px}
+.devsw button{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted);padding:8px 14px;border-radius:10px;font:600 13px Inter}
+.devsw button.on{background:#fff;color:#0B0420}
+
+/* WHATSAPP + CRM */
+.ai-grid{display:grid;grid-template-columns:380px 1fr;gap:22px;align-items:start}
+@media(max-width:960px){.ai-grid{grid-template-columns:1fr}}
+.phone{background:#0b141a;border-radius:34px;padding:10px;border:1px solid #2a2f45;box-shadow:0 40px 90px -30px rgba(139,92,246,.6);max-width:380px;margin:0 auto;width:100%}
+.wa-top{background:#1f2c34;border-radius:26px 26px 0 0;padding:12px 16px;display:flex;align-items:center;gap:10px}
+.wa-av{width:40px;height:40px;border-radius:50%;overflow:hidden;flex:none}
+.wa-av img{width:100%;height:100%;object-fit:cover}
+.wa-top b{font-size:14.5px;display:block}
+.wa-top small{font-size:11.5px;color:#8fa3ae}
+.wa-body{height:470px;overflow-y:auto;padding:16px 12px;background:#0b141a radial-gradient(rgba(255,255,255,.03) 1px,transparent 1px) 0 0/18px 18px;display:flex;flex-direction:column;gap:8px;scrollbar-width:none}
+.msg{max-width:84%;padding:8px 11px 18px;border-radius:10px;font-size:13.5px;position:relative;animation:pop .3s ease;white-space:pre-line}
+.msg time{position:absolute;right:9px;bottom:4px;font-size:10px;color:rgba(255,255,255,.55)}
+.msg.in{background:#202c33;align-self:flex-start;border-top-left-radius:2px}
+.msg.out{background:#005c4b;align-self:flex-end;border-top-right-radius:2px}
+.msg.sys{align-self:center;background:#182229;color:#8fa3ae;font-size:11.5px;padding:6px 10px;border-radius:8px;text-align:center}
+.typing{align-self:flex-start;background:#202c33;padding:12px 14px;border-radius:10px;display:flex;gap:4px}
+.typing i{width:6px;height:6px;border-radius:50%;background:#8fa3ae;animation:dot 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes dot{0%,100%{opacity:.3}50%{opacity:1}}
+@keyframes pop{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}
+.wa-replies{background:#1f2c34;border-radius:0 0 26px 26px;padding:10px;min-height:66px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center}
+.wa-replies button{cursor:pointer;background:#2a3942;color:#e9edef;border:1px solid #3b4a54;border-radius:99px;padding:8px 13px;font:500 12.5px Inter}
+.wa-replies button:hover{background:#00a884;border-color:#00a884}
+.wa-replies .hint{font-size:12px;color:#8fa3ae;text-align:center}
+.crm{padding:24px}
+.crm-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px;flex-wrap:wrap}
+.crm-head h3{font-size:18px}
+.badge{font:700 11px Sora;padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.06);color:var(--muted);transition:.3s}
+.badge.hot{background:rgba(244,114,182,.18);color:var(--pink)}
+.badge.done{background:rgba(52,211,153,.18);color:var(--ok)}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:.4s}
+.field small{display:block;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.field b{font-size:14px;font-weight:600;color:#6b6290}
+.field.fill{border-color:rgba(139,92,246,.6);background:rgba(139,92,246,.1)}
+.field.fill b{color:#fff}
+.pipe{display:flex;gap:6px;margin:18px 0}
+.pipe div{flex:1;text-align:center;font-size:11.5px;padding:9px 4px;border-radius:9px;background:rgba(255,255,255,.04);color:var(--muted);transition:.4s}
+.pipe div.on{background:var(--grad);color:#fff;font-weight:700}
+.fu h4{font-size:14px;margin-bottom:10px;color:var(--lilac)}
+.fu ol{list-style:none;display:grid;gap:8px;font-size:13px;color:var(--muted)}
+.fu li{display:flex;gap:10px;align-items:center}
+.fu li span{flex:none;font:700 11px Sora;background:rgba(34,211,238,.12);color:var(--cyan);padding:4px 8px;border-radius:7px;min-width:62px;text-align:center}
+.restart{margin-top:16px;cursor:pointer;background:transparent;border:1px solid var(--line);color:var(--muted);padding:9px 14px;border-radius:10px;font:600 13px Inter}
+.ia-more{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:22px}
+.ia-more .card{padding:20px}
+.ia-more h4{font-size:15px;margin:8px 0 6px}
+.ia-more p{font-size:13.5px;color:var(--muted)}
+.ia-more .e{font-size:22px}
+@media(max-width:860px){.ia-more{grid-template-columns:1fr}}
+
+/* ADS */
+.ads-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+@media(max-width:900px){.ads-grid{grid-template-columns:1fr}}
+.gpanel{background:#fff;color:#202124;border-radius:18px;padding:22px;font-family:Arial,Helvetica,sans-serif}
+.gsearch{display:flex;align-items:center;gap:10px;border:1px solid #dfe1e5;border-radius:24px;padding:10px 16px;font-size:14px;margin-bottom:18px;box-shadow:0 1px 6px rgba(32,33,36,.18)}
+.gsearch .G{font:700 20px Arial;background:linear-gradient(90deg,#4285F4 25%,#EA4335 25% 50%,#FBBC05 50% 75%,#34A853 75%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.gad .src{display:flex;align-items:center;gap:10px}
+.gad .fav{width:28px;height:28px;border-radius:50%;overflow:hidden;border:1px solid #eee}
+.gad .fav img{width:100%;height:100%;object-fit:cover}
+.gad small{font-size:12px;color:#202124;line-height:1.3}
+.gad .t{color:#1a0dab;font-size:19px;margin:6px 0 3px;line-height:1.3}
+.gad p{font-size:13.5px;color:#4d5156}
+.gsl{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:13.5px;color:#1a0dab}
+.gmn{margin-top:20px;border:1px solid #dadce0;border-radius:14px;overflow:hidden}
+.gmn .cover{display:grid;grid-template-columns:1.4fr 1fr;height:130px;gap:2px}
+.gmn .cover .a{background:var(--vnavy) center/70% no-repeat}
+.gmn .cover .b{background:linear-gradient(150deg,var(--vblue2),var(--vblue));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:#fff;font:700 12px Montserrat;text-align:center;padding:10px}
+.gmn .cover .b svg{width:34px}
+.gmn .info{padding:14px 16px}
+.gmn h5{font-size:18px;font-weight:400}
+.stars{color:#fbbc04;font-size:14px}
+.gmn .row{font-size:13px;color:#4d5156;margin-top:4px}
+.gmn .acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.gmn .acts span{border:1px solid #dadce0;border-radius:99px;padding:6px 12px;font-size:12.5px;color:#1a73e8}
+.ig-ads{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:560px){.ig-ads{grid-template-columns:1fr}}
+.igpost{background:#000;border-radius:16px;overflow:hidden;border:1px solid #262626;font-size:12.5px}
+.igpost .h{display:flex;align-items:center;gap:8px;padding:10px}
+.igpost .h .av{width:30px;height:30px;border-radius:50%;overflow:hidden;flex:none}
+.igpost .h .av img{width:100%;height:100%;object-fit:cover}
+.igpost .h b{font-size:12.5px;display:block}
+.igpost .h small{font-size:10.5px;color:#a8a8a8}
+.creative{aspect-ratio:4/5;display:flex;flex-direction:column;justify-content:space-between;padding:16px;position:relative;overflow:hidden;font-family:Montserrat,sans-serif}
+.creative .lg{height:26px;width:auto;border-radius:4px;align-self:flex-start;position:relative}
+.creative h6{font:800 21px/1.12 Montserrat;color:#fff;position:relative}
+.creative h6 em{font-style:italic;color:#AFC0FF}
+.creative p{font-size:11.5px;color:rgba(255,255,255,.9);margin-top:6px;position:relative;font-weight:500}
+.creative .chip{display:inline-block;margin-top:10px;background:#fff;color:var(--vblue);font-weight:800;font-size:11px;padding:7px 10px;border-radius:8px;position:relative}
+.c1{background:radial-gradient(circle at 80% 15%,rgba(42,59,224,.7),transparent 45%),linear-gradient(160deg,var(--vblue),var(--vnavy))}
+.c1 .ph{position:absolute;right:-24px;top:54px;width:66%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.25),rgba(255,255,255,.05) 70%);border:2px solid rgba(255,255,255,.3);display:grid;place-items:center}
+.c1 .ph svg{width:44%;color:#fff;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35))}
+.c2{background:linear-gradient(200deg,#2A3BE0,var(--vnavy))}
+.c2::before{content:"";position:absolute;left:-40px;top:30%;width:200px;height:200px;border:2px solid rgba(255,255,255,.18);border-radius:50%}
+.c2::after{content:"";position:absolute;right:-60px;bottom:10%;width:240px;height:240px;border:2px solid rgba(255,255,255,.12);border-radius:50%}
+.c2 .ph2{position:absolute;left:50%;top:22%;transform:translateX(-50%);width:58%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.22),rgba(255,255,255,.04) 70%);display:grid;place-items:center}
+.c2 .ph2 svg{width:42%;color:#fff;filter:drop-shadow(0 10px 20px rgba(0,0,0,.35))}
+.cta-bar{display:flex;justify-content:space-between;align-items:center;background:#1a1a1a;padding:10px 12px;font-weight:700;color:#fff}
+.cta-bar span:last-child{color:#AFC0FF}
+.igpost .cap{padding:10px;color:#ddd}
+.igpost .cap b{color:#fff}
+.story{aspect-ratio:9/16;max-height:440px}
+
+/* INSTAGRAM PROFILE */
+.ig-wrap{display:grid;grid-template-columns:400px 1fr;gap:24px;align-items:start}
+@media(max-width:960px){.ig-wrap{grid-template-columns:1fr}}
+.igp{background:#000;border-radius:34px;border:1px solid #2a2a2a;padding:18px 0 0;max-width:400px;margin:0 auto;width:100%;overflow:hidden;box-shadow:0 40px 90px -30px rgba(24,0,172,.7)}
+.igp-top{display:flex;justify-content:space-between;padding:0 16px 12px;font-weight:700;font-size:16px}
+.igp-h{display:flex;align-items:center;gap:18px;padding:0 16px}
+.igp-ring{flex:none;width:86px;height:86px;border-radius:50%;padding:3px;background:conic-gradient(#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5,#feda75)}
+.igp-ring div{width:100%;height:100%;border-radius:50%;border:3px solid #000;overflow:hidden}
+.igp-ring img{width:100%;height:100%;object-fit:cover}
+.igp-n{display:flex;flex:1;justify-content:space-around;text-align:center;font-size:12px}
+.igp-n b{display:block;font-size:16px}
+.igp-bio{padding:12px 16px;font-size:13px}
+.igp-bio .cat{color:#a8a8a8}
+.igp-bio a{color:#e0f1ff;text-decoration:none}
+.igp-btns{display:flex;gap:6px;padding:0 16px 12px}
+.igp-btns span{flex:1;text-align:center;background:#262626;border-radius:8px;padding:7px;font-size:12.5px;font-weight:600}
+.igp-btns span.b{background:#0095f6}
+.igp-hl{display:flex;gap:12px;padding:6px 16px 14px;overflow:hidden}
+.igp-hl div{text-align:center;font-size:10.5px;flex:none;width:60px}
+.igp-hl i{display:grid;place-items:center;width:58px;height:58px;border-radius:50%;border:1.5px solid #3a3a3a;margin:0 auto 4px;font-style:normal;font-size:20px;background:linear-gradient(160deg,var(--vblue),var(--vnavy))}
+.igp-tabs{display:flex;border-top:1px solid #262626}
+.igp-tabs span{flex:1;text-align:center;padding:10px;font-size:13px;color:#777}
+.igp-tabs span.on{color:#fff;border-top:1px solid #fff}
+.grid9{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}
+.tile{aspect-ratio:4/5;position:relative;padding:9px;display:flex;flex-direction:column;justify-content:flex-end;font:800 10.5px/1.15 Montserrat;color:#fff;cursor:pointer;overflow:hidden}
+.tile .ty{position:absolute;top:6px;right:7px;font-size:11px}
+.tile .mk{position:absolute;top:7px;left:7px;height:20px;width:auto;border-radius:2px;opacity:.95}
+.tile:hover{filter:brightness(1.15)}
+.tile em{font-style:italic;color:#AFC0FF}
+.tile .art{position:absolute;left:0;right:0;top:15%;height:52%;display:grid;place-items:center}
+.tile .art svg{height:100%;width:auto;overflow:visible}
+.tile span.ttl{position:relative}
+.t-blue{background:linear-gradient(160deg,var(--vblue),var(--vnavy))}
+.t-navy{background:radial-gradient(circle at 80% 20%,rgba(42,59,224,.6),transparent 50%),var(--vnavy)}
+.t-white{background:linear-gradient(180deg,#fff,#E9ECFF);color:var(--vnavy)}
+.t-white .ty{color:var(--vblue)}
+.t-white em{color:var(--vblue)}
+.t-photo{background:var(--vblue);padding:0}
+.t-photo img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.42)}
+.t-photo span.cap{position:relative;margin:auto 0 0;padding:9px;background:linear-gradient(transparent,rgba(8,9,55,.95));width:100%}
+.plan{padding:24px}
+.plan h3{font-size:20px;margin-bottom:6px}
+.cal{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:16px}
+@media(max-width:600px){.cal{grid-template-columns:1fr 1fr}}
+.wk{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:14px;padding:12px}
+.wk b{font:700 12px Sora;color:var(--lilac);display:block;margin-bottom:8px}
+.it{font-size:12.5px;padding:7px 9px;border-radius:9px;margin-bottom:6px;display:flex;gap:6px;align-items:flex-start}
+.it.v{background:rgba(244,114,182,.12)}
+.it.e{background:rgba(34,211,238,.1)}
+.legend{display:flex;gap:16px;font-size:12.5px;color:var(--muted);margin-top:12px;flex-wrap:wrap}
+#tileInfo{min-height:48px}
+
+/* PRICING */
+.price-grid{display:grid;grid-template-columns:1fr 380px;gap:24px;align-items:start;margin-top:40px}
+@media(max-width:960px){.price-grid{grid-template-columns:1fr}}
+.items{display:grid;gap:14px}
+.item{display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:start;padding:22px;cursor:pointer;transition:.25s}
+.item:hover{border-color:rgba(139,92,246,.5)}
+.item.on{border-color:var(--violet);background:linear-gradient(180deg,rgba(139,92,246,.14),rgba(139,92,246,.04))}
+.tg{width:46px;height:26px;border-radius:99px;background:#2a2150;position:relative;transition:.25s;flex:none;margin-top:2px}
+.tg::after{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.25s}
+.item.on .tg{background:var(--violet)}
+.item.on .tg::after{left:23px}
+.item h4{font-size:17px}
+.item p{font-size:13.5px;color:var(--muted);margin-top:3px}
+.inc{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.inc li{font-size:11.5px;font-weight:600;color:var(--lilac);background:rgba(139,92,246,.12);border:1px solid var(--line);padding:4px 9px;border-radius:99px}
+.item .pr{text-align:right;white-space:nowrap}
+.item .pr b{font:800 20px Sora}
+.item .pr small{display:block;font-size:12px;color:var(--muted)}
+.item .pr s{color:#6b6290;font-size:12.5px;display:block}
+.free{display:inline-block;margin-top:8px;font:700 11px Sora;color:var(--ok);background:rgba(52,211,153,.12);padding:4px 8px;border-radius:7px}
+.pay{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.pay button{cursor:pointer;border:1px solid var(--line);background:transparent;color:var(--muted);padding:7px 12px;border-radius:9px;font:600 12.5px Inter}
+.pay button.on{background:#fff;color:var(--bg)}
+.summary{padding:28px;position:sticky;top:90px;background:linear-gradient(180deg,#1E1150,#140A38);border-color:rgba(139,92,246,.45)}
+.summary h3{font-size:16px;color:var(--lilac)}
+.big{font:800 48px Sora;margin:6px 0 0}
+.big small{font-size:16px;color:var(--muted);font-weight:600}
+.sline{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:9px 0;border-bottom:1px dashed var(--line)}
+.sline span:first-child{color:var(--muted)}
+.sline span:last-child{white-space:nowrap}
+.save{margin:16px 0;padding:14px;border-radius:14px;background:rgba(52,211,153,.1);color:var(--ok);font-size:13.5px;font-weight:600}
+.summary .btn{width:100%;justify-content:center;margin-top:8px}
+.note{font-size:12px;color:var(--muted);margin-top:14px}
+.media{margin-top:18px;padding:16px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid var(--line)}
+.media h4{font-size:14px;margin-bottom:4px}
+.media p{font-size:12.5px;color:var(--muted)}
+.media .sline{font-size:13px}
+
+/* TIMELINE */
+.tl{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+@media(max-width:900px){.tl{grid-template-columns:1fr 1fr}}
+@media(max-width:520px){.tl{grid-template-columns:1fr}}
+.tl .card{padding:24px}
+.tl b{font:700 12px Sora;color:var(--cyan);letter-spacing:.1em;text-transform:uppercase}
+.tl h4{font-size:17px;margin:8px 0}
+.tl p{font-size:13.5px;color:var(--muted)}
+
+/* WHY */
+.why{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:40px}
+@media(max-width:900px){.why{grid-template-columns:1fr}}
+.why .card{padding:26px}
+.why h4{font-size:18px;margin:12px 0 6px}
+.why p{font-size:14px;color:var(--muted)}
+.why .e{font-size:26px}
+
+.final{text-align:center;padding:110px 0;background:radial-gradient(ellipse at 50% 0%,rgba(139,92,246,.35),transparent 60%)}
+.final h2{font-size:clamp(30px,4.6vw,54px);font-weight:800;max-width:820px;margin:18px auto 34px}
+footer{border-top:1px solid var(--line);padding:30px 0;color:var(--muted);font-size:13px}
+footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center}
+
+.modal{position:fixed;inset:0;background:rgba(5,2,16,.8);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:100;padding:20px}
+.modal.on{display:flex}
+.mbox{max-width:520px;width:100%;padding:30px}
+.mbox h3{font-size:24px;margin-bottom:8px}
+.mbox pre{white-space:pre-wrap;font:13.5px/1.6 Inter;background:rgba(0,0,0,.3);border:1px solid var(--line);border-radius:14px;padding:16px;margin:16px 0;color:#ddd;max-height:300px;overflow:auto}
+.mbtns{display:flex;gap:10px;flex-wrap:wrap}
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* EDIT MODE */
+.phead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.edtoggle{cursor:pointer;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);color:var(--cyan);font:700 13px Sora;padding:10px 16px;border-radius:12px}
+.edtoggle:hover{background:rgba(34,211,238,.16)}
+body.edit .edtoggle{background:var(--cyan);color:#0B0420}
+.ed{display:none}
+body.edit .ed{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;grid-column:1/-1;margin-top:6px;padding:14px;border-radius:14px;background:rgba(34,211,238,.06);border:1px dashed rgba(34,211,238,.5)}
+.ed label{display:grid;gap:5px;font:600 11.5px Inter;color:var(--cyan)}
+.ed input[type=number],.ed input[type=text]{background:#0B0420;border:1px solid var(--line);color:#fff;border-radius:9px;padding:9px 10px;font:600 14px Inter;width:100%}
+.ed label.ck{display:flex;align-items:center;gap:8px;color:var(--muted)}
+.edbar{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:90;width:min(860px,calc(100% - 24px));padding:14px 16px;border-radius:18px;background:#120835;border:1px solid rgba(34,211,238,.5);box-shadow:0 20px 60px rgba(0,0,0,.6);align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}
+body.edit .edbar{display:flex}
+.edbar b{display:block;font:700 15px Sora}
+.edbar span{font-size:13px;color:var(--muted)}
+.edbtns{display:flex;gap:8px}
+.edbtns .btn{padding:11px 16px;font-size:13px}
+body.edit{padding-bottom:110px}
+</style>
+<script id="cfg" type="application/json">{"google":{"m":1097,"on":true},"meta":{"m":1000,"on":true},"social":{"m":2500,"on":true},"ia":{"m":997,"impl":2497,"on":true},"site":{"de":3000,"vista":1497,"n":6,"parc":300,"on":true},"media":{"google":1500,"meta":1000},"validade":"28/11/2026"}</script>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="ic-tooth" viewBox="0 0 60 40"><path fill="currentColor" d="M18 2C8 2 3 10 4.5 20 6 29 10 34 16 34h28c6 0 10-5 11.5-14C57 10 52 2 42 2c-5 0-8 3-12 3S23 2 18 2Z"/><path d="M13 12c2-4 6-5 9-4" stroke="rgba(8,9,55,.18)" stroke-width="3" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="ic-implant" viewBox="0 0 60 84"><use href="#ic-tooth" width="60" height="40"/><rect x="23" y="38" width="14" height="6" rx="2" fill="currentColor"/><g fill="currentColor"><rect x="15" y="47" width="30" height="5" rx="2.5"/><rect x="17.5" y="55" width="25" height="5" rx="2.5"/><rect x="20" y="63" width="20" height="5" rx="2.5"/><rect x="22.5" y="71" width="15" height="5" rx="2.5"/></g><path d="M26.5 78h7L30 83z" fill="currentColor"/></symbol>
+</defs></svg>
+
+<nav>
+  <div class="wrap">
+    <div class="logo"><b>D</b><span>Demand<em>IA</em></span></div>
+    <ul>
+      <li><a href="#solucoes">Soluções</a></li>
+      <li><a href="#previa">Prévia ao vivo</a></li>
+      <li><a href="#investimento">Investimento</a></li>
+      <li><a href="#cronograma">Cronograma</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <span class="eyebrow"><i></i>Proposta exclusiva · VIP Implantes</span>
+      <h1>Dr. Talysson, sua agenda <span class="grad-text">cheia de pacientes todos os meses.</span></h1>
+      <div class="bf"><span>BLACK FRIDAY</span> Condições especiais nesta proposta</div>
+    </div>
+    <div class="cobrand reveal">
+      <div class="ring"></div><div class="ring r2"></div>
+      <div class="vip"><img src="/proposta/vip-implant/assets/logo-white.png" alt="VIP Implantes Odontologia"></div>
+      <div class="x"><small>com</small><div class="logo"><b>D</b><span>Demand<em>IA</em></span></div></div>
+    </div>
+  </div>
+</header>
+
+<!-- PROBLEM -->
+<section style="padding-top:40px">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>O cenário</span>
+    <h2 class="h2">Implante é decisão de confiança. <br>Quem responde primeiro, agenda primeiro.</h2>
+    <p class="lead">O paciente de implante pesquisa muito antes de decidir: procura no Google, olha o Instagram da clínica e chama no WhatsApp de duas ou três clínicas ao mesmo tempo. Em cada uma dessas etapas a VIP Implantes precisa estar presente e responder rápido.</p>
+    <div class="stats">
+      <div class="card stat reveal"><div class="n grad-text">Google</div><p>É onde o paciente com intenção de fazer o implante procura "implante dentário em Indaiatuba". Quem não aparece ali perde o paciente mais pronto para fechar.</p></div>
+      <div class="card stat reveal"><div class="n grad-text">Instagram</div><p>É a vitrine da clínica. Antes de agendar, o paciente olha o perfil, os vídeos do Dr. Talysson e o que outros pacientes dizem.</p></div>
+      <div class="card stat reveal"><div class="n grad-text">WhatsApp</div><p>É onde a venda acontece. Lead que espera horas por uma resposta esfria e agenda com a clínica que respondeu primeiro.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- SOLUTIONS -->
+<section id="solucoes">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>A solução</span>
+    <h2 class="h2">Um ecossistema completo para <span class="grad-text">atrair, converter e agendar</span></h2>
+    <p class="lead">Cinco peças que trabalham juntas. O anúncio leva o paciente para a página de agendamento, o conteúdo gera confiança e a IA atende na hora, qualifica e coloca o paciente na agenda do Dr. Talysson.</p>
+    <div class="flow">
+      <div class="card step reveal"><span class="num">01</span><div class="ic">🔎</div><h4>Google Ads + Google Meu Negócio</h4><p>Aparecer no topo quando procuram implante em Indaiatuba, com o perfil do Google otimizado e avaliações em destaque.</p></div>
+      <div class="card step reveal"><span class="num">02</span><div class="ic">📣</div><h4>Meta Ads (Instagram + Facebook)</h4><p>Campanhas focadas no Instagram para quem perdeu dentes, usa dentadura ou ponte, em Indaiatuba e região.</p></div>
+      <div class="card step reveal"><span class="num">03</span><div class="ic">🎬</div><h4>Social Media</h4><p>12 conteúdos por mês com gravação na clínica: 6 vídeos e 6 posts estáticos ou carrosséis.</p></div>
+      <div class="card step reveal"><span class="num">04</span><div class="ic">📅</div><h4>Página de agendamento</h4><p>Página rápida, na identidade da VIP Implantes, feita para o paciente agendar a avaliação.</p></div>
+      <div class="card step reveal"><span class="num">05</span><div class="ic">🤖</div><h4>IA de atendimento e agendamento</h4><p>Atende, qualifica, agenda e faz follow-up 100% automático, com CRM para acompanhar cada paciente.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PREVIEW -->
+<section id="previa" style="background:linear-gradient(180deg,transparent,rgba(139,92,246,.06),transparent)">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>Prévia ao vivo</span>
+    <h2 class="h2">Veja como a VIP Implantes <span class="grad-text">já pode ficar</span></h2>
+    <p class="lead">Antes de fechar, você já vê os entregáveis. Clique nas abas abaixo e teste à vontade, inclusive conversando com a IA.</p>
+
+    <div class="ptabs">
+      <button class="ptab on" data-p="ia">🤖 IA de atendimento e agendamento</button>
+      <button class="ptab" data-p="site">📅 Página de agendamento</button>
+      <button class="ptab" data-p="ads">📣 Anúncios</button>
+      <button class="ptab" data-p="ig">📱 Instagram</button>
+    </div>
+
+    <!-- IA -->
+    <div class="pane on" id="p-ia">
+      <div class="ai-grid">
+        <div class="phone">
+          <div class="wa-top">
+            <div class="wa-av"><img src="/proposta/vip-implant/assets/logo-avatar.jpg" alt=""></div>
+            <div><b>VIP Implantes</b><small id="waStatus">online</small></div>
+          </div>
+          <div class="wa-body" id="waBody"></div>
+          <div class="wa-replies" id="waReplies"></div>
+        </div>
+        <div class="card crm">
+          <span class="tag">Teste você mesmo</span>
+          <div class="crm-head">
+            <h3>CRM da VIP Implantes, atualizado pela IA</h3>
+            <span class="badge" id="leadBadge">Novo lead</span>
+          </div>
+          <div class="pipe" id="pipe">
+            <div class="on">Novo</div><div>Qualificando</div><div>Qualificado</div><div>Agendado</div>
+          </div>
+          <div class="fields">
+            <div class="field" id="f-origem"><small>Origem</small><b>—</b></div>
+            <div class="field" id="f-nome"><small>Nome</small><b>—</b></div>
+            <div class="field" id="f-caso"><small>Caso</small><b>—</b></div>
+            <div class="field" id="f-sit"><small>Situação atual</small><b>—</b></div>
+            <div class="field" id="f-temp"><small>Temperatura</small><b>—</b></div>
+            <div class="field" id="f-ag"><small>Avaliação</small><b>—</b></div>
+          </div>
+          <div class="fu" style="margin-top:20px">
+            <h4>Se o paciente parar de responder, a IA faz o follow-up sozinha</h4>
+            <ol>
+              <li><span>+1 hora</span>Retoma a conversa de forma leve</li>
+              <li><span>+1 dia</span>Lembra do horário disponível para avaliação</li>
+              <li><span>+3 dias</span>Envia um vídeo do Dr. Talysson explicando o implante</li>
+              <li><span>+7 dias</span>Última chamada antes de encerrar o contato</li>
+              <li><span>Agendado</span>Lembretes 1 dia antes e no dia da avaliação</li>
+            </ol>
+          </div>
+          <button class="restart" id="restart">↺ Recomeçar a demonstração</button>
+        </div>
+      </div>
+      <div class="ia-more">
+        <div class="card"><div class="e">🗂️</div><h4>CRM com todos os pacientes</h4><p>Cada contato fica registrado com origem, caso, conversa e etapa. Ou, se preferir, a IA se integra 100% ao sistema que a clínica já usa.</p></div>
+        <div class="card"><div class="e">👩‍💼</div><h4>Recepção livre para o paciente</h4><p>A IA recebe toda a demanda e entrega só quem está qualificado. A gente treina as recepcionistas para trabalhar junto com a IA e focar em quem está na clínica.</p></div>
+        <div class="card"><div class="e">⚙️</div><h4>Fim do trabalho repetitivo</h4><p>Responder, qualificar, confirmar, lembrar, remarcar e retomar contato: todo trabalho manual e repetitivo fica com a IA, inclusive por ligação.</p></div>
+      </div>
+    </div>
+
+    <!-- PÁGINA DE AGENDAMENTO -->
+    <div class="pane" id="p-site">
+      <div class="pane-grid">
+        <div>
+          <div class="devsw"><button class="on" data-d="desk">🖥 Desktop</button><button data-d="mob">📱 Celular</button></div>
+          <div class="browser">
+            <div class="bbar"><i></i><i></i><i></i><div class="url">🔒 vipimplantes.com.br/agendar</div></div>
+            <div class="lp-wrap">
+            <div class="lp" id="lp">
+              <div class="lp-nav"><img class="vlogo" src="/proposta/vip-implant/assets/logo-white.png" alt="VIP Implantes"><span class="wa">💬 Agendar avaliação</span></div>
+              <div class="lp-hero">
+                <div>
+                  <span class="pill">Implantes dentários · Indaiatuba/SP</span>
+                  <h2>Volte a sorrir e mastigar <em>com segurança.</em></h2>
+                  <p>Implante planejado para o seu caso pelo Dr. Talysson Barbosa, especialista em implantes. Agende sua avaliação e receba o seu plano de tratamento.</p>
+                  <span class="lp-btn">Quero agendar minha avaliação →</span>
+                </div>
+                <div class="lp-ill"><div class="glow"></div><svg viewBox="0 0 60 84" class="tooth"><use href="#ic-implant"/></svg><span class="nm">Avaliação com o Dr. Talysson</span></div>
+              </div>
+              <div class="lp-trust"><span>🦷 Especialista em implantes</span><span>📋 Plano individual</span><span>📍 Indaiatuba/SP</span></div>
+              <div class="lp-sec">
+                <h3>O implante é <em>para você</em> se...</h3>
+                <p class="sub">Cada caso é avaliado pessoalmente pelo Dr. Talysson.</p>
+                <div class="lp-3">
+                  <div><span class="ico">1</span><b>Perdeu um dente</b>Repor o dente com firmeza e naturalidade.</div>
+                  <div><span class="ico">2</span><b>Usa ponte ou dentadura</b>Mais segurança para comer, falar e sorrir.</div>
+                  <div><span class="ico">3</span><b>Precisa da arcada toda</b>Reabilitação completa planejada para o seu caso.</div>
+                </div>
+              </div>
+              <div class="lp-about">
+                <div class="badge-ic"><svg viewBox="0 0 60 84"><use href="#ic-implant"/></svg></div>
+                <div>
+                  <h4>Prazer, sou o <em>Dr. Talysson</em></h4>
+                  <p>Especialista em implantes, à frente da VIP Implantes Odontologia em Indaiatuba.</p>
+                  <ul><li>Especialista em implantes</li><li>Formado em 2018</li><li>Universidade de Alfenas/MG</li></ul>
+                </div>
+              </div>
+              <div class="lp-sec">
+                <h3>Como funciona</h3>
+                <p class="sub">Simples, rápido e sem compromisso.</p>
+                <div class="lp-steps">
+                  <div><span>1</span>Você chama no WhatsApp</div>
+                  <div><span>2</span>Escolhe o melhor horário</div>
+                  <div><span>3</span>Faz a avaliação</div>
+                  <div><span>4</span>Recebe o seu plano</div>
+                </div>
+              </div>
+              <div class="lp-cta">
+                <h4>Agende sua avaliação</h4>
+                <p>Responda em menos de 1 minuto e escolha o seu horário.</p>
+                <div class="lp-form"><div>Seu nome</div><div>WhatsApp</div><div>Qual é o seu caso?</div></div>
+                <span class="lp-btn">Ver horários disponíveis →</span>
+              </div>
+              <div class="lp-foot"><img src="/proposta/vip-implant/assets/logo-white.png" alt=""><span>Indaiatuba/SP · (19) 3875-7980</span></div>
+            </div>
+            </div>
+          </div>
+        </div>
+        <div class="card side">
+          <span class="tag">Página de agendamento</span>
+          <h3>Uma página feita para transformar visita em avaliação agendada</h3>
+          <p>É para cá que vão os anúncios do Google e do Instagram. Tudo na identidade da VIP Implantes e com foco em implante, para o paciente decidir rápido.</p>
+          <ul class="checks">
+            <li>Design exclusivo com a marca, as cores e as fotos da VIP Implantes</li>
+            <li>Rápida no celular, onde está a maior parte dos pacientes</li>
+            <li>Botão de WhatsApp e formulário ligados direto à IA de agendamento</li>
+            <li>Integração com o Google Meu Negócio e estrutura de SEO</li>
+            <li>Rastreamento de conversões para Google Ads e Meta Ads</li>
+            <li>Textos dentro das normas de publicidade do CFO</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- ADS -->
+    <div class="pane" id="p-ads">
+      <div class="ads-grid">
+        <div class="gpanel">
+          <div class="gsearch"><span class="G">G</span> implante dentário indaiatuba</div>
+          <div class="gad">
+            <div class="src"><div class="fav"><img src="/proposta/vip-implant/assets/logo-avatar.jpg" alt=""></div><small><b>Patrocinado</b><br>VIP Implantes · vipimplantes.com.br</small></div>
+            <div class="t">Implante Dentário em Indaiatuba | VIP Implantes | Agende</div>
+            <p>Volte a sorrir com segurança. Implante planejado pelo Dr. Talysson, especialista em implantes. Fale agora pelo WhatsApp.</p>
+            <div class="gsl"><span>Agendar avaliação</span><span>Implante unitário</span><span>Prótese sobre implante</span></div>
+          </div>
+          <div class="gmn">
+            <div class="cover"><div class="a" style="background-image:url(/proposta/vip-implant/assets/logo-white.png)"></div><div class="b"><svg viewBox="0 0 60 84"><use href="#ic-implant"/></svg><span>Especialista em implantes</span></div></div>
+            <div class="info">
+              <h5>VIP Implantes Odontologia</h5>
+              <div class="row"><span class="stars">★★★★★</span> · Clínica odontológica · Indaiatuba/SP</div>
+              <div class="row">Implantes · Clínico geral · Ortodontia</div>
+              <div class="acts"><span>📞 Ligar</span><span>🧭 Rotas</span><span>🌐 Site</span><span>💬 WhatsApp</span></div>
+            </div>
+          </div>
+          <p style="font-size:12px;color:#70757a;margin-top:12px">Google Ads + Google Meu Negócio: aparecer no topo da pesquisa e no mapa.</p>
+        </div>
+        <div>
+          <div class="ig-ads">
+            <div class="igpost">
+              <div class="h"><div class="av"><img src="/proposta/vip-implant/assets/logo-avatar.jpg" alt=""></div><div><b>clinicavipimplantes</b><small>Patrocinado</small></div></div>
+              <div class="creative c1">
+                <img class="lg" src="/proposta/vip-implant/assets/logo-white.png" alt="">
+                <div class="ph"><svg viewBox="0 0 60 84"><use href="#ic-implant"/></svg></div>
+                <div><h6>Perdeu um dente? <em>Dá para resolver.</em></h6><p>Avaliação com o Dr. Talysson</p><span class="chip">Agende pelo WhatsApp</span></div>
+              </div>
+              <div class="cta-bar"><span>Enviar mensagem</span><span>›</span></div>
+              <div class="cap"><b>clinicavipimplantes</b> Implante planejado para o seu caso, em Indaiatuba. Chame no WhatsApp e agende sua avaliação.</div>
+            </div>
+            <div class="igpost">
+              <div class="h"><div class="av"><img src="/proposta/vip-implant/assets/logo-avatar.jpg" alt=""></div><div><b>clinicavipimplantes</b><small>Patrocinado · Stories</small></div></div>
+              <div class="creative c2 story">
+                <img class="lg" src="/proposta/vip-implant/assets/logo-white.png" alt="">
+                <div class="ph2"><svg viewBox="0 0 60 84"><use href="#ic-implant"/></svg></div>
+                <div><h6>Cansado da <em>dentadura?</em></h6><p>Conheça o implante e volte a mastigar com firmeza.</p><span class="chip">Quero agendar</span></div>
+              </div>
+              <div class="cta-bar"><span>Agendar avaliação</span><span>›</span></div>
+            </div>
+          </div>
+          <div class="card side" style="margin-top:16px">
+            <span class="tag">Gestão de tráfego</span>
+            <ul class="checks">
+              <li>Campanhas de pesquisa para quem já procura implante em Indaiatuba</li>
+              <li>Google Meu Negócio otimizado: fotos, serviços, posts e avaliações</li>
+              <li>Instagram e Facebook com público por região e perfil do paciente</li>
+              <li>Criativos na identidade da VIP Implantes, testados e otimizados</li>
+              <li>Relatório semanal com leads, custo por lead e avaliações agendadas</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- IG -->
+    <div class="pane" id="p-ig">
+      <div class="ig-wrap">
+        <div class="igp">
+          <div class="igp-top"><span>clinicavipimplantes</span><span>☰</span></div>
+          <div class="igp-h">
+            <div class="igp-ring"><div><img src="/proposta/vip-implant/assets/logo-avatar.jpg" alt=""></div></div>
+            <div class="igp-n"><div><b>12</b>posts/mês</div><div><b>6</b>reels/mês</div><div><b>3x</b>por semana</div></div>
+          </div>
+          <div class="igp-bio">
+            <b>VIP Implantes · Dr. Talysson Barbosa</b><br>
+            <span class="cat">Dentista</span><br>
+            🦷 Especialista em implantes dentários<br>
+            ✨ Seu sorriso de volta, com planejamento individual<br>
+            📍 Indaiatuba/SP<br>
+            👇 Agende sua avaliação<br>
+            <a href="#p-ig">vipimplantes.com.br/agendar</a>
+          </div>
+          <div class="igp-btns"><span class="b">Seguir</span><span>Mensagem</span><span>WhatsApp</span></div>
+          <div class="igp-hl">
+            <div><i>🦷</i>Implantes</div><div><i>⭐</i>Pacientes</div><div><i>👨‍⚕️</i>Dr. Talysson</div><div><i>🏥</i>A clínica</div><div><i>❓</i>Dúvidas</div>
+          </div>
+          <div class="igp-tabs"><span class="on">▦</span><span>▶</span><span>👤</span></div>
+          <div class="grid9" id="grid9"></div>
+        </div>
+        <div class="card plan">
+          <span class="tag">Social Media</span>
+          <h3>12 conteúdos por mês, com gravação na clínica</h3>
+          <p style="color:var(--muted);font-size:14.5px">6 vídeos (Reels) e 6 posts estáticos ou carrosséis, 3 publicações por semana, todos na identidade da VIP Implantes. A equipe da DemandIA vai até a clínica para gravar com o Dr. Talysson e cuida do roteiro, edição, legenda, publicação e gestão da conta.</p>
+          <div id="tileInfo" class="tip">👆 Clique em um post do perfil para ver a ideia do conteúdo.</div>
+          <div class="cal" id="cal"></div>
+          <div class="legend"><span>🎬 Vídeo / Reels (6)</span><span>🖼 Estático ou carrossel (6)</span></div>
+          <p class="tip">Todo conteúdo segue as normas de publicidade do Conselho Federal de Odontologia (CFO).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="investimento">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>Investimento</span>
+    <h2 class="h2">Monte o seu plano. <span class="grad-text">O valor atualiza na hora.</span></h2>
+    <div class="phead"><p class="lead">O plano completo já vem marcado. Desmarque o que não quiser agora e veja o total mudar.</p><button class="edtoggle" id="edToggle">✏️ Editar valores</button></div>
+
+    <div class="price-grid">
+      <div class="items" id="items">
+        <div class="card item" data-k="google">
+          <div class="tg"></div>
+          <div><h4>🔎 Google Ads + Google Meu Negócio</h4><p>Gestão completa da conta e do perfil da clínica no Google.</p>
+            <ul class="inc"><li>Gestão da conta</li><li>Campanhas e palavras-chave</li><li>Otimização</li><li>Controle de verba</li><li>Relatório semanal</li></ul></div>
+          <div class="pr"><b data-v="google.m"></b><small>por mês</small></div>
+          <div class="ed"><label>Mensal (R$)<input type="number" data-f="google.m"></label><label class="ck"><input type="checkbox" data-f="google.on">Marcado ao abrir</label></div>
+        </div>
+        <div class="card item" data-k="meta">
+          <div class="tg"></div>
+          <div><h4>📣 Meta Ads (Instagram + Facebook)</h4><p>Campanhas focadas no Instagram para Indaiatuba e região.</p>
+            <ul class="inc"><li>Gestão da conta</li><li>Criativos</li><li>Públicos</li><li>Otimização</li><li>Controle de verba</li><li>Relatório semanal</li></ul></div>
+          <div class="pr"><b data-v="meta.m"></b><small>por mês</small></div>
+          <div class="ed"><label>Mensal (R$)<input type="number" data-f="meta.m"></label><label class="ck"><input type="checkbox" data-f="meta.on">Marcado ao abrir</label></div>
+        </div>
+        <div class="card item" data-k="social">
+          <div class="tg"></div>
+          <div><h4>🎬 Social Media</h4><p>12 conteúdos por mês: 6 vídeos e 6 estáticos ou carrosséis.</p>
+            <ul class="inc"><li>Roteiro</li><li>Gravação na clínica</li><li>Edição</li><li>Legendas</li><li>Publicação</li><li>Gestão da conta</li></ul></div>
+          <div class="pr"><b data-v="social.m"></b><small>por mês</small></div>
+          <div class="ed"><label>Mensal (R$)<input type="number" data-f="social.m"></label><label class="ck"><input type="checkbox" data-f="social.on">Marcado ao abrir</label></div>
+        </div>
+        <div class="card item" data-k="ia">
+          <div class="tg"></div>
+          <div><h4>🤖 IA de atendimento e agendamento + CRM</h4><p>Atende, qualifica, agenda e faz follow-up 100% automático. Todo trabalho manual e repetitivo fica com a IA.</p>
+            <ul class="inc"><li>Atendimento 24h no WhatsApp</li><li>Qualificação</li><li>Agendamento</li><li>Follow-up e lembretes</li><li>CRM com acompanhamento dos leads</li><li>Ou integração 100% com o sistema da clínica</li><li>Treinamento das recepcionistas</li></ul>
+            <span class="free" id="iaFree"></span></div>
+          <div class="pr"><s id="iaImplS"></s><b data-v="ia.m"></b><small>por mês</small></div>
+          <div class="ed"><label>Mensal (R$)<input type="number" data-f="ia.m"></label><label>Implantação isenta (R$, 0 = não mostrar)<input type="number" data-f="ia.impl"></label><label class="ck"><input type="checkbox" data-f="ia.on">Marcado ao abrir</label></div>
+        </div>
+        <div class="card item" data-k="site">
+          <div class="tg"></div>
+          <div><h4>📅 Página de agendamento</h4><p>Página exclusiva da VIP Implantes, integrada à IA, ao Google e ao Meta. Pagamento único.</p>
+            <div class="pay" id="pay"><button class="on" data-pay="vista" id="payVista"></button><button data-pay="parc" id="payParc"></button></div>
+          </div>
+          <div class="pr"><s id="siteDe"></s><b id="sitePrice"></b><small id="siteSub"></small></div>
+          <div class="ed"><label>Valor cheio "de" (R$)<input type="number" data-f="site.de"></label><label>À vista (R$)<input type="number" data-f="site.vista"></label><label>Parcelas (nº)<input type="number" data-f="site.n"></label><label>Valor da parcela (R$)<input type="number" data-f="site.parc"></label><label class="ck"><input type="checkbox" data-f="site.on">Marcado ao abrir</label></div>
+        </div>
+      </div>
+
+      <div class="card summary">
+        <h3>Seu plano VIP Implantes</h3>
+        <div class="big" id="total"></div>
+        <div style="color:var(--muted);font-size:13.5px;margin-bottom:14px" id="siteLine"></div>
+        <div id="lines"></div>
+        <div class="save" id="save"></div>
+        <button class="btn" id="accept">Quero fechar este plano →</button>
+        <div class="media">
+          <h4>📊 Investimento em mídia (não incluso)</h4>
+          <p>Valor pago direto ao Google e ao Meta pelos anúncios, definido junto com você.</p>
+          <div class="sline"><span>Google Ads · mínimo recomendado</span><span><b data-v="media.google"></b>/mês</span></div>
+          <div class="sline"><span>Meta Ads · mínimo recomendado</span><span><b data-v="media.meta"></b>/mês</span></div>
+          <p style="margin-top:8px">Dá para começar só pelo Google e incluir o Meta depois.</p>
+          <div class="ed"><label>Mídia Google (R$)<input type="number" data-f="media.google"></label><label>Mídia Meta (R$)<input type="number" data-f="media.meta"></label></div>
+        </div>
+        <p class="note">Condições de Black Friday válidas até <span id="validade"></span>.</p>
+        <div class="ed"><label>Validade das condições<input type="text" data-f="validade"></label></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="edbar" id="edbar">
+  <div><b>✏️ Modo edição</b><span id="edMsg">Mude os valores em cada serviço: o total atualiza na hora. "Concluir" fecha a edição mantendo os valores na tela.</span></div>
+  <div class="edbtns"><button class="btn ghost" id="edCancel">Desfazer</button><button class="btn ghost" id="edSave">Salvar como padrão</button><button class="btn" id="edDone">Concluir</button></div>
+</div>
+
+<!-- TIMELINE -->
+<section id="cronograma">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>Cronograma</span>
+    <h2 class="h2">Nosso <span class="grad-text">escopo de trabalho</span></h2>
+    <p class="lead">Como a gente coloca tudo de pé nas primeiras semanas. Você acompanha cada etapa de perto, com relatórios semanais.</p>
+    <div class="tl">
+      <div class="card reveal"><b>Semana 1</b><h4>Diagnóstico e setup</h4><p>Reunião de alinhamento, acessos, configuração do Google Meu Negócio, contas de anúncio e roteiro da primeira gravação.</p></div>
+      <div class="card reveal"><b>Semana 2</b><h4>Página e IA no ar</h4><p>Página de agendamento publicada, IA treinada com as informações da VIP Implantes, conectada ao WhatsApp e ao CRM, e treinamento das recepcionistas.</p></div>
+      <div class="card reveal"><b>Semana 3</b><h4>Campanhas rodando</h4><p>Google Ads e Meta Ads ativos, primeira gravação na clínica e início das publicações no Instagram.</p></div>
+      <div class="card reveal"><b>Semana 4</b><h4>Otimização e relatório</h4><p>Ajustes nas campanhas e na IA com base nos primeiros leads, com relatórios toda semana.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHY -->
+<section style="padding-top:20px">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>Por que a DemandIA</span>
+    <h2 class="h2">A gente monta, opera e acompanha. <span class="grad-text">Você só aprova.</span></h2>
+    <div class="why">
+      <div class="card reveal"><div class="e">🧩</div><h4>Tudo conectado</h4><p>Anúncio, página, conteúdo e IA conversando entre si. Nada de cinco fornecedores diferentes que não se falam.</p></div>
+      <div class="card reveal"><div class="e">⚡</div><h4>Resposta em segundos, 24h</h4><p>A IA atende de madrugada, no fim de semana e no feriado. Nenhum paciente fica esperando.</p></div>
+      <div class="card reveal"><div class="e">📊</div><h4>Resultado medido</h4><p>Você acompanha toda semana quantos leads chegaram, quantos foram qualificados e quantos agendaram avaliação.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="final">
+  <div class="wrap">
+    <span class="eyebrow"><i></i>Próximo passo</span>
+    <h2>Vamos encher a agenda da <span class="grad-text">VIP Implantes?</span></h2>
+    <button class="btn" id="accept2">Aprovar proposta →</button>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="logo" style="font-size:16px"><b style="width:28px;height:28px;font-size:12px">D</b><span>Demand<em>IA</em></span></div>
+    <span>Sua demanda, resolvida com inteligência. · Indaiatuba/SP · demandhub.com.br</span>
+  </div>
+</footer>
+
+<div class="modal" id="modal">
+  <div class="card mbox">
+    <h3>Perfeito, Dr. Talysson! 🎉</h3>
+    <p style="color:var(--muted);font-size:14.5px">Este é o resumo do plano escolhido. Copie e envie para a gente no WhatsApp para confirmar e começarmos o setup.</p>
+    <pre id="mtext"></pre>
+    <div class="mbtns"><button class="btn" id="copy">Copiar resumo</button><button class="btn ghost" id="close">Fechar</button></div>
+  </div>
+</div>
+
+<script>
+const fmt=v=>'R$ '+v.toLocaleString('pt-BR');
+
+document.querySelectorAll('.ptab').forEach(t=>t.onclick=()=>{
+  document.querySelectorAll('.ptab').forEach(x=>x.classList.remove('on'));
+  document.querySelectorAll('.pane').forEach(x=>x.classList.remove('on'));
+  t.classList.add('on');document.getElementById('p-'+t.dataset.p).classList.add('on');
+});
+document.querySelectorAll('.devsw button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.devsw button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.getElementById('lp').classList.toggle('mobile',b.dataset.d==='mob');
+});
+
+const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target)}}),{threshold:.15});
+document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
+
+/* ===== IA demo ===== */
+const body=document.getElementById('waBody'),rep=document.getElementById('waReplies'),st=document.getElementById('waStatus');
+let run=0;
+const now=()=>{const d=new Date();return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0')};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function add(text,cls){const m=document.createElement('div');m.className='msg '+cls;m.textContent=text;if(cls!=='sys'){const t=document.createElement('time');t.textContent=now()+(cls==='out'?' ✓✓':'');m.appendChild(t)}body.appendChild(m);body.scrollTop=body.scrollHeight}
+async function bot(text,id){if(id!==run)return;st.textContent='digitando...';const t=document.createElement('div');t.className='typing';t.innerHTML='<i></i><i></i><i></i>';body.appendChild(t);body.scrollTop=body.scrollHeight;await sleep(700+Math.min(text.length*14,1600));t.remove();if(id!==run)return;st.textContent='online';add(text,'in')}
+function ask(opts){return new Promise(res=>{rep.innerHTML='';opts.forEach(o=>{const b=document.createElement('button');b.textContent=o;b.onclick=()=>{rep.innerHTML='<span class="hint">IA respondendo…</span>';add(o,'out');res(o)};rep.appendChild(b)})})}
+function setF(id,v){const f=document.getElementById('f-'+id);f.classList.add('fill');f.querySelector('b').textContent=v}
+function setStage(n){document.querySelectorAll('#pipe div').forEach((d,i)=>d.classList.toggle('on',i<=n))}
+function badge(t,c){const b=document.getElementById('leadBadge');b.textContent=t;b.className='badge '+(c||'')}
+function resetCRM(){['origem','nome','caso','sit','temp','ag'].forEach(id=>{const f=document.getElementById('f-'+id);f.classList.remove('fill');f.querySelector('b').textContent='—'});setStage(0);badge('Novo lead')}
+
+async function demo(){
+  const id=++run;body.innerHTML='';rep.innerHTML='';resetCRM();
+  add('Hoje','sys');
+  add('Lead veio do anúncio "Perdeu um dente?" no Instagram','sys');
+  rep.innerHTML='<span class="hint">Você é o paciente. Toque em uma resposta 👇</span>';
+  await sleep(500);
+  add('Oi, vi o anúncio do implante. Quanto custa?','out');
+  setF('origem','Instagram Ads');
+  await bot('Oi! Que bom que você chamou 😊 Eu sou a Sofia, assistente da VIP Implantes, clínica do Dr. Talysson.',id);
+  await bot('Cada implante é planejado de acordo com o caso, então antes de falar de valores posso te fazer 2 perguntinhas rápidas?',id);
+  if(id!==run)return;
+  await ask(['Pode sim!','Pode, mas quero saber o preço']);
+  setStage(1);badge('Qualificando');
+  await bot('Combinado! Hoje você precisa repor quantos dentes?',id);if(id!==run)return;
+  const caso=await ask(['Um dente','Alguns dentes','A arcada inteira']);
+  setF('caso',caso);
+  await bot('Entendi. E qual é a sua situação hoje?',id);if(id!==run)return;
+  const sit=await ask(['Perdi faz pouco tempo','Estou sem há mais de 1 ano','Uso dentadura ou ponte']);
+  setF('sit',sit);
+  const hot=caso!=='Um dente'||sit.includes('dentadura');
+  setF('temp',hot?'🔥 Quente · alto potencial':'🌤 Morno · bom potencial');
+  setStage(2);badge(hot?'Lead quente':'Qualificado',hot?'hot':'');
+  await bot(caso==='A arcada inteira'||sit.includes('dentadura')
+    ?'Obrigada por me contar 💛 Muita gente que chega aqui com esse caso volta a comer e sorrir com firmeza depois do tratamento.'
+    :'Obrigada por me contar 💛 Quanto antes a gente avalia, melhor fica o planejamento do seu implante.',id);
+  await bot('O primeiro passo é a avaliação com o Dr. Talysson. Nela ele examina o seu caso, monta o seu plano de tratamento e passa o valor exato e as formas de pagamento. Tenho estes horários esta semana:',id);
+  if(id!==run)return;
+  const h=await ask(['Quinta, 14h','Sexta, 9h30','Sábado, 10h']);
+  await bot('Ótimo! Para eu confirmar, qual o seu nome completo?',id);if(id!==run)return;
+  const n=await ask(['Mariana Souza','Carlos Lima']);
+  setF('nome',n);
+  await bot(`Pronto, ${n.split(' ')[0]}! Sua avaliação está agendada ✅\n\n📅 ${h}\n👨‍⚕️ Dr. Talysson · VIP Implantes\n📍 Indaiatuba/SP\n\nVou te mandar um lembrete um dia antes e no dia. Qualquer dúvida é só me chamar aqui 😊`,id);
+  setF('ag','✅ '+h);setStage(3);badge('Agendado','done');
+  add('Evento criado na agenda da clínica e paciente atualizado no CRM','sys');
+  rep.innerHTML='<span class="hint">Tudo isso sem a recepção precisar tocar no celular ✨</span>';
+}
+document.getElementById('restart').onclick=demo;
+demo();
+
+/* ===== Instagram grid ===== */
+const LOGO='/proposta/vip-implant/assets/logo-white.png';
+const W='#fff',B='#1800AC',N='#080937',S='#AFC0FF';
+const ART={
+ implant:`<svg viewBox="0 0 100 80"><circle cx="50" cy="40" r="34" fill="rgba(255,255,255,.1)"/><circle cx="50" cy="40" r="24" fill="rgba(255,255,255,.08)"/><svg x="36" y="12" width="28" height="56" viewBox="0 0 60 84" color="${W}"><use href="#ic-implant"/></svg><g transform="translate(70 10)"><rect width="22" height="18" rx="6" fill="${W}"/><path d="M5 18l-1 6 6-6z" fill="${W}"/><text x="11" y="14" font-family="Montserrat" font-weight="900" font-size="13" fill="${B}" text-anchor="middle">?</text></g></svg>`,
+ five:`<svg viewBox="0 0 100 80"><circle cx="30" cy="38" r="26" fill="${W}"/><text x="30" y="50" font-family="Montserrat" font-weight="900" font-size="34" fill="${B}" text-anchor="middle">5</text>${[0,1,2,3].map(i=>`<g transform="translate(62 ${14+i*14})"><circle cx="5" cy="5" r="5" fill="${S}"/><path d="M2.6 5.2l1.7 1.7 3.2-3.4" stroke="${N}" stroke-width="1.6" fill="none"/><rect x="14" y="3" width="${22-i*3}" height="4" rx="2" fill="rgba(255,255,255,.75)"/></g>`).join('')}</svg>`,
+ chair:`<svg viewBox="0 0 100 80"><path d="M58 8h22" stroke="${S}" stroke-width="3" stroke-linecap="round"/><path d="M69 8v12" stroke="${S}" stroke-width="3"/><ellipse cx="69" cy="22" rx="10" ry="4" fill="${W}"/><path d="M69 26l-6 12M69 26l6 12" stroke="rgba(255,255,255,.25)" stroke-width="6"/><path d="M14 30c0-6 6-8 10-4l10 14h34c6 0 8 8 2 8H30c-4 0-6-2-8-4L14 34z" fill="${W}"/><rect x="40" y="48" width="8" height="16" fill="${S}"/><rect x="28" y="64" width="34" height="6" rx="3" fill="${W}"/></svg>`,
+ compare:`<svg viewBox="0 0 100 80">${[['Implante',18],['Ponte',50],['Dentadura',82]].map(([t,x],i)=>`<g transform="translate(${x-14} 8)"><rect width="28" height="46" rx="8" fill="${i===0?B:'#E9ECFF'}"/>${i===0?`<svg x="7" y="6" width="14" height="34" viewBox="0 0 60 84" color="#fff"><use href="#ic-implant"/></svg>`:i===1?`<svg x="2" y="16" width="24" height="12" viewBox="0 0 60 40" color="${B}"><use href="#ic-tooth"/></svg><path d="M4 30h20" stroke="${B}" stroke-width="3"/>`:`<path d="M5 30c0-14 18-14 18 0" stroke="${B}" stroke-width="5" fill="none" stroke-linecap="round"/>`}</g><text x="${x}" y="68" font-family="Montserrat" font-weight="800" font-size="6.6" fill="${N}" text-anchor="middle">${t}</text>`).join('')}</svg>`,
+ clock:`<svg viewBox="0 0 100 80"><rect x="14" y="16" width="44" height="46" rx="8" fill="${W}"/><rect x="14" y="16" width="44" height="12" rx="6" fill="${S}"/>${[0,1,2].map(r=>[0,1,2].map(c=>`<rect x="${20+c*12}" y="${33+r*9}" width="8" height="5" rx="1.5" fill="${r===1&&c===1?B:'#D7DCFF'}"/>`).join('')).join('')}<circle cx="68" cy="50" r="20" fill="${B}" stroke="${W}" stroke-width="3"/><path d="M68 38v12l8 5" stroke="${W}" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
+ quote:`<svg viewBox="0 0 100 80"><text x="20" y="52" font-family="Georgia" font-weight="700" font-size="64" fill="${S}">“</text><g transform="translate(46 22)">${[0,1,2,3,4].map(i=>`<path transform="translate(${i*10} 0)" d="M4 0l1.2 2.6 2.8.3-2.1 1.9.6 2.8L4 6.2 1.5 7.6l.6-2.8L0 2.9l2.8-.3z" fill="#FFD25A"/>`).join('')}</g><rect x="46" y="38" width="44" height="4" rx="2" fill="rgba(255,255,255,.8)"/><rect x="46" y="46" width="34" height="4" rx="2" fill="rgba(255,255,255,.55)"/><path d="M48 60c6 7 16 7 22 0" stroke="${W}" stroke-width="3.5" fill="none" stroke-linecap="round"/></svg>`,
+ clip:`<svg viewBox="0 0 100 80"><rect x="28" y="8" width="44" height="64" rx="8" fill="${W}"/><rect x="40" y="3" width="20" height="10" rx="4" fill="${S}"/>${[0,1,2].map(i=>`<g transform="translate(36 ${24+i*15})"><rect width="10" height="10" rx="3" fill="${i<2?B:'#E3E6FB'}"/>${i<2?'<path d="M2.5 5.2l2 2 3.5-4" stroke="#fff" stroke-width="1.8" fill="none"/>':''}<rect x="14" y="3" width="${18-i*2}" height="4" rx="2" fill="#C9CEF2"/></g>`).join('')}</svg>`,
+ myth:`<svg viewBox="0 0 100 80"><g transform="translate(10 12)"><rect width="80" height="22" rx="11" fill="#FFE1E1"/><circle cx="11" cy="11" r="7" fill="#E5484D"/><path d="M8.5 8.5l5 5M13.5 8.5l-5 5" stroke="#fff" stroke-width="2"/><text x="24" y="15.5" font-family="Montserrat" font-weight="900" font-size="11" fill="#B4232A">MITO</text></g><g transform="translate(10 44)"><rect width="80" height="22" rx="11" fill="${B}"/><circle cx="11" cy="11" r="7" fill="#fff"/><path d="M7.8 11.2l2.3 2.3 4-4.4" stroke="${B}" stroke-width="2" fill="none"/><text x="24" y="15.5" font-family="Montserrat" font-weight="900" font-size="11" fill="#fff">VERDADE</text></g></svg>`,
+ chat:`<svg viewBox="0 0 100 80"><g transform="translate(10 10)"><rect width="50" height="30" rx="10" fill="${W}"/><path d="M10 30l-2 8 10-8z" fill="${W}"/><text x="25" y="22" font-family="Montserrat" font-weight="900" font-size="20" fill="${B}" text-anchor="middle">?</text></g><g transform="translate(44 36)"><rect width="46" height="28" rx="10" fill="${S}"/><path d="M36 28l2 7-9-7z" fill="${S}"/>${[0,1,2].map(i=>`<circle cx="${13+i*10}" cy="14" r="3.2" fill="${N}"/>`).join('')}</g></svg>`
+};
+const posts=[
+ ['v','t-navy','implant','Dr. Talysson responde: <em>implante dói?</em>','Reels com o Dr. Talysson desmistificando a dor no procedimento. Gancho forte nos 3 primeiros segundos.'],
+ ['e','t-blue','five','5 sinais de que você <em>precisa</em> de um implante','Carrossel educativo que gera salvamentos e compartilhamentos.'],
+ ['v','t-navy','chair','Tour pela <em>VIP Implantes</em>','Reels mostrando a estrutura da clínica e a equipe. Gera confiança antes da primeira visita.'],
+ ['e','t-white','compare','Qual é a melhor <em>opção</em> para você?','Carrossel comparando implante, ponte e dentadura de um jeito simples.'],
+ ['v','t-blue','clock','Um dia na rotina do <em>Dr. Talysson</em>','Bastidores que humanizam o especialista. Formato que costuma alcançar novos públicos.'],
+ ['e','t-navy','quote','"Voltei a sorrir" <em>depoimento</em>','Estático com depoimento autorizado de paciente, seguindo as normas do CFO.'],
+ ['v','t-blue','clip','Como é a <em>avaliação</em>','Reels explicando passo a passo a primeira consulta. Reduz a ansiedade de quem nunca foi.'],
+ ['e','t-white','myth','Mitos e verdades <em>sobre implante</em>','Carrossel em formato quiz, ótimo para comentários.'],
+ ['v','t-navy','chat','Perguntas que <em>todo paciente</em> faz','Reels respondendo dúvidas reais que chegam pelo WhatsApp e pela IA.'],
+];
+const g=document.getElementById('grid9'),info=document.getElementById('tileInfo');
+posts.forEach(p=>{
+  const d=document.createElement('div');d.className='tile '+p[1];
+  const white=p[1]==='t-white';
+  d.innerHTML=`<img class="mk" src="${LOGO}" alt="" style="${white?'background:#080937;padding:3px 5px;border-radius:4px;height:22px':''}"><span class="ty">${p[0]==='v'?'▶':'❐'}</span><div class="art">${ART[p[2]]}</div><span class="ttl">${p[3]}</span>`;
+  d.onclick=()=>info.innerHTML=`<b style="color:#fff">${p[0]==='v'?'🎬 Vídeo':'🖼 Estático/carrossel'}: ${p[3].replace(/<[^>]+>/g,'')}</b><br>${p[4]}`;
+  g.appendChild(d);
+});
+const weeks=[[['v','Implante dói?'],['e','5 sinais'],['v','Tour na clínica']],[['e','Qual a melhor opção?'],['v','Rotina do Dr.'],['e','Depoimento']],[['v','Como é a avaliação'],['e','Mitos e verdades'],['v','Perguntas frequentes']],[['e','Antes de decidir'],['v','Cuidados pós-implante'],['e','Convite: avaliação']]];
+document.getElementById('cal').innerHTML=weeks.map((w,i)=>`<div class="wk"><b>Semana ${i+1}</b>${w.map(x=>`<div class="it ${x[0]}">${x[0]==='v'?'🎬':'🖼'} ${x[1]}</div>`).join('')}</div>`).join('');
+
+/* ===== Pricing (valores editáveis) ===== */
+const CFG=JSON.parse(document.getElementById('cfg').textContent);
+let cfg=JSON.parse(JSON.stringify(CFG));
+const get=(o,p)=>p.split('.').reduce((a,k)=>a&&a[k],o);
+const set=(o,p,v)=>{const ks=p.split('.');let a=o;ks.slice(0,-1).forEach(k=>a=a[k]);a[ks[ks.length-1]]=v};
+let pay='vista';
+const labels={google:'Google Ads + Meu Negócio',meta:'Meta Ads (Instagram + Facebook)',social:'Social Media (12 conteúdos)',ia:'IA de atendimento e agendamento + CRM'};
+function siteTxt(){return pay==='vista'?`${fmt(cfg.site.vista)} à vista`:`${cfg.site.n}x de ${fmt(cfg.site.parc)} (${fmt(cfg.site.n*cfg.site.parc)})`}
+function paint(){
+  document.querySelectorAll('[data-v]').forEach(el=>el.textContent=fmt(+get(cfg,el.dataset.v)||0));
+  const imp=+cfg.ia.impl||0;
+  document.getElementById('iaFree').style.display=imp?'inline-block':'none';
+  document.getElementById('iaFree').textContent=`Implantação de ${fmt(imp)} ISENTA`;
+  document.getElementById('iaImplS').style.display=imp?'block':'none';
+  document.getElementById('iaImplS').textContent=`+ ${fmt(imp)} implantação`;
+  document.getElementById('siteDe').style.display=cfg.site.de>cfg.site.vista?'block':'none';
+  document.getElementById('siteDe').textContent=fmt(+cfg.site.de);
+  document.getElementById('payVista').textContent=`${fmt(+cfg.site.vista)} à vista`;
+  document.getElementById('payParc').textContent=`${cfg.site.n}x de ${fmt(+cfg.site.parc)}`;
+  document.getElementById('sitePrice').textContent=pay==='vista'?fmt(+cfg.site.vista):`${cfg.site.n}x ${fmt(+cfg.site.parc)}`;
+  document.getElementById('siteSub').textContent=pay==='vista'?'à vista · Black Friday':`parcelado · total ${fmt(cfg.site.n*cfg.site.parc)}`;
+  document.getElementById('validade').textContent=cfg.validade;
+  calc();
+}
+function calc(){
+  let tot=0,lines='',save=0,txt=[];
+  document.querySelectorAll('.item').forEach(it=>{
+    if(!it.classList.contains('on'))return;
+    const k=it.dataset.k;
+    if(k!=='site'){const v=+cfg[k].m||0;tot+=v;lines+=`<div class="sline"><span>${labels[k]}</span><span>${fmt(v)}/mês</span></div>`;txt.push(`• ${labels[k]}: ${fmt(v)}/mês`)}
+    if(k==='ia'&&+cfg.ia.impl){save+=+cfg.ia.impl;txt.push(`  (implantação da IA de ${fmt(+cfg.ia.impl)} isenta)`)}
+    if(k==='site'){save+=Math.max(0,cfg.site.de-(pay==='vista'?cfg.site.vista:cfg.site.n*cfg.site.parc))}
+  });
+  const siteOn=document.querySelector('[data-k=site]').classList.contains('on');
+  document.getElementById('total').innerHTML=fmt(tot)+'<small>/mês</small>';
+  document.getElementById('siteLine').textContent=siteOn?`+ Página de agendamento: ${siteTxt()} (pagamento único)`:'Página de agendamento não incluída';
+  document.getElementById('lines').innerHTML=lines;
+  const sv=document.getElementById('save');sv.style.display=save>0?'block':'none';sv.textContent=`🎁 Você economiza ${fmt(save)} com as condições de Black Friday`;
+  if(siteOn)txt.push(`• Página de agendamento: ${siteTxt()}${cfg.site.de>cfg.site.vista?` (de ${fmt(+cfg.site.de)})`:''}`);
+  document.getElementById('mtext').textContent=`Olá! Aqui é o Dr. Talysson, da VIP Implantes.\nQuero fechar o seguinte plano com a DemandIA:\n\n${txt.join('\n')}\n\nTotal mensal: ${fmt(tot)}/mês${siteOn?`\nPágina de agendamento: ${siteTxt()}`:''}\n\nCondições de Black Friday.`;
+}
+function applyOn(){document.querySelectorAll('.item').forEach(it=>it.classList.toggle('on',!!cfg[it.dataset.k].on))}
+document.querySelectorAll('.item').forEach(it=>it.addEventListener('click',e=>{if(e.target.closest('.pay,.ed'))return;it.classList.toggle('on');calc()}));
+document.querySelectorAll('#pay button').forEach(b=>b.onclick=()=>{pay=b.dataset.pay;document.querySelectorAll('#pay button').forEach(x=>x.classList.toggle('on',x===b));paint()});
+applyOn();paint();
+
+/* ===== Modo edição (abra o link com #editar) ===== */
+function fillInputs(){document.querySelectorAll('[data-f]').forEach(i=>{const v=get(cfg,i.dataset.f);if(i.type==='checkbox')i.checked=!!v;else i.value=v})}
+document.querySelectorAll('[data-f]').forEach(i=>i.addEventListener('input',()=>{
+  const f=i.dataset.f;set(cfg,f,i.type==='checkbox'?i.checked:(i.type==='number'?(+i.value||0):i.value));
+  if(f.endsWith('.on'))applyOn();paint();
+}));
+function editMode(on){document.body.classList.toggle('edit',on);document.getElementById('edToggle').textContent=on?'✓ Concluir edição':'✏️ Editar valores';if(on){fillInputs();document.getElementById('investimento').scrollIntoView({behavior:'smooth'})}}
+document.getElementById('edToggle').onclick=()=>editMode(!document.body.classList.contains('edit'));
+document.getElementById('edDone').onclick=()=>{if(location.hash==='#editar')history.replaceState(null,'',location.pathname+location.search);editMode(false)};
+function checkHash(){editMode(location.hash==='#editar')}
+window.addEventListener('hashchange',checkHash);checkHash();
+document.getElementById('edCancel').onclick=()=>{cfg=JSON.parse(JSON.stringify(CFG));applyOn();paint();fillInputs()};
+if(typeof claude==='undefined'||!claude.use)document.getElementById('edSave').style.display='none';
+document.getElementById('edSave').onclick=async e=>{
+  const btn=e.target,msg=document.getElementById('edMsg');btn.disabled=true;btn.textContent='Salvando…';
+  try{
+    const art=await claude.use('artifact');
+    if(!art)throw new Error('indisponivel');
+    const src=await fetch('index.html',{cache:'no-store'}).then(r=>{if(!r.ok)throw new Error('fonte');return r.text()});
+    const json=JSON.stringify(cfg).replace(/</g,'\\u003c');
+    const out=src.replace(/(<script id="cfg" type="application\/json">)[\s\S]*?(<\/script>)/,(_,a,b)=>a+json+b);
+    if(out===src&&JSON.stringify(cfg)!==JSON.stringify(CFG))throw new Error('modelo');
+    await art.publish(out);
+    msg.textContent='Valores salvos ✓ A página vai recarregar com os novos valores.';btn.textContent='Salvo ✓';
+  }catch(err){
+    const c=String(err&&(err.code||err.message||err));
+    msg.textContent=/not_writer|not_granted/.test(c)?'Só o dono da proposta pode salvar como padrão. Os valores continuam valendo nesta tela.':/conflict/.test(c)?'A página foi atualizada em outro lugar. Recarregue e tente de novo.':'Os valores valem nesta tela, mas não dá para salvar como padrão neste endereço. Me passe os valores que eu deixo fixos.';
+    btn.disabled=false;btn.textContent='Salvar como padrão';
+  }
+};
+
+const modal=document.getElementById('modal');
+['accept','accept2'].forEach(id=>document.getElementById(id).onclick=()=>modal.classList.add('on'));
+document.getElementById('close').onclick=()=>modal.classList.remove('on');
+modal.onclick=e=>{if(e.target===modal)modal.classList.remove('on')};
+document.getElementById('copy').onclick=async e=>{try{await navigator.clipboard.writeText(document.getElementById('mtext').textContent);e.target.textContent='Copiado ✓'}catch(_){e.target.textContent='Selecione e copie o texto acima'}};
+</script>
+</body>
+</html>
