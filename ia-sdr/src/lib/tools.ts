@@ -15,6 +15,7 @@ import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
 import { pedirOrientacao, registrar } from "./canal.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { linkPrevia } from "./extras.ts";
+import { textoReuniao } from "./aviso-reuniao.ts";
 import { nomeDaSdr, sdrValida } from "./sdrs.ts";
 
 export const TOOLS: Tool[] = [
@@ -193,9 +194,35 @@ async function notifyOwner(text: string, sdr: unknown = "gabi") {
  * aviso se perdeu). Reunião marcada também aparece no portal ("Você e a Gabi") e fica no histórico.
  */
 async function avisarReuniao(leadId: string, texto: string, sdr: unknown) {
-  await logEvent(leadId, "reuniao_marcada", { aviso: texto.slice(0, 300) }).catch(() => null);
+  await logEvent(leadId, "reuniao_marcada", { aviso: texto.slice(0, 400) }).catch(() => null);
   await registrar({ lead_id: leadId, autor: "ana", tipo: "texto", conteudo: texto, origem: "sistema", status: "pendente" }).catch(() => null);
-  await notifyOwner(texto, sdr);
+  // O WhatsApp anda lento: tenta de novo antes de desistir (o aviso de reunião não pode se perder)
+  const para = env.ownerPhone || env.alertPhone;
+  if (!para) return;
+  const quem = sdrValida(sdr);
+  for (const [i, via] of ([quem, "gabi", quem] as const).entries()) {
+    try {
+      await sendText(para, texto, via);
+      return;
+    } catch (e) {
+      console.error(`Aviso de reunião falhou (tentativa ${i + 1}):`, e);
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+  }
+  await logEvent(leadId, "aviso_reuniao_falhou", {}).catch(() => null);
+}
+
+async function dadosDaReuniao(lead: Lead, start: Date, emails: string[], meetLink: string | null) {
+  const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
+  return textoReuniao({
+    sdr: nomeDaSdr(lead.agente),
+    quando: formatBR(start),
+    nome: lead.nome,
+    empresa: lead.empresa ?? p?.empresa ?? null,
+    phone: lead.phone,
+    emails,
+    meetLink,
+  });
 }
 
 /** Agenda fora do ar: avisa o Kelvin no máximo uma vez a cada 6 horas. */
@@ -383,11 +410,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           next_followup_at: null,
           followup_attempts: 0,
         });
-        await avisarReuniao(
-          leadId,
-          `📅 Nova reunião marcada pela IA\n${formatBR(start)}\n${lead.nome ?? ""} — ${lead.empresa ?? ""}\nFaturamento: R$ ${lead.faturamento_mensal?.toLocaleString("pt-BR") ?? "—"}\nDor: ${(lead.dores ?? []).join("; ")}\n${ev.meetLink ?? ""}`,
-          lead.agente,
-        );
+        await avisarReuniao(leadId, await dadosDaReuniao(lead, start, emails, ev.meetLink ?? null), lead.agente);
         return JSON.stringify({
           ok: true,
           quando: formatBR(start),
@@ -400,11 +423,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         // Perder a reunião por falha técnica é pior do que o convite chegar alguns minutos depois.
         console.error(e);
         await updateLead(leadId, { status: "agendado", email: lead.email ?? emails[0], next_followup_at: null, followup_attempts: 0 });
-        await avisarReuniao(
-          leadId,
-          `📅 REUNIÃO MARCADA, mas a Google Agenda falhou: crie o convite à mão\n${formatBR(start)} (${SDR_CONFIG.reuniao.duracaoMin} min)\n${lead.nome ?? ""} ${lead.empresa ? `(${lead.empresa})` : ""}\nE-mail: ${emails.join(", ")}\nWhatsApp: +${lead.phone}`,
-          lead.agente,
-        );
+        await avisarReuniao(leadId, await dadosDaReuniao(lead, start, emails, null), lead.agente);
         return JSON.stringify({
           ok: true,
           quando: formatBR(start),
