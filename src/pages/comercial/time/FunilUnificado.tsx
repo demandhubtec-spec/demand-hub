@@ -73,6 +73,10 @@ interface Linha {
   item: CardItem;
 }
 
+/** Temperatura do card: a da conversa (sdr_leads) quando existe; senão a nota da lista. */
+const TEMP = { quente: "Quente", morno: "Morno", frio: "Frio" } as const;
+const notaDoSdr = (sdr: { temperatura?: keyof typeof TEMP | null } | undefined) => (sdr?.temperatura ? TEMP[sdr.temperatura] : null);
+
 function lerFiltro(): OrigemLead[] {
   try {
     const v = JSON.parse(localStorage.getItem(CHAVE_FILTRO) ?? "null");
@@ -138,6 +142,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           sub: [l.nicho, l.cidade].filter(Boolean).join(" · "),
           quando: [l.updated_at, l.wa_sent_at].filter(Boolean).sort().pop() ?? null,
           conversa: sdr?.id ?? null,
+          nota: notaDoSdr(sdr),
           aviso: l.retorno_em ? `Retorno combinado: ${fmtData(l.retorno_em)}` : null,
           origem: "google",
           podeLixeira: false,
@@ -165,7 +170,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           sub: [l.nicho, l.cidade ?? l.rodada?.split(" · ")[0]].filter(Boolean).join(" · "),
           quando: l.atualizado_em,
           conversa: sdr?.id ?? null,
-          nota: l.nota,
+          nota: notaDoSdr(sdr) ?? l.nota,
           etiqueta:
             l.lista === "ligacoes"
               ? l.tentativas
@@ -198,6 +203,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           sub: c.segmento ?? "",
           quando: c.ultimaAtividade,
           conversa: c.id,
+          nota: notaDoSdr(c),
           aviso: c.last_inbound_at && (!c.last_outbound_at || c.last_inbound_at > c.last_outbound_at) ? "Esperando resposta nossa" : null,
           origem: "anuncio",
           podeLixeira: true,
@@ -243,7 +249,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
     if (!bateBusca(l)) return false;
     const nicho = l.reg.tipo === "inbound" ? l.reg.contato.segmento : l.reg.lead.nicho;
     if (segmento && nicho !== segmento) return false;
-    if (nota && (l.reg.tipo !== "lista" || l.reg.lead.nota !== nota)) return false;
+    if (nota && l.item.nota !== nota) return false;
     if (rodada && (l.reg.tipo !== "lista" || (l.reg.lead.rodada ?? "Sem rodada") !== rodada)) return false;
     return true;
   });
@@ -344,14 +350,14 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
             ))}
           </select>
         )}
-        {deLista.some((l) => l.nota) && (
-          <select value={nota} onChange={(e) => setNota(e.target.value)} className={select}>
-            <option value="">Todas as notas</option>
-            <option>Quente</option>
-            <option>Morno</option>
-            <option>Frio</option>
-          </select>
-        )}
+        <select value={nota} onChange={(e) => setNota(e.target.value)} className={select} title="Quente: deu sinal de interesse ou está com você. Morno: respondeu, sem sinal ainda. Frio: não respondeu, sumiu ou recusou.">
+          <option value="">Todas as temperaturas</option>
+          {(["Quente", "Morno", "Frio"] as const).map((t) => (
+            <option key={t} value={t}>
+              {t} ({daOrigem.filter((l) => l.item.nota === t).length})
+            </option>
+          ))}
+        </select>
         {rodadas.length > 1 && (
           <select value={rodada} onChange={(e) => setRodada(e.target.value)} className={select}>
             <option value="">Todas as rodadas</option>
@@ -799,6 +805,11 @@ function Prontuario({
                 <section>
                   <div className="mb-1.5 text-[12px] font-semibold text-muted">Anotações</div>
                   <div className="whitespace-pre-wrap text-[14px] leading-relaxed">{anotacoes}</div>
+                </section>
+              )}
+              {sdr?.temperatura_motivo && (
+                <section className="text-[13px] text-muted">
+                  Temperatura: <b className="text-ink">{TEMP[sdr.temperatura ?? "frio"]}</b> · {sdr.temperatura_motivo}
                 </section>
               )}
               {sdr && (sdr.bant_score != null || sdr.status) && (

@@ -38,6 +38,9 @@ export interface SdrLead {
   funil_etapa: EtapaOportunidade | null;
   /** SDR responsável (16/11): por qual número a conversa acontece. Antes da migration 0035: undefined (= Gabi). */
   agente?: "gabi" | "marina" | null;
+  /** Temperatura pela conversa (17/11, migration 0037): quente, morno ou frio, e o porquê. */
+  temperatura?: "quente" | "morno" | "frio" | null;
+  temperatura_motivo?: string | null;
 }
 
 export interface SdrMensagem {
