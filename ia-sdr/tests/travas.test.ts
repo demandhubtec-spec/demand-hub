@@ -146,3 +146,13 @@ test("roteiro de restaurante só para alimentação (17/11)", async () => {
   assert.equal(ehAlimentacao(o("Odontologia", "Sorriso da Morada", "atende delivery de kit")), false);
   assert.equal(ehAlimentacao(o(null, "Dr. Petrus Teixeira (dermatologia)", "Médico dermatologista")), false);
 });
+
+test("semPromessaDeConvite: agenda falhou, não promete convite no e-mail (18/11, Geremias)", async () => {
+  const { semPromessaDeConvite } = await import("../src/lib/travas.ts");
+  const t = "Perfeito, Geremias 😊\nFicou confirmado para hoje, quarta, 18/11 às 12:30.\nO convite com o link da reunião vai chegar no seu e-mail, e já deixei tudo encaminhado por aqui.";
+  const r = semPromessaDeConvite(t);
+  assert.ok(!/e-?mail/i.test(r), r);
+  assert.ok(r.includes("O link da reunião chega por aqui em seguida."), r);
+  assert.ok(r.includes("Ficou confirmado para hoje"), r);
+  assert.equal(semPromessaDeConvite("Ficou confirmado para amanhã às 10h."), "Ficou confirmado para amanhã às 10h.");
+});
