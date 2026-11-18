@@ -146,3 +146,39 @@ test("roteiro de restaurante só para alimentação (17/11)", async () => {
   assert.equal(ehAlimentacao(o("Odontologia", "Sorriso da Morada", "atende delivery de kit")), false);
   assert.equal(ehAlimentacao(o(null, "Dr. Petrus Teixeira (dermatologia)", "Médico dermatologista")), false);
 });
+
+test("semPromessaDeConvite: agenda falhou, não promete convite no e-mail (18/11, Geremias)", async () => {
+  const { semPromessaDeConvite } = await import("../src/lib/travas.ts");
+  const t = "Perfeito, Geremias 😊\nFicou confirmado para hoje, quarta, 18/11 às 12:30.\nO convite com o link da reunião vai chegar no seu e-mail, e já deixei tudo encaminhado por aqui.";
+  const r = semPromessaDeConvite(t);
+  assert.ok(!/e-?mail/i.test(r), r);
+  assert.ok(r.includes("O link da reunião chega por aqui em seguida."), r);
+  assert.ok(r.includes("Ficou confirmado para hoje"), r);
+  assert.equal(semPromessaDeConvite("Ficou confirmado para amanhã às 10h."), "Ficou confirmado para amanhã às 10h.");
+});
+
+test("aviso de reunião: dia, horário, cliente, telefone e e-mail (18/11, Kelvin)", async () => {
+  const { textoReuniao } = await import("../src/lib/aviso-reuniao.ts");
+  const t = textoReuniao({
+    sdr: "Gabi",
+    quando: "quarta, 18/11 às 12:30",
+    nome: "Geremias Dias",
+    empresa: "Geremias Dias Imóveis | Imobiliária em Indaiatuba - SP",
+    phone: "5519991300018",
+    emails: ["geremias.deia@gmail.com"],
+  });
+  assert.match(t, /Reunião agendada pela Gabi/);
+  assert.match(t, /Dia e horário: quarta, 18\/11 às 12:30/);
+  assert.match(t, /Cliente: Geremias Dias/);
+  assert.match(t, /Empresa: Geremias Dias Imóveis$/m);
+  assert.match(t, /Telefone: \(19\) 99130-0018/);
+  assert.match(t, /E-mail: geremias.deia@gmail.com/);
+  assert.match(t, /Link: ainda não criado/);
+  assert.ok(!t.includes("—"));
+});
+
+test("telefoneBR: fixo e celular", async () => {
+  const { telefoneBR } = await import("../src/lib/aviso-reuniao.ts");
+  assert.equal(telefoneBR("551156772767"), "(11) 5677-2767");
+  assert.equal(telefoneBR("5511977638660"), "(11) 97763-8660");
+});

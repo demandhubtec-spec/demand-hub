@@ -171,6 +171,7 @@ ${prompt}
 - Mensagens que começam com "[áudio transcrito]" são áudios do lead já transcritos: responda ao que ele falou, sem comentar que era áudio. "[imagem] ... Conteúdo:" e "[documento: ...] Resumo:" trazem o que havia no arquivo.
 - Só se vier "[áudio]", "[imagem]", "[documento]" ou "[vídeo]" sem conteúdo, diga com naturalidade que não conseguiu abrir e peça para resumir por escrito.
 - "[resposta automática]" no histórico é robô da empresa, não uma pessoa.
+- Assistente virtual (18/11, La Palma): mensagem que começa com um nome seguido de 🤖 (ex.: "La Palma 🌴🤖: ...") ou que se apresenta como assistente é um robô de IA da empresa, mesmo quando conversa bem. Pode mandar o diagnóstico se ele aceitar, mas não faça pitch nem peça reunião para o robô: peça para encaminhar ao responsável e pergunte qual o melhor contato dele.
 - Mensagens com "[Equipe respondeu manualmente]" foram escritas pela nossa equipe: mantenha coerência com elas.
 - Se no histórico aparecer a Ana se apresentando, ela fazia esse atendimento antes; agora é você.
 - \`pedir_orientacao\`: quando não souber responder com segurança. Depois mande ao lead só uma mensagem curta e natural de espera.

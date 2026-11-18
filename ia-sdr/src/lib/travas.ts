@@ -174,3 +174,23 @@ export function tirarJoinha(texto: string): string {
   const sem = texto.replace(/\s?👍[\u{1F3FB}-\u{1F3FF}]?\uFE0F?/gu, "");
   return /\p{Extended_Pictographic}/u.test(sem) ? sem.trim() : `${sem.trim()} 😊`;
 }
+
+/**
+ * A Google Agenda falhou ao marcar: o convite NÃO saiu. Troca a frase que promete convite/link no
+ * e-mail por "o link chega por aqui", que é o que o Kelvin faz à mão.
+ */
+export function semPromessaDeConvite(texto: string): string {
+  const frase = /[^.!?\n]*\b(convite|link)\b[^.!?\n]*\be-?mail\b[^.!?\n]*[.!?]?/gi;
+  if (!frase.test(texto)) return texto;
+  let trocou = false;
+  return texto
+    .replace(frase, (m) => {
+      if (trocou) return "";
+      trocou = true;
+      const ini = m.match(/^\s*/)?.[0] ?? "";
+      return `${ini}O link da reunião chega por aqui em seguida.`;
+    })
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
