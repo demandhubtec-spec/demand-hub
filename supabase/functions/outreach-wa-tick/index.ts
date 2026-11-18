@@ -338,6 +338,19 @@ const EVO_TOKEN_GABI = Deno.env.get("EVOLUTION_INSTANCE_TOKEN") || "";
  * O token vem do contexto da chamada, nunca de uma variável global trocada no meio (duas chamadas podem
  * rodar ao mesmo tempo na mesma instância da função).
  */
+/** Segmento do lead para o mix diário (17/11, Kelvin). "fora": pet e advocacia, que saíram da rotação. */
+type Segmento = "saude" | "restaurante" | "outros";
+const MIX: Record<Segmento, number> = { saude: 0.5, restaurante: 0.3, outros: 0.2 };
+function segmentoDoLead(l: { place_id?: string | null; nicho?: string | null; empresa?: string | null }): Segmento | "fora" {
+  const ig = String(l.place_id ?? "").startsWith("ig_");
+  // Google: pelo nicho da coleta. Lista do Instagram: nicho e nome (lá o nicho às vezes vem vazio)
+  const n = `${l.nicho ?? ""} ${ig ? l.empresa ?? "" : ""}`.toLowerCase();
+  if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic/.test(n)) return "fora";
+  if (/aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food/.test(n)) return "restaurante";
+  if (/cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|depila|dermat|nutri|fisio|psic|sa[uú]de/.test(n)) return "saude";
+  return "outros";
+}
+
 type Sdr = "gabi" | "marina";
 const NUMERO = new AsyncLocalStorage<{ sdr: Sdr; token: string }>();
 const tok = () => NUMERO.getStore()?.token ?? EVO_TOKEN_GABI;
@@ -603,25 +616,36 @@ Deno.serve(async (req) => {
   }
 
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
-  // 16/11 (Kelvin): metade dos primeiros contatos do dia vem do Google e metade da lista do Instagram,
-  // alternando; quando uma das filas acaba, a outra segue sozinha.
-  // 17/11: conta as TENTATIVAS (enviado ou falhou). Contando só os enviados, 37 números do Instagram que
-  // falharam seguraram a fila das 8h às 13h e nenhum lead do Google saiu de manhã.
+  // 17/11 (Kelvin): mix dos primeiros contatos do dia por segmento — 50% saúde (clínicas), 30% restaurante
+  // (lista do Instagram + alimentação do Google) e 20% os outros nichos. Pet e advocacia saíram da rotação.
+  // Conta as TENTATIVAS do dia (enviado ou falhou), para um segmento com números ruins não travar a fila.
+  // Quando um segmento acaba, os outros seguem sozinhos.
   const { data: tentativas } = cfg.test_number
     ? { data: [] as { place_id: string | null }[] }
     : await sb.from("outreach_log").select("place_id").eq("channel", "whatsapp").in("event", ["sent", "error", "sem_whatsapp"]).gte("created_at", hoje0).limit(2000);
-  const igTentou = (tentativas ?? []).filter((t) => String(t.place_id ?? "").startsWith("ig_")).length;
-  const preferirIg = igTentou * 2 <= (tentativas ?? []).length;
-  const montarFila = (soIg: boolean) => {
-    let fila = sb.from("outreach_leads").select("*")
-      .eq("wa_status", "pendente").not("whatsapp", "is", null);
-    if (cfg.exigir_aprovacao !== false) fila = fila.eq("msg_status", "aprovada");
-    if (jaTestados.length) fila = fila.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
-    fila = soIg ? fila.like("place_id", "ig\\_%") : fila.not("place_id", "like", "ig\\_%");
-    return fila.order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(10);
-  };
-  let { data: candidatos } = await montarFila(preferirIg);
-  if (!candidatos?.length) ({ data: candidatos } = await montarFila(!preferirIg));
+  const idsHoje = [...new Set((tentativas ?? []).map((t) => String(t.place_id ?? "")).filter(Boolean))];
+  const nichoDe = new Map<string, string | null>();
+  for (let i = 0; i < idsHoje.length; i += 200) {
+    const { data: ns } = await sb.from("outreach_leads").select("place_id,nicho,empresa").in("place_id", idsHoje.slice(i, i + 200));
+    for (const n of ns ?? []) nichoDe.set(n.place_id, segmentoDoLead(n));
+  }
+  const feitosSeg: Record<Segmento, number> = { saude: 0, restaurante: 0, outros: 0 };
+  for (const t of tentativas ?? []) {
+    const seg = nichoDe.get(String(t.place_id ?? ""));
+    if (seg && seg !== "fora") feitosSeg[seg as Segmento]++;
+  }
+  const totalSeg = feitosSeg.saude + feitosSeg.restaurante + feitosSeg.outros;
+  // Maior déficit primeiro (quanto falta para chegar na fatia do segmento depois do próximo envio)
+  const ordemSeg = (Object.keys(MIX) as Segmento[]).sort((a, b) => (MIX[b] * (totalSeg + 1) - feitosSeg[b]) - (MIX[a] * (totalSeg + 1) - feitosSeg[a]));
+  let filaBase = sb.from("outreach_leads").select("*").eq("wa_status", "pendente").not("whatsapp", "is", null);
+  if (cfg.exigir_aprovacao !== false) filaBase = filaBase.eq("msg_status", "aprovada");
+  if (jaTestados.length) filaBase = filaBase.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
+  const { data: fila } = await filaBase.order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(600);
+  let candidatos: any[] = [];
+  for (const seg of ordemSeg) {
+    candidatos = (fila ?? []).filter((l: any) => segmentoDoLead(l) === seg).slice(0, 10);
+    if (candidatos.length) break;
+  }
   if (!candidatos?.length) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });
 
   // Nunca duas SDRs no mesmo contato: quem já conversa com a gente (ficha na Gabi ou na Marina) só recebe
