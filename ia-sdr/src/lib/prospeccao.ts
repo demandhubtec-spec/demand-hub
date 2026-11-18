@@ -220,7 +220,11 @@ const RE_ALIMENTACAO = /aliment|restaur|lanch|pizz|hamburg|burger|confeit|doce|s
 
 /** Restaurante, lanchonete, doces, delivery etc. (pelo nicho, nome ou o que sabemos do perfil). */
 export function ehAlimentacao(p: Pick<Prospeccao, "nicho" | "empresa" | "observacoes">): boolean {
-  return RE_ALIMENTACAO.test(`${p.nicho ?? ""} ${p.empresa ?? ""} ${p.observacoes ?? ""}`);
+  // Clínica, imobiliária, advocacia etc. (a maioria do Google) nunca recebem o roteiro de restaurante (Kelvin, 17/11)
+  const nicho = (p.nicho ?? "").trim();
+  if (/cl[ií]nic|m[eé]dic|odont|dent|imobili|corretor|advoga|advoc|jur[ií]d|est[eé]tic|dermat|endocrin|nutri|psic|fisio|veterin|pet|contab|engenh|arquitet|escola|academia|sal[aã]o|barbear/i.test(`${nicho} ${p.empresa ?? ""}`)) return false;
+  if (nicho) return RE_ALIMENTACAO.test(nicho);
+  return RE_ALIMENTACAO.test(`${p.empresa ?? ""} ${p.observacoes ?? ""}`);
 }
 
 /** 17/11 (Kelvin): para alimentação, o carro-chefe é o cardápio digital próprio + IA no atendimento do pedido. */

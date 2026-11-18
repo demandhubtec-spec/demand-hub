@@ -135,3 +135,14 @@ test("17/11: robô que pede nome, aceite de assistente, nicho pet, reapresentaç
   assert.equal(pr.palavrasDoNicho("Pet shop").plural, "pet shops");
   assert.equal(pr.palavrasDoNicho("Clínica veterinária").plural, "clínicas veterinárias");
 });
+
+test("roteiro de restaurante só para alimentação (17/11)", async () => {
+  const { ehAlimentacao } = await import("../src/lib/prospeccao.ts");
+  const o = (nicho: string | null, empresa: string, observacoes: string | null = null) => ({ nicho, empresa, observacoes });
+  assert.equal(ehAlimentacao(o("Restaurantes e alimentação", "Cantina da Nona")), true);
+  assert.equal(ehAlimentacao(o(null, "Caipa e Brasa", "[Lista do Instagram] Comentou: \"Cardápio\"")), true);
+  assert.equal(ehAlimentacao(o("Clínica médica", "Clínica Check-Up Médico Campinas")), false);
+  assert.equal(ehAlimentacao(o("Imobiliária", "Geremias Dias Imóveis")), false);
+  assert.equal(ehAlimentacao(o("Odontologia", "Sorriso da Morada", "atende delivery de kit")), false);
+  assert.equal(ehAlimentacao(o(null, "Dr. Petrus Teixeira (dermatologia)", "Médico dermatologista")), false);
+});
