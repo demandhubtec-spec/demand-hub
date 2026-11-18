@@ -486,3 +486,74 @@ export function useVoltarVersao() {
     },
   });
 }
+
+/* ───────────── Comentários e temperatura do card (18/11/2026, Kelvin) ───────────── */
+export type Temperatura = "quente" | "morno" | "frio";
+export interface NotaCard {
+  id: string;
+  card: string;
+  texto: string;
+  criado_em: string;
+}
+
+/** Todos os comentários (para mostrar no card quantos tem e no prontuário o histórico). */
+export function useNotasCards() {
+  return useQuery({
+    queryKey: ["comercial", "card-notas"],
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<NotaCard[]> => {
+      const { data, error } = await supabase.from("comercial_card_notas").select("*").order("criado_em", { ascending: false }).limit(3000);
+      if (error) throw error;
+      return (data ?? []) as NotaCard[];
+    },
+  });
+}
+
+export function useComentarCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ card, texto }: { card: string; texto: string }) => {
+      const { error } = await supabase.from("comercial_card_notas").insert({ card, texto: texto.trim() });
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "card-notas"] }),
+  });
+}
+
+export function useApagarNotaCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("comercial_card_notas").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "card-notas"] }),
+  });
+}
+
+/** Temperatura escolhida à mão, por card. Vale acima da calculada pela conversa. */
+export function useTemperaturasManuais() {
+  return useQuery({
+    queryKey: ["comercial", "card-temperatura"],
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<Map<string, Temperatura>> => {
+      const { data, error } = await supabase.from("comercial_card_temperatura").select("card,temperatura");
+      if (error) throw error;
+      return new Map(((data ?? []) as { card: string; temperatura: Temperatura }[]).map((t) => [t.card, t.temperatura]));
+    },
+  });
+}
+
+/** temperatura null: volta para a automática (a da conversa). */
+export function useDefinirTemperatura() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ card, temperatura }: { card: string; temperatura: Temperatura | null }) => {
+      const r = temperatura
+        ? await supabase.from("comercial_card_temperatura").upsert({ card, temperatura, atualizado_em: new Date().toISOString() })
+        : await supabase.from("comercial_card_temperatura").delete().eq("card", card);
+      if (r.error) throw r.error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "card-temperatura"] }),
+  });
+}
