@@ -5,7 +5,7 @@ import { nomeDaSdr } from "./sdrs.ts";
 import { preencherVariaveis, promptGabiEmTexto, secaoFollowUp } from "./prompt-gabi.ts";
 import { formatBR, toLocal } from "./time.ts";
 import { nomeCurto } from "./travas.ts";
-import { contextoProspeccao, ehFluxoV2, type Prospeccao, varsPromptGabi } from "./prospeccao.ts";
+import { cidadeParaCitar, contextoProspeccao, ehFluxoV2, posicaoDeOutraCidade, type Prospeccao, varsPromptGabi } from "./prospeccao.ts";
 import { contextoAnuncio, type OrigemAnuncio } from "./anuncio.ts";
 
 const C = SDR_CONFIG;
@@ -157,7 +157,7 @@ function periodoDoDia(now: Date): string {
  * de apoio, hora e ficha do lead); o que ela faz e fala vem todo do Prompt System.
  */
 function systemPromptGabiV2(lead: Lead, meeting: Meeting | null, now: Date, p: Prospeccao, orientacoes: string[], anuncio: OrigemAnuncio | null, extra: string): string {
-  const prompt = promptGabiEmTexto(promptDaSdr(lead.agente), varsPromptGabi(p));
+  const prompt = promptGabiEmTexto(promptDaSdr(lead.agente), varsPromptGabi(p, lead.phone));
   return `Você é ${nomeDaSdr(lead.agente)}, da ${C.empresa.nome}, conversando pelo WhatsApp com uma empresa que VOCÊ procurou (prospecção ativa).
 
 ## Sobre a ${C.empresa.nome}
@@ -172,6 +172,7 @@ ${prompt}
 - Só se vier "[áudio]", "[imagem]", "[documento]" ou "[vídeo]" sem conteúdo, diga com naturalidade que não conseguiu abrir e peça para resumir por escrito.
 - "[resposta automática]" no histórico é robô da empresa, não uma pessoa.
 - Assistente virtual (18/11, La Palma): mensagem que começa com um nome seguido de 🤖 (ex.: "La Palma 🌴🤖: ...") ou que se apresenta como assistente é um robô de IA da empresa, mesmo quando conversa bem. Pode mandar o diagnóstico se ele aceitar, mas não faça pitch nem peça reunião para o robô: peça para encaminhar ao responsável e pergunte qual o melhor contato dele.
+- Cidade (18/11): o lead é de ${cidadeParaCitar(p, lead.phone)}. Só cite essa cidade ou região; nunca diga Indaiatuba ou Campinas para quem não é de lá.${posicaoDeOutraCidade(p) ? ` A posição no Google do diagnóstico foi medida numa busca de outra cidade: não cite essa posição, fale de fotos, descrição, avaliações, site ou Instagram.` : ""}
 - Mensagens com "[Equipe respondeu manualmente]" foram escritas pela nossa equipe: mantenha coerência com elas.
 - Se no histórico aparecer a Ana se apresentando, ela fazia esse atendimento antes; agora é você.
 - \`pedir_orientacao\`: quando não souber responder com segurança. Depois mande ao lead só uma mensagem curta e natural de espera.
@@ -190,7 +191,7 @@ export function followUpPromptProspeccaoV2(lead: Lead, attempt: number, now: Dat
   const h = toLocal(now).h;
   const saudacao = h < 12 ? "Oi, bom dia!" : h < 18 ? "Oi, boa tarde!" : "Oi, boa noite!";
   const secoes = promptDaSdr(lead.agente);
-  const vars = p ? varsPromptGabi(p) : {};
+  const vars = p ? varsPromptGabi(p, lead.phone) : {};
   const jeito = secoes.find((s) => /jeito|tom|fala/i.test(s.titulo));
   const nunca = secoes.find((s) => /nunca|proibid/i.test(s.titulo));
   const fu = secaoFollowUp(secoes);

@@ -15,7 +15,7 @@ const INTERVALO_MIN = 10;
 
 /** Mesma chave do pdf-render/rodar.mjs: muda quando o diagnóstico, a logo ou o site mudam. */
 export function chaveDoPdf(l: { diag_em?: string | null; marca?: { logo?: string | null } | null; site_tk?: string | null; site_em?: string | null }): string {
-  return [l.diag_em ?? "", l.marca?.logo ?? "nicho1", l.site_tk ?? "", l.site_em ?? ""].join("|");
+  return [l.diag_em ?? "", l.marca?.logo ?? "nicho2", l.site_tk ?? "", l.site_em ?? ""].join("|");
 }
 
 /** Quantos itens o robô tem para fazer: logos para conferir e PDFs para gerar. */

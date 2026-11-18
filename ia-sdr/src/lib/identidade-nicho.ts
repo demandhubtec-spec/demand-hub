@@ -11,7 +11,7 @@
  */
 import type { CoresMarca } from "./site-marca.ts";
 
-export type Simbolo = "molecula" | "dente" | "casa" | "pata" | "coracao" | "folha" | "olho" | "cruz" | "balanca" | "brilho" | "laco" | "mente" | "osso" | "bebe";
+export type Simbolo = "molecula" | "dente" | "casa" | "pata" | "coracao" | "folha" | "olho" | "cruz" | "balanca" | "brilho" | "laco" | "mente" | "osso" | "bebe" | "talher";
 
 interface Nicho {
   /** Palavras que identificam o nicho (nicho do Google ou nome da empresa). */
@@ -19,24 +19,33 @@ interface Nicho {
   simbolo: Simbolo;
   /** Especialidade que aparece embaixo do nome quando o nome não diz. */
   rotulo: string;
+  /** 18/11: se o nome da empresa já diz o que ela é ("Rayane Doces", "Beto Hamburgueria"), nada embaixo. */
+  nomeJaDiz?: RegExp;
   /** [destaque, fundo escuro, segunda cor] */
   paletas: [string, string, string][];
 }
 
 // Ordem importa: o mais específico antes (endocrinologia pediátrica antes de pediatria, por exemplo).
+// 18/11 (Kelvin): "Beto Hamburgueria & Espetaria" saiu como "Pet e veterinária" (o "pet" de esPETaria) e
+// "Rayane Doces" (nicho Alimentação) saiu como "Nutrição". Agora: alimentação, eventos e turismo têm nicho
+// próprio, as palavras curtas só valem inteiras e nicho desconhecido não ganha nada embaixo do nome.
+const COMIDA = /restaur|aliment|lanch|hamburg|burger|pizz|doce|confeit|bolo|padar|panific|cafeter|\bcaf[eé]\b|\bbar\b|boteco|espetar|churrasc|sorvet|gelat|a[cç]a[ií]|marmit|gastronom|bistr|salgad|\bp[aã]o\b|sushi|pastel|brigade|food/i;
 const NICHOS: Nicho[] = [
-  { chave: /endocrin|diabet|metabol|tireoid|horm/i, simbolo: "molecula", rotulo: "Endocrinologia", paletas: [["#1E8C86", "#0B2E33", "#C9A45C"], ["#3F7D6E", "#13302A", "#D8B98A"], ["#2B6F8F", "#0C2533", "#7FC8C2"], ["#8A5A7A", "#2A1A26", "#D9B7A0"], ["#4A6FA5", "#121E33", "#E0A96D"]] },
-  { chave: /odonto|dent|sorriso|implant|ortodon/i, simbolo: "dente", rotulo: "Odontologia", paletas: [["#0E8FB8", "#062B3D", "#7ED3E8"], ["#1B6FB3", "#0A2240", "#56C2C9"], ["#14928A", "#08302D", "#9ADBD3"], ["#5A6FB5", "#151B38", "#9FD3E0"], ["#2D7F9A", "#0D2530", "#E7B56A"]] },
-  { chave: /pediatr|infantil|crian/i, simbolo: "bebe", rotulo: "Pediatria", paletas: [["#3A8DDE", "#102A4C", "#F28C6B"], ["#2FA39A", "#0D3532", "#F6B860"]] },
-  { chave: /dermat|pele|estetic|harmoniza|beleza|spa\b|cosmet/i, simbolo: "brilho", rotulo: "Estética e dermatologia", paletas: [["#B8846B", "#3A2620", "#E2C2A8"], ["#A86F7A", "#35202A", "#E8C9B8"], ["#9C7A54", "#2E2418", "#D9C3A0"]] },
-  { chave: /cardio|cora[cç]/i, simbolo: "coracao", rotulo: "Cardiologia", paletas: [["#B83A4B", "#2E0F18", "#E9A5A0"], ["#9E2F45", "#1F1A2E", "#5B7DB1"]] },
+  { chave: COMIDA, simbolo: "talher", rotulo: "Gastronomia", nomeJaDiz: COMIDA, paletas: [["#C0502E", "#2A140C", "#E8B04A"], ["#B5762A", "#2A1C0E", "#7FA35A"], ["#A33B3B", "#241010", "#E2A85C"]] },
+  { chave: /evento|festa|buffet|cerimon|casament|pegue e monte|brinquedo/i, simbolo: "brilho", rotulo: "Festas e eventos", nomeJaDiz: /evento|festa|buffet|decora|casament|pegue e monte/i, paletas: [["#C2477A", "#2C1220", "#F2B544"], ["#7A4FB0", "#21163A", "#F2A6C2"], ["#E07A2E", "#2B1A10", "#5CC0B0"]] },
+  { chave: /pousad|hotel|hostel|viag|turism|hosped|chal[eé]|resort/i, simbolo: "casa", rotulo: "Turismo e hospedagem", nomeJaDiz: /pousad|hotel|hostel|viag|turism|chal[eé]|resort|loft/i, paletas: [["#2E8A9E", "#0C2830", "#E8B04A"], ["#3F7D4E", "#13281A", "#E39B5B"]] },
+  { chave: /endocrin|diabet|metabol|tireoid|horm[oô]n/i, simbolo: "molecula", rotulo: "Endocrinologia", paletas: [["#1E8C86", "#0B2E33", "#C9A45C"], ["#3F7D6E", "#13302A", "#D8B98A"], ["#2B6F8F", "#0C2533", "#7FC8C2"], ["#8A5A7A", "#2A1A26", "#D9B7A0"], ["#4A6FA5", "#121E33", "#E0A96D"]] },
+  { chave: /odonto|dentist|\bdent|sorriso|implant|ortodon/i, simbolo: "dente", rotulo: "Odontologia", paletas: [["#0E8FB8", "#062B3D", "#7ED3E8"], ["#1B6FB3", "#0A2240", "#56C2C9"], ["#14928A", "#08302D", "#9ADBD3"], ["#5A6FB5", "#151B38", "#9FD3E0"], ["#2D7F9A", "#0D2530", "#E7B56A"]] },
+  { chave: /pediatr|\bcrian[cç]a/i, simbolo: "bebe", rotulo: "Pediatria", paletas: [["#3A8DDE", "#102A4C", "#F28C6B"], ["#2FA39A", "#0D3532", "#F6B860"]] },
+  { chave: /dermat|\bpele\b|est[eé]tic|harmoniza|beleza|\bspa\b|cosmet/i, simbolo: "brilho", rotulo: "Estética e dermatologia", paletas: [["#B8846B", "#3A2620", "#E2C2A8"], ["#A86F7A", "#35202A", "#E8C9B8"], ["#9C7A54", "#2E2418", "#D9C3A0"]] },
+  { chave: /cardio|cora[cç][aã]o/i, simbolo: "coracao", rotulo: "Cardiologia", paletas: [["#B83A4B", "#2E0F18", "#E9A5A0"], ["#9E2F45", "#1F1A2E", "#5B7DB1"]] },
   { chave: /onco|c[aâ]ncer/i, simbolo: "laco", rotulo: "Oncologia", paletas: [["#7B4FB0", "#24163A", "#E0A8C8"], ["#6A5ACD", "#1C1838", "#9ED8C8"]] },
-  { chave: /gineco|obstet|mulher|maternid|fertil/i, simbolo: "coracao", rotulo: "Saúde da mulher", paletas: [["#C0567A", "#3A1626", "#E9B7A6"], ["#A85C7F", "#2C1A27", "#D8B48C"]] },
-  { chave: /oftalm|vis[aã]o|olho|[oó]tica/i, simbolo: "olho", rotulo: "Oftalmologia", paletas: [["#1C6FD1", "#0B1F3F", "#5CC8E0"], ["#2A7F9E", "#0C2A36", "#F0B54A"]] },
-  { chave: /ortoped|fisio|coluna|esport|pilates|quiropr/i, simbolo: "osso", rotulo: "Ortopedia e reabilitação", paletas: [["#1F7A5A", "#0B2A22", "#7CC4A4"], ["#2563B0", "#0D1F3A", "#5BC0A0"]] },
-  { chave: /psic|psiq|terap|mente|neuro/i, simbolo: "mente", rotulo: "Saúde mental", paletas: [["#6E7FB5", "#1E2238", "#B9C9A8"], ["#7A9A7E", "#1E2A22", "#C8B6D8"]] },
-  { chave: /nutri|aliment|emagrec/i, simbolo: "folha", rotulo: "Nutrição", paletas: [["#4F9A3A", "#17301A", "#F2B544"], ["#2F8F6A", "#0E2D22", "#E8A15C"]] },
-  { chave: /vet|pet|animal|agro|ra[cç][aã]o|banho e tosa/i, simbolo: "pata", rotulo: "Pet e veterinária", paletas: [["#E07A2E", "#2B1A10", "#3FA27A"], ["#2E9A6A", "#0F2A20", "#F2A93B"]] },
+  { chave: /gineco|obstet|sa[uú]de da mulher|maternid|fertil/i, simbolo: "coracao", rotulo: "Saúde da mulher", paletas: [["#C0567A", "#3A1626", "#E9B7A6"], ["#A85C7F", "#2C1A27", "#D8B48C"]] },
+  { chave: /oftalm|\bvis[aã]o\b|\bolhos?\b|[oó]tica/i, simbolo: "olho", rotulo: "Oftalmologia", paletas: [["#1C6FD1", "#0B1F3F", "#5CC8E0"], ["#2A7F9E", "#0C2A36", "#F0B54A"]] },
+  { chave: /ortoped|fisio|coluna|pilates|quiropr/i, simbolo: "osso", rotulo: "Ortopedia e reabilitação", paletas: [["#1F7A5A", "#0B2A22", "#7CC4A4"], ["#2563B0", "#0D1F3A", "#5BC0A0"]] },
+  { chave: /psic|psiq|terap|sa[uú]de mental|neuro/i, simbolo: "mente", rotulo: "Saúde mental", paletas: [["#6E7FB5", "#1E2238", "#B9C9A8"], ["#7A9A7E", "#1E2A22", "#C8B6D8"]] },
+  { chave: /nutricion|nutri[cç][aã]o|nutr[oó]log|emagrec/i, simbolo: "folha", rotulo: "Nutrição", paletas: [["#4F9A3A", "#17301A", "#F2B544"], ["#2F8F6A", "#0E2D22", "#E8A15C"]] },
+  { chave: /\bvet|veterin|\bpets?\b|pet ?shop|animal|agropec|\bagro\b|ra[cç][aã]o|banho e tosa/i, simbolo: "pata", rotulo: "Pet e veterinária", paletas: [["#E07A2E", "#2B1A10", "#3FA27A"], ["#2E9A6A", "#0F2A20", "#F2A93B"]] },
   { chave: /imob|im[oó]ve|corret|haras|condom|loteam/i, simbolo: "casa", rotulo: "Negócios imobiliários", paletas: [["#B08A3E", "#111C2E", "#1F3A5F"], ["#C26B2E", "#1D1F24", "#8C9AA8"], ["#2C6E63", "#0F1F1C", "#C9A45C"]] },
   { chave: /advoc|jur[ií]d|direito|contab/i, simbolo: "balanca", rotulo: "Advocacia", paletas: [["#A8843F", "#121A2B", "#5E6F8A"], ["#8C2F3A", "#1A1418", "#B89A5E"]] },
   { chave: /anestes|cl[ií]nica|m[eé]dic|sa[uú]de|hospital|laborat|exame/i, simbolo: "cruz", rotulo: "Clínica médica", paletas: [["#1F6F9E", "#0B2236", "#4FB3A5"], ["#2E7D6B", "#0E2822", "#7FB6D6"], ["#3157A8", "#101C38", "#62C1B5"]] },
@@ -57,8 +66,8 @@ function hash(s: string): number {
 }
 
 export function nichoDe(nicho: string | null | undefined, empresa = ""): Nicho {
-  const alvo = `${nicho ?? ""} ${empresa}`;
-  return NICHOS.find((n) => n.chave.test(nicho ?? "")) ?? NICHOS.find((n) => n.chave.test(alvo)) ?? PADRAO;
+  // Primeiro pelo nicho do Google; se ele não diz nada ("Outro", "Casa de verão"), pelo nome da empresa
+  return NICHOS.find((n) => n.chave.test(nicho ?? "")) ?? NICHOS.find((n) => n.chave.test(empresa)) ?? PADRAO;
 }
 
 /** Paleta do nicho para quem não tem logo (mesmo formato da paleta tirada da logo). */
@@ -84,9 +93,11 @@ export function nomeDaMarca(empresa: string, nicho?: string | null): { nome: str
   const nome = partes[0] || limpo || empresa;
   const pessoa = DOUTOR.test(nome);
   const resto = partes.slice(1).join(" · ").replace(/\s+em\s+[A-ZÀ-Ú][\wÀ-ú ]+$/u, "").trim();
-  const rotulo = nichoDe(nicho, empresa).rotulo || (nicho ?? "");
+  const n = nichoDe(nicho, empresa);
+  // 18/11: nicho que não conhecemos ("Casa de verão", "Outro") não vai embaixo do nome: melhor nada que errado
+  const rotulo = n.rotulo;
   // Não repete o que o nome já diz ("FM Cardoso Negócios Imobiliários" não ganha "Negócios imobiliários" embaixo)
-  const repete = rotulo && nome.toLowerCase().includes(rotulo.split(/\s+/).pop()!.toLowerCase().slice(0, 6));
+  const repete = !!rotulo && (nome.toLowerCase().includes(rotulo.split(/\s+/).pop()!.toLowerCase().slice(0, 6)) || !!n.nomeJaDiz?.test(nome));
   const sub = resto || (repete ? "" : rotulo);
   return { nome, sub: sub.length > 44 ? sub.slice(0, 44).replace(/\s+\S*$/, "") : sub, pessoa };
 }
