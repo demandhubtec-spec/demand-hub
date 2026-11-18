@@ -12,7 +12,20 @@ import { useToast } from "@/components/ui/toast";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { type Contato, useContatos, useConversa, useEtapaInbound, useLixeira } from "@/hooks/useCrm";
 import { chamarSdr, type OutreachLead, useOutreachLeads, useUpdateLead } from "@/hooks/useProspeccao";
-import { type EtapaLista, type ListaExtra, type ListaLead, useAtualizarListaLead, useCriarLeadManual, useListaLeads } from "@/hooks/useComercial";
+import {
+  type EtapaLista,
+  type ListaExtra,
+  type ListaLead,
+  type Temperatura,
+  useApagarNotaCard,
+  useAtualizarListaLead,
+  useComentarCard,
+  useCriarLeadManual,
+  useDefinirTemperatura,
+  useListaLeads,
+  useNotasCards,
+  useTemperaturasManuais,
+} from "@/hooks/useComercial";
 import { cn } from "@/lib/utils";
 import { FichaLead } from "../prospeccao/FichaLead";
 import { fmtData } from "../prospeccao/shared";
@@ -73,7 +86,9 @@ interface Linha {
   item: CardItem;
 }
 
-/** Temperatura do card: a da conversa (sdr_leads) quando existe; senão a nota da lista. */
+type NotaCardItem = { id: string; card: string; texto: string; criado_em: string };
+
+/** Temperatura do card: a escolhida à mão (18/11); senão a da conversa (sdr_leads); senão a nota da lista. */
 const TEMP = { quente: "Quente", morno: "Morno", frio: "Frio" } as const;
 const notaDoSdr = (sdr: { temperatura?: keyof typeof TEMP | null } | undefined) => (sdr?.temperatura ? TEMP[sdr.temperatura] : null);
 
@@ -91,6 +106,8 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   const { data: prospeccao = [], isLoading: l1 } = useOutreachLeads();
   const { contatos, isLoading: l2 } = useContatos();
   const { data: listas = [], isLoading: l3 } = useListaLeads();
+  const { data: notasCards = [] } = useNotasCards();
+  const { data: tempManual } = useTemperaturasManuais();
   const updateLead = useUpdateLead();
   const atualizarLista = useAtualizarListaLead();
   const mudarInbound = useEtapaInbound();
@@ -210,8 +227,15 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
         },
       });
     }
-    return out;
-  }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace]);
+    // 18/11: a temperatura escolhida à mão vale acima da calculada, e o card mostra o último comentário
+    const ultimo = new Map<string, string>();
+    for (const n of notasCards) if (!ultimo.has(n.card)) ultimo.set(n.card, n.texto);
+    return out.map((l) => {
+      const t = tempManual?.get(l.id);
+      const c = ultimo.get(l.id);
+      return t || c ? { ...l, item: { ...l.item, nota: t ? TEMP[t] : l.item.nota, comentario: c ?? null } } : l;
+    });
+  }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace, notasCards, tempManual]);
 
   const conta = React.useMemo(() => {
     const m = new Map<OrigemLead, number>();
@@ -428,6 +452,8 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
             setFichaCompleta(aberto.reg);
             setAberto(null);
           }}
+          notas={notasCards.filter((n) => n.card === aberto.id)}
+          tempManual={tempManual?.get(aberto.id) ?? null}
         />
       )}
       {fichaCompleta?.tipo === "google" && <FichaLead lead={fichaCompleta.lead} onClose={() => setFichaCompleta(null)} />}
@@ -694,6 +720,8 @@ function Prontuario({
   onClose,
   abrirConversa,
   fichaCompleta,
+  notas,
+  tempManual,
 }: {
   linha: Linha;
   etapaNome: string;
@@ -703,8 +731,22 @@ function Prontuario({
   onClose: () => void;
   abrirConversa: (id: string) => void;
   fichaCompleta: () => void;
+  notas: NotaCardItem[];
+  tempManual: Temperatura | null;
 }) {
   const [aba, setAba] = React.useState<"resumo" | "conversa" | "dados">("resumo");
+  const [texto, setTexto] = React.useState("");
+  const comentar = useComentarCard();
+  const apagarNota = useApagarNotaCard();
+  const definirTemp = useDefinirTemperatura();
+  const { showToast } = useToast();
+  const salvarComentario = () => {
+    if (!texto.trim()) return;
+    comentar.mutate(
+      { card: linha.id, texto },
+      { onSuccess: () => setTexto(""), onError: (e) => showToast(`Não salvou o comentário: ${(e as Error).message}`) },
+    );
+  };
   const { data: msgs = [], isLoading } = useConversa(sdr?.id ?? null);
   const fimChat = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => {
@@ -771,6 +813,26 @@ function Prontuario({
                 </option>
               ))}
             </select>
+            {/* Temperatura à mão (18/11): vale acima da calculada pela conversa */}
+            <select
+              value={tempManual ?? ""}
+              onChange={(e) =>
+                definirTemp.mutate(
+                  { card: linha.id, temperatura: (e.target.value || null) as Temperatura | null },
+                  { onError: (er) => showToast(`Não salvou a temperatura: ${(er as Error).message}`) },
+                )
+              }
+              title="Temperatura do lead. Automática: calculada pela conversa no WhatsApp."
+              className={cn(
+                "h-[22px] rounded-[6px] border-0 px-2 text-[12px] font-medium",
+                it.nota === "Quente" ? "bg-positive-tint text-positive" : it.nota === "Morno" ? "bg-attention-tint text-attention" : "bg-surface-2 text-muted",
+              )}
+            >
+              <option value="">{`Automática${!tempManual && it.nota ? ` (${it.nota})` : ""}`}</option>
+              <option value="quente">Quente</option>
+              <option value="morno">Morno</option>
+              <option value="frio">Frio</option>
+            </select>
             {it.aviso && <span className="inline-flex h-[22px] items-center rounded-[6px] bg-attention-tint px-2 text-[12px] font-medium text-attention">{it.aviso}</span>}
           </div>
           <div className="mt-4 flex gap-5">
@@ -782,6 +844,43 @@ function Prontuario({
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {aba === "resumo" && (
             <div className="space-y-5">
+              {/* Comentários do Kelvin (18/11): o que aconteceu fora do WhatsApp, próximos passos, combinados */}
+              <section>
+                <div className="mb-1.5 text-[12px] font-semibold text-muted">Seus comentários{notas.length ? ` (${notas.length})` : ""}</div>
+                <textarea
+                  value={texto}
+                  onChange={(e) => setTexto(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) salvarComentario();
+                  }}
+                  rows={2}
+                  placeholder="Escreva o que aconteceu ou o próximo passo (ex.: apresentei a proposta, ele vai pensar e volta segunda)"
+                  className="w-full resize-y rounded-[8px] border border-border bg-white p-2.5 text-[14px] leading-relaxed outline-none focus:border-primary"
+                />
+                <div className="mt-1.5 flex justify-end">
+                  <Button size="sm" onClick={salvarComentario} disabled={!texto.trim() || comentar.isPending}>
+                    {comentar.isPending ? "Salvando…" : "Comentar"}
+                  </Button>
+                </div>
+                {notas.length > 0 && (
+                  <ul className="mt-2 space-y-2">
+                    {notas.map((n) => (
+                      <li key={n.id} className="group rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-[14px] leading-relaxed">
+                        <div className="whitespace-pre-wrap">{n.texto}</div>
+                        <div className="mt-1 flex items-center text-[12px] text-muted">
+                          {fmtData(n.criado_em)}
+                          <button
+                            onClick={() => window.confirm("Apagar este comentário?") && apagarNota.mutate(n.id)}
+                            className="ml-auto opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
+                          >
+                            Apagar
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
               <section>
                 <div className="mb-1.5 text-[12px] font-semibold text-muted">
                   Resumo da conversa{sdr?.updated_at ? ` · atualizado ${fmtData(sdr.updated_at)}` : ""}
