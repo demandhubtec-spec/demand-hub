@@ -45,6 +45,12 @@ const TRACOS: Record<Simbolo, React.ReactNode> = {
     </>
   ),
   cruz: <path d="M9.5 3.5h5v6h6v5h-6v6h-5v-6h-6v-5h6z" />,
+  talher: (
+    <>
+      <path d="M6 3.5v4.5a2 2 0 004 0V3.5M8 3.5v17" />
+      <path d="M17.5 20.5V3.5c-2.2 1.4-3.2 4-3.2 7.5h3.2" />
+    </>
+  ),
   balanca: (
     <>
       <path d="M12 3.5v17M7.5 20.5h9M4.5 7h15" />
