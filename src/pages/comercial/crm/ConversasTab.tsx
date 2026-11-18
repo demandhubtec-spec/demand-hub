@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowLeft, Bot, PauseCircle } from "lucide-react";
+import { ArrowLeft, Bot, ChevronDown, PauseCircle, SlidersHorizontal } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -44,6 +44,7 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
   const [sdr, setSdr] = React.useState<FiltroSdr>("todas");
   const [origens, setOrigens] = React.useState<OrigemLead[]>([]);
   const [esperando, setEsperando] = React.useState(false);
+  const [abertos, setAbertos] = React.useState(false);
   const [busca, setBusca] = React.useState("");
   const [mobileLista, setMobileLista] = React.useState(!leadId);
 
@@ -66,6 +67,7 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
     .filter((c) => !origens.length || origens.includes(origemDe.get(c.id)!))
     .filter((c) => !esperando || ehEsperando(c))
     .filter((c) => !busca.trim() || `${c.nomeExibicao} ${c.nome ?? ""} ${c.phone}`.toLowerCase().includes(busca.trim().toLowerCase()));
+  const ativos = (filtro !== "todas" ? 1 : 0) + origens.length + (esperando ? 1 : 0);
   const chip = (ativo: boolean) => cn("rounded-full border px-2.5 py-0.5 text-[12px]", ativo ? "border-primary text-ink" : "border-border text-muted");
   const atual = contatos.find((c) => c.id === leadId) ?? null;
 
@@ -74,46 +76,75 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
       <Card className={cn("flex h-[640px] flex-col overflow-hidden", !mobileLista && atual && "hidden lg:flex")}>
         <div className="border-b border-border p-3">
           <Input placeholder="Buscar conversa" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {(["todas", "prospeccao", "inbound"] as Filtro[]).map((f) => (
-              <button key={f} onClick={() => setFiltro(f)} className={chip(filtro === f)}>
-                {f === "todas" ? "Todas" : f === "prospeccao" ? "Prospecção" : "Inbound"}
-              </button>
-            ))}
-          </div>
-          {/* Quem conversou: Gabi ou Marina (cada uma no seu número) */}
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {(["todas", "gabi", "marina"] as FiltroSdr[]).map((f) => (
-              <button key={f} onClick={() => setSdr(f)} className={chip(sdr === f)}>
-                {f === "todas" ? "Gabi e Marina" : f === "gabi" ? "Gabi" : "Marina"}
-              </button>
-            ))}
-            <button onClick={() => setEsperando(!esperando)} className={chip(esperando)} title="A última mensagem foi do contato">
-              Esperando resposta
+          {/* 17/11 (Kelvin): um botão só de filtros, em sanfona, e ao lado Gabi / Marina */}
+          <div className="mt-2 flex items-center gap-2">
+            <button
+              onClick={() => setAbertos(!abertos)}
+              className={cn("inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[12px] font-semibold", ativos ? "border-primary text-ink" : "border-border text-muted")}
+              aria-expanded={abertos}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              Filtros{ativos ? ` (${ativos})` : ""}
+              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", abertos && "rotate-180")} />
             </button>
-          </div>
-          {/* Canal de origem, com as mesmas tags do funil; dá para marcar mais de um */}
-          <div className="mt-1.5 flex flex-wrap gap-1.5">
-            {ORIGENS.filter((o) => contaOrigem.get(o.k) || origens.includes(o.k)).map((o) => {
-              const ativo = origens.includes(o.k);
-              return (
-                <button
-                  key={o.k}
-                  onClick={() => setOrigens(ativo ? origens.filter((x) => x !== o.k) : [...origens, o.k])}
-                  className="rounded-full border px-2.5 py-0.5 text-[12px]"
-                  style={ativo ? { borderColor: o.cor, color: o.cor, background: o.fundo } : undefined}
-                  title={`${o.nome} · ${o.grupo}`}
-                >
-                  {o.k === "google" ? "Google" : o.k === "anuncio" ? "Anúncio (inbound)" : o.nome} {contaOrigem.get(o.k) ?? 0}
+            <div className="ml-auto inline-flex overflow-hidden rounded-full border border-border text-[12px]">
+              {(["todas", "gabi", "marina"] as FiltroSdr[]).map((f) => (
+                <button key={f} onClick={() => setSdr(f)} className={cn("px-2.5 py-1", sdr === f ? "bg-primary/15 font-semibold text-ink" : "text-muted")}>
+                  {f === "todas" ? "Todas" : f === "gabi" ? "Gabi" : "Marina"}
                 </button>
-              );
-            })}
-            {origens.length > 0 && (
-              <button onClick={() => setOrigens([])} className="px-1 text-[12px] text-muted underline">
-                limpar
-              </button>
-            )}
+              ))}
+            </div>
           </div>
+          {abertos && (
+            <div className="mt-2 space-y-2 rounded-[8px] border border-border p-2">
+              <div>
+                <div className="mb-1 text-[12px] font-semibold text-muted">Tipo</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {(["todas", "prospeccao", "inbound"] as Filtro[]).map((f) => (
+                    <button key={f} onClick={() => setFiltro(f)} className={chip(filtro === f)}>
+                      {f === "todas" ? "Todos" : f === "prospeccao" ? "Prospecção" : "Inbound"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-1 text-[12px] font-semibold text-muted">Canal de origem</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {ORIGENS.filter((o) => contaOrigem.get(o.k) || origens.includes(o.k)).map((o) => {
+                    const ativo = origens.includes(o.k);
+                    return (
+                      <button
+                        key={o.k}
+                        onClick={() => setOrigens(ativo ? origens.filter((x) => x !== o.k) : [...origens, o.k])}
+                        className="rounded-full border px-2.5 py-0.5 text-[12px]"
+                        style={ativo ? { borderColor: o.cor, color: o.cor, background: o.fundo } : undefined}
+                        title={`${o.nome} · ${o.grupo}`}
+                      >
+                        {o.k === "google" ? "Google" : o.k === "anuncio" ? "Anúncio (inbound)" : o.nome} {contaOrigem.get(o.k) ?? 0}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="flex items-center justify-between">
+                <button onClick={() => setEsperando(!esperando)} className={chip(esperando)} title="A última mensagem foi do contato">
+                  Esperando resposta
+                </button>
+                {ativos > 0 && (
+                  <button
+                    onClick={() => {
+                      setFiltro("todas");
+                      setOrigens([]);
+                      setEsperando(false);
+                    }}
+                    className="px-1 text-[12px] text-muted underline"
+                  >
+                    limpar filtros
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
           <div className="mt-1.5 text-[12px] text-muted">{lista.length} conversa{lista.length === 1 ? "" : "s"}</div>
         </div>
         <div className="flex-1 overflow-y-auto">
