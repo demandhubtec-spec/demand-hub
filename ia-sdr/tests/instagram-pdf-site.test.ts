@@ -115,7 +115,7 @@ test("sem logo: identidade criada pelo padrão do nicho", async () => {
 test("robô do PDF: chave igual à do robô e sem token não dispara", async () => {
   const { chaveDoPdf, dispararRoboPdf } = await import("../src/lib/robo-pdf.ts");
   assert.equal(chaveDoPdf({ diag_em: "d", marca: { logo: "L" }, site_tk: "t", site_em: "e" }), "d|L|t|e");
-  assert.equal(chaveDoPdf({ diag_em: "d", marca: null, site_tk: null, site_em: null }), "d|nicho1||");
+  assert.equal(chaveDoPdf({ diag_em: "d", marca: null, site_tk: null, site_em: null }), "d|nicho2||");
   const antes = process.env.GITHUB_ROBO_TOKEN;
   delete process.env.GITHUB_ROBO_TOKEN;
   assert.deepEqual(await dispararRoboPdf(), { skipped: "sem GITHUB_ROBO_TOKEN" });
