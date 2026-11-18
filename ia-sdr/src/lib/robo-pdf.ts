@@ -23,7 +23,7 @@ export async function trabalhoDoRobo(): Promise<{ logos: number; pdfs: number }>
   const { count: logos } = await db()
     .from("outreach_leads")
     .select("place_id", { count: "exact", head: true })
-    .eq("wa_status", "pendente")
+    .or("wa_status.eq.pendente,pdf_pedido.is.true")
     .in("rita_status", ["pendente", "aprovado", "ajuste"])
     .is("marca->>logo_checado", null);
   const { data } = await db()
@@ -31,7 +31,7 @@ export async function trabalhoDoRobo(): Promise<{ logos: number; pdfs: number }>
     .select("marca,diag_em:diagnosticos->>gerado_em,site_tk:site_preview->>token,site_em:site_preview->>gerado_em")
     .not("relatorio_token", "is", null)
     .in("duda_status", ["pendente", "aprovado"])
-    .eq("wa_status", "pendente")
+    .or("wa_status.eq.pendente,pdf_pedido.is.true")
     .limit(300);
   const itens = (data ?? []) as unknown as { marca: { logo?: string | null; pdf_chave?: string | null } | null; diag_em: string | null; site_tk: string | null; site_em: string | null }[];
   const pdfs = itens.filter((l) => l.diag_em && l.marca?.pdf_chave !== chaveDoPdf(l)).length;

@@ -394,6 +394,9 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
     for (const l of leads) {
       await diagnosticar1(l, perfis).then(() => feitos++).catch((e) => console.error("Rita falhou", l.place_id, e));
     }
+    // 17/11 (Kelvin): "pode montar todos os diagnósticos" — leads antigos que pediram o PDF não esperam aprovação
+    const idsPedidos = ((pedidos ?? []) as unknown as LeadRita[]).map((l) => l.place_id);
+    if (idsPedidos.length) await db().from("outreach_leads").update({ rita_status: "aprovado" }).in("place_id", idsPedidos).eq("rita_status", "pendente");
     out.rita = feitos;
   }
 
@@ -412,7 +415,7 @@ export async function runRitaEDuda(): Promise<Record<string, unknown>> {
   const daDuda = ((d ?? []) as unknown as (LeadDuda & { wa_status?: string; pdf_pedido?: boolean })[]).filter((x) => x.wa_status === "pendente" || x.pdf_pedido);
   for (const l of daDuda.filter((x) => !esperandoLogo(x)).slice(0, POR_RODADA)) {
     try {
-      const patch: Record<string, unknown> = { duda_status: "pendente", duda_nota: null };
+      const patch: Record<string, unknown> = { duda_status: l.pdf_pedido && l.wa_status !== "pendente" ? "aprovado" : "pendente", duda_nota: null };
       // Logo guardada com a gente: link do Instagram expira e o PDF/relatório ficaria sem a logo
       if (l.marca?.logo && /^https?:/i.test(l.marca.logo) && !l.marca.logo.includes("/storage/v1/object/public/")) {
         const guardada = await guardarImagem(l.marca.logo, `marcas/${l.place_id.replace(/[^A-Za-z0-9_-]/g, "")}`);

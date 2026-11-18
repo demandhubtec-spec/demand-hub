@@ -58,12 +58,12 @@ async function subir(caminho, corpo, tipo) {
 
 const filaLogos = () =>
   rest(
-    `outreach_leads?select=place_id,empresa,site,instagram,marca,duda_status,site_preview&wa_status=eq.pendente&rita_status=in.(pendente,aprovado,ajuste)&marca->>logo_checado=is.null&limit=25`,
+    `outreach_leads?select=place_id,empresa,site,instagram,marca,duda_status,site_preview&or=(wa_status.eq.pendente,pdf_pedido.is.true)&rita_status=in.(pendente,aprovado,ajuste)&marca->>logo_checado=is.null&limit=25`,
   );
 
 async function filaPdfs() {
   const sel = "place_id,empresa,relatorio_token,marca,diag_em:diagnosticos->>gerado_em,site_tk:site_preview->>token,site_em:site_preview->>gerado_em";
-  const itens = await rest(`outreach_leads?select=${encodeURIComponent(sel)}&relatorio_token=not.is.null&duda_status=in.(pendente,aprovado)&wa_status=eq.pendente&limit=200`);
+  const itens = await rest(`outreach_leads?select=${encodeURIComponent(sel)}&relatorio_token=not.is.null&duda_status=in.(pendente,aprovado)&or=(wa_status.eq.pendente,pdf_pedido.is.true)&limit=200`);
   return itens.filter((l) => l.diag_em && l.marca?.pdf_chave !== chaveDoPdf(l));
 }
 
