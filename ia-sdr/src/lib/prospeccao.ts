@@ -341,6 +341,11 @@ const AUTO_FORTE = [
   /nunca solicita pagamento|nao caia em golpe/,
   /contato e exclusivo para mensagens/,
   /para (comecarmos|iniciarmos|agilizar (o |seu )?atendimento)/,
+  // 18/11: Buffet Moleka Fest e La Palma (robô com menu e "em instantes um atendente falará com você")
+  /para darmos continuidade (ao|no|com o) (seu )?atendimento/,
+  /responda com a opcao/,
+  /em instantes (um|uma|nosso|nossa) (atendente|consultor)/,
+  /atendente (falara|vai falar|ira falar|ja vai falar) com voce/,
   // 14/11: menu numérico (Prime Machado) e "recebemos a sua mensagem"
   /responda (somente |apenas )?com o numero/,
   /recebemos (a |sua |a sua )?mensage(m|ns)\W+(em breve|logo)/,
@@ -388,7 +393,7 @@ const AUTO_FRACO = [
  */
 export function roboPedeNome(texto: string): boolean {
   const t = sem(texto ?? "").replace(/[*_~]/g, "");
-  return /(informe|digite|escreva|me diga|me informe) (o |so |apenas )?(seu |o seu |teu )?(primeiro )?nome\b(?! e (o )?(assunto|sobrenome))|como (voce )?(prefere ser chamad|gostaria de ser chamad|se chama)|como e (o )?seu nome/.test(t);
+  return /(informe|informar|digite|escreva|me diga|me informe|nos informar) (o |so |apenas )?(seu |o seu |teu )?(primeiro )?nome\b(?! e (o )?(assunto|sobrenome))|como (voce )?(prefere ser chamad|gostaria de ser chamad|se chama)|como e (o )?seu nome/.test(t);
 }
 
 export function roboPedeRecado(texto: string): boolean {

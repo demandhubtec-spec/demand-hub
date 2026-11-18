@@ -190,7 +190,10 @@ async function reply(leadId: string) {
         }
       } catch (e) {
         console.error(`Erro na ferramenta ${call.function.name}:`, e);
-        out = `Erro ao executar ${call.function.name}. Siga a conversa sem essa ação ou use encaminhar_humano.`;
+        // 18/11 (Pizza do Crispim): o PDF não saiu e a Gabi parou para pedir orientação ao Kelvin
+        out = call.function.name === "enviar_diagnostico"
+          ? "O PDF não saiu agora (WhatsApp instável). Não diga que enviou nem que separou. Se o lead ainda não aceitou, pergunte se pode mandar o diagnóstico por aqui; se já aceitou, diga que manda em instantes. Não peça orientação por isso."
+          : `Erro ao executar ${call.function.name}. Siga a conversa sem essa ação ou use encaminhar_humano.`;
       }
       messages.push({ role: "tool", tool_call_id: call.id, content: out });
     }
