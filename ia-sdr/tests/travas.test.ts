@@ -182,3 +182,28 @@ test("telefoneBR: fixo e celular", async () => {
   assert.equal(telefoneBR("551156772767"), "(11) 5677-2767");
   assert.equal(telefoneBR("5511977638660"), "(11) 97763-8660");
 });
+
+test("cidade para citar: cadastrada, senão região do DDD, senão todo o Brasil (18/11)", async () => {
+  const { cidadeParaCitar, regiaoDoTelefone, posicaoDeOutraCidade } = await import("../src/lib/prospeccao.ts");
+  assert.equal(cidadeParaCitar({ cidade: "Canoas / RS" }, "5551994178347"), "Canoas");
+  assert.equal(cidadeParaCitar({ cidade: null }, "5531984102363"), "Belo Horizonte e região");
+  assert.equal(cidadeParaCitar({ cidade: null }, "5511966378046"), "São Paulo e região");
+  assert.equal(cidadeParaCitar({ cidade: null }, "123"), "todo o Brasil");
+  assert.equal(regiaoDoTelefone("5519991300018"), "Campinas e região");
+  assert.equal(posicaoDeOutraCidade({ cidade: "São Carlos", diagnostico: { posicao: { tipo: "busca", termo: "dedetização Indaiatuba SP" } } } as never), true);
+  assert.equal(posicaoDeOutraCidade({ cidade: "Indaiatuba", diagnostico: { posicao: { tipo: "busca", termo: "imobiliária Indaiatuba SP" } } } as never), false);
+});
+
+test("marca sem logo: nicho certo embaixo do nome (18/11, Beto Hamburgueria e Rayane Doces)", async () => {
+  const { marcaCriada } = await import("../src/lib/identidade-nicho.ts");
+  const beto = marcaCriada("Beto Hamburgueria & Espetaria", "Restaurante");
+  assert.equal(beto.simbolo, "talher");
+  assert.ok(!/pet|veterin/i.test(beto.sub), beto.sub);
+  const rayane = marcaCriada("Rayane Doces", "Alimentação");
+  assert.ok(!/nutri/i.test(rayane.sub), rayane.sub);
+  assert.equal(rayane.simbolo, "talher");
+  assert.equal(marcaCriada("Caipa e Brasa", "Restaurante").sub, "Gastronomia");
+  assert.equal(marcaCriada("Klivex | O Shopping da Limpeza", "Casa de verão").sub, "O Shopping da Limpeza");
+  assert.equal(marcaCriada("Limpeza Total", "Casa de verão").sub, "");
+  assert.equal(marcaCriada("AGRO VARIEDADES DO JOSÉ", "Pet shop / Veterinária").simbolo, "pata");
+});

@@ -184,14 +184,53 @@ export function veioDoInstagram(p: Prospeccao | null | undefined): boolean {
   return !!p?.place_id?.startsWith("ig_") || /^\[Lista do Instagram\]/.test(p?.observacoes ?? "");
 }
 
+/**
+ * 18/11 (Kelvin): sem cidade cadastrada, a Gabi chamava todo mundo de "Indaiatuba" (Bendito Deck Bar de BH,
+ * Beto Hamburgueria de SP). Agora a região sai do DDD do WhatsApp e, se nem isso, "todo o Brasil".
+ */
+const REGIAO_DDD: Record<string, string> = {
+  "11": "São Paulo e região", "12": "Vale do Paraíba", "13": "Baixada Santista", "14": "Bauru e região", "15": "Sorocaba e região",
+  "16": "Ribeirão Preto e região", "17": "São José do Rio Preto e região", "18": "Presidente Prudente e região", "19": "Campinas e região",
+  "21": "Rio de Janeiro e região", "22": "região dos Lagos e norte fluminense", "24": "sul fluminense", "27": "Grande Vitória", "28": "sul do Espírito Santo",
+  "31": "Belo Horizonte e região", "32": "Juiz de Fora e região", "33": "leste de Minas", "34": "Triângulo Mineiro", "35": "sul de Minas", "37": "centro-oeste de Minas", "38": "norte de Minas",
+  "41": "Curitiba e região", "42": "Ponta Grossa e região", "43": "Londrina e região", "44": "Maringá e região", "45": "oeste do Paraná", "46": "sudoeste do Paraná",
+  "47": "Joinville e região", "48": "Florianópolis e região", "49": "oeste de Santa Catarina",
+  "51": "Porto Alegre e região", "53": "Pelotas e região", "54": "Serra Gaúcha", "55": "interior gaúcho",
+  "61": "Brasília e região", "62": "Goiânia e região", "64": "sul de Goiás", "65": "Cuiabá e região", "66": "interior do Mato Grosso", "67": "Campo Grande e região",
+  "71": "Salvador e região", "73": "sul da Bahia", "74": "norte da Bahia", "75": "Feira de Santana e região", "77": "oeste da Bahia", "79": "Aracaju e região",
+  "81": "Recife e região", "82": "Maceió e região", "83": "João Pessoa e região", "84": "Natal e região", "85": "Fortaleza e região", "86": "Teresina e região", "87": "sertão pernambucano", "88": "interior do Ceará", "89": "sul do Piauí",
+  "91": "Belém e região", "92": "Manaus e região", "93": "oeste do Pará", "94": "sudeste do Pará", "95": "Roraima", "96": "Amapá", "97": "interior do Amazonas", "98": "São Luís e região", "99": "interior do Maranhão",
+  "63": "Tocantins", "68": "Acre", "69": "Rondônia",
+};
+
+export function regiaoDoTelefone(phone: string | null | undefined): string {
+  const d = String(phone ?? "").replace(/\D/g, "");
+  const ddd = d.startsWith("55") && d.length >= 12 ? d.slice(2, 4) : d.length >= 10 && d.length <= 11 ? d.slice(0, 2) : "";
+  return REGIAO_DDD[ddd] ?? "";
+}
+
+/** Onde o lead está, para a Gabi citar: cidade cadastrada, senão a região do DDD, senão "todo o Brasil". */
+export function cidadeParaCitar(p: Pick<Prospeccao, "cidade"> | null | undefined, phone?: string | null): string {
+  return cidadeCurta(p?.cidade) || regiaoDoTelefone(phone) || "todo o Brasil";
+}
+
+/** A posição do diagnóstico foi medida numa busca de outra cidade (ex.: "dedetização Indaiatuba SP" para uma empresa de São Carlos)? */
+export function posicaoDeOutraCidade(p: Pick<Prospeccao, "cidade" | "diagnostico"> | null | undefined): boolean {
+  const termo = (p?.diagnostico as { posicao?: { tipo?: string; termo?: string } } | null | undefined)?.posicao;
+  if (!termo || termo.tipo !== "busca" || !termo.termo) return false;
+  const cidade = cidadeCurta(p?.cidade);
+  const sem = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return !cidade || !sem(termo.termo).includes(sem(cidade));
+}
+
 /** Valores das {{variáveis}} do Prompt System da Gabi para este lead. */
-export function varsPromptGabi(p: Prospeccao): Record<string, string> {
+export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<string, string> {
   const w = palavrasDoNicho(p.nicho);
   return {
     // Nome curto (16/11): "Dra. Luana Aranha - Geriatria e Clínica Médica em Campinas" vira "Dra. Luana Aranha"
     empresa: nomeCurto(p.empresa, p.cidade) || "a empresa",
     // "Brás de Pina, Rio de Janeiro / RJ" vira "Rio de Janeiro"
-    cidade: cidadeCurta(p.cidade) || "da região",
+    cidade: cidadeParaCitar(p, phone),
     nicho_plural: w.plural,
     publico: w.publico,
     tipo: `${w.artigo} ${w.singular}`,
