@@ -190,10 +190,48 @@ function saudacaoCurta(nome?: string) {
 async function enviarSoSaudacao(path: string, to: string) {
   const oi = saudacaoCurta();
   const r0 = await enviarBaloes(path, to, oi);
-  if (!r0.ok) return { r: r0, enviado: oi };
+  if (!r0.ok) return { r: r0, enviado: oi, baloes: [] as { texto: string; id: string | null }[] };
   await sleep(rand(3500, 6000));
   const r1 = await enviarBaloes(path, to, "Tudo bem?");
-  return { r: r1, enviado: `${oi}\n\nTudo bem?` };
+  return { r: r1, enviado: `${oi}\n\nTudo bem?`, baloes: [{ texto: oi, id: idDaMensagem(r0.body) }, ...(r1.ok ? [{ texto: "Tudo bem?", id: idDaMensagem(r1.body) }] : [])] };
+}
+/** Id da mensagem na resposta do Evolution (para a conversa não duplicar no espelho). */
+function idDaMensagem(body: string): string | null {
+  try {
+    const j = JSON.parse(body);
+    return j?.data?.Info?.ID ?? j?.data?.key?.id ?? j?.key?.id ?? null;
+  } catch { return null; }
+}
+/** 55 + DDD + 9XXXXXXXX → 55 + DDD + XXXXXXXX (contas antigas de fora de SP estão no WhatsApp sem o 9). */
+function semNono(numero: string): string | null {
+  const d = numero.replace(/\D/g, "");
+  return d.length === 13 && d.startsWith("55") && d[4] === "9" ? d.slice(0, 4) + d.slice(5) : null;
+}
+/**
+ * 17/11 (Kelvin): a conversa do portal tem que espelhar 100% o WhatsApp. O 1º contato ("Oi, bom dia! 😊" e
+ * "Tudo bem?") nunca aparecia, porque o webhook não recebe o que sai pela API. Aqui ele entra na conversa.
+ */
+async function espelharSaudacao(numero: string, quem: string, baloes: { texto: string; id: string | null }[]) {
+  try {
+    const d = numero.replace(/\D/g, "");
+    const variantes = [d];
+    if (d.length === 13 && d[4] === "9") variantes.push(d.slice(0, 4) + d.slice(5));
+    if (d.length === 12) variantes.push(d.slice(0, 4) + "9" + d.slice(4));
+    const { data: sl } = await sb.from("sdr_leads").select("id").in("phone", variantes).limit(1);
+    let id: string | undefined = sl?.[0]?.id;
+    if (!id) {
+      const { data: novo } = await sb.from("sdr_leads").insert({ phone: d, whatsapp_jid: `${d}@s.whatsapp.net`, agente: quem }).select("id").single();
+      id = novo?.id;
+    }
+    if (!id) return;
+    const agora = new Date().toISOString();
+    for (const b of baloes) {
+      await sb.from("sdr_messages").insert({ lead_id: id, direction: "out", author: "sistema", kind: "conversa", content: b.texto, ...(b.id ? { evolution_message_id: b.id } : {}) });
+    }
+    await sb.from("sdr_leads").update({ last_outbound_at: agora }).eq("id", id);
+  } catch (e) {
+    console.error("espelhar 1º contato falhou", e);
+  }
 }
 const CONTEXTO = /(te chamei|separei|imagino|fiz uma an[aá]lise|fiquei pensando|a gente ajuda|passando|olhando o perfil|vi o perfil)/i;
 /** Se a mensagem veio num bloco só, separa em 3 balões: Ana com o contexto, o conteúdo e a pergunta sozinha.
@@ -567,10 +605,13 @@ Deno.serve(async (req) => {
   // Com "exigir aprovação" ligado (padrão), só sai mensagem personalizada que o Kelvin aprovou no portal
   // 16/11 (Kelvin): metade dos primeiros contatos do dia vem do Google e metade da lista do Instagram,
   // alternando; quando uma das filas acaba, a outra segue sozinha.
-  const { count: igHoje } = cfg.test_number
-    ? { count: 0 }
-    : await sb.from("outreach_leads").select("place_id", { count: "exact", head: true }).gte("wa_sent_at", hoje0).like("place_id", "ig\\_%");
-  const preferirIg = (igHoje ?? 0) * 2 <= feitos.gabi + feitos.marina;
+  // 17/11: conta as TENTATIVAS (enviado ou falhou). Contando só os enviados, 37 números do Instagram que
+  // falharam seguraram a fila das 8h às 13h e nenhum lead do Google saiu de manhã.
+  const { data: tentativas } = cfg.test_number
+    ? { data: [] as { place_id: string | null }[] }
+    : await sb.from("outreach_log").select("place_id").eq("channel", "whatsapp").in("event", ["sent", "error", "sem_whatsapp"]).gte("created_at", hoje0).limit(2000);
+  const igTentou = (tentativas ?? []).filter((t) => String(t.place_id ?? "").startsWith("ig_")).length;
+  const preferirIg = igTentou * 2 <= (tentativas ?? []).length;
   const montarFila = (soIg: boolean) => {
     let fila = sb.from("outreach_leads").select("*")
       .eq("wa_status", "pendente").not("whatsapp", "is", null);
@@ -651,8 +692,17 @@ async function primeiroContato(cfg: any, lead: any, quem: Sdr, out: any): Promis
   const nome = nomeParaSaudar(lead, nomeWhats);
   PDF_DO_LEAD = pdfDoLead(lead);
   // Abordagem v2: só a saudação e o "Tudo bem?" (sem texto, sem PDF, sem áudio)
-  const env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string } =
+  let env: { r: { ok: boolean; status: number; body: string }; enviado: string; audio?: boolean; erroAudio?: string; baloes?: { texto: string; id: string | null }[] } =
     await enviarSoSaudacao(cfg.evolution_send_path, to);
+  // 17/11: "no LID found" / "not on WhatsApp" em números de fora de SP: tenta uma vez sem o 9
+  if (!env.r.ok && /no lid found|not on whatsapp|failed to get user info/i.test(env.r.body)) {
+    const sem9 = semNono(to);
+    if (sem9) {
+      await log(lead.place_id, "tentativa_sem_9", { de: to, para: sem9 });
+      const env2 = await enviarSoSaudacao(cfg.evolution_send_path, sem9);
+      if (env2.r.ok) { env = env2; to = sem9; }
+    }
+  }
   void nome; void text;
   if (env.erroAudio) await log(lead.place_id, "audio_erro", { erro: env.erroAudio });
   const r = env.r;
@@ -667,6 +717,7 @@ async function primeiroContato(cfg: any, lead: any, quem: Sdr, out: any): Promis
       }).eq("place_id", lead.place_id);
       // Abordagem v2: sem a cadência antiga; os follow-ups são da SDR do lead (IA SDR), 7 em até 14 dias
     }
+    if (!cfg.test_number) await espelharSaudacao(to, quem, env.baloes ?? []);
     await log(lead.place_id, cfg.test_number ? "sent_test" : "sent", { to, toque: 1, sdr: quem, nome_whats: nomeWhats || null, saudou: nome || null, resp: body.slice(0, 300) });
     return Response.json({ ...out, sent: lead.empresa, sdr: quem, to, next: nextAt });
   }
@@ -675,5 +726,7 @@ async function primeiroContato(cfg: any, lead: any, quem: Sdr, out: any): Promis
   const status = /not on whatsapp|not registered|not exist|invalid|não existe/.test(low) ? "sem_whatsapp" : attempts >= 2 ? "erro" : "pendente";
   await sb.from("outreach_leads").update({ wa_status: status, wa_attempts: attempts, wa_error: `${r.status}: ${body.slice(0, 300)}`, updated_at: new Date().toISOString() }).eq("place_id", lead.place_id);
   await log(lead.place_id, "error", { status: r.status, sdr: quem, body: body.slice(0, 300) });
+  // 17/11: envio que falhou não segura a fila pelo intervalo inteiro: o próximo tenta daqui a 1 minuto
+  await sb.from("outreach_config").update({ next_wa_at: new Date(Date.now() + 60_000).toISOString() }).eq("id", 1);
   return Response.json({ ...out, error: r.status, sdr: quem, body: body.slice(0, 300) });
 }

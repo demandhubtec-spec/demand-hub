@@ -115,3 +115,23 @@ test("Instagram: alimentação e cidade curta", async () => {
   assert.equal(cidadeCurta("Brás de Pina, Rio de Janeiro / RJ"), "Rio de Janeiro");
   assert.ok(veioDoInstagram({ place_id: "ig_coxinha" } as never));
 });
+
+test("17/11: robô que pede nome, aceite de assistente, nicho pet, reapresentação, recusa", async () => {
+  const pr = await import("../src/lib/prospeccao.ts").catch(() => null);
+  const { semReapresentacao, recusou } = await import("../src/lib/travas.ts");
+  assert.equal(semReapresentacao("Boa tarde! Tudo bem? Aqui é a Gabi, da DemandIA 😊\n\nFico feliz que tenha achado interessante.", true), "Fico feliz que tenha achado interessante.");
+  assert.equal(semReapresentacao("Boa tarde\n\nObrigada por avisar.", true), "Obrigada por avisar.");
+  assert.equal(semReapresentacao("Boa tarde! 😊\n\nAqui é a Gabi.", false), "Boa tarde! 😊\n\nAqui é a Gabi.");
+  assert.ok(recusou("Obrigado estamos satisfeitos com os resultados"));
+  assert.ok(recusou("Obrigada pelo contato, mas já temos agência de marketing"));
+  assert.ok(!recusou("Sim, pode mandar"));
+  if (!pr) return;
+  assert.ok(pr.roboPedeNome("Antes de continuarmos, para que eu possa lhe atender melhor, escreva o seu *primeiro nome*:"));
+  assert.ok(pr.roboPedeNome("Por favor, como é seu nome? *( Digite só seu nome!)*"));
+  assert.ok(pr.roboPedeNome("Como você prefere ser chamado?"));
+  assert.ok(!pr.roboPedeNome("Qual o nome do responsável?"));
+  assert.ok(!pr.pareceRespostaAutomatica("Bom dia, Gabi. Aqui é a Ana, assistente virtual do Dr. Lucas Tubino. Pode sim — envie o diagnóstico por aqui que eu encaminho para a equipe."));
+  assert.equal(pr.opcaoDoMenu("Seu nome é: Marina\nEstá correto ou você deseja corrigir?\n1. Está correto\n2. Corrigir"), "1");
+  assert.equal(pr.palavrasDoNicho("Pet shop").plural, "pet shops");
+  assert.equal(pr.palavrasDoNicho("Clínica veterinária").plural, "clínicas veterinárias");
+});

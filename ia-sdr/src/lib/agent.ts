@@ -24,7 +24,7 @@ import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { encerrarLead, runTool, TOOLS } from "./tools.ts";
-import { aplicarTravasDeTexto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, situacaoDaRecusa } from "./travas.ts";
+import { aplicarTravasDeTexto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
 import { linkPrevia } from "./extras.ts";
 import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
@@ -66,6 +66,9 @@ export async function handleInbound(leadId: string, messageId: string) {
     console.error("Ana não conseguiu responder", leadId, erro);
     await logEvent(leadId, "ia_erro", { erro }).catch(() => null);
     await avisarFalha(leadId, erro).catch(() => null);
+    // 17/11: AMG, Inset Clean, Said & Said e Service Ar ficaram sem resposta (IA sem crédito, WhatsApp lento).
+    // Tenta de novo sozinha em 10 minutos pelo follow-up, que responde ao que a pessoa disse.
+    await updateLead(leadId, { next_followup_at: new Date(Date.now() + 10 * 60e3).toISOString() }).catch(() => null);
   } finally {
     await unlock(leadId);
   }
@@ -197,6 +200,9 @@ async function reply(leadId: string) {
 
   // Trava 1 (e detalhes): saudação pela hora certa, sem "querida", sem letra de outro alfabeto
   if (!emDemo) finalText = aplicarTravasDeTexto(finalText, new Date());
+  // 17/11: já está conversando (mensagem nossa nas últimas 6 horas): nada de se apresentar de novo
+  const jaConversando = hist.some((m) => m.direction === "out" && m.author === "ia" && m.kind !== "followup" && Date.now() - new Date(m.created_at).getTime() < 6 * 3600e3);
+  if (!emDemo) finalText = semReapresentacao(finalText, jaConversando);
   // Trava 2: falou do modelo de site (ou acabou de mandar o diagnóstico de quem não tem site) e o link não foi junto
   if (!emDemo && prospeccao) {
     const link = linkModelo ?? (!temSiteProprio(prospeccao) && prospeccao.site_preview?.token ? linkPrevia(prospeccao.site_preview.token) : null);

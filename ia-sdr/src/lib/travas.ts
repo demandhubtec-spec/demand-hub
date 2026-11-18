@@ -74,6 +74,10 @@ const RECUSA = [
   /\bnao (me )?(mande|mandem|envie|enviem) mais/,
   /\bpar(e|em) de (mandar|enviar)/,
   /\bja (temos|tenho) (quem|alguem|agencia|empresa)\b.*\bnao\b/,
+  // 17/11: Haustier "estamos satisfeitos com os resultados", Dra. Laura "já temos agência de marketing"
+  /\bestamos (muito )?satisfeit/,
+  /\bja (temos|tenho) (uma |a )?(agencia|empresa de marketing|alguem que cuida|quem cuida)/,
+  /\bvamos deixar\b/,
 ];
 export function recusou(texto: string | null | undefined): boolean {
   const t = sem(String(texto ?? "")).replace(/^\[resposta automatica\].*$/s, "");
@@ -144,6 +148,19 @@ export function tirarQuerida(texto: string): string {
     .replace(/,\s*querid[oa]\b(?=[\s?!.,]|$)/gi, "")
     .replace(/\bquerid[oa],\s*/gi, "")
     .replace(/[ \t]{2,}/g, " ");
+}
+
+/**
+ * 17/11 (IPA, Portrait): no meio de uma conversa a SDR abria de novo com "Boa tarde! Tudo bem? Aqui é a Gabi,
+ * da DemandIA". Se já está conversando, tira o balão que é só saudação ou apresentação.
+ */
+export function semReapresentacao(texto: string, jaConversando: boolean): string {
+  if (!jaConversando) return texto;
+  const baloes = (texto ?? "").split(/\n\s*\n/);
+  if (baloes.length < 2) return texto;
+  const primeiro = sem(baloes[0]).replace(/[^\p{L}\p{N}\s,!?.]/gu, "").trim();
+  const soSaudacao = /^(oi|ola|bom dia|boa tarde|boa noite)\b[\s\S]{0,25}$/.test(primeiro) || /^(oi|ola|bom dia|boa tarde|boa noite)\b.{0,30}aqui e a (gabi|marina),? da demandia\.?$/.test(primeiro);
+  return soSaudacao ? baloes.slice(1).join("\n\n") : texto;
 }
 
 /** Todas as travas de texto que valem para qualquer mensagem da SDR. */

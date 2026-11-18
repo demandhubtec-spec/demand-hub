@@ -4,7 +4,7 @@
  *   Evento: MESSAGE
  */
 import { waitUntil } from "@vercel/functions";
-import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, opcaoDoMenu, prospeccaoDoTelefone, recadoParaRobo, roboPedeRecado, telefoneDoLid } from "@/src/lib/prospeccao.ts";
+import { ehDisparoDaProspeccao, ehFluxoV2, pareceRespostaAutomatica, opcaoDoMenu, prospeccaoDoTelefone, recadoParaRobo, roboPedeNome, roboPedeRecado, telefoneDoLid } from "@/src/lib/prospeccao.ts";
 import { handleInbound } from "@/src/lib/agent.ts";
 import { addMessage, history, leadDoTelefone, logEvent, messageExists, ultimoEvento, ultimoEventoEm, updateLead, upsertLeadByPhone } from "@/src/lib/db.ts";
 import { detectarOrigemAnuncio, NICHO_LABEL } from "@/src/lib/anuncio.ts";
@@ -192,6 +192,19 @@ export async function POST(req: Request) {
         if (salvo) await logEvent(lead.id, "resposta_automatica");
         // Robô pedindo recado/assunto: a Gabi deixa UM recado curto para chegar numa pessoa (v2)
         const opcao = opcaoDoMenu(content);
+        // 17/11: robô que pede só o nome recebe só o nome (Alcatec, Diogo Oliveira, L.F. Penteado); uma vez por conversa
+        const pedeNome = roboPedeNome(content) && !(await ultimoEvento(lead.id, "nome_robo").catch(() => null));
+        if (salvo && ehFluxoV2(prospeccao) && !lead.ai_paused && pedeNome) {
+          await logEvent(lead.id, "nome_robo");
+          const nome = nomeDaSdr(lead.agente);
+          try {
+            const id = await sendText(destination(lead), nome);
+            await addMessage({ lead_id: lead.id, direction: "out", author: "ia", content: nome, evolution_message_id: id });
+          } catch (e) {
+            console.error("nome para o robô falhou", e);
+          }
+          return Response.json({ ok: true, ignorado: "resposta_automatica" });
+        }
         if (salvo && ehFluxoV2(prospeccao) && !lead.ai_paused && (opcao || roboPedeRecado(content)) && !(await ultimoEvento(lead.id, "recado_robo").catch(() => null))) {
           const recado = opcao ?? recadoParaRobo(prospeccao, nomeDaSdr(lead.agente));
           await logEvent(lead.id, "recado_robo");

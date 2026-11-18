@@ -108,10 +108,17 @@ export async function runFollowUps(now = new Date()) {
         humanizar((await callLLM({ system: (v2 ? followUpPromptProspeccaoV2(fresh, attempt, now, prosp) : followUpPrompt(fresh, attempt, MAX, now)) + (playbookAtual() ? `\n\n## Playbook comercial (siga sempre)\n${playbookAtual()}` : "") + (manuaisAtuais("marina") ? `\n\n${manuaisAtuais("marina")}` : "") + extra, messages: merged, maxTokens: 1500 })).message.content ?? "");
       // Nunca manda de novo uma frase que a Ana já mandou nessa conversa
       const jaMandou = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
-      const repetida = (t: string) => t.split(/\n+/).some((l) => jaMandou.has(l.trim().toLowerCase()));
-      const extraCombinado = combinado
+      // 17/11: 55 follow-ups adiados por "repetido" só porque "Bom dia! 😊" ou "Tudo bem?" já tinham saído antes.
+      // Frase curta (saudação) pode repetir; o que não pode é repetir o conteúdo.
+      const repetida = (t: string) => t.split(/\n+/).some((l) => l.trim().length >= 30 && jaMandou.has(l.trim().toLowerCase()));
+      // A pessoa falou por último e ficou sem resposta (a IA falhou na hora): o "follow-up" responde a ela
+      const ultimaDeGente = [...hist].reverse().find((m) => !(m.direction === "in" && String(m.content).startsWith("[resposta automática]")));
+      const elaFalouPorUltimo = ultimaDeGente?.direction === "in";
+      const extraCombinado = (combinado
         ? "\n\nIMPORTANTE: este é o retorno que você combinou com ele (dia e horário que ele pediu). Abra lembrando com leveza que ficou de falar hoje e retome o assunto de onde parou, com uma pergunta simples. Não diga que ele não respondeu."
-        : "";
+        : "") + (elaFalouPorUltimo
+        ? "\n\nIMPORTANTE: a última mensagem é DA PESSOA e ficou sem resposta nossa. Não é follow-up: responda ao que ela disse, seguindo a etapa da conversa, e comece com um pedido de desculpa curto pela demora (\"Desculpa a demora!\"). Não se apresente de novo se já se apresentou."
+        : "");
       // Trava 6 (16/11): ~15 follow-ups perguntaram "conseguiu dar uma olhadinha?" a quem nunca recebeu o diagnóstico
       const diagNaoFoi = v2 && !!prosp && !prosp.diag_enviado_em;
       const viuSemTerRecebido = (t: string) => diagNaoFoi && perguntaSeViu(t);

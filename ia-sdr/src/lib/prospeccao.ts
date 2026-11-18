@@ -158,7 +158,10 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
   const n = (nicho ?? "").toLowerCase();
   if (/imob|corretor/.test(n)) return { plural: "imobiliárias", singular: "imobiliária", artigo: "a", publico: "clientes", busca: "imobiliária" };
   if (/advoc|jur/.test(n)) return { plural: "escritórios", singular: "escritório", artigo: "o", publico: "clientes", busca: "advogado" };
-  if (/vet|pet/.test(n)) return { plural: "clínicas veterinárias", singular: "clínica", artigo: "a", publico: "clientes", busca: "veterinário" };
+  // 17/11: pet shop, banho e tosa, táxi pet e pet food viravam "clínicas veterinárias"
+  if (/veterin|\bvet\b|clinica vet/.test(n)) return { plural: "clínicas veterinárias", singular: "clínica", artigo: "a", publico: "clientes", busca: "veterinário" };
+  if (/pet|tosa|ra[cç][aã]o|aquari/.test(n)) return { plural: "pet shops", singular: "pet shop", artigo: "o", publico: "clientes", busca: "pet shop" };
+  if (/agropec|agro\b|agr[ií]col/.test(n)) return { plural: "lojas agropecuárias", singular: "loja", artigo: "a", publico: "clientes", busca: "agropecuária" };
   // 16/11: lista do Instagram, quase toda de alimentação (restaurante, hamburgueria, doces, salgados, marmita)
   if (/aliment|restaur|lanch|pizz|hamburg|burger|confeit|doce|salgad|marmit|a[cç]a[ií]|gelat|sorvet|padar|caf[eé]|bar\b|churras|gastronom|comida|food|delivery|chef/.test(n))
     return { plural: "negócios de alimentação", singular: "negócio", artigo: "o", publico: "clientes", busca: "delivery" };
@@ -359,6 +362,15 @@ const AUTO_FRACO = [
  * Robô ou assistente virtual que pede recado, nome ou assunto para passar a uma pessoa (13/11: "Bellinha" da
  * Bella Casa, RRC "deixe seu recado", Lanza). Em vez de ficar muda, a Gabi deixa UM recado curto.
  */
+/**
+ * Robô que pede só o nome ("escreva o seu primeiro nome", "Digite só seu nome", "Como você prefere ser chamado?").
+ * 17/11: a Marina respondeu "Boa tarde! 😊" e o robô da Alcatec gravou isso como o nome dela.
+ */
+export function roboPedeNome(texto: string): boolean {
+  const t = sem(texto ?? "").replace(/[*_~]/g, "");
+  return /(informe|digite|escreva|me diga|me informe) (o |so |apenas )?(seu |o seu |teu )?(primeiro )?nome\b(?! e (o )?(assunto|sobrenome))|como (voce )?(prefere ser chamad|gostaria de ser chamad|se chama)|como e (o )?seu nome/.test(t);
+}
+
 export function roboPedeRecado(texto: string): boolean {
   const t = sem(texto ?? "");
   return /(deixe|deixa|deixar) (o |seu |o seu |um |sua )?(recado|mensagem)|nome e sobrenome|qual (e )?(o )?(seu )?(nome|assunto)|para que (eu )?possa (te |lhe )?(transferir|encaminhar)|(como|em que) (podemos|posso) (te |lhe )?ajudar/.test(t);
@@ -368,7 +380,7 @@ export function roboPedeRecado(texto: string): boolean {
 export function opcaoDoMenu(texto: string): string | null {
   for (const linha of (texto ?? "").split(/\n/)) {
     const t = sem(linha).replace(/[\u20e3\ufe0f]/g, "");
-    const m = t.match(/(\d{1,2})\D{0,6}(falar com|atendente|atendimento humano|corretor|comercial|outros assuntos|outras? (duvidas|informacoes)|humano)/);
+    const m = t.match(/(\d{1,2})\D{0,6}(falar com|atendente|atendimento humano|corretor|comercial|outros assuntos|outras? (duvidas|informacoes)|humano|esta correto|confirmar)/);
     if (m) return m[1];
   }
   return null;
@@ -389,6 +401,10 @@ export function pareceRespostaAutomatica(texto: string, segundosDesdeEnvio?: num
   if (!t.trim()) return false;
   // "Obrigada pelo contato, mas não temos interesse" é gente dizendo não (Xavier Imóveis, 04/11): nunca é robô
   if (NAO_TEM_INTERESSE.test(t)) return false;
+  // 17/11: a assistente virtual do Dr. Lucas Tubino disse "Pode sim, envie o diagnóstico por aqui que eu encaminho"
+  // e a Gabi ficou calada. Aceite de mandar o diagnóstico conta como resposta, mesmo vindo de assistente.
+  if (/(pode|podem) (sim|enviar|mandar)|\benvie (o |a |por aqui)|pode encaminhar|encaminho (para|pra) (a |o )?(equipe|responsavel|doutor|dr)/.test(t)) return false;
+  if (roboPedeNome(texto)) return true;
   if (AUTO_FORTE.some((r) => r.test(t))) return true;
   const logo = segundosDesdeEnvio !== null && segundosDesdeEnvio !== undefined && segundosDesdeEnvio >= 0 && segundosDesdeEnvio <= 90;
   return logo && AUTO_FRACO.some((r) => r.test(t));
