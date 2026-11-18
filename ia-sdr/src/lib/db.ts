@@ -131,6 +131,9 @@ export async function latestInboundId(leadId: string): Promise<string | null> {
     .select("id")
     .eq("lead_id", leadId)
     .eq("direction", "in")
+    // 17/11 (Diagmed): a pessoa passou o e-mail e o robô mandou "atendimento encerrado" logo depois; a mensagem
+    // do robô virava a "última" e a da pessoa ficava sem resposta. Resposta automática não conta aqui.
+    .not("content", "like", "[resposta automática]%")
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
