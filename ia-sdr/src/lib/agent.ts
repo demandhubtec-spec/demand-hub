@@ -24,7 +24,7 @@ import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { encerrarLead, runTool, TOOLS } from "./tools.ts";
-import { aplicarTravasDeTexto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
+import { aplicarTravasDeTexto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
 import { linkPrevia } from "./extras.ts";
 import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
@@ -122,6 +122,7 @@ async function reply(leadId: string) {
   let reescreveuEnvio = false;
   // A Ana combinou um dia e horário para retomar: o follow-up padrão não pode passar por cima
   let retornoCombinado = false;
+  let semConvite = false;
   for (let step = 0; step < 6; step++) {
     lead = await getLead(leadId);
     const agora = new Date();
@@ -184,6 +185,7 @@ async function reply(leadId: string) {
       try {
         out = await runTool(call.function.name, parseArgs(call), leadId);
         if (call.function.name === "combinar_retorno" && out.startsWith("Retorno guardado")) retornoCombinado = true;
+        if (call.function.name === "agendar_reuniao" && out.includes("NÃO foi enviado")) semConvite = true;
         if (call.function.name === "enviar_diagnostico") {
           diagChamado = true;
           linkModelo = linkDoModeloNaFerramenta(out) ?? linkModelo;
@@ -206,6 +208,8 @@ async function reply(leadId: string) {
   // 17/11: já está conversando (mensagem nossa nas últimas 6 horas): nada de se apresentar de novo
   const jaConversando = hist.some((m) => m.direction === "out" && m.author === "ia" && m.kind !== "followup" && Date.now() - new Date(m.created_at).getTime() < 6 * 3600e3);
   if (!emDemo) finalText = semReapresentacao(finalText, jaConversando);
+  // 18/11 (Geremias): a agenda falhou e mesmo assim ela disse que o convite ia chegar no e-mail
+  if (semConvite) finalText = semPromessaDeConvite(finalText);
   // Trava 2: falou do modelo de site (ou acabou de mandar o diagnóstico de quem não tem site) e o link não foi junto
   if (!emDemo && prospeccao) {
     const link = linkModelo ?? (!temSiteProprio(prospeccao) && prospeccao.site_preview?.token ? linkPrevia(prospeccao.site_preview.token) : null);

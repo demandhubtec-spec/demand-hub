@@ -12,7 +12,7 @@ import { destination, sendDocument, sendText } from "./evolution.ts";
 import { busyIntervals, cancelMeeting, createMeeting } from "./google.ts";
 import { freeSlots, isValidSlot, pickOptions, reminderTimes } from "./schedule.ts";
 import { formatBR, isoBR, localDayStart, toLocal } from "./time.ts";
-import { pedirOrientacao } from "./canal.ts";
+import { pedirOrientacao, registrar } from "./canal.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { linkPrevia } from "./extras.ts";
 import { nomeDaSdr, sdrValida } from "./sdrs.ts";
@@ -177,14 +177,25 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /** Avisa o Kelvin pelo número da SDR do lead (16/11: a Marina pelo dela); se falhar, pelo da Gabi. */
 async function notifyOwner(text: string, sdr: unknown = "gabi") {
-  if (!env.ownerPhone) return;
+  const para = env.ownerPhone || env.alertPhone;
+  if (!para) return;
   const quem = sdrValida(sdr);
   try {
-    await sendText(env.ownerPhone, text, quem);
+    await sendText(para, text, quem);
   } catch (e) {
     console.error("Falha ao avisar o dono:", e);
-    if (quem !== "gabi") await sendText(env.ownerPhone, `(${nomeDaSdr(quem)}) ${text}`, "gabi").catch(() => null);
+    if (quem !== "gabi") await sendText(para, `(${nomeDaSdr(quem)}) ${text}`, "gabi").catch(() => null);
   }
+}
+
+/**
+ * 18/11 (Geremias): a reunião foi marcada e o Kelvin não ficou sabendo (o WhatsApp estava lento e o
+ * aviso se perdeu). Reunião marcada também aparece no portal ("Você e a Gabi") e fica no histórico.
+ */
+async function avisarReuniao(leadId: string, texto: string, sdr: unknown) {
+  await logEvent(leadId, "reuniao_marcada", { aviso: texto.slice(0, 300) }).catch(() => null);
+  await registrar({ lead_id: leadId, autor: "ana", tipo: "texto", conteudo: texto, origem: "sistema", status: "pendente" }).catch(() => null);
+  await notifyOwner(texto, sdr);
 }
 
 /** Agenda fora do ar: avisa o Kelvin no máximo uma vez a cada 6 horas. */
@@ -372,8 +383,10 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           next_followup_at: null,
           followup_attempts: 0,
         });
-        await notifyOwner(
-          `📅 Nova reunião marcada pela IA\n${formatBR(start)}\n${lead.nome ?? ""} — ${lead.empresa ?? ""}\nFaturamento: R$ ${lead.faturamento_mensal?.toLocaleString("pt-BR") ?? "—"}\nDor: ${(lead.dores ?? []).join("; ")}\n${ev.meetLink ?? ""}`, lead.agente
+        await avisarReuniao(
+          leadId,
+          `📅 Nova reunião marcada pela IA\n${formatBR(start)}\n${lead.nome ?? ""} — ${lead.empresa ?? ""}\nFaturamento: R$ ${lead.faturamento_mensal?.toLocaleString("pt-BR") ?? "—"}\nDor: ${(lead.dores ?? []).join("; ")}\n${ev.meetLink ?? ""}`,
+          lead.agente,
         );
         return JSON.stringify({
           ok: true,
@@ -387,8 +400,10 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         // Perder a reunião por falha técnica é pior do que o convite chegar alguns minutos depois.
         console.error(e);
         await updateLead(leadId, { status: "agendado", email: lead.email ?? emails[0], next_followup_at: null, followup_attempts: 0 });
-        await notifyOwner(
-          `📅 REUNIÃO MARCADA, mas a Google Agenda falhou: crie o convite à mão\n${formatBR(start)} (${SDR_CONFIG.reuniao.duracaoMin} min)\n${lead.nome ?? ""} ${lead.empresa ? `(${lead.empresa})` : ""}\nE-mail: ${emails.join(", ")}\nWhatsApp: +${lead.phone}`, lead.agente
+        await avisarReuniao(
+          leadId,
+          `📅 REUNIÃO MARCADA, mas a Google Agenda falhou: crie o convite à mão\n${formatBR(start)} (${SDR_CONFIG.reuniao.duracaoMin} min)\n${lead.nome ?? ""} ${lead.empresa ? `(${lead.empresa})` : ""}\nE-mail: ${emails.join(", ")}\nWhatsApp: +${lead.phone}`,
+          lead.agente,
         );
         return JSON.stringify({
           ok: true,
