@@ -212,9 +212,25 @@ function contextoProspeccaoV2(p: Prospeccao): string {
 ## Dados deste lead (prospecção ativa)
 Você chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Primeira mensagem: "${v(p.wa_message)}".
 Empresa: ${v(nomeCurto(p.empresa, p.cidade))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
-${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDiagnóstico verificado (raio-x do Instagram, do site e do Google; pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}
+${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDiagnóstico verificado (raio-x do Instagram, do site e do Google; pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}${ehAlimentacao(p) ? CONTEXTO_RESTAURANTE : ""}
 Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
 }
+
+const RE_ALIMENTACAO = /aliment|restaur|lanch|pizz|hamburg|burger|confeit|doce|salgad|marmit|a[cç]a[ií]|gelat|sorvet|padar|caf[eé]|\bbar\b|churras|gastronom|comida|food|delivery|chef|cardápio|espetaria|coxinha|buffet/i;
+
+/** Restaurante, lanchonete, doces, delivery etc. (pelo nicho, nome ou o que sabemos do perfil). */
+export function ehAlimentacao(p: Pick<Prospeccao, "nicho" | "empresa" | "observacoes">): boolean {
+  return RE_ALIMENTACAO.test(`${p.nicho ?? ""} ${p.empresa ?? ""} ${p.observacoes ?? ""}`);
+}
+
+/** 17/11 (Kelvin): para alimentação, o carro-chefe é o cardápio digital próprio + IA no atendimento do pedido. */
+const CONTEXTO_RESTAURANTE = `
+## Este lead é de alimentação (restaurante, lanchonete, delivery, doces)
+Aqui o que mais faz sentido apresentar, nesta ordem:
+1. Cardápio digital próprio, feito 100% com a identidade visual da marca deles e do jeito que o processo deles funciona. Não é sistema genérico nem modelo pronto: é produzido para a marca deles. Serve para vender direto, sem depender do iFood e de outros aplicativos e sem pagar taxa por pedido.
+2. Atendimento com IA no WhatsApp, ligado ao cardápio: atende o cliente, tira dúvidas e monta a comanda do pedido, tudo automático.
+3. Depois, se fizer sentido: Google Meu Negócio, site e anúncio no Google, para aparecer para quem procura comida na região.
+Como usar: se o diagnóstico mostrar que eles vendem por iFood/aplicativo ou não têm cardápio próprio, puxe por aí ("vender direto, sem a taxa do aplicativo"). Fale em linguagem de restaurante (pedidos, cardápio, delivery, clientes, movimento). Apresente sem compromisso, só para conhecerem o nosso trabalho, e siga o mesmo caminho: diagnóstico gratuito e conversa de 20 minutos com o nosso especialista. Não invente preço nem prazo.`;
 
 /**
  * Lead da lista do Instagram (16/11, Kelvin): a abordagem é pelo WhatsApp, nunca pelo Direct, com o mesmo
