@@ -91,9 +91,15 @@ export function useContatos() {
     queryKey: ["crm", "contatos"],
     refetchInterval: 30_000,
     queryFn: async (): Promise<SdrLead[]> => {
-      const { data, error } = await supabase.from("sdr_leads").select("*").order("updated_at", { ascending: false }).limit(500);
-      if (error) throw error;
-      return (data ?? []) as SdrLead[];
+      // 17/11: todas as conversas, sem corte (antes parava nas 500 mais recentes). O Supabase entrega 1.000 por página.
+      const todos: SdrLead[] = [];
+      for (let de = 0; de < 20000; de += 1000) {
+        const { data, error } = await supabase.from("sdr_leads").select("*").order("updated_at", { ascending: false }).range(de, de + 999);
+        if (error) throw error;
+        todos.push(...((data ?? []) as SdrLead[]));
+        if ((data ?? []).length < 1000) break;
+      }
+      return todos;
     },
   });
   const contatos = React.useMemo<Contato[]>(() => {
@@ -135,14 +141,21 @@ export function useConversa(leadId: string | null) {
     enabled: !!leadId,
     refetchInterval: 20_000,
     queryFn: async (): Promise<SdrMensagem[]> => {
-      const { data, error } = await supabase
-        .from("sdr_messages")
-        .select("id,lead_id,direction,author,kind,content,created_at")
-        .eq("lead_id", leadId!)
-        .order("created_at", { ascending: true })
-        .limit(500);
-      if (error) throw error;
-      return (data ?? []) as SdrMensagem[];
+      // 17/11: a conversa inteira, das mais novas para trás (antes cortava nas 500 primeiras e sumiam as recentes)
+      const todas: SdrMensagem[] = [];
+      for (let de = 0; de < 10000; de += 1000) {
+        const { data, error } = await supabase
+          .from("sdr_messages")
+          .select("id,lead_id,direction,author,kind,content,created_at")
+          .eq("lead_id", leadId!)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: false })
+          .range(de, de + 999);
+        if (error) throw error;
+        todas.push(...((data ?? []) as SdrMensagem[]));
+        if ((data ?? []).length < 1000) break;
+      }
+      return todas.reverse();
     },
   });
 }

@@ -10,8 +10,25 @@ import { ORIGEM_TEXTO, useAlternarAna, useContatos, useConversa, useNaoELead, ty
 import { fmtData } from "../prospeccao/shared";
 import { STATUS_ANA } from "./InboundTab";
 import { Compositor } from "./Compositor";
+import { useListaLeads, type ListaLead } from "@/hooks/useComercial";
+import { ORIGENS, ORIGEM_POR_CHAVE, origemDaFonte, type OrigemLead } from "../time/funis";
 
 type Filtro = "todas" | "prospeccao" | "inbound";
+type FiltroSdr = "todas" | "gabi" | "marina";
+
+const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
+
+/**
+ * Canal de origem do contato, com as mesmas tags do funil (17/11, Kelvin): lead cadastrado à mão ou de lista
+ * (Instagram, LinkedIn, ligação, indicação, network, evento...) vale primeiro; depois a prospecção do Google
+ * ou da lista do Instagram; quem chamou sozinho é inbound (anúncio, site, WhatsApp).
+ */
+export function origemDoContato(c: Contato, listaPorFone: Map<string, ListaLead>): OrigemLead {
+  const l = listaPorFone.get(fim8(c.phone));
+  if (l) return l.lista === "instagram" ? "instagram" : l.lista === "linkedin" ? "linkedin" : l.lista === "ligacoes" ? "ligacao" : origemDaFonte(l.fonte);
+  if (c.prospeccao) return c.prospeccao.place_id?.startsWith("ig_") || c.prospeccao.origem === "instagram" ? "instagram" : "google";
+  return "anuncio";
+}
 
 function horaCurta(iso: string) {
   const d = new Date(iso);
@@ -22,15 +39,34 @@ function horaCurta(iso: string) {
 /** Espelho do WhatsApp da Ana: todas as conversas, atualizando sozinhas, com um campo para orientar a Ana. */
 export function ConversasTab({ leadId, escolher }: { leadId: string | null; escolher: (id: string) => void }) {
   const { contatos, isLoading, isError } = useContatos();
+  const { data: listas = [] } = useListaLeads();
   const [filtro, setFiltro] = React.useState<Filtro>("todas");
+  const [sdr, setSdr] = React.useState<FiltroSdr>("todas");
+  const [origens, setOrigens] = React.useState<OrigemLead[]>([]);
+  const [esperando, setEsperando] = React.useState(false);
   const [busca, setBusca] = React.useState("");
   const [mobileLista, setMobileLista] = React.useState(!leadId);
 
+  const listaPorFone = React.useMemo(() => {
+    const m = new Map<string, ListaLead>();
+    for (const l of listas) if (fim8(l.whatsapp).length === 8) m.set(fim8(l.whatsapp), l);
+    return m;
+  }, [listas]);
+  const origemDe = React.useMemo(() => new Map(contatos.map((c) => [c.id, origemDoContato(c, listaPorFone)])), [contatos, listaPorFone]);
+
   if (isError) return <EmptyState>Falta rodar o SQL do CRM unificado no Supabase para liberar as conversas.</EmptyState>;
 
-  const lista = contatos
-    .filter((c) => filtro === "todas" || c.tipo === filtro)
+  const semLixeira = contatos.filter((c) => !c.lixeira_em);
+  const porTipo = semLixeira.filter((c) => filtro === "todas" || c.tipo === filtro);
+  const porSdr = porTipo.filter((c) => sdr === "todas" || (sdr === "marina" ? c.agente === "marina" : c.agente !== "marina"));
+  const contaOrigem = new Map<OrigemLead, number>();
+  for (const c of porSdr) contaOrigem.set(origemDe.get(c.id)!, (contaOrigem.get(origemDe.get(c.id)!) ?? 0) + 1);
+  const ehEsperando = (c: Contato) => !!c.last_inbound_at && (!c.last_outbound_at || c.last_inbound_at > c.last_outbound_at);
+  const lista = porSdr
+    .filter((c) => !origens.length || origens.includes(origemDe.get(c.id)!))
+    .filter((c) => !esperando || ehEsperando(c))
     .filter((c) => !busca.trim() || `${c.nomeExibicao} ${c.nome ?? ""} ${c.phone}`.toLowerCase().includes(busca.trim().toLowerCase()));
+  const chip = (ativo: boolean) => cn("rounded-full border px-2.5 py-0.5 text-[12px]", ativo ? "border-primary text-ink" : "border-border text-muted");
   const atual = contatos.find((c) => c.id === leadId) ?? null;
 
   return (
@@ -38,17 +74,47 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
       <Card className={cn("flex h-[640px] flex-col overflow-hidden", !mobileLista && atual && "hidden lg:flex")}>
         <div className="border-b border-border p-3">
           <Input placeholder="Buscar conversa" value={busca} onChange={(e) => setBusca(e.target.value)} />
-          <div className="mt-2 flex gap-1.5">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {(["todas", "prospeccao", "inbound"] as Filtro[]).map((f) => (
-              <button
-                key={f}
-                onClick={() => setFiltro(f)}
-                className={cn("rounded-full border px-2.5 py-0.5 text-[12px]", filtro === f ? "border-primary text-ink" : "border-border text-muted")}
-              >
+              <button key={f} onClick={() => setFiltro(f)} className={chip(filtro === f)}>
                 {f === "todas" ? "Todas" : f === "prospeccao" ? "Prospecção" : "Inbound"}
               </button>
             ))}
           </div>
+          {/* Quem conversou: Gabi ou Marina (cada uma no seu número) */}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {(["todas", "gabi", "marina"] as FiltroSdr[]).map((f) => (
+              <button key={f} onClick={() => setSdr(f)} className={chip(sdr === f)}>
+                {f === "todas" ? "Gabi e Marina" : f === "gabi" ? "Gabi" : "Marina"}
+              </button>
+            ))}
+            <button onClick={() => setEsperando(!esperando)} className={chip(esperando)} title="A última mensagem foi do contato">
+              Esperando resposta
+            </button>
+          </div>
+          {/* Canal de origem, com as mesmas tags do funil; dá para marcar mais de um */}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {ORIGENS.filter((o) => contaOrigem.get(o.k) || origens.includes(o.k)).map((o) => {
+              const ativo = origens.includes(o.k);
+              return (
+                <button
+                  key={o.k}
+                  onClick={() => setOrigens(ativo ? origens.filter((x) => x !== o.k) : [...origens, o.k])}
+                  className="rounded-full border px-2.5 py-0.5 text-[12px]"
+                  style={ativo ? { borderColor: o.cor, color: o.cor, background: o.fundo } : undefined}
+                  title={`${o.nome} · ${o.grupo}`}
+                >
+                  {o.k === "google" ? "Google" : o.k === "anuncio" ? "Anúncio (inbound)" : o.nome} {contaOrigem.get(o.k) ?? 0}
+                </button>
+              );
+            })}
+            {origens.length > 0 && (
+              <button onClick={() => setOrigens([])} className="px-1 text-[12px] text-muted underline">
+                limpar
+              </button>
+            )}
+          </div>
+          <div className="mt-1.5 text-[12px] text-muted">{lista.length} conversa{lista.length === 1 ? "" : "s"}</div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {isLoading && <div className="p-3 text-[13px] text-muted">Carregando…</div>}
@@ -56,6 +122,7 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
             <ItemLista
               key={c.id}
               c={c}
+              origem={origemDe.get(c.id)!}
               ativo={c.id === leadId}
               onClick={() => {
                 escolher(c.id);
@@ -77,7 +144,8 @@ export function ConversasTab({ leadId, escolher }: { leadId: string | null; esco
   );
 }
 
-function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick: () => void }) {
+function ItemLista({ c, origem, ativo, onClick }: { c: Contato; origem: OrigemLead; ativo: boolean; onClick: () => void }) {
+  const o = ORIGEM_POR_CHAVE[origem];
   const esperando = c.last_inbound_at && (!c.last_outbound_at || c.last_inbound_at > c.last_outbound_at);
   return (
     <button onClick={onClick} className={cn("block w-full border-b border-border px-3 py-2.5 text-left hover:bg-surface-2", ativo && "bg-surface-2")}>
@@ -86,8 +154,8 @@ function ItemLista({ c, ativo, onClick }: { c: Contato; ativo: boolean; onClick:
         <span className="shrink-0 tabular-nums text-[12px] text-muted">{horaCurta(c.ultimaAtividade)}</span>
       </div>
       <div className="mt-0.5 flex items-center gap-1.5 text-[12px] text-muted">
-        <span className={c.tipo === "prospeccao" ? "text-primary-bright" : "text-positive"}>{c.tipo === "prospeccao" ? "Prospecção" : "Inbound"}</span>
-        {c.agente === "marina" && <span className="text-attention"> · Marina</span>}
+        <span style={{ color: o.cor }}>{origem === "google" ? "Google" : origem === "anuncio" ? "Inbound" : o.nome}</span>
+        <span className={c.agente === "marina" ? "text-attention" : ""}> · {c.agente === "marina" ? "Marina" : "Gabi"}</span>
         <span>· {STATUS_ANA[c.status ?? ""] ?? c.status}</span>
         {c.ai_paused && <PauseCircle className="h-3 w-3 text-attention" />}
         {esperando && <span className="ml-auto h-2 w-2 rounded-full bg-positive" title="Última mensagem foi do contato" />}
