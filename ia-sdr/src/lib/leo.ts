@@ -156,7 +156,11 @@ export async function primeiroComWhatsApp(nums: Numero[]): Promise<{ achado: Num
     const users = j.data?.Users ?? [];
     for (const [i, n] of lista.entries()) {
       const u = users.find((x) => (x.Query ?? "").replace(/\D/g, "") === n.num) ?? (users.length === lista.length ? users[i] : undefined);
-      if (u?.IsInWhatsapp) return { achado: { num: (u.JID ?? n.num).split("@")[0].split(":")[0].replace(/\D/g, "") || n.num, fonte: n.fonte }, erro: false };
+      // 17/11: o WhatsApp passou a devolver o JID como LID (ex.: 106193217450156@lid), que não é telefone.
+      // Só troca o número quando o JID é um telefone de verdade; senão fica o número consultado.
+      const jid = u?.JID ?? "";
+      const doJid = jid.endsWith("@s.whatsapp.net") ? jid.split("@")[0].split(":")[0].replace(/\D/g, "") : "";
+      if (u?.IsInWhatsapp) return { achado: { num: /^55\d{10,11}$/.test(doJid) ? doJid : n.num, fonte: n.fonte }, erro: false };
     }
     return { achado: null, erro: false };
   } catch {
