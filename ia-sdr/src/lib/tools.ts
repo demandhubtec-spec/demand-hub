@@ -18,6 +18,9 @@ import { linkPrevia } from "./extras.ts";
 import { textoReuniao } from "./aviso-reuniao.ts";
 import { nomeDaSdr, sdrValida } from "./sdrs.ts";
 
+/** Texto que acompanha o PDF prometido quando ele fica pronto (envio programado automático, 18/11). */
+export const TEXTO_PDF_PROMETIDO = "Prontinho, como te falei, segue o diagnóstico 😊 Qualquer dúvida, é só me chamar por aqui!";
+
 export const TOOLS: Tool[] = [
   {
     name: "registrar_qualificacao",
@@ -471,7 +474,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         return "IA pausada nesta conversa. Avise o lead que alguém da nossa equipe vai responder pessoalmente em breve (sem dizer nomes).";
       }
       await notifyOwner(`📌 ${p?.empresa ?? lead.empresa ?? lead.nome ?? ""} (+${lead.phone})\n${input.motivo}\nwa.me/${lead.phone}`, lead.agente);
-      return "Equipe avisada. NÃO diga ao lead que alguém da equipe vai responder: continue você mesma a conversa, rumo à conversa de 30 minutos com o nosso especialista.";
+      return "Equipe avisada. NÃO diga ao lead que alguém da equipe vai responder: continue você mesma a conversa, rumo à conversa de 20 minutinhos com o nosso especialista.";
     }
 
     case "lead_quente": {
@@ -481,7 +484,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       await notifyOwner(
         `🔥 LEAD QUENTE: ligue em até 1 hora\n${empresa}${input.quem ? `\nQuem: ${input.quem}` : ""}\n${input.resumo ?? ""}\nLigar: +${lead.phone}\nwa.me/${lead.phone}`, lead.agente
       );
-      return "Especialista avisado para ligar. Continue a conversa normalmente e ofereça 2 horários reais (ver_horarios) para a conversa de 30 minutos.";
+      return "Especialista avisado para ligar. Continue a conversa normalmente e ofereça 2 horários reais (ver_horarios) para a conversa de 20 minutinhos.";
     }
 
     case "combinar_retorno": {
@@ -507,7 +510,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (input.diagnostico_enviado === true && !p.diag_enviado_em) patch.diag_enviado_em = new Date().toISOString();
       if (typeof input.responsavel === "string" && input.responsavel.trim()) patch.responsavel_contato = input.responsavel.trim().slice(0, 200);
       if (Object.keys(patch).length) await db().from("outreach_leads").update(patch).eq("place_id", p.place_id);
-      return "Progresso registrado. Siga rumo à conversa de 30 minutos ou ligação com o responsável.";
+      return "Progresso registrado. Siga rumo à conversa de 20 minutinhos ou ligação com o responsável.";
     }
 
     case "enviar_diagnostico": {
@@ -516,8 +519,14 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com 2 horários do próximo dia útil.";
       const pdf = p.marca?.pdf;
       if (!pdf) {
-        await notifyOwner(`⚠️ ${p.empresa}: a ${nomeDaSdr(lead.agente)} ia mandar o diagnóstico, mas o PDF ainda não está pronto.\nwa.me/${lead.phone}`, lead.agente);
-        return "O PDF ainda não está pronto. Diga com carinho que vai mandar o diagnóstico daqui a pouquinho e siga a conversa (não diga que enviou).";
+        // 18/11 (Check-Up): a Gabi disse "te mando sim" e o PDF nunca chegou. Agora o pedido fica na fila:
+        // a Rita/Duda montam o PDF e o envio programado manda sozinho assim que ficar pronto.
+        await db().from("outreach_leads").update({ pdf_pedido: true }).eq("place_id", p.place_id);
+        const { data: jaNaFila } = await db().from("envios_agendados").select("id").eq("lead_id", leadId).eq("status", "agendado").eq("com_pdf", true).limit(1);
+        if (!jaNaFila?.length)
+          await db().from("envios_agendados").insert({ lead_id: leadId, place_id: p.place_id, canal: "whatsapp", texto: TEXTO_PDF_PROMETIDO, com_pdf: true, enviar_em: new Date(Date.now() + 20 * 60e3).toISOString() });
+        await notifyOwner(`⏳ ${p.empresa}: a ${nomeDaSdr(lead.agente)} prometeu o diagnóstico, mas o PDF ainda não está pronto. Pedi para montar e ele sai sozinho assim que ficar pronto.\nwa.me/${lead.phone}`, lead.agente);
+        return "O PDF ainda NÃO está pronto (já pedi para montar e ele sai sozinho, por aqui, assim que ficar pronto). Diga com carinho que vai mandar ainda hoje, assim que ficar pronto, e siga a conversa. Não diga que enviou nem \"te mando agora\".";
       }
       const nome = `Diagnóstico ${String(p.empresa ?? "").replace(/[|/\\]+.*$/, "").trim() || "digital"}.pdf`;
       const id = await sendDocument(destination(lead), pdf, nome);

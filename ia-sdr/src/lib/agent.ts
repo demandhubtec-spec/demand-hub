@@ -24,7 +24,7 @@ import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { encerrarLead, runTool, TOOLS } from "./tools.ts";
-import { aplicarTravasDeTexto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
+import { aplicarTravasDeTexto, deveCalarComRobo, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semApresentacaoRepetida, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
 import { linkPrevia } from "./extras.ts";
 import { avisarFalha, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
@@ -104,6 +104,11 @@ async function reply(leadId: string) {
     emDemo && demoIni ? mensagensDaDemo(hist, demoIni) : doDono && testeIni ? mensagensDaDemo(hist, testeIni) : hist,
   );
   if (!messages.length || messages[messages.length - 1].role !== "user") return;
+  // 18/11: robô ou atendente virtual do outro lado e a SDR já mandou o recado: espera uma pessoa escrever
+  if (!emDemo && !doDono && deveCalarComRobo(hist)) {
+    await logEvent(leadId, "robo_ignorado", { ultima: String(hist[hist.length - 1]?.content ?? "").slice(0, 120) }).catch(() => null);
+    return;
+  }
   // Pediu para sair da demo na última mensagem (o webhook já registrou): a Ana faz a virada agora
   if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
 
@@ -210,6 +215,9 @@ async function reply(leadId: string) {
   if (!emDemo) finalText = semReapresentacao(finalText, jaConversando);
   // 18/11 (Geremias): a agenda falhou e mesmo assim ela disse que o convite ia chegar no e-mail
   if (semConvite) finalText = semPromessaDeConvite(finalText);
+  // 18/11: já se apresentou nesta conversa (48 horas): nada de "Aqui é a Gabi, da DemandIA" de novo
+  const jaSeApresentou = hist.some((m) => m.direction === "out" && m.author !== "sistema" && /aqui (é|e) a (gabi|marina),? da demandia/i.test(m.content ?? "") && Date.now() - new Date(m.created_at).getTime() < 48 * 3600e3);
+  if (!emDemo && prospeccao) finalText = semApresentacaoRepetida(finalText, jaSeApresentou);
   // Trava 2: falou do modelo de site (ou acabou de mandar o diagnóstico de quem não tem site) e o link não foi junto
   if (!emDemo && prospeccao) {
     const link = linkModelo ?? (!temSiteProprio(prospeccao) && prospeccao.site_preview?.token ? linkPrevia(prospeccao.site_preview.token) : null);

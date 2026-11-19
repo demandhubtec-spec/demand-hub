@@ -207,3 +207,31 @@ test("marca sem logo: nicho certo embaixo do nome (18/11, Beto Hamburgueria e Ra
   assert.equal(marcaCriada("Limpeza Total", "Casa de verão").sub, "");
   assert.equal(marcaCriada("AGRO VARIEDADES DO JOSÉ", "Pet shop / Veterinária").simbolo, "pata");
 });
+
+test("ajustes da auditoria de 18/11", async () => {
+  const t = await import("../src/lib/travas.ts");
+  const pr = await import("../src/lib/prospeccao.ts");
+  // 20 minutinhos sempre
+  assert.equal(t.vinteMinutos("um bate-papo de até 30 minutos, sem compromisso"), "um bate-papo de até 20 minutinhos, sem compromisso");
+  // não se apresenta de novo
+  const r = t.semApresentacaoRepetida("Tudo bem 😊\n\nAqui é a Gabi, da DemandIA. A gente ajuda empresas de Indaiatuba a receber mais clientes pelo Google.\n\nPosso te mandar um diagnóstico?", true);
+  assert.ok(!/Aqui é a Gabi/.test(r));
+  assert.ok(/Posso te mandar/.test(r));
+  // robô: TIM e IA de hotel calam depois do recado; pessoa curta volta a ter resposta
+  const h = (d: string, c: string, a = "ia") => ({ direction: d, author: d === "in" ? null : a, content: c, created_at: new Date().toISOString() });
+  const tim = [h("in", "[templateMessage]"), h("out", "Boa noite 😊"), h("in", "*Jucelia*, você recebeu uma *oferta exclusiva* no TIM Controle: 43 GB por R$ 30,99")];
+  assert.equal(t.deveCalarComRobo(tim), true);
+  const hotel = [h("in", "Olá, seja bem vindo. Sou uma assistente virtual do Hotel Viracopos"), h("out", "Oi! Aqui é a Gabi, da DemandIA"), h("in", "Muito obrigada pela compreensão, Gabi! Tenha um excelente dia de trabalho. Se precisar de algo ou quiser se hospedar conosco, conte com a gente! 😊")];
+  assert.equal(t.deveCalarComRobo(hotel), true);
+  const gente = [...hotel, h("in", "Bom dia, quem fala?")];
+  assert.equal(t.deveCalarComRobo(gente), false);
+  // nome curto: bairro do endereço não é o nome
+  assert.equal(t.nomeCurto("Barão Geraldo -Centro de Oncologia Campinas", "Campinas", "Av. Albino J. B. de Oliveira, 1000 - Barão Geraldo, Campinas - SP, 13084-008"), "Centro de Oncologia");
+  // cidade de verdade e apresentação de restaurante
+  assert.equal(pr.cidadeReal({ cidade: "Indaiatuba", endereco: "R. Sete de Setembro, 100 - Centro, Americana - SP, 13465-000", place_id: "x", observacoes: null }), "Americana");
+  assert.equal(pr.cidadeReal({ cidade: "Indaiatuba", endereco: null, place_id: "ig_bendito", observacoes: null }), "");
+  const ap = pr.apresentacaoDoLead({ place_id: "ig_caipa", empresa: "Caipa e Brasa", nicho: "Restaurante", cidade: null, endereco: null, observacoes: null } as never);
+  assert.ok(/cardápio digital/.test(ap) && /iFood/.test(ap) && !/ de Indaiatuba/.test(ap));
+  const ap2 = pr.apresentacaoDoLead({ place_id: "g1", empresa: "Clínica X", nicho: "Clínica médica", cidade: "Indaiatuba", endereco: "Rua A, 1 - Centro, Salto - SP, 13320-000", observacoes: null } as never);
+  assert.equal(ap2, "A gente ajuda clínicas de Salto a receber mais pacientes pelo Google, pelo site e pelo Instagram.");
+});

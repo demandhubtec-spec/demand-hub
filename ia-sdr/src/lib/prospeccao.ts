@@ -18,6 +18,8 @@ export interface Prospeccao {
   cadencia?: string | null;
   nicho: string | null;
   cidade: string | null;
+  /** Endereço do Google ("Rua X, 100 - Centro, Americana - SP, 13465-000"): a cidade de verdade (18/11). */
+  endereco?: string | null;
   decisor: string | null;
   cargo_decisor: string | null;
   site: string | null;
@@ -75,7 +77,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("place_id,email,empresa,cadencia,nicho,cidade,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,diagnosticos,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
+    .select("place_id,email,empresa,cadencia,nicho,cidade,endereco,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,diagnosticos,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -179,6 +181,19 @@ export function cidadeCurta(c: string | null | undefined): string {
   return partes[partes.length - 1] ?? "";
 }
 
+/**
+ * Cidade de verdade do lead (18/11, Kelvin): o campo cidade guarda a cidade da BUSCA (Indaiatuba), mas a
+ * Ameripan é de Americana e o Bendito Deck Bar é de BH. Vale o endereço do Google; lista do Instagram sem
+ * endereço não tem cidade confiável (vazio = a fala não cita cidade).
+ */
+export function cidadeReal(p: Pick<Prospeccao, "cidade" | "endereco" | "place_id" | "observacoes">): string {
+  const end = String(p.endereco ?? "");
+  const m = end.match(/,\s*([A-Za-zÀ-ú' .-]{3,40}?)\s*-\s*[A-Z]{2}\b(?:,|\s|$)/);
+  if (m) return m[1].trim();
+  if (veioDoInstagram(p as Prospeccao)) return "";
+  return cidadeCurta(p.cidade);
+}
+
 /** Veio da lista do Instagram (comentou em post de perfil parceiro)? */
 export function veioDoInstagram(p: Prospeccao | null | undefined): boolean {
   return !!p?.place_id?.startsWith("ig_") || /^\[Lista do Instagram\]/.test(p?.observacoes ?? "");
@@ -210,15 +225,16 @@ export function regiaoDoTelefone(phone: string | null | undefined): string {
 }
 
 /** Onde o lead está, para a Gabi citar: cidade cadastrada, senão a região do DDD, senão "todo o Brasil". */
-export function cidadeParaCitar(p: Pick<Prospeccao, "cidade"> | null | undefined, phone?: string | null): string {
-  return cidadeCurta(p?.cidade) || regiaoDoTelefone(phone) || "todo o Brasil";
+export function cidadeParaCitar(p: Pick<Prospeccao, "cidade" | "endereco" | "place_id" | "observacoes"> | null | undefined, phone?: string | null): string {
+  return (p ? cidadeReal(p) : "") || regiaoDoTelefone(phone) || "todo o Brasil";
 }
 
 /** A posição do diagnóstico foi medida numa busca de outra cidade (ex.: "dedetização Indaiatuba SP" para uma empresa de São Carlos)? */
-export function posicaoDeOutraCidade(p: Pick<Prospeccao, "cidade" | "diagnostico"> | null | undefined): boolean {
+export function posicaoDeOutraCidade(p: Pick<Prospeccao, "cidade" | "diagnostico" | "endereco" | "place_id" | "observacoes"> | null | undefined): boolean {
   const termo = (p?.diagnostico as { posicao?: { tipo?: string; termo?: string } } | null | undefined)?.posicao;
   if (!termo || termo.tipo !== "busca" || !termo.termo) return false;
-  const cidade = cidadeCurta(p?.cidade);
+  // 18/11: vale a cidade do endereço (Ameripan é de Americana, mesmo coletada na busca de Indaiatuba)
+  const cidade = (p ? cidadeReal(p) : "") || cidadeCurta(p?.cidade);
   const sem = (x: string) => x.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
   return !cidade || !sem(termo.termo).includes(sem(cidade));
 }
@@ -228,9 +244,11 @@ export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<str
   const w = palavrasDoNicho(p.nicho);
   return {
     // Nome curto (16/11): "Dra. Luana Aranha - Geriatria e Clínica Médica em Campinas" vira "Dra. Luana Aranha"
-    empresa: nomeCurto(p.empresa, p.cidade) || "a empresa",
-    // "Brás de Pina, Rio de Janeiro / RJ" vira "Rio de Janeiro"
+    empresa: nomeCurto(p.empresa, p.cidade, p.endereco) || "a empresa",
+    // 18/11: cidade do endereço do Google; senão a cadastrada (Google) ou a região do DDD; senão "todo o Brasil"
     cidade: cidadeParaCitar(p, phone),
+    // Frase pronta da apresentação (18/11): restaurante ouve do cardápio digital; a cidade é a de verdade
+    apresentacao: apresentacaoDoLead(p, phone),
     nicho_plural: w.plural,
     publico: w.publico,
     tipo: `${w.artigo} ${w.singular}`,
@@ -238,6 +256,16 @@ export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<str
     dono: donoParaCitar(p) ?? "o responsável",
     especialista: "nosso especialista",
   };
+}
+
+/** A frase do "o que a gente faz" da apresentação, no jeito do segmento e com a cidade certa (ou sem cidade). */
+export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string {
+  const w = palavrasDoNicho(p.nicho);
+  const cid = cidadeParaCitar(p, phone);
+  const deOnde = cid && cid !== "todo o Brasil" ? ` de ${cid}` : "";
+  if (ehAlimentacao(p))
+    return `A gente ajuda negócios de alimentação${deOnde} a vender mais pelo próprio cardápio digital, feito com a cara da marca, sem depender do iFood e sem pagar taxa por pedido.`;
+  return `A gente ajuda ${w.plural}${deOnde} a receber mais ${w.publico} pelo Google, pelo site e pelo Instagram.`;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */
@@ -250,7 +278,7 @@ function contextoProspeccaoV2(p: Prospeccao): string {
 
 ## Dados deste lead (prospecção ativa)
 Você chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Primeira mensagem: "${v(p.wa_message)}".
-Empresa: ${v(nomeCurto(p.empresa, p.cidade))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
+Empresa: ${v(nomeCurto(p.empresa, p.cidade, p.endereco))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${cidadeReal(p) || "não sabemos pelo cadastro (use a do prompt)"} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
 ${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDiagnóstico verificado (raio-x do Instagram, do site e do Google; pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}${ehAlimentacao(p) ? CONTEXTO_RESTAURANTE : ""}
 Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
 }
@@ -305,7 +333,7 @@ ${toquesRecebidos(p) || `"${v(p.wa_message)}"`}
 
 Dados que coletamos antes (Google Maps e CNPJ): Empresa: ${v(nomeCurto(p.empresa, p.cidade))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${v(p.cidade)} | Decisor: ${v(p.decisor)}${p.cargo_decisor ? ` (${p.cargo_decisor})` : ""} | Site: ${v(p.site)} | Instagram: ${v(p.instagram)}${p.observacoes ? ` | Obs.: ${p.observacoes}` : ""}
 ${p.diagnostico ? `\nDiagnóstico do perfil no Google que usamos na abordagem (fatos verificados; pode usar na conversa, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : ""}${analisePendente(p)}
-Objetivo desta conversa (é para isso que você trabalha): chegar até o responsável (quem cuida do marketing, do comercial ou do perfil no Google) e marcar uma conversa de 30 minutos ou uma ligação rápida com o nosso especialista, oferecendo o diagnóstico gratuito. Toda mensagem sua deve aproximar a conversa desse objetivo, com leveza.
+Objetivo desta conversa (é para isso que você trabalha): chegar até o responsável (quem cuida do marketing, do comercial ou do perfil no Google) e marcar uma conversa de 20 minutinhos ou uma ligação rápida com o nosso especialista, oferecendo o diagnóstico gratuito. Toda mensagem sua deve aproximar a conversa desse objetivo, com leveza.
 Situação do objetivo agora: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"} · contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.
 
 Como conduzir neste caso (caminho curto: valor primeiro, depois convite com horário concreto):
@@ -315,14 +343,14 @@ Como conduzir neste caso (caminho curto: valor primeiro, depois convite com hor�
 
 Se for QUEM DECIDE:
 1. Entregue valor logo: 2 ou 3 achados concretos do diagnóstico acima, com os números, e o que cada um causa na prática (paciente/cliente indo para o concorrente). Não explique como resolver: isso é o que o especialista mostra.
-2. Chame \`lead_quente\` (o especialista é avisado para ligar) e, na mesma resposta, convide para a conversa gratuita de 30 minutos com o nosso especialista oferecendo DOIS horários reais: chame \`ver_horarios\` e diga algo como "consigo amanhã às 10h ou quinta às 15h, qual fica melhor?". Nunca pergunte "qual o melhor dia e horário?" no vazio.
+2. Chame \`lead_quente\` (o especialista é avisado para ligar) e, na mesma resposta, convide para a conversa gratuita de 20 minutinhos com o nosso especialista oferecendo DOIS horários reais: chame \`ver_horarios\` e diga algo como "consigo amanhã às 10h ou quinta às 15h, qual fica melhor?". Nunca pergunte "qual o melhor dia e horário?" no vazio.
 3. Se ele escolher um horário, peça o e-mail para o convite e chame \`agendar_reuniao\`. Se nenhum horário servir, ofereça outros de \`ver_horarios\` ou uma ligação rápida de 10 minutos no horário que ele disser (aí use \`combinar_retorno\` e \`lead_quente\`).
 4. ZERO perguntas sobre o negócio (como os clientes chegam, indicação ou Google, se já têm alguém cuidando, faturamento, equipe). O diagnóstico já responde isso: a única pergunta é qual dos 2 horários fica melhor.
 5. Se ele não responder ao convite, não troque o convite por pergunta de descoberta: a retomada volta com 2 horários novos.
 
 Se for a RECEPÇÃO ou SECRETÁRIA (ela não marca reunião, então não qualifique nem venda para ela):
 1. Pergunte, numa frase só, o nome de quem decide sobre o perfil no Google e o WhatsApp direto dessa pessoa (ou o horário em que ela está aí). Não encerre a conversa com a recepção sem ter pedido isso; se ela não passar o WhatsApp, peça ao menos o nome e o melhor horário.
-2. Ofereça um resumo curtinho para ela repassar e mande 2 achados em 1 mensagem, terminando com o convite: "se fizer sentido, nosso especialista mostra o restante numa conversa de 30 minutos, sem custo".
+2. Ofereça um resumo curtinho para ela repassar e mande 2 achados em 1 mensagem, terminando com o convite: "se fizer sentido, nosso especialista mostra o restante numa conversa de 20 minutinhos, sem custo".
 3. Se passarem o contato de quem decide, registre com \`registrar_objetivo\`. Se disserem quando a pessoa está (ex.: "o Adriano, só na terça depois das 10h"), chame \`combinar_retorno\` com data, hora e nome, agradeça e pare por aí.
 4. Se pedirem para mandar por e-mail ou passarem um e-mail: agradeça, diga que manda a análise para esse e-mail ainda hoje e chame \`encaminhar_humano\` com tipo "enviar_email" (o e-mail e o nome de quem pediu no motivo). Depois disso, peça o nome de quem vai ler o e-mail, se ainda não souber.
 5. Se disserem só "vou repassar, se tiver interesse retornamos": agradeça, pergunte o nome da pessoa que vai receber e combine que você retoma em 2 dias úteis (\`combinar_retorno\`).

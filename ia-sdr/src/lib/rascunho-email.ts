@@ -35,7 +35,7 @@ Como escrever:
 - Abra com "Olá, <nome de quem pediu>, tudo bem?" se o nome aparecer na conversa; senão "Olá, tudo bem?".
 - 1 frase dizendo quem é você e que está mandando a análise como combinado no WhatsApp.
 - O resumo: 1 ponto forte e 1 oportunidade, com os números do diagnóstico e o que isso causa na prática.
-- O que o diagnóstico completo mostra (onde a empresa aparece nas buscas, onde perde para concorrentes, o que ajustar primeiro): gratuito, 30 minutos com um dos nossos especialistas em presença digital.
+- O que o diagnóstico completo mostra (onde a empresa aparece nas buscas, onde perde para concorrentes, o que ajustar primeiro): gratuito, 20 minutinhos com um dos nossos especialistas em presença digital.
 - Feche com UMA chamada para ação: indicar quem cuida do marketing e um horário, respondendo o e-mail ou no WhatsApp ${C.whatsapp.exibicao}.
 - Entre 90 e 150 palavras, parágrafos curtos, sem travessão, sem emoji, sem assinatura (entra sozinha). Nunca cite nomes da equipe.
 - ASSUNTO: 3 a 8 palavras, específico, com o nome curto da empresa.

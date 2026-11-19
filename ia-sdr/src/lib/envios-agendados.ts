@@ -5,7 +5,8 @@
  */
 import { db, getLead, logEvent, updateLead } from "./db.ts";
 import { enviarAoLead } from "./canal.ts";
-import { runTool } from "./tools.ts";
+import { runTool, TEXTO_PDF_PROMETIDO } from "./tools.ts";
+import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { toLocal } from "./time.ts";
 import { comRodape, gmailRemetente, gmailSend } from "./outreach-email.ts";
 
@@ -36,6 +37,20 @@ export async function runEnviosAgendados(now = new Date()) {
       }
       if (!e.lead_id) throw new Error("sem lead");
       if (e.com_pdf) {
+        // 18/11: PDF ainda não ficou pronto? Espera mais 30 minutos (até 3 dias), sem mandar o texto sozinho
+        const lead0 = await getLead(e.lead_id);
+        const p = await prospeccaoDoTelefone(lead0.phone).catch(() => null);
+        const automatico = e.texto === TEXTO_PDF_PROMETIDO;
+        if (p?.diag_enviado_em && automatico) {
+          await db().from("envios_agendados").update({ status: "cancelado", erro: "diagnóstico já tinha sido enviado" }).eq("id", e.id);
+          continue;
+        }
+        if (!p?.diag_enviado_em && !p?.marca?.pdf) {
+          const { data: linha } = await db().from("envios_agendados").select("created_at").eq("id", e.id).maybeSingle();
+          const velho = linha?.created_at && now.getTime() - new Date(linha.created_at).getTime() > 3 * 864e5;
+          await db().from("envios_agendados").update(velho ? { status: "erro", erro: "PDF não ficou pronto em 3 dias" } : { status: "agendado", enviar_em: new Date(now.getTime() + 30 * 60e3).toISOString() }).eq("id", e.id);
+          continue;
+        }
         const out = await runTool("enviar_diagnostico", {}, e.lead_id).catch((x) => `erro: ${String(x)}`);
         if (!out.startsWith("PDF enviado") && !out.includes("já foi enviado")) await logEvent(e.lead_id, "envio_programado_sem_pdf", { out: out.slice(0, 200) });
       }
@@ -48,7 +63,11 @@ export async function runEnviosAgendados(now = new Date()) {
       await logEvent(e.lead_id, "envio_programado", { com_pdf: e.com_pdf });
       enviados++;
     } catch (x) {
-      await db().from("envios_agendados").update({ status: "erro", erro: String((x as Error)?.message ?? x).slice(0, 300) }).eq("id", e.id);
+      // 18/11: o WhatsApp demora a confirmar e o envio sai mesmo assim (Sorriso e Dra. Bárbara responderam):
+      // tempo esgotado conta como enviado, para ninguém mandar de novo
+      const erro = String((x as Error)?.message ?? x).slice(0, 300);
+      const timeout = /timeout|aborted/i.test(erro);
+      await db().from("envios_agendados").update(timeout ? { status: "enviado", enviado_em: new Date().toISOString(), erro: `sem confirmação: ${erro}` } : { status: "erro", erro }).eq("id", e.id);
     }
   }
   return { enviados };

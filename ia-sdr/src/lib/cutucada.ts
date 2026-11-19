@@ -8,8 +8,7 @@
  * follow-ups. Agora entra todo mundo da v2 que ainda não foi cutucado e não respondeu (até 5 dias depois do 1º
  * contato), e a cutucada sai no próximo horário permitido.
  */
-import { addMessage, db, leadDoTelefone, logEvent, ultimoEvento, updateLead, upsertLeadByPhone } from "./db.ts";
-import { destination, sendText } from "./evolution.ts";
+import { db, leadDoTelefone, logEvent, ultimoEvento, updateLead, upsertLeadByPhone } from "./db.ts";
 import { horarioProspeccaoV2, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { FLUXO_V2_DESDE } from "./prospeccao.ts";
 import { sdrValida } from "./sdrs.ts";
@@ -53,9 +52,9 @@ export async function runCutucadas(now = new Date()) {
     if (count) continue;
     // Marca antes de enviar: o webhook reconhece o envio como nosso e não pausa a Gabi
     await db().from("outreach_leads").update({ ultimo_toque_em: now.toISOString() }).eq("place_id", o.place_id);
-    const id = await sendText(destination(lead), TEXTO_CUTUCADA);
-    await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind: "followup", content: TEXTO_CUTUCADA, evolution_message_id: id });
-    await logEvent(lead.id, "cutucada", { place_id: o.place_id, atrasada: new Date(o.wa_sent_at).getTime() < now.getTime() - 6 * 3600_000 });
+    // 18/11 (Kelvin): "Oi! Fico no aguardo do atendimento por aqui" soava ansioso e estranho. Não manda mais nada:
+    // só passa o lead para os follow-ups (o 1º já chega com apresentação e motivo do contato).
+    await logEvent(lead.id, "cutucada", { place_id: o.place_id, sem_mensagem: true, atrasada: new Date(o.wa_sent_at).getTime() < now.getTime() - 6 * 3600_000 });
     // A partir daqui, os follow-ups da Gabi (7 em até 14 dias)
     await updateLead(lead.id, {
       followup_attempts: 0,

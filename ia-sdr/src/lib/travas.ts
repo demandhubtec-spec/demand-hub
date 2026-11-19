@@ -123,10 +123,14 @@ export function perguntaSeViu(texto: string): boolean {
  * 7. Nome curto da empresa: o nome do Google às vezes vem com especialidade, cidade e bairro
  * ("Dra. Luana Aranha - Geriatria e Clínica Médica em Campinas", "Dra Larissa Avelino SOUSAS").
  */
-export function nomeCurto(empresa: string | null | undefined, cidade?: string | null): string {
+export function nomeCurto(empresa: string | null | undefined, cidade?: string | null, endereco?: string | null): string {
   let n = String(empresa ?? "").trim();
   if (!n) return n;
-  n = n.split(/\s+[-–—|]\s+|\s*\|\s*|\s+-(?=\S)|(?<=\S)[-–—]\s+/)[0].trim();
+  const pedacos = n.split(/\s+[-–—|]\s+|\s*\|\s*|\s+-(?=\S)|(?<=\S)[-–—]\s+/).map((x) => x.trim()).filter(Boolean);
+  n = pedacos[0] ?? n;
+  // 18/11: "Barão Geraldo -Centro de Oncologia Campinas" virava "Barão Geraldo" (é o bairro, está no endereço)
+  const end = (endereco ?? "").toLowerCase();
+  if (pedacos.length > 1 && end && n.length >= 4 && end.includes(n.toLowerCase())) n = pedacos[1];
   n = n.replace(/\s*\([^)]*\)\s*$/, "").trim();
   const c = (cidade ?? "").trim();
   if (c) n = n.replace(new RegExp(`\\s+(em|de|-)?\\s*${c.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i"), "").trim();
@@ -165,7 +169,45 @@ export function semReapresentacao(texto: string, jaConversando: boolean): string
 
 /** Todas as travas de texto que valem para qualquer mensagem da SDR. */
 export function aplicarTravasDeTexto(texto: string, now: Date): string {
-  return tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now))));
+  return vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)))));
+}
+
+/** A conversa é sempre de 20 minutinhos (18/11: a Gabi alternava 20 e 30 no mesmo dia). */
+export function vinteMinutos(texto: string): string {
+  return (texto ?? "").replace(/\b(?:30|trinta)\s+(minutos|minutinhos|min)\b/gi, "20 minutinhos");
+}
+
+/**
+ * Já se apresentou nesta conversa (nas últimas 48 horas)? Então tira o "Aqui é a Gabi, da DemandIA..." da resposta
+ * (18/11: Chico Fogão ouviu a apresentação duas vezes em 3 minutos; SR Elétrica de novo à tarde).
+ */
+export function semApresentacaoRepetida(texto: string, jaSeApresentou: boolean): string {
+  if (!jaSeApresentou) return texto;
+  const baloes = (texto ?? "").split(/\n\s*\n/);
+  const re = /^\s*(?:(?:oi|ol[aá]|bom dia|boa tarde|boa noite)[^.!?\n]{0,25}[.!?]?\s*)?(?:tudo bem\??\s*)?aqui (?:é|e) a (?:gabi|marina),? da demandia[^.!?\n]*[.!?😊\s]*(?:a gente ajuda[^.!?\n]*[.!?]\s*)?/i;
+  const novos = baloes.map((b) => b.replace(re, "").trim()).filter(Boolean);
+  return novos.length ? novos.join("\n\n") : texto;
+}
+
+const RE_ROBO = /assistente virtual|atendente virtual|sou (?:a|o|uma|um) [^.\n]{0,30}(?:virtual|assistente|rob[oô])|🤖|oferta exclusiva|digite (?:o|a|apenas)|escolha uma op[cç][aã]o|op[cç][aã]o v[aá]lida|protocolo|\[templateMessage\]|\[buttonsMessage\]|tim controle|n[aã]o consigo avaliar propostas/i;
+const RE_GENTE = /\b(me chamo|meu nome [eé]|aqui (?:é|e) (?:o|a) [A-ZÀ-Ú]|sou (?:o|a) [A-ZÀ-Ú][a-zà-ú]+\b(?! virtual))/;
+
+/**
+ * Conversa com robô (18/11: 9 mensagens trocadas com a oferta da TIM; despedidas sem fim com a IA do Hotel Viracopos).
+ * Quando um robô ou atendente virtual apareceu e a SDR já respondeu depois disso, ela só volta a falar quando uma
+ * PESSOA escrever: mensagem curta sem cara de robô, ou alguém que se apresenta pelo nome.
+ */
+export function deveCalarComRobo(hist: { direction: string; author?: string | null; content: string | null; created_at: string }[], agora = new Date()): boolean {
+  const recentes = hist.filter((m) => agora.getTime() - new Date(m.created_at).getTime() < 24 * 3600e3);
+  const iRobo = recentes.findIndex((m) => m.direction === "in" && (RE_ROBO.test(m.content ?? "") || (m.content ?? "").length > 320));
+  if (iRobo < 0) return false;
+  const ultima = recentes[recentes.length - 1];
+  if (!ultima || ultima.direction !== "in") return false;
+  const t = (ultima.content ?? "").trim();
+  const pareceGente = (t.length <= 80 && !RE_ROBO.test(t) && !/^\[/.test(t)) || RE_GENTE.test(t);
+  if (pareceGente) return false;
+  const respondeuDepois = recentes.slice(iRobo + 1).some((m) => m.direction === "out" && m.author !== "sistema");
+  return respondeuDepois;
 }
 
 /** Nunca emoji de joinha (Kelvin, 16/11): soa seco. Sai do texto (e, se era o único emoji, entra um 😊 no lugar). */
