@@ -235,3 +235,18 @@ test("ajustes da auditoria de 18/11", async () => {
   const ap2 = pr.apresentacaoDoLead({ place_id: "g1", empresa: "Clínica X", nicho: "Clínica médica", cidade: "Indaiatuba", endereco: "Rua A, 1 - Centro, Salto - SP, 13320-000", observacoes: null } as never);
   assert.ok(ap2.startsWith("A DemandIA desenvolve soluções inteligentes sob medida para clínicas de Salto:"));
 });
+
+test("coleta pela API do Google: lugar vira lead (18/11)", async () => {
+  const g = await import("../src/lib/google-places.ts");
+  const a = await import("../src/lib/auto.ts");
+  const lugar = { id: "ChIJx", displayName: { text: "Clínica Sorriso" }, formattedAddress: "Rua A, 10 - Centro, Salto - SP, 13320-000", addressComponents: [{ longText: "Salto", types: ["administrative_area_level_2", "political"] }], internationalPhoneNumber: "+55 11 99999-1234", websiteUri: "https://x.com.br", rating: 4.8, userRatingCount: 120, businessStatus: "OPERATIONAL", photos: [{}, {}] };
+  const [l] = g.leadsDaBusca([lugar, { id: "c", displayName: { text: "Fechada" }, businessStatus: "CLOSED_PERMANENTLY" }], { termo: "clínica odontológica Salto SP", nicho: "Odontologia" });
+  assert.equal(l.whatsapp, "5511999991234");
+  assert.equal(l.cidade, "Salto");
+  assert.equal(l.avaliacoes, 120);
+  assert.equal(l.posicao_busca, 1);
+  assert.equal(l.total_busca, 1);
+  assert.equal(a.nichoNaRotacao("Eventos"), false);
+  assert.equal(a.nichoNaRotacao("Restaurantes e alimentação"), true);
+  assert.equal(a.nichoNaRotacao("Odontologia"), true);
+});

@@ -13,6 +13,7 @@
 import { db } from "./db.ts";
 import { env } from "./env.ts";
 import { sendText } from "./evolution.ts";
+import { buscarNoGoogle, chamadasDoMes, googlePlacesKey, LIMITE_MES, leadsDaBusca } from "./google-places.ts";
 
 export interface NichoAuto {
   nicho: string;
@@ -156,13 +157,23 @@ async function importar(leads: unknown[], coleta: Record<string, unknown> | null
 
 /** Estoque da fila: primeiros contatos ainda não enviados (com ou sem sequência). */
 async function estoque(): Promise<number> {
-  const { count } = await db()
+  const { data } = await db()
     .from("outreach_leads")
-    .select("place_id", { count: "exact", head: true })
+    .select("place_id,nicho")
     .eq("wa_status", "pendente")
     .not("whatsapp", "is", null) // só conta quem tem WhatsApp: sem número não dá para abordar
-    .in("msg_status", ["sem", "gerando", "rascunho", "aprovada"]);
-  return count ?? 0;
+    .in("msg_status", ["sem", "gerando", "rascunho", "aprovada"])
+    .limit(3000);
+  // 18/11: só contam os nichos que ainda recebem primeiro contato (clínica e alimentação)
+  return ((data ?? []) as { place_id: string; nicho: string | null }[]).filter((l) => nichoNaRotacao(l.nicho, l.place_id)).length;
+}
+
+/** O nicho ainda recebe primeiro contato? (18/11, Kelvin: só saúde/clínica e alimentação) */
+export function nichoNaRotacao(nicho: string | null | undefined, placeId?: string | null): boolean {
+  const n = String(nicho ?? "").toLowerCase();
+  if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic/.test(n)) return false;
+  if (String(placeId ?? "").startsWith("ig_") && !n) return true;
+  return /aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|dermat|nutri|fisio|psic|sa[uú]de/.test(n);
 }
 
 async function gastoDoMes(): Promise<{ gasto: number; teto: number }> {
@@ -248,14 +259,20 @@ export async function rodarAuto(opts: { forcar?: boolean } = {}, agora = new Dat
   const domingoANoite = spDiaSemana(agora) === 0 && spHora(agora) >= 19;
   const ultima = cfg.auto_ultima_coleta ? new Date(cfg.auto_ultima_coleta).getTime() : 0;
   const jaRodouNaSemana = agora.getTime() - ultima < 5 * 864e5;
-  if (cfg.auto_ativo && !cfg.auto_run_id && (opts.forcar || (domingoANoite && !jaRodouNaSemana))) {
+  // 18/11: com a API do Google (cota grátis), a coleta pode rodar todo dia útil de manhã, quando a fila baixa
+  const comGoogle = !!googlePlacesKey();
+  const h = spHora(agora);
+  const diaUtilCedo = comGoogle && spDiaSemana(agora) >= 1 && spDiaSemana(agora) <= 5 && h >= 6 && h < 20 && agora.getTime() - ultima > 3 * 3600e3;
+  if (cfg.auto_ativo && !cfg.auto_run_id && (opts.forcar || (domingoANoite && !jaRodouNaSemana) || diaUtilCedo)) {
     const meta = (cfg.auto_meta_dia ?? 30) * 5;
     const tem = await estoque();
     const falta = meta - tem;
     out.estoque = { tem, meta };
     if (falta <= 0) {
-      await log("coleta", `Fila já cobre a semana (${tem} de ${meta}); sem coleta nova`);
+      if (!diaUtilCedo || opts.forcar) await log("coleta", `Fila já cobre a semana (${tem} de ${meta}); sem coleta nova`);
       await db().from("outreach_config").update({ auto_ultima_coleta: agora.toISOString() }).eq("id", 1);
+    } else if (comGoogle && cidades.length && nichos.length) {
+      out.google = await coletarPeloGoogle(cfg, cidades, nichos, falta, agora);
     } else if (!apifyToken()) {
       await log("error", "Prospecção automática: falta configurar o APIFY_TOKEN");
       await avisar("⚠️ A prospecção automática precisa coletar empresas, mas o token do Apify não está configurado.");
@@ -299,4 +316,47 @@ export async function rodarAuto(opts: { forcar?: boolean } = {}, agora = new Dat
     }
   }
   return out;
+}
+
+/**
+ * Coleta pela API do Google (18/11). Roda dentro da chamada (sem fila no Apify): no máximo 6 buscas por vez,
+ * para caber no tempo da função, e nunca passa do limite do mês (cota grátis).
+ */
+async function coletarPeloGoogle(cfg: ConfigAuto, cidades: string[], nichos: NichoAuto[], falta: number, agora: Date) {
+  const usadas = await chamadasDoMes(agora);
+  const sobra = LIMITE_MES() - usadas;
+  if (sobra < 3) {
+    await log("error", `Places API: limite do mês atingido (${usadas} de ${LIMITE_MES()} chamadas); coleta fica para o mês que vem`);
+    await db().from("outreach_config").update({ auto_ultima_coleta: agora.toISOString() }).eq("id", 1);
+    return { limite: true, usadas };
+  }
+  // ~25 leads úteis por busca (60 lugares, metade com celular e no perfil)
+  const qtd = Math.max(1, Math.min(6, Math.ceil(falta / 25), Math.floor(sobra / 3)));
+  const { buscas, cursor } = proximasBuscas(cidades, nichos, cfg.auto_cursor ?? 0, qtd, cfg.auto_uf ?? "");
+  let chamadas = 0;
+  const leads: ReturnType<typeof leadsDaBusca> = [];
+  for (const b of buscas) {
+    try {
+      const r = await buscarNoGoogle(b.termo, 3);
+      chamadas += r.chamadas;
+      leads.push(...leadsDaBusca(r.lugares, { termo: b.termo, nicho: b.nicho, cidade: b.cidade }));
+    } catch (e) {
+      await log("error", `Places API falhou em "${b.termo}": ${String((e as Error)?.message ?? e).slice(0, 200)}`);
+      break;
+    }
+  }
+  await db().from("outreach_log").insert({ channel: "auto", event: "google_places", detail: { msg: `${buscas.length} buscas, ${chamadas} chamadas`, chamadas, buscas: buscas.map((b) => b.termo) } });
+  const filtrados = leads.filter((l) => passaNosFiltros(l, cfg.auto_filtros));
+  const r = filtrados.length
+    ? await importar(filtrados, {
+        cidades: [...new Set(buscas.map((b) => b.cidade))],
+        nichos: [...new Set(buscas.map((b) => b.nicho))],
+        lugares_coletados: leads.length,
+        custo_usd: 0,
+        observacoes: `Coleta pela API do Google: ${buscas.length} buscas, ${chamadas} chamadas.`,
+      })
+    : { recebidos: 0, novos: 0 };
+  await db().from("outreach_config").update({ auto_cursor: cursor, auto_ultima_coleta: agora.toISOString(), auto_aviso_pendente: r.novos > 0 || cfg.auto_aviso_pendente }).eq("id", 1);
+  await log("coleta", `Coleta pela API do Google: ${leads.length} empresas, ${filtrados.length} no filtro, ${r.novos} novas na fila`);
+  return { buscas: buscas.map((b) => b.termo), chamadas, lugares: leads.length, novos: r.novos };
 }
