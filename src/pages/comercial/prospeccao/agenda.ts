@@ -5,7 +5,7 @@ import type { OutreachConfig, OutreachLead, Toque } from "@/hooks/useProspeccao"
  * regras do motor (outreach-wa-tick e e-mail):
  *  - WhatsApp: primeiro os follow-ups vencidos (teto followup_daily_cap), depois os primeiros contatos
  *    aprovados por prioridade e data de entrada (teto wa_daily_cap), com o intervalo médio entre envios;
- *  - sábado só de manhã e só follow-up; e-mail só em dia útil; feriados não sai nada;
+ *  - sábado só de manhã (até meio-dia); e-mail só em dia útil; feriados não sai nada;
  *  - cada envio agenda o próximo toque como a função outreach_avancar_cadencia (09:30 ou 14:00 do dia
  *    da cadência, nunca menos de 3 horas depois do último toque, e-mail pulado quando não há e-mail).
  * Os horários são aproximados: o intervalo real entre envios é sorteado.
@@ -109,6 +109,16 @@ const ordemFila = (a: OutreachLead, b: OutreachLead) => {
   return a.created_at.localeCompare(b.created_at);
 };
 
+/** Segmento do lead na fila do 1º contato (resumo de segmentoDoLead do outreach-wa-tick). */
+export function segmentoDaFila(l: Pick<OutreachLead, "place_id" | "nicho" | "empresa">): "saude" | "restaurante" | "fora" {
+  const ig = String(l.place_id ?? "").startsWith("ig_");
+  const n = `${l.nicho ?? ""} ${ig ? l.empresa ?? "" : ""}`.toLowerCase();
+  if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic/.test(n)) return "fora";
+  if (/aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|a[cç]a[ií]|gelat|sorvet|churras|espetaria|coxinha/.test(n)) return "restaurante";
+  if (/cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|depila|dermat|nutri|fisio|psic|sa[uú]de/.test(n)) return "saude";
+  return "fora";
+}
+
 export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos: FeitosHoje, dias = 31, agora = new Date()): EnvioPrevisto[] {
   const out: EnvioPrevisto[] = [];
   const hoje0 = inicioDoDia(agora);
@@ -129,13 +139,14 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
   const ordenada = leads
     .filter((l) => l.wa_status === "pendente" && l.whatsapp && (!exigir || l.msg_status === "aprovada"))
     .sort(ordemFila);
-  // 16/11 (Kelvin): o disparo alterna Google e lista do Instagram (metade de cada por dia), igual ao servidor
-  const ig = ordenada.filter((l) => l.place_id.startsWith("ig_"));
-  const google = ordenada.filter((l) => !l.place_id.startsWith("ig_"));
+  // 18/11 (Kelvin): o disparo alterna clínicas e alimentação (metade de cada), igual ao servidor (MIX do
+  // outreach-wa-tick); quem não é de nenhum dos dois nunca recebe o 1º contato
+  const saude = ordenada.filter((l) => segmentoDaFila(l) === "saude");
+  const comida = ordenada.filter((l) => segmentoDaFila(l) === "restaurante");
   const fila: typeof ordenada = [];
-  for (let i = 0; i < Math.max(ig.length, google.length); i++) {
-    if (ig[i]) fila.push(ig[i]);
-    if (google[i]) fila.push(google[i]);
+  for (let i = 0; i < Math.max(saude.length, comida.length); i++) {
+    if (saude[i]) fila.push(saude[i]);
+    if (comida[i]) fila.push(comida[i]);
   }
 
   const passoWa = ((cfg.wa_min_interval_sec + cfg.wa_max_interval_sec) / 2 + 30) * 1000;
@@ -181,7 +192,8 @@ export function preverEnvios(leads: OutreachLead[], cfg: OutreachConfig, feitos:
           t = new Date(t.getTime() + passoWa);
           continue;
         }
-        const quem = !sabado && fila.length ? proximaSdr(porSdr, tetos) : null;
+        // 18/11: sábado também sai 1º contato, até o meio-dia (o `fim` do sábado já é 12h)
+        const quem = fila.length ? proximaSdr(porSdr, tetos) : null;
         if (quem) {
           const l = { ...fila.shift()!, agente: quem };
           const st: Estado = { lead: l, seq: l.sequencia ?? [], toque: 0, inicio: t, ultimo: null, due: t, canal: "whatsapp", atrasado: false };
@@ -289,8 +301,9 @@ export function preverV2(
     }
   };
   const cutucadaEDepois = (lead: OutreachLead, enviadoEm: Date) => {
+    // 18/11 (Kelvin): a cutucada não manda mais mensagem; 1 h depois do "Oi" sem resposta o lead só passa
+    // para os follow-ups. Por isso ela não entra na agenda como envio.
     const quando = proximoHorarioV2(new Date(Math.max(enviadoEm.getTime() + 3600e3, agora.getTime())));
-    out.push({ lead, quando, canal: "whatsapp", toque: 0, total: 1, atrasado: enviadoEm < new Date(hoje0.getTime() - DIA), tipo: "cutucada", seNaoResponder: true, sdr: lead.agente === "marina" ? "marina" : "gabi" });
     cadeia(lead, proximoHorarioV2(new Date(quando.getTime() + V2_INTERVALOS[0] * DIA)), 1, false, true);
   };
 

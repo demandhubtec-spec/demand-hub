@@ -22,7 +22,6 @@ const PERIODOS: { key: Periodo; label: string }[] = [
 const TIPOS: { key: Tipo; label: string }[] = [
   { key: "todos", label: "Todos" },
   { key: "primeiro", label: "1º contato" },
-  { key: "cutucada", label: "Cutucada" },
   { key: "follow", label: "Follow-ups" },
 ];
 
@@ -202,7 +201,6 @@ export function AgendaTab() {
   for (const e of filtrados) porDia.set(ymd(e.quando), [...(porDia.get(ymd(e.quando)) ?? []), e]);
 
   const n1 = filtrados.filter((e) => e.tipo === "primeiro").length;
-  const nCutucada = filtrados.filter((e) => e.tipo === "cutucada").length;
   const nFollowWa = filtrados.filter((e) => ehFollow(e) && e.canal === "whatsapp").length;
   const nEmail = filtrados.filter((e) => e.canal === "email").length;
   const paraAprovar = leads.filter((l) => l.wa_status === "pendente" && l.msg_status === "rascunho").length;
@@ -301,7 +299,6 @@ export function AgendaTab() {
         itens={[
           { rotulo: "Envios no período", valor: filtrados.length },
           { rotulo: "Primeiros contatos", valor: n1 },
-          { rotulo: "Cutucadas", valor: nCutucada },
           { rotulo: "Follow-ups no WhatsApp", valor: nFollowWa },
           { rotulo: "E-mails", valor: nEmail },
         ]}
@@ -310,9 +307,10 @@ export function AgendaTab() {
       <div className="space-y-1 text-[12px] text-muted">
         <div>
           Horários aproximados: o robô sorteia de {Math.round((cfg?.wa_min_interval_sec ?? 300) / 60)} a {Math.round((cfg?.wa_max_interval_sec ?? 540) / 60)} minutos entre um
-          WhatsApp e outro. O 1º contato é só a saudação e o "Tudo bem?"; se ninguém responder em 1 hora, sai a
-          cutucada ("Fico no aguardo do atendimento por aqui") e depois os follow-ups da Gabi (7 em até 14 dias,
-          seg a sex 8h às 18h, sábado até meio-dia). Cutucadas e follow-ups só saem se a pessoa não responder.
+          WhatsApp e outro. O 1º contato é só a saudação e o "Tudo bem?" e alterna clínicas e alimentação (seg a sex
+          até as 16h59, sábado até meio-dia). Se ninguém responder, o lead entra nos follow-ups da Gabi (7 em até 14
+          dias, seg a sex 8h às 18h, sábado até meio-dia), escritos na hora com o histórico da conversa. Follow-up só
+          sai se a pessoa não responder.
         </div>
         <div>
           {naFila} aprovados na fila

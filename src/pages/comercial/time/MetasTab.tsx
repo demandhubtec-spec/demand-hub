@@ -24,8 +24,8 @@ const LINHAS: { key: EtapaLista; nome: string }[] = [
   { key: "ganho", nome: "Venda" },
 ];
 const SE_APLICA: Record<CanalFunil, EtapaLista[]> = {
-  google: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
-  instagram: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
+  google: ["contato", "conversa", "reuniao", "reuniao_realizada", "proposta", "ganho"],
+  instagram: ["contato", "conversa", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   linkedin: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   ligacoes: ["contato", "atendida", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   inbound: ["conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],

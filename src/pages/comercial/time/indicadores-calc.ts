@@ -24,9 +24,13 @@ const LISTA: EtapaFunil[] = [
   { key: "ganho", label: "Venda" },
 ];
 
+// 18/11 (Kelvin): no Google e no Instagram a conversa vai direto para reunião (quem qualifica é a reunião).
+// A etapa Qualificação sai desses dois funis; quem estava nela conta como Conversa iniciada.
+const LISTA_DIRETO: EtapaFunil[] = LISTA.filter((e) => e.key !== "qualificacao");
+
 export const ETAPAS_FUNIL: Record<CanalFunil, EtapaFunil[]> = {
-  google: LISTA,
-  instagram: LISTA,
+  google: LISTA_DIRETO,
+  instagram: LISTA_DIRETO,
   linkedin: LISTA,
   ligacoes: [
     { key: "na_lista", label: "Na lista" },
@@ -58,7 +62,10 @@ const ORDEM_INBOUND = ["recebido", "atendimento", "qualificacao", "reuniao", "re
 export function nivelGoogle(l: OutreachLead): number | null {
   const e = etapaOutbound(l);
   if (e === null) return null;
-  if (e !== "perdido") return ORDEM_GOOGLE.indexOf(e);
+  if (e !== "perdido") {
+    const i = ORDEM_GOOGLE.indexOf(e);
+    return i >= 3 ? i - 1 : i; // sem Qualificação: qualificado = conversa (2), reunião passa a ser 3
+  }
   if (l.respondeu_no_toque != null || ["respondeu", "optout"].includes(l.wa_status) || l.email_status === "respondeu") return 2;
   if ((l.toque_atual ?? 0) > 0 || l.wa_sent_at) return 1;
   return 0;
@@ -88,6 +95,8 @@ const ORDEM_GLOBAL: Record<string, number> = {
 export function nivelLista(l: Pick<ListaLead, "lista" | "etapa" | "etapa_max">): number {
   const ordem = l.etapa === "perdido" ? l.etapa_max ?? 0 : Math.max(ORDEM_GLOBAL[l.etapa] ?? 0, l.etapa_max ?? 0);
   if (l.lista === "ligacoes") return ordem;
+  // Instagram (18/11): sem "atendida" e sem "qualificacao" (qualificado conta como conversa)
+  if (l.lista === "instagram") return ordem >= 4 ? ordem - 2 : ordem >= 3 ? 2 : Math.min(ordem, 1);
   // Instagram e LinkedIn não têm a etapa "atendida"
   return ordem >= 3 ? ordem - 1 : Math.min(ordem, 1);
 }

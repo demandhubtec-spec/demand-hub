@@ -145,8 +145,8 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         quentes: ls.filter((l) => l.nota === "Quente").length,
         whats: ls.filter((l) => fim8(l.whatsapp)).length,
         resposta: abordados ? Math.round((responderam / abordados) * 100) : null,
-        reunioes: niv.filter((n) => n >= 4).length,
-        vendas: niv.filter((n) => n >= 7).length,
+        reunioes: niv.filter((n) => n >= ETAPAS_FUNIL.instagram.findIndex((e) => e.key === "reuniao")).length,
+        vendas: niv.filter((n) => n >= ETAPAS_FUNIL.instagram.findIndex((e) => e.key === "ganho")).length,
       };
     });
     return r.sort((a, b) => b.leads - a.leads);
