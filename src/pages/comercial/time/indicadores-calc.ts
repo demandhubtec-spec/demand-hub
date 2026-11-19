@@ -129,6 +129,8 @@ export interface LinhaFunil {
   valor: number;
   conversao: number | null; // % da etapa anterior
   meta: number | null;
+  /** Meta em número (18/11): em cascata desde o topo, aplicando a meta % de cada etapa sobre a meta da anterior. */
+  metaNumero: number | null;
   estado: EstadoEtapa;
 }
 
@@ -136,13 +138,21 @@ export interface LinhaFunil {
 export function linhasFunil(canal: CanalFunil, contagem: number[], metas: Metas | undefined, baseMinima = 3): LinhaFunil[] {
   const etapas = ETAPAS_FUNIL[canal];
   const m = metas?.etapas?.[canal] ?? {};
+  // Meta em número: o topo é o que está na lista; cada etapa é a meta % sobre a meta em número da anterior
+  const metasNumero: (number | null)[] = [];
+  etapas.forEach((e, i) => {
+    if (i === 0) return metasNumero.push(contagem[0] ?? 0);
+    const prev = metasNumero[i - 1];
+    const pct = m[e.key];
+    metasNumero.push(prev != null && pct != null ? Math.round((prev * pct) / 100) : null);
+  });
   const linhas: LinhaFunil[] = etapas.map((e, i) => {
     const ant = i > 0 ? contagem[i - 1] : null;
     const conv = ant ? Math.round((contagem[i] / ant) * 1000) / 10 : null;
     const meta = i > 0 ? (m[e.key] ?? null) : null;
     const estado: EstadoEtapa =
       i === 0 || conv == null || (ant ?? 0) < baseMinima ? "sem_base" : e.key !== "contato" && meta != null && conv < meta ? "abaixo" : "ok";
-    return { key: e.key, label: e.label, ajuda: e.ajuda, anterior: ant, labelAnterior: i > 0 ? etapas[i - 1].label : null, valor: contagem[i] ?? 0, conversao: conv, meta, estado };
+    return { key: e.key, label: e.label, ajuda: e.ajuda, anterior: ant, labelAnterior: i > 0 ? etapas[i - 1].label : null, valor: contagem[i] ?? 0, conversao: conv, meta, metaNumero: i > 0 ? metasNumero[i] : null, estado };
   });
   let pior = -1;
   let dist = 0;

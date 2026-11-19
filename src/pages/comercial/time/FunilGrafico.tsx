@@ -18,7 +18,13 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
   const altura = n * (H + GAP);
   return (
     <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
-      <div className="min-w-[260px] flex-1">
+      <div className="min-w-[300px] flex-1">
+        {!apagado && (
+          <div className="mb-1 flex justify-end gap-3 text-[11px] uppercase tracking-wide text-muted/70">
+            <span>realizado · taxa</span>
+            <span className="min-w-[92px] text-right">meta · taxa</span>
+          </div>
+        )}
         {linhas.map((l, i) => {
           const ultima = i === n - 1;
           return (
@@ -37,20 +43,27 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
                 {!apagado && <Ajuda linha={l} />}
               </span>
               {!apagado && (
-                <span className="flex items-center gap-1.5 tabular-nums text-[12px]">
+                <span className="flex items-center gap-3 tabular-nums text-[12px]">
                   {i === 0 ? (
-                    <span className="text-muted/70">topo</span>
+                    <span className="text-muted/70">topo · {l.valor}</span>
                   ) : (
                     <>
-                      <b
-                        className={cn(
-                          "font-semibold",
-                          l.estado === "gargalo" ? "text-negative" : l.estado === "abaixo" ? "text-attention" : l.estado === "sem_base" ? "text-muted" : "text-ink",
-                        )}
-                      >
-                        {fmtPct(l.conversao)}
-                      </b>
-                      {l.meta != null && <span className="text-[12px] text-muted">meta {l.meta}%</span>}
+                      <span className="text-right">
+                        <b
+                          className={cn(
+                            "font-semibold",
+                            l.estado === "gargalo" ? "text-negative" : l.estado === "abaixo" ? "text-attention" : l.estado === "sem_base" ? "text-muted" : "text-ink",
+                          )}
+                        >
+                          {l.valor}
+                        </b>
+                        <span className="text-muted"> · {fmtPct(l.conversao)}</span>
+                      </span>
+                      {l.meta != null && (
+                        <span className="min-w-[92px] text-right text-muted">
+                          meta <b className="font-semibold text-ink/80">{l.metaNumero ?? "-"}</b> · {l.meta}%
+                        </span>
+                      )}
                       {l.estado === "gargalo" && (
                         <span className="rounded-[6px] bg-negative-tint px-1.5 py-0.5 text-[12px] text-negative">gargalo</span>
                       )}
@@ -107,7 +120,7 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
 function Ajuda({ linha: l }: { linha: LinhaFunil }) {
   const taxa =
     l.anterior != null && l.labelAnterior
-      ? `${l.valor} de ${l.anterior} (${fmtPct(l.conversao)}) que chegaram em "${l.labelAnterior}" passaram para cá.${l.meta != null ? ` Meta: ${l.meta}%.` : ""}`
+      ? `Realizado: ${l.valor} de ${l.anterior} que chegaram em "${l.labelAnterior}" (${fmtPct(l.conversao)}).${l.meta != null ? ` Meta: ${l.metaNumero ?? "-"} (${l.meta}% da meta da etapa anterior, contando desde o topo da lista).` : ""}`
       : `${l.valor} no topo do funil.`;
   const texto = [l.ajuda, taxa].filter(Boolean).join(" ");
   return (
