@@ -319,8 +319,12 @@ export function FichaListaLead({ lead, onClose }: { lead: ListaLead; onClose: ()
   const { showToast } = useToast();
   const [obs, setObs] = React.useState(lead.observacoes ?? "");
   const [valor, setValor] = React.useState(lead.valor != null ? String(lead.valor) : "");
-  const wa = (lead.whatsapp ?? "").replace(/\D/g, "");
+  // 18/11: na lista de Ligações o número é telefone fixo (link de discar, sem botão de WhatsApp)
+  const ehLigacao = lead.lista === "ligacoes";
+  const wa = ehLigacao ? "" : (lead.whatsapp ?? "").replace(/\D/g, "");
+  const tel = ehLigacao ? (lead.whatsapp ?? "").replace(/[^\d+]/g, "") : "";
   const linhas: [string, React.ReactNode][] = [
+    ["Telefone", tel ? <a href={`tel:${tel}`} className="text-primary-bright hover:underline">{lead.whatsapp}</a> : null],
     ["Segmento", lead.nicho],
     ["Cidade", lead.cidade],
     ["Rodada", lead.rodada],
