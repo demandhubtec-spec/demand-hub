@@ -263,9 +263,13 @@ export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string
   const w = palavrasDoNicho(p.nicho);
   const cid = cidadeParaCitar(p, phone);
   const deOnde = cid && cid !== "todo o Brasil" ? ` de ${cid}` : "";
+  // 18/11 (Kelvin): a DemandIA não é agência. A abordagem é implementação de IA no negócio (vender mais, gastar menos),
+  // que é o que a agência que eles já têm não faz.
   if (ehAlimentacao(p))
-    return `A gente ajuda negócios de alimentação${deOnde} a vender mais pelo próprio cardápio digital, feito com a cara da marca, sem depender do iFood e sem pagar taxa por pedido.`;
-  return `A gente ajuda ${w.plural}${deOnde} a receber mais ${w.publico} pelo Google, pelo site e pelo Instagram.`;
+    return `A DemandIA implementa inteligência artificial em negócios de alimentação${deOnde}: cardápio digital próprio, com a cara da marca, e uma IA que atende o cliente e monta o pedido no WhatsApp, pra vender mais sem depender do iFood.`;
+  if (w.publico === "pacientes")
+    return `A DemandIA implementa inteligência artificial em ${w.plural}${deOnde}: atendimento e agendamento automáticos no WhatsApp, confirmação e retorno de pacientes, pra atender e faturar mais sem aumentar a equipe.`;
+  return `A DemandIA implementa inteligência artificial em ${w.plural}${deOnde} pra vender mais e gastar menos, com atendimento automático no WhatsApp e processos mais rápidos.`;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */

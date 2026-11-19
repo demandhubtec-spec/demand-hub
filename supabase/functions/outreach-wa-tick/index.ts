@@ -338,17 +338,45 @@ const EVO_TOKEN_GABI = Deno.env.get("EVOLUTION_INSTANCE_TOKEN") || "";
  * O token vem do contexto da chamada, nunca de uma variável global trocada no meio (duas chamadas podem
  * rodar ao mesmo tempo na mesma instância da função).
  */
-/** Segmento do lead para o mix diário (17/11, Kelvin). "fora": pet e advocacia, que saíram da rotação. */
+/**
+ * Segmento do lead para o mix diário. 17/11: pet e advocacia saíram. 18/11 (Kelvin): só clínica (saúde em geral)
+ * e alimentação; eventos, casa de verão (ar-condicionado, piscina, dedetização), pousadas e o resto saíram também.
+ * E entra o ICP: clínica com estrutura (não consultório de um profissional só, nem hospital/laboratório/rede) e
+ * alimentação com movimento (Google com avaliações ou Instagram com seguidores).
+ */
 type Segmento = "saude" | "restaurante" | "outros";
-const MIX: Record<Segmento, number> = { saude: 0.5, restaurante: 0.3, outros: 0.2 };
-function segmentoDoLead(l: { place_id?: string | null; nicho?: string | null; empresa?: string | null }): Segmento | "fora" {
+const MIX: Record<Segmento, number> = { saude: 0.5, restaurante: 0.5, outros: 0 };
+function segmentoDoLead(l: { place_id?: string | null; nicho?: string | null; empresa?: string | null; avaliacoes?: number | null; observacoes?: string | null }): Segmento | "fora" {
   const ig = String(l.place_id ?? "").startsWith("ig_");
   // Google: pelo nicho da coleta. Lista do Instagram: nicho e nome (lá o nicho às vezes vem vazio)
   const n = `${l.nicho ?? ""} ${ig ? l.empresa ?? "" : ""}`.toLowerCase();
   if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic/.test(n)) return "fora";
-  if (/aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food/.test(n)) return "restaurante";
-  if (/cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|depila|dermat|nutri|fisio|psic|sa[uú]de/.test(n)) return "saude";
-  return "outros";
+  let seg: Segmento = "outros";
+  if (/aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|a[cç]a[ií]|gelat|sorvet|churras|espetaria|coxinha/.test(n)) seg = "restaurante";
+  else if (/cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|depila|dermat|nutri|fisio|psic|sa[uú]de/.test(n)) seg = "saude";
+  if (seg === "outros") return "fora";
+  return dentroDoIcp(seg, l, ig) ? seg : "fora";
+}
+
+/** ICP (18/11): quem tem estrutura e dinheiro para investir. Sem dado (nota/avaliações vazias), passa. */
+function dentroDoIcp(seg: Segmento, l: { empresa?: string | null; avaliacoes?: number | null; observacoes?: string | null }, ig: boolean): boolean {
+  const nome = String(l.empresa ?? "");
+  const av = typeof l.avaliacoes === "number" ? l.avaliacoes : null;
+  if (seg === "saude") {
+    // Hospital, laboratório, diagnóstico por imagem, universidade, pronto-socorro e redes grandes não são o perfil
+    if (/hospital|laborat|diagn[oó]stic|universid|unicamp|\bpuc\b|pronto.?socorro|\bupa\b|santa casa|cecom|haoc|vera cruz/i.test(nome)) return false;
+    // Consultório de um profissional só ("Dra. Fulana - Endocrinologista", "Dentista Dra. Carol") não tem verba
+    if (/^(dr|dra|doutor|doutora|dentista)\b\.?/i.test(nome.trim()) && !/cl[ií]nic|odontologia|instituto|centro|espa[cç]o/i.test(nome)) return false;
+    if (av !== null && (av < 30 || av > 1500)) return false;
+    return true;
+  }
+  if (ig) {
+    const m = String(l.observacoes ?? "").match(/([0-9]+(?:[.,][0-9]+)?)\s*(mil)?\s*seguidores/i);
+    if (!m) return true;
+    const seguidores = parseFloat(m[1].replace(",", ".")) * (m[2] ? 1000 : 1);
+    return seguidores >= 1000;
+  }
+  return av === null || av >= 80;
 }
 
 type Sdr = "gabi" | "marina";
@@ -626,7 +654,7 @@ Deno.serve(async (req) => {
   const idsHoje = [...new Set((tentativas ?? []).map((t) => String(t.place_id ?? "")).filter(Boolean))];
   const nichoDe = new Map<string, string | null>();
   for (let i = 0; i < idsHoje.length; i += 200) {
-    const { data: ns } = await sb.from("outreach_leads").select("place_id,nicho,empresa").in("place_id", idsHoje.slice(i, i + 200));
+    const { data: ns } = await sb.from("outreach_leads").select("place_id,nicho,empresa,avaliacoes,observacoes").in("place_id", idsHoje.slice(i, i + 200));
     for (const n of ns ?? []) nichoDe.set(n.place_id, segmentoDoLead(n));
   }
   const feitosSeg: Record<Segmento, number> = { saude: 0, restaurante: 0, outros: 0 };
@@ -636,7 +664,7 @@ Deno.serve(async (req) => {
   }
   const totalSeg = feitosSeg.saude + feitosSeg.restaurante + feitosSeg.outros;
   // Maior déficit primeiro (quanto falta para chegar na fatia do segmento depois do próximo envio)
-  const ordemSeg = (Object.keys(MIX) as Segmento[]).sort((a, b) => (MIX[b] * (totalSeg + 1) - feitosSeg[b]) - (MIX[a] * (totalSeg + 1) - feitosSeg[a]));
+  const ordemSeg = (Object.keys(MIX) as Segmento[]).filter((k) => MIX[k] > 0).sort((a, b) => (MIX[b] * (totalSeg + 1) - feitosSeg[b]) - (MIX[a] * (totalSeg + 1) - feitosSeg[a]));
   let filaBase = sb.from("outreach_leads").select("*").eq("wa_status", "pendente").not("whatsapp", "is", null);
   if (cfg.exigir_aprovacao !== false) filaBase = filaBase.eq("msg_status", "aprovada");
   if (jaTestados.length) filaBase = filaBase.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);

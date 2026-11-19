@@ -126,6 +126,8 @@ export const TOOLS: Tool[] = [
       properties: {
         diagnostico_enviado: { type: "boolean", description: "true quando você mandou os achados ou a análise do diagnóstico." },
         responsavel: { type: "string", description: "Nome do responsável e o contato dele (WhatsApp ou e-mail), como o lead passou." },
+        porte: { type: "string", description: "O que o lead contou do porte (ex.: '4 dentistas e 2 unidades', 'só a doutora', 'delivery, 80 pedidos por dia, metade pelo iFood')." },
+        fora_do_perfil: { type: "boolean", description: "true quando ficou claro que é pequeno demais (profissional sozinho, negócio muito pequeno)." },
       },
     },
   },
@@ -510,6 +512,12 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (input.diagnostico_enviado === true && !p.diag_enviado_em) patch.diag_enviado_em = new Date().toISOString();
       if (typeof input.responsavel === "string" && input.responsavel.trim()) patch.responsavel_contato = input.responsavel.trim().slice(0, 200);
       if (Object.keys(patch).length) await db().from("outreach_leads").update(patch).eq("place_id", p.place_id);
+      // 18/11: qualificação (ICP) fica na ficha para o Kelvin ver no funil
+      if (typeof input.porte === "string" && input.porte.trim()) await updateLead(leadId, { qualificacao_resumo: `Porte: ${input.porte.trim().slice(0, 200)}` }).catch(() => null);
+      if (input.fora_do_perfil === true) {
+        await logEvent(leadId, "fora_do_perfil", { porte: input.porte ?? null }).catch(() => null);
+        return "Anotado: fora do perfil. Seja gentil, deixe o diagnóstico e a porta aberta, e não insista na reunião.";
+      }
       return "Progresso registrado. Siga rumo à conversa de 20 minutinhos ou ligação com o responsável.";
     }
 
