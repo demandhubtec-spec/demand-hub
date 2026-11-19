@@ -573,7 +573,8 @@ Deno.serve(async (req) => {
 
   if (!cfg.wa_enabled) return Response.json({ ...out, skip: "wa_disabled" });
   const h = spHour(), wd = spWeekday();
-  if (!cfg.send_days.includes(wd) || h < cfg.send_start_hour || h > cfg.send_end_hour)
+  // 18/11 (Kelvin): sábado o primeiro contato vai só até meio-dia
+  if (!cfg.send_days.includes(wd) || h < cfg.send_start_hour || h > cfg.send_end_hour || (wd === 6 && h >= 12))
     return Response.json({ ...out, skip: "fora_da_janela" });
   if (FERIADOS.has(spYmd())) return Response.json({ ...out, skip: "feriado" });
   // Sábado: só de manhã e só follow-up (abordagem nova fica para dia útil)
