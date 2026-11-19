@@ -14,13 +14,13 @@ const COLUNAS: { key: CanalFunil; nome: string }[] = [
   { key: "relacionamento", nome: "Relacionamento" },
 ];
 const LINHAS: { key: EtapaLista; nome: string }[] = [
-  { key: "contato", nome: "Mensagem ou ligação feita" },
+  { key: "contato", nome: "Disparo (mensagem ou ligação)" },
   { key: "atendida", nome: "Ligação atendida" },
   { key: "conversa", nome: "Conversa iniciada" },
   { key: "qualificacao", nome: "Qualificação" },
   { key: "reuniao", nome: "Reunião agendada" },
   { key: "reuniao_realizada", nome: "Reunião realizada" },
-  { key: "proposta", nome: "Negociação" },
+  { key: "proposta", nome: "Negociação / proposta" },
   { key: "ganho", nome: "Venda" },
 ];
 const SE_APLICA: Record<CanalFunil, EtapaLista[]> = {

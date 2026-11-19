@@ -1,3 +1,4 @@
+import { HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fmtPct, type LinhaFunil } from "./indicadores-calc";
 
@@ -28,11 +29,12 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
             >
               <span
                 className={cn(
-                  "text-[13px]",
+                  "flex items-center gap-1 text-[13px]",
                   apagado ? "text-muted" : ultima ? "font-semibold text-positive" : l.estado === "gargalo" ? "font-semibold text-negative" : "text-ink/90",
                 )}
               >
                 {l.label}
+                {!apagado && <Ajuda linha={l} />}
               </span>
               {!apagado && (
                 <span className="flex items-center gap-1.5 tabular-nums text-[12px]">
@@ -98,5 +100,25 @@ export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]
         })}
       </svg>
     </div>
+  );
+}
+
+/** "?" ao lado da etapa: o que ela conta e de onde vem a taxa (18/11, Kelvin). */
+function Ajuda({ linha: l }: { linha: LinhaFunil }) {
+  const taxa =
+    l.anterior != null && l.labelAnterior
+      ? `${l.valor} de ${l.anterior} (${fmtPct(l.conversao)}) que chegaram em "${l.labelAnterior}" passaram para cá.${l.meta != null ? ` Meta: ${l.meta}%.` : ""}`
+      : `${l.valor} no topo do funil.`;
+  const texto = [l.ajuda, taxa].filter(Boolean).join(" ");
+  return (
+    <span className="group relative inline-flex">
+      <HelpCircle className="h-3.5 w-3.5 cursor-help text-muted/70" aria-label={texto} />
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute left-0 top-5 z-30 hidden w-[260px] rounded-[8px] border border-border bg-surface p-2.5 text-[12px] font-normal leading-snug text-ink shadow-xl group-hover:block"
+      >
+        {texto}
+      </span>
+    </span>
   );
 }

@@ -53,7 +53,8 @@ export function etapaOutbound(l: OutreachLead): EtapaOutbound | null {
     (l.toque_atual ?? 0) > 0 || l.wa_status === "enviado" || l.email_status === "enviado" || ["ativa", "pausada", "concluida"].includes(l.cadencia);
   if (abordado) return "enviado";
   // Lista aprovada e ainda sem primeiro contato: pronta para disparar
-  return l.wa_status === "pendente" && (l.leo_status === "aprovado" || l.msg_status === "aprovada") ? "disparar" : null;
+  // 18/11: mensagem descartada (nicho que saiu da prospecção) não está mais na lista
+  return l.wa_status === "pendente" && l.msg_status !== "rejeitada" && (l.leo_status === "aprovado" || l.msg_status === "aprovada") ? "disparar" : null;
 }
 
 /** O que gravar quando o card da prospecção vai para outra coluna (null: não dá para mover para lá). */

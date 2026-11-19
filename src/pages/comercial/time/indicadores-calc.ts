@@ -11,6 +11,8 @@ import { etapaInbound, etapaOutbound } from "./funis";
 export interface EtapaFunil {
   key: EtapaLista;
   label: string;
+  /** O que a etapa conta (texto do "?" ao lado do nome). */
+  ajuda?: string;
 }
 
 const LISTA: EtapaFunil[] = [
@@ -26,7 +28,15 @@ const LISTA: EtapaFunil[] = [
 
 // 18/11 (Kelvin): no Google e no Instagram a conversa vai direto para reunião (quem qualifica é a reunião).
 // A etapa Qualificação sai desses dois funis; quem estava nela conta como Conversa iniciada.
-const LISTA_DIRETO: EtapaFunil[] = LISTA.filter((e) => e.key !== "qualificacao");
+const LISTA_DIRETO: EtapaFunil[] = [
+  { key: "na_lista", label: "Na lista", ajuda: "Empresas aprovadas para abordar: as que já receberam o 1º contato e as que estão na fila dos próximos dias." },
+  { key: "contato", label: "Disparo (mensagem ou ligação)", ajuda: "Recebeu o 1º contato: mensagem enviada ou ligação tentada, mesmo sem resposta. Fica abaixo de 100% só pelo que ainda está na fila." },
+  { key: "conversa", label: "Conversa iniciada", ajuda: "Respondeu de verdade no WhatsApp ou atendeu a ligação (resposta automática de robô não conta). Inclui quem respondeu que não tem interesse." },
+  { key: "reuniao", label: "Reunião agendada", ajuda: "Conversou e marcou reunião (a Gabi ou o time agendou)." },
+  { key: "reuniao_realizada", label: "Reunião realizada", ajuda: "A reunião aconteceu. É nela que o lead é qualificado." },
+  { key: "proposta", label: "Negociação / proposta", ajuda: "Recebeu proposta ou está negociando." },
+  { key: "ganho", label: "Venda", ajuda: "Fechou." },
+];
 
 export const ETAPAS_FUNIL: Record<CanalFunil, EtapaFunil[]> = {
   google: LISTA_DIRETO,
@@ -111,6 +121,11 @@ export type EstadoEtapa = "ok" | "abaixo" | "gargalo" | "sem_base";
 export interface LinhaFunil {
   key: EtapaLista;
   label: string;
+  ajuda?: string;
+  /** Quantos estavam na etapa anterior (base da conversão). */
+  anterior: number | null;
+  /** Rótulo da etapa anterior. */
+  labelAnterior: string | null;
   valor: number;
   conversao: number | null; // % da etapa anterior
   meta: number | null;
@@ -125,13 +140,15 @@ export function linhasFunil(canal: CanalFunil, contagem: number[], metas: Metas 
     const ant = i > 0 ? contagem[i - 1] : null;
     const conv = ant ? Math.round((contagem[i] / ant) * 1000) / 10 : null;
     const meta = i > 0 ? (m[e.key] ?? null) : null;
-    const estado: EstadoEtapa = i === 0 || conv == null || (ant ?? 0) < baseMinima ? "sem_base" : meta != null && conv < meta ? "abaixo" : "ok";
-    return { key: e.key, label: e.label, valor: contagem[i] ?? 0, conversao: conv, meta, estado };
+    const estado: EstadoEtapa =
+      i === 0 || conv == null || (ant ?? 0) < baseMinima ? "sem_base" : e.key !== "contato" && meta != null && conv < meta ? "abaixo" : "ok";
+    return { key: e.key, label: e.label, ajuda: e.ajuda, anterior: ant, labelAnterior: i > 0 ? etapas[i - 1].label : null, valor: contagem[i] ?? 0, conversao: conv, meta, estado };
   });
   let pior = -1;
   let dist = 0;
   linhas.forEach((l, i) => {
-    if (l.estado !== "abaixo" || l.meta == null || l.conversao == null) return;
+    // O disparo abaixo de 100% é só fila (sai nos próximos dias): não é gargalo
+    if (l.key === "contato" || l.estado !== "abaixo" || l.meta == null || l.conversao == null) return;
     const d = (l.meta - l.conversao) / l.meta;
     if (d > dist) {
       dist = d;
