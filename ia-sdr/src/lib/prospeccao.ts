@@ -263,13 +263,13 @@ export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string
   const w = palavrasDoNicho(p.nicho);
   const cid = cidadeParaCitar(p, phone);
   const deOnde = cid && cid !== "todo o Brasil" ? ` de ${cid}` : "";
-  // 18/11 (Kelvin): a DemandIA não é agência. A abordagem é implementação de IA no negócio (vender mais, gastar menos),
-  // que é o que a agência que eles já têm não faz.
+  // 18/11 (Kelvin): a DemandIA não é agência e não "implementa IA": desenvolve soluções inteligentes sob medida,
+  // do zero, no processo de cada empresa. A frase tem que chamar a atenção do dono.
   if (ehAlimentacao(p))
-    return `A DemandIA implementa inteligência artificial em negócios de alimentação${deOnde}: cardápio digital próprio, com a cara da marca, e uma IA que atende o cliente e monta o pedido no WhatsApp, pra vender mais sem depender do iFood.`;
+    return `A DemandIA cria o canal de vendas próprio de restaurantes${deOnde}: cardápio digital com a cara da marca e um atendente inteligente que responde e fecha o pedido no WhatsApp em segundos, sem taxa de aplicativo e sem perder pedido na correria.`;
   if (w.publico === "pacientes")
-    return `A DemandIA implementa inteligência artificial em ${w.plural}${deOnde}: atendimento e agendamento automáticos no WhatsApp, confirmação e retorno de pacientes, pra atender e faturar mais sem aumentar a equipe.`;
-  return `A DemandIA implementa inteligência artificial em ${w.plural}${deOnde} pra vender mais e gastar menos, com atendimento automático no WhatsApp e processos mais rápidos.`;
+    return `A DemandIA desenvolve soluções inteligentes sob medida para ${w.plural}${deOnde}: paciente atendido e agendado na hora pelo WhatsApp, até fora do horário, consulta confirmada sozinha e paciente sumido voltando a marcar, tudo desenhado do zero no processo de vocês.`;
+  return `A DemandIA desenvolve soluções inteligentes sob medida para ${w.plural}${deOnde} venderem mais e gastarem menos, desenhadas do zero no processo de cada empresa.`;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */
@@ -303,7 +303,7 @@ const CONTEXTO_RESTAURANTE = `
 ## Este lead é de alimentação (restaurante, lanchonete, delivery, doces)
 Aqui o que mais faz sentido apresentar, nesta ordem:
 1. Cardápio digital próprio, feito 100% com a identidade visual da marca deles e do jeito que o processo deles funciona. Não é sistema genérico nem modelo pronto: é produzido para a marca deles. Serve para vender direto, sem depender do iFood e de outros aplicativos e sem pagar taxa por pedido.
-2. Atendimento com IA no WhatsApp, ligado ao cardápio: atende o cliente, tira dúvidas e monta a comanda do pedido, tudo automático.
+2. Atendente inteligente no WhatsApp, ligado ao cardápio: responde na hora, tira dúvidas e fecha a comanda do pedido sozinho, sem perder pedido na correria. Tudo desenvolvido sob medida para a marca deles (fale "solução inteligente", não "IA").
 3. Depois, se fizer sentido: Google Meu Negócio, site e anúncio no Google, para aparecer para quem procura comida na região.
 Como usar: se o diagnóstico mostrar que eles vendem por iFood/aplicativo ou não têm cardápio próprio, puxe por aí ("vender direto, sem a taxa do aplicativo"). Fale em linguagem de restaurante (pedidos, cardápio, delivery, clientes, movimento). Apresente sem compromisso, só para conhecerem o nosso trabalho, e siga o mesmo caminho: diagnóstico gratuito e conversa de 20 minutos com o nosso especialista. Não invente preço nem prazo.`;
 
