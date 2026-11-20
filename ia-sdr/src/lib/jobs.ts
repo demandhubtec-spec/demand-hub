@@ -15,7 +15,7 @@ import { followUpPrompt, followUpPromptProspeccaoV2 } from "./prompt.ts";
 import { humanizar } from "./estilo.ts";
 import { formatBR, toLocal } from "./time.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
-import { aplicarTravasDeTexto, faltaLinkDoModelo, perguntaSeViu, situacaoDaRecusa } from "./travas.ts";
+import { aplicarTravasDeTexto, ehAberturaPadrao, faltaLinkDoModelo, perguntaSeViu, situacaoDaRecusa } from "./travas.ts";
 import { encerrarLead } from "./tools.ts";
 import { linkPrevia } from "./extras.ts";
 
@@ -110,7 +110,8 @@ export async function runFollowUps(now = new Date()) {
       const jaMandou = new Set(merged.filter((m) => m.role === "assistant").flatMap((m) => String(m.content).split("\n")).map((l) => l.trim().toLowerCase()).filter(Boolean));
       // 17/11: 55 follow-ups adiados por "repetido" só porque "Bom dia! 😊" ou "Tudo bem?" já tinham saído antes.
       // Frase curta (saudação) pode repetir; o que não pode é repetir o conteúdo.
-      const repetida = (t: string) => t.split(/\n+/).some((l) => l.trim().length >= 30 && jaMandou.has(l.trim().toLowerCase()));
+      // 19/11: 95 adiados porque a abertura obrigatória ("Bom dia! Tudo bem? Aqui é a Gabi, da DemandIA 😊") sai igual em todos
+      const repetida = (t: string) => t.split(/\n+/).some((l) => l.trim().length >= 30 && !ehAberturaPadrao(l) && jaMandou.has(l.trim().toLowerCase()));
       // A pessoa falou por último e ficou sem resposta (a IA falhou na hora): o "follow-up" responde a ela
       const ultimaDeGente = [...hist].reverse().find((m) => !(m.direction === "in" && String(m.content).startsWith("[resposta automática]")));
       const elaFalouPorUltimo = ultimaDeGente?.direction === "in";

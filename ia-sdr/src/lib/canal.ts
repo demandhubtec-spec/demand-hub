@@ -107,6 +107,20 @@ export async function proporRetomada(leadId: string, texto: string, motivo: stri
   await avisarKelvin(`📝 ${sdr}: retomada para *${nome}* (${motivo}):\n\n${msg}\n\nResponda *ok* para eu mandar, ou me diga o que mudar. Também dá para aprovar no portal, em Time Comercial IA > Você e a ${sdr}.`, await sdrDoLead(leadId));
 }
 
+/**
+ * 19/11 (Kelvin): o lead passou o contato do responsável (Moleka Fest → Cláudia; Cerrado Burger → responsável).
+ * Fica registrado no canal e o Kelvin recebe o contato com uma 1ª mensagem pronta para aprovar.
+ */
+export async function avisarIndicacao(leadId: string, empresa: string, indicado: { nome: string | null; telefone: string }): Promise<void> {
+  const nome = await nomeDe(leadId);
+  const sdr = await sdrDoLead(leadId);
+  const quem = indicado.nome ? indicado.nome.split(/\s+/)[0] : null;
+  const sugestao = `Oi${quem ? `, ${quem}` : ""}! Tudo bem? Aqui é a ${nomeDaSdr(sdr)}, da DemandIA 😊 Peguei seu contato com a equipe ${empresa ? `da ${empresa}` : "de vocês"}: preparei um diagnóstico gratuito de como vocês aparecem no Google e queria te mostrar. Posso te mandar por aqui?`;
+  const texto = `${nome} passou o contato de ${indicado.nome ?? "quem cuida da parte comercial"}: +${indicado.telefone}.`;
+  await registrar({ lead_id: leadId, autor: "ana", conteudo: `${texto}\nSugestão de 1ª mensagem:\n«${sugestao}»`, origem: "sistema", status: "pendente" });
+  await avisarKelvin(`📇 ${texto}\n\nSugestão de 1ª mensagem para ela:\n${sugestao}\n\nQuer que eu chame esse contato? (por enquanto ninguém foi chamado)`, sdr);
+}
+
 /** A Ana não conseguiu responder um lead (ex.: WhatsApp fora do ar): avisa o Kelvin para ninguém ficar sem resposta. */
 export async function avisarFalha(leadId: string, erro: string): Promise<void> {
   const nome = await nomeDe(leadId);

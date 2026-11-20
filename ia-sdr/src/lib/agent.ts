@@ -24,9 +24,9 @@ import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { encerrarLead, runTool, TOOLS } from "./tools.ts";
-import { aplicarTravasDeTexto, deveCalarComRobo, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semApresentacaoRepetida, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
+import { aplicarTravasDeTexto, deveCalarComRobo, extrairIndicacao, naoPedeResposta, nomeCurto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semApresentacaoRepetida, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
 import { linkPrevia } from "./extras.ts";
-import { avisarFalha, orientacoesPara } from "./canal.ts";
+import { avisarFalha, avisarIndicacao, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
 import {
   contextoPosDemo,
@@ -104,6 +104,25 @@ async function reply(leadId: string) {
     emDemo && demoIni ? mensagensDaDemo(hist, demoIni) : doDono && testeIni ? mensagensDaDemo(hist, testeIni) : hist,
   );
   if (!messages.length || messages[messages.length - 1].role !== "user") return;
+  const ultimaIn = [...hist].reverse().find((m) => m.direction === "in");
+  // 19/11: reação de emoji, aviso de protocolo ou figurinha não pedem resposta (a Gabi respondia "Fico por aqui" a um 👍)
+  if (!emDemo && !doDono && naoPedeResposta(ultimaIn?.content)) {
+    await logEvent(leadId, "sem_resposta_reacao", { ultima: String(ultimaIn?.content ?? "").slice(0, 60) }).catch(() => null);
+    return;
+  }
+  // 19/11: passaram o contato do responsável. Registra, avisa o Kelvin com a 1ª mensagem pronta e segura os
+  // follow-ups para este número (quem segue é o contato indicado, depois que o Kelvin aprovar)
+  if (!emDemo && !doDono && prospeccao) {
+    const ind = extrairIndicacao(ultimaIn?.content);
+    if (ind && !ind.telefone.endsWith(String(lead.phone).replace(/\D/g, "").slice(-8))) {
+      const anterior = await ultimoEvento<{ telefone?: string }>(leadId, "contato_indicado").catch(() => null);
+      if (anterior?.telefone !== ind.telefone) {
+        await logEvent(leadId, "contato_indicado", ind).catch(() => null);
+        await avisarIndicacao(leadId, nomeCurto(prospeccao.empresa, prospeccao.cidade), ind).catch(() => null);
+        await updateLead(leadId, { next_followup_at: new Date(Date.now() + 4 * 864e5).toISOString() }).catch(() => null);
+      }
+    }
+  }
   // 18/11: robô ou atendente virtual do outro lado e a SDR já mandou o recado: espera uma pessoa escrever
   if (!emDemo && !doDono && deveCalarComRobo(hist)) {
     await logEvent(leadId, "robo_ignorado", { ultima: String(hist[hist.length - 1]?.content ?? "").slice(0, 120) }).catch(() => null);

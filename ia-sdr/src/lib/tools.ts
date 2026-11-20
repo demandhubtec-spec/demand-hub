@@ -525,6 +525,11 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
       if (!p?.place_id) return "Este contato não veio da prospecção: não há diagnóstico para mandar.";
       if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com 2 horários do próximo dia útil.";
+      // 19/11: a Saudosa Maloca recebeu "Prontinho, separei aqui!" e o modelo do site sem saber quem estava falando
+      const { data: saidas } = await db().from("sdr_messages").select("content").eq("lead_id", leadId).eq("direction", "out").order("created_at", { ascending: false }).limit(40);
+      const seApresentou = (saidas ?? []).some((m: { content: string | null }) => /aqui (?:é|e) a (?:gabi|marina)|da demandia/i.test(m.content ?? ""));
+      if (!seApresentou)
+        return "Ainda NÃO mande o diagnóstico: você não se apresentou nesta conversa. Agora acolha o que a pessoa disse, apresente-se (\"Aqui é a ...\", da DemandIA, com a frase do que a gente faz) e pergunte se pode mandar o diagnóstico gratuito por aqui.";
       const pdf = p.marca?.pdf;
       if (!pdf) {
         // 18/11 (Check-Up): a Gabi disse "te mando sim" e o PDF nunca chegou. Agora o pedido fica na fila:

@@ -233,7 +233,27 @@ test("ajustes da auditoria de 18/11", async () => {
   const ap = pr.apresentacaoDoLead({ place_id: "ig_caipa", empresa: "Caipa e Brasa", nicho: "Restaurante", cidade: null, endereco: null, observacoes: null } as never);
   assert.ok(/canal de vendas próprio/.test(ap) && /cardápio digital/.test(ap) && /taxa de aplicativo/.test(ap) && !/ de Indaiatuba/.test(ap));
   const ap2 = pr.apresentacaoDoLead({ place_id: "g1", empresa: "Clínica X", nicho: "Clínica médica", cidade: "Indaiatuba", endereco: "Rua A, 1 - Centro, Salto - SP, 13320-000", observacoes: null } as never);
-  assert.ok(ap2.startsWith("A DemandIA desenvolve soluções inteligentes sob medida para clínicas de Salto:"));
+  assert.ok(ap2.startsWith("A DemandIA coloca um atendente inteligente no WhatsApp de clínicas de Salto:"));
+});
+
+test("auditoria 19/11: reação, indicação, robô de pedido, abertura do follow-up, formatação, feriado", async () => {
+  const t = await import("../src/lib/travas.ts");
+  const sc = await import("../src/lib/schedule.ts");
+  assert.equal(t.naoPedeResposta("[reactionMessage]"), true);
+  assert.equal(t.naoPedeResposta("ok obrigado"), false);
+  assert.deepEqual(t.extrairIndicacao("[contato compartilhado] Cláudia de Sousa +5519991152928"), { nome: "Cláudia de Sousa", telefone: "5519991152928" });
+  assert.deepEqual(t.extrairIndicacao("77999710862"), { nome: null, telefone: "5577999710862" });
+  assert.equal(t.extrairIndicacao("Tenho uns 20 funcionários"), null);
+  assert.equal(t.ehAberturaPadrao("Boa tarde! Tudo bem? Aqui é a Gabi, da DemandIA 😊"), true);
+  assert.equal(t.ehAberturaPadrao("Passei para deixar um diagnóstico gratuito que preparei para a Grill House"), false);
+  assert.equal(t.limparFormatacao("Vou respeitar o horário de vocês.\n```"), "Vou respeitar o horário de vocês.");
+  const h = (d: string, c: string) => ({ direction: d, author: d === "in" ? null : "ia", content: c, created_at: new Date().toISOString() });
+  const frangou = [h("in", "Que bom te ver por aqui no Frangou Delivery! Lembrando que só aceitamos pedidos pelo link do cardápio"), h("out", "Hoje vocês vendem mais pelo WhatsApp ou pelo iFood?"), h("in", "Por favor, tente simplificar a sua frase para que eu possa entender melhor.")];
+  assert.equal(t.deveCalarComRobo(frangou), true);
+  assert.equal(sc.ehFeriado(new Date("2026-11-20T15:00:00Z")), true);
+  assert.equal(sc.ehFeriado(new Date("2026-11-23T15:00:00Z")), false);
+  const slots = sc.candidateSlots(new Date("2026-11-19T22:00:00Z"));
+  assert.ok(slots.length > 0 && !slots.some((s) => sc.ehFeriado(s.start)));
 });
 
 test("coleta pela API do Google: lugar vira lead (18/11)", async () => {

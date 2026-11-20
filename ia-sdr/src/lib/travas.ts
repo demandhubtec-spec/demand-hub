@@ -169,7 +169,49 @@ export function semReapresentacao(texto: string, jaConversando: boolean): string
 
 /** Todas as travas de texto que valem para qualquer mensagem da SDR. */
 export function aplicarTravasDeTexto(texto: string, now: Date): string {
-  return vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)))));
+  return limparFormatacao(vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now))))));
+}
+
+/** 19/11: saiu "```" no fim de uma mensagem da Marina e "Pasei" no lugar de "Passei". Limpa antes de mandar. */
+export function limparFormatacao(texto: string): string {
+  return (texto ?? "")
+    .replace(/`{1,3}/g, "")
+    .replace(/\bPasei\b/g, "Passei")
+    .replace(/\bpasei\b/g, "passei")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Mensagem que não pede resposta (19/11: a Gabi respondeu a reações de emoji na Life Sorrisos e na GP Clean):
+ * reação, aviso de protocolo, mensagem apagada, figurinha.
+ */
+export function naoPedeResposta(texto: string | null | undefined): boolean {
+  return /^\s*\[(reactionMessage|protocolMessage|ephemeralMessage|stickerMessage|messageContextInfo|editedMessage)\]\s*$/i.test(texto ?? "");
+}
+
+/** O abre-follow-up obrigatório ("Bom dia! Tudo bem? Aqui é a Gabi, da DemandIA 😊") não conta como repetição. */
+export function ehAberturaPadrao(linha: string): boolean {
+  return /^\s*(?:oi,?\s*)?(?:bom dia|boa tarde|boa noite)[^.!?\n]{0,20}[!.,]?\s*(?:tudo bem\??\s*)?(?:aqui (?:é|e) a (?:gabi|marina),? da demandia\s*[😊🥰✨]?\s*[.!]?)?\s*$/iu.test(linha ?? "");
+}
+
+/**
+ * Contato indicado na conversa (19/11: Moleka Fest passou o contato da Cláudia; Cerrado Burger o número da responsável).
+ * Lê o cartão de contato ou um número de telefone solto na mensagem.
+ */
+export function extrairIndicacao(texto: string | null | undefined): { nome: string | null; telefone: string } | null {
+  const t = texto ?? "";
+  const cartao = t.match(/^\[contato compartilhado\]\s*([^;+\d][^;+]*?)?\s*\+?(\d{10,13})/i);
+  if (cartao) return { nome: cartao[1]?.trim() || null, telefone: normalizarFone(cartao[2]) };
+  const solto = t.replace(/[\s().-]/g, "").match(/(?:\+?55)?(\d{2}9?\d{8})(?!\d)/);
+  if (solto && /^\s*[+\d(][\d\s().+-]{9,}\s*$|contato|n[uú]mero|whats|fala com|chama|liga/i.test(t)) return { nome: null, telefone: normalizarFone(solto[1]) };
+  return null;
+}
+
+function normalizarFone(d: string): string {
+  const s = d.replace(/\D/g, "");
+  return s.startsWith("55") && s.length >= 12 ? s : `55${s}`;
 }
 
 /** A conversa é sempre de 20 minutinhos (18/11: a Gabi alternava 20 e 30 no mesmo dia). */
@@ -189,7 +231,7 @@ export function semApresentacaoRepetida(texto: string, jaSeApresentou: boolean):
   return novos.length ? novos.join("\n\n") : texto;
 }
 
-const RE_ROBO = /assistente virtual|atendente virtual|sou (?:a|o|uma|um) [^.\n]{0,30}(?:virtual|assistente|rob[oô])|🤖|oferta exclusiva|digite (?:o|a|apenas)|escolha uma op[cç][aã]o|op[cç][aã]o v[aá]lida|protocolo|\[templateMessage\]|\[buttonsMessage\]|tim controle|n[aã]o consigo avaliar propostas/i;
+const RE_ROBO = /assistente virtual|atendente virtual|sou (?:a|o|uma|um) [^.\n]{0,30}(?:virtual|assistente|rob[oô])|🤖|oferta exclusiva|digite (?:o|a|apenas)|escolha uma (?:das )?op[cç][aã]o|op[cç][aã]o v[aá]lida|protocolo|\[templateMessage\]|\[buttonsMessage\]|\[listMessage\]|tim controle|n[aã]o consigo avaliar propostas|tente simplificar|frases muito longas|n[aã]o sou capaz de compreender|n[aã]o posso responder a isso|estou aqui para (?:te )?ajudar com|minha fun[cç][aã]o [eé]|n[aã]o consigo (?:encaminhar|repassar|fornecer)|s[oó] aceitamos pedidos|link do card[aá]pio|acesse nosso (?:link|card[aá]pio)|fa[cç]a seu pedido|fazer seu pedido|ainda n[aã]o fez seu pedido|exclusivo para tratar|limite de tentativas|atendimento encaminhado|loja est[aá] fechada/i;
 const RE_GENTE = /\b(me chamo|meu nome [eé]|aqui (?:é|e) (?:o|a) [A-ZÀ-Ú]|sou (?:o|a) [A-ZÀ-Ú][a-zà-ú]+\b(?! virtual))/;
 
 /**

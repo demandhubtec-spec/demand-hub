@@ -265,11 +265,13 @@ export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string
   const deOnde = cid && cid !== "todo o Brasil" ? ` de ${cid}` : "";
   // 18/11 (Kelvin): a DemandIA não é agência e não "implementa IA": desenvolve soluções inteligentes sob medida,
   // do zero, no processo de cada empresa. A frase tem que chamar a atenção do dono.
+  // 19/11 (Kelvin): o cliente entendia "soluções sob medida" mas não entendia o que é. A frase agora diz, com
+  // o dia a dia dele, o que a gente coloca dentro da operação.
   if (ehAlimentacao(p))
-    return `A DemandIA cria o canal de vendas próprio de restaurantes${deOnde}: cardápio digital com a cara da marca e um atendente inteligente que responde e fecha o pedido no WhatsApp em segundos, sem taxa de aplicativo e sem perder pedido na correria.`;
+    return `A DemandIA monta o canal de vendas próprio de restaurantes${deOnde}: o cardápio digital de vocês, com a cara da marca, e um atendente no WhatsApp que anota o pedido sozinho e manda pra cozinha, sem taxa de aplicativo e sem perder pedido na correria.`;
   if (w.publico === "pacientes")
-    return `A DemandIA desenvolve soluções inteligentes sob medida para ${w.plural}${deOnde}: paciente atendido e agendado na hora pelo WhatsApp, até fora do horário, consulta confirmada sozinha e paciente sumido voltando a marcar, tudo desenhado do zero no processo de vocês.`;
-  return `A DemandIA desenvolve soluções inteligentes sob medida para ${w.plural}${deOnde} venderem mais e gastarem menos, desenhadas do zero no processo de cada empresa.`;
+    return `A DemandIA coloca um atendente inteligente no WhatsApp de ${w.plural}${deOnde}: ele responde e agenda o paciente na hora, até fora do horário, confirma as consultas sozinho e lembra quem sumiu de voltar a marcar. Tudo sob medida, desenvolvido do zero para o jeito de cada clínica.`;
+  return `A DemandIA coloca soluções inteligentes sob medida dentro da operação de ${w.plural}${deOnde}: um atendente no WhatsApp que responde e agenda na hora, até fora do horário, e o que hoje é feito na mão passa a rodar sozinho, para vender mais e gastar menos.`;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */

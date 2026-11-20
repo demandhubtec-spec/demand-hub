@@ -15,6 +15,8 @@ export function candidateSlots(now: Date, cfg = SDR_CONFIG.reuniao): Interval[] 
   for (let day = 0; day <= cfg.diasAFrente; day++) {
     const dayStart = localDayStart(now, day);
     const dow = toLocal(dayStart).dow;
+    // 19/11: a Gabi ofereceu sexta 20/11 (feriado) para três leads. Feriado não tem horário de reunião.
+    if (ehFeriado(dayStart)) continue;
     for (const [ini, fim] of cfg.janelas[dow] ?? []) {
       for (let t = hm(ini); t + cfg.duracaoMin <= hm(fim); t += step) {
         const start = atLocalMinutes(dayStart, t);
@@ -24,6 +26,14 @@ export function candidateSlots(now: Date, cfg = SDR_CONFIG.reuniao): Interval[] 
     }
   }
   return slots;
+}
+
+/** Feriado da lista do SDR (fixos "MM-DD" e extras "AAAA-MM-DD"), pela data local. */
+export function ehFeriado(d: Date): boolean {
+  const l = toLocal(d);
+  const mmdd = `${String(l.m).padStart(2, "0")}-${String(l.d).padStart(2, "0")}`;
+  const f = SDR_CONFIG.followUp as unknown as { feriadosFixos?: string[]; feriadosExtras?: string[] };
+  return !!(f.feriadosFixos?.includes(mmdd) || f.feriadosExtras?.includes(`${l.y}-${mmdd}`));
 }
 
 export function overlaps(a: Interval, b: Interval): boolean {
