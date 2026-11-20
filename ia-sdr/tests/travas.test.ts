@@ -231,7 +231,7 @@ test("ajustes da auditoria de 18/11", async () => {
   assert.equal(pr.cidadeReal({ cidade: "Indaiatuba", endereco: "R. Sete de Setembro, 100 - Centro, Americana - SP, 13465-000", place_id: "x", observacoes: null }), "Americana");
   assert.equal(pr.cidadeReal({ cidade: "Indaiatuba", endereco: null, place_id: "ig_bendito", observacoes: null }), "");
   const ap = pr.apresentacaoDoLead({ place_id: "ig_caipa", empresa: "Caipa e Brasa", nicho: "Restaurante", cidade: null, endereco: null, observacoes: null } as never);
-  assert.ok(/próprio canal/.test(ap) && /cardápio digital/.test(ap) && /taxa de aplicativo/.test(ap) && !/ de Indaiatuba/.test(ap));
+  assert.ok(/próprio canal/.test(ap) && /cardápio online/.test(ap) && /iFood/.test(ap) && /taxa de aplicativo/.test(ap) && !/ de Indaiatuba/.test(ap));
   const ap2 = pr.apresentacaoDoLead({ place_id: "g1", empresa: "Clínica X", nicho: "Clínica médica", cidade: "Indaiatuba", endereco: "Rua A, 1 - Centro, Salto - SP, 13320-000", observacoes: null } as never);
   assert.ok(ap2.startsWith("A DemandIA ajuda clínicas de Salto a ter mais pacientes") && /marketing, vendas e tecnologia/.test(ap2));
 });

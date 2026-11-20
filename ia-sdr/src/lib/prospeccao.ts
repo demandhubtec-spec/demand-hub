@@ -267,7 +267,7 @@ export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string
   // do zero, no processo de cada empresa. A frase tem que chamar a atenção do dono.
   // 19/11 (Kelvin): a apresentação mostra as três frentes (marketing, vendas e tecnologia) com o dia a dia do segmento
   if (ehAlimentacao(p))
-    return `A DemandIA ajuda restaurantes${deOnde} a vender mais pelo próprio canal, com marketing, vendas e tecnologia: do anúncio no Instagram e no Google e do cardápio digital com a cara da marca até um atendente no WhatsApp que anota o pedido sozinho, sem taxa de aplicativo. Tudo sob medida pra vocês.`;
+    return `A DemandIA ajuda restaurantes${deOnde} a vender mais pelo próprio canal, com marketing, vendas e tecnologia: do anúncio no Instagram e no Google ao cardápio online com a identidade visual da marca, ou até um aplicativo próprio, pra não depender do iFood, e um atendente no WhatsApp que anota o pedido sozinho, sem taxa de aplicativo. Tudo sob medida pra vocês.`;
   if (w.publico === "pacientes")
     return `A DemandIA ajuda ${w.plural}${deOnde} a ter mais pacientes e uma rotina mais leve, com marketing, vendas e tecnologia: do anúncio no Google e no Instagram e do site até um atendente inteligente no WhatsApp que responde, agenda e confirma as consultas sozinho. Tudo sob medida pra vocês.`;
   return `A DemandIA ajuda ${w.plural}${deOnde} a vender mais e gastar menos, com marketing, vendas e tecnologia: do anúncio, do site e do conteúdo pro Instagram até inteligência artificial e automações dentro da operação. Tudo sob medida pra vocês.`;
