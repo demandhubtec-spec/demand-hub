@@ -47,7 +47,7 @@ export const SDR_CONFIG = {
     intervaloEntreReunioesMin: 0,
     antecedenciaMinimaHoras: 3, // não oferecer horário muito em cima
     diasAFrente: 7, // até quantos dias à frente oferecer horários
-    maxOpcoesOferecidas: 3,
+    maxOpcoesOferecidas: 2, // 19/11 (Kelvin): duas opções, em dois dias diferentes, um horário em cada
     // 0=domingo ... 6=sábado. Decisão do Kelvin (03/11/2026): segunda a sábado, das 9h às 19h.
     janelas: {
       1: [["09:00", "19:00"]],

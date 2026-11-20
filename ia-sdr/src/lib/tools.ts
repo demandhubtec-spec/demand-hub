@@ -524,7 +524,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
     case "enviar_diagnostico": {
       const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
       if (!p?.place_id) return "Este contato não veio da prospecção: não há diagnóstico para mandar.";
-      if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com 2 horários do próximo dia útil.";
+      if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com duas opções de horário em dois dias úteis diferentes.";
       // 19/11: a Saudosa Maloca recebeu "Prontinho, separei aqui!" e o modelo do site sem saber quem estava falando
       const { data: saidas } = await db().from("sdr_messages").select("content").eq("lead_id", leadId).eq("direction", "out").order("created_at", { ascending: false }).limit(40);
       const seApresentou = (saidas ?? []).some((m: { content: string | null }) => /aqui (?:é|e) a (?:gabi|marina)|da demandia/i.test(m.content ?? ""));

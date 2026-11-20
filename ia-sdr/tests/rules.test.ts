@@ -43,11 +43,11 @@ test("remove horários ocupados no Google Agenda", () => {
   assert.deepEqual(today.map((s) => hhmm(s.start)), ["17:00", "18:30"]);
 });
 
-test("oferece até 3 opções em dias diferentes", () => {
+test("oferece 2 opções em dias diferentes (19/11)", () => {
   const now = fromLocal(2026, 10, 21, 9, 0);
   const opts = pickOptions(freeSlots(now, []));
-  assert.equal(opts.length, 3);
-  assert.equal(new Set(opts.map((o) => toLocal(o.start).d)).size, 3);
+  assert.equal(opts.length, 2);
+  assert.equal(new Set(opts.map((o) => toLocal(o.start).d)).size, 2);
   assert.match(formatBR(opts[0].start), /^quarta, 21\/10 às 12:00$/);
 });
 

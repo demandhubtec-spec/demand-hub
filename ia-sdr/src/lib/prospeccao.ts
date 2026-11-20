@@ -265,13 +265,12 @@ export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string
   const deOnde = cid && cid !== "todo o Brasil" ? ` de ${cid}` : "";
   // 18/11 (Kelvin): a DemandIA não é agência e não "implementa IA": desenvolve soluções inteligentes sob medida,
   // do zero, no processo de cada empresa. A frase tem que chamar a atenção do dono.
-  // 19/11 (Kelvin): o cliente entendia "soluções sob medida" mas não entendia o que é. A frase agora diz, com
-  // o dia a dia dele, o que a gente coloca dentro da operação.
+  // 19/11 (Kelvin): a apresentação mostra as três frentes (marketing, vendas e tecnologia) com o dia a dia do segmento
   if (ehAlimentacao(p))
-    return `A DemandIA monta o canal de vendas próprio de restaurantes${deOnde}: o cardápio digital de vocês, com a cara da marca, e um atendente no WhatsApp que anota o pedido sozinho e manda pra cozinha, sem taxa de aplicativo e sem perder pedido na correria.`;
+    return `A DemandIA ajuda restaurantes${deOnde} a vender mais pelo próprio canal, com marketing, vendas e tecnologia: do anúncio no Instagram e no Google e do cardápio digital com a cara da marca até um atendente no WhatsApp que anota o pedido sozinho, sem taxa de aplicativo. Tudo sob medida pra vocês.`;
   if (w.publico === "pacientes")
-    return `A DemandIA coloca um atendente inteligente no WhatsApp de ${w.plural}${deOnde}: ele responde e agenda o paciente na hora, até fora do horário, confirma as consultas sozinho e lembra quem sumiu de voltar a marcar. Tudo sob medida, desenvolvido do zero para o jeito de cada clínica.`;
-  return `A DemandIA coloca soluções inteligentes sob medida dentro da operação de ${w.plural}${deOnde}: um atendente no WhatsApp que responde e agenda na hora, até fora do horário, e o que hoje é feito na mão passa a rodar sozinho, para vender mais e gastar menos.`;
+    return `A DemandIA ajuda ${w.plural}${deOnde} a ter mais pacientes e uma rotina mais leve, com marketing, vendas e tecnologia: do anúncio no Google e no Instagram e do site até um atendente inteligente no WhatsApp que responde, agenda e confirma as consultas sozinho. Tudo sob medida pra vocês.`;
+  return `A DemandIA ajuda ${w.plural}${deOnde} a vender mais e gastar menos, com marketing, vendas e tecnologia: do anúncio, do site e do conteúdo pro Instagram até inteligência artificial e automações dentro da operação. Tudo sob medida pra vocês.`;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */
