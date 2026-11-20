@@ -261,16 +261,15 @@ export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<str
 /** A frase do "o que a gente faz" da apresentação, no jeito do segmento e com a cidade certa (ou sem cidade). */
 export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string {
   const w = palavrasDoNicho(p.nicho);
-  const cid = cidadeParaCitar(p, phone);
-  const deOnde = cid && cid !== "todo o Brasil" ? ` de ${cid}` : "";
+  void phone; // a apresentação não cita mais a cidade (19/11)
   // 18/11 (Kelvin): a DemandIA não é agência e não "implementa IA": desenvolve soluções inteligentes sob medida,
   // do zero, no processo de cada empresa. A frase tem que chamar a atenção do dono.
-  // 19/11 (Kelvin): a apresentação mostra as três frentes (marketing, vendas e tecnologia) com o dia a dia do segmento
+  // 19/11 (Kelvin, aprovado): a dor do dono primeiro, depois o que a gente resolve, em dois balões curtos.
   if (ehAlimentacao(p))
-    return `A DemandIA ajuda restaurantes${deOnde} a vender mais pelo próprio canal, com marketing, vendas e tecnologia: do anúncio no Instagram e no Google ao cardápio online com a identidade visual da marca, ou até um aplicativo próprio, pra não depender do iFood, e um atendente no WhatsApp que anota o pedido sozinho, sem taxa de aplicativo. Tudo sob medida pra vocês.`;
+    return `Muito restaurante vende bem, mas deixa boa parte do lucro na taxa do iFood e perde pedido na correria do WhatsApp.\n\nA gente resolve isso com o canal próprio de vocês: cardápio digital ou aplicativo com a cara da marca, e um atendente no WhatsApp que anota o pedido sozinho. Mais pedido, cliente voltando e sem taxa.`;
   if (w.publico === "pacientes")
-    return `A DemandIA ajuda ${w.plural}${deOnde} a ter mais pacientes e uma rotina mais leve, com marketing, vendas e tecnologia: do anúncio no Google e no Instagram e do site até um atendente inteligente no WhatsApp que responde, agenda e confirma as consultas sozinho. Tudo sob medida pra vocês.`;
-  return `A DemandIA ajuda ${w.plural}${deOnde} a vender mais e gastar menos, com marketing, vendas e tecnologia: do anúncio, do site e do conteúdo pro Instagram até inteligência artificial e automações dentro da operação. Tudo sob medida pra vocês.`;
+    return `Sabe quando o paciente chama com a clínica fechada e ninguém responde, ou esquece a consulta e não avisa?\n\nA gente resolve isso com um atendente inteligente no WhatsApp da clínica: ele agenda, confirma e reagenda o paciente sozinho, até fora do horário, direto na agenda do especialista, e já avisa o doutor. Menos falta e agenda mais cheia.`;
+  return `Muita empresa perde cliente porque demora pra responder no WhatsApp e faz na mão o que podia rodar sozinho.\n\nA gente resolve isso com marketing, vendas e tecnologia sob medida: anúncio, site e um atendente inteligente no WhatsApp que responde e agenda na hora. Mais cliente e menos trabalho manual.`;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */
