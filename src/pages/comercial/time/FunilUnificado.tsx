@@ -91,7 +91,7 @@ interface Linha {
   item: CardItem;
 }
 
-type NotaCardItem = { id: string; card: string; texto: string; criado_em: string };
+type NotaCardItem = { id: string; card: string; texto: string; criado_em: string; editado_em?: string | null };
 
 /** Temperatura do card: a escolhida à mão (18/11); senão a da conversa (sdr_leads); senão a nota da lista. */
 const TEMP = { quente: "Quente", morno: "Morno", frio: "Frio" } as const;
