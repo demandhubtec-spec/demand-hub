@@ -113,7 +113,9 @@ async function reply(leadId: string) {
   // 19/11: passaram o contato do responsável. Registra, avisa o Kelvin com a 1ª mensagem pronta e segura os
   // follow-ups para este número (quem segue é o contato indicado, depois que o Kelvin aprovar)
   if (!emDemo && !doDono && prospeccao) {
-    const ind = extrairIndicacao(ultimaIn?.content);
+    // 21/11: na Oral Center o cartão do comercial veio e depois um "☺️": olha tudo desde a nossa última mensagem
+    const iUltSaida = hist.map((m) => m.direction).lastIndexOf("out");
+    const ind = hist.slice(iUltSaida + 1).filter((m) => m.direction === "in").map((m) => extrairIndicacao(m.content)).find(Boolean) ?? null;
     if (ind && !ind.telefone.endsWith(String(lead.phone).replace(/\D/g, "").slice(-8))) {
       const anterior = await ultimoEvento<{ telefone?: string }>(leadId, "contato_indicado").catch(() => null);
       if (anterior?.telefone !== ind.telefone) {

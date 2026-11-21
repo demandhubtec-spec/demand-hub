@@ -256,6 +256,24 @@ test("auditoria 19/11: reação, indicação, robô de pedido, abertura do follo
   assert.ok(slots.length > 0 && !slots.some((s) => sc.ehFeriado(s.start)));
 });
 
+test("auditoria 21/11: robô rápido, secretária humana, aviso de horário, indicação, estética", async () => {
+  const t = await import("../src/lib/travas.ts");
+  const p = await import("../src/lib/prospeccao.ts");
+  const at = (s: number) => new Date(Date.UTC(2026, 10, 21, 11, 0, s)).toISOString();
+  const m = (d: string, c: string, s: number) => ({ direction: d, author: d === "in" ? null : "ia", content: c, created_at: at(s) });
+  const agora = new Date(Date.UTC(2026, 10, 21, 11, 5, 0));
+  // robô que responde em 1 segundo com texto fluente
+  assert.equal(t.deveCalarComRobo([m("out", "Ficou claro? O que acha de um bate-papo?", 0), m("in", "Ficou claro, obrigada por explicar 😊 Só que por aqui eu não consigo marcar nada.", 1)], agora), true);
+  // secretária: mensagem longa, 6 minutos depois, depois de um menu de robô
+  const oral = [m("in", "[resposta automática] Digite 1 para urgência", 0), m("out", "Oi, bom dia! Tudo bem?", 1), m("in", "Bom dia tudo bem e você?", 60), m("out", "Aqui é a Gabi, da DemandIA...", 70), m("in", "No momento não tenho outorga para tal, você pode entrar em contato no número do comercial na segunda e contatar direto a gerente da clínica", 430)];
+  assert.equal(t.deveCalarComRobo(oral, agora), false);
+  // só aviso de horário depois do nosso Oi: não responde
+  assert.equal(t.deveCalarComRobo([m("out", "Oi, bom dia! Tudo bem?", 0), m("in", "Olá! Atendemos de terça a domingo, das 18h às 23h. Assim que possível, iremos te responder! Agradecemos o contato.", 1)], agora), true);
+  assert.equal(t.deveCalarComRobo([m("out", "Oi, bom dia! Tudo bem?", 0), m("in", "Bom dia, tudo bem e com você?", 200)], agora), false);
+  const est = p.apresentacaoDoLead({ place_id: "g", empresa: "Suleima Estética", nicho: "Estética", cidade: "Salto" } as never);
+  assert.ok(/a cliente chama fora do horário/.test(est));
+});
+
 test("coleta pela API do Google: lugar vira lead (18/11)", async () => {
   const g = await import("../src/lib/google-places.ts");
   const a = await import("../src/lib/auto.ts");

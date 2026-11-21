@@ -231,7 +231,7 @@ export function semApresentacaoRepetida(texto: string, jaSeApresentou: boolean):
   return novos.length ? novos.join("\n\n") : texto;
 }
 
-const RE_ROBO = /assistente virtual|atendente virtual|sou (?:a|o|uma|um) [^.\n]{0,30}(?:virtual|assistente|rob[oô])|🤖|oferta exclusiva|digite (?:o|a|apenas)|escolha uma (?:das )?op[cç][aã]o|op[cç][aã]o v[aá]lida|protocolo|\[templateMessage\]|\[buttonsMessage\]|\[listMessage\]|tim controle|n[aã]o consigo avaliar propostas|tente simplificar|frases muito longas|n[aã]o sou capaz de compreender|n[aã]o posso responder a isso|estou aqui para (?:te )?ajudar com|minha fun[cç][aã]o [eé]|n[aã]o consigo (?:encaminhar|repassar|fornecer)|s[oó] aceitamos pedidos|link do card[aá]pio|acesse nosso (?:link|card[aá]pio)|fa[cç]a seu pedido|fazer seu pedido|ainda n[aã]o fez seu pedido|exclusivo para tratar|limite de tentativas|atendimento encaminhado|loja est[aá] fechada/i;
+const RE_ROBO = /assistente virtual|atendente virtual|sou (?:a|o|uma|um) [^.\n]{0,30}(?:virtual|assistente|rob[oô])|🤖|oferta exclusiva|digite (?:o|a|apenas)|escolha uma (?:das )?op[cç][aã]o|op[cç][aã]o v[aá]lida|protocolo|\[templateMessage\]|\[buttonsMessage\]|\[listMessage\]|tim controle|n[aã]o consigo avaliar propostas|tente simplificar|frases muito longas|n[aã]o sou capaz de compreender|n[aã]o posso responder a isso|estou aqui para (?:te )?ajudar com|minha fun[cç][aã]o [eé]|n[aã]o consigo (?:encaminhar|repassar|fornecer)|s[oó] aceitamos pedidos|link do card[aá]pio|acesse nosso (?:link|card[aá]pio)|fa[cç]a seu pedido|fazer seu pedido|ainda n[aã]o fez seu pedido|exclusivo para tratar|limite de tentativas|atendimento encaminhado|loja est[aá] fechada|card[aá]pio nesse link|confira nosso card[aá]pio|n[aã]o consigo (?:agendar|marcar|confirmar|receber)|n[aã]o tenho como confirmar|n[aã]o estamos dispon[ií]veis no momento|fora do (?:nosso )?hor[aá]rio de atendimento|assim que poss[ií]vel,? (?:iremos|retornaremos|responderemos)|agradecemos (?:o|sua|pela)|agradece (?:o|seu) contato|estamos \*?fechados/i;
 const RE_GENTE = /\b(me chamo|meu nome [eé]|aqui (?:é|e) (?:o|a) [A-ZÀ-Ú]|sou (?:o|a) [A-ZÀ-Ú][a-zà-ú]+\b(?! virtual))/;
 
 /**
@@ -241,15 +241,37 @@ const RE_GENTE = /\b(me chamo|meu nome [eé]|aqui (?:é|e) (?:o|a) [A-ZÀ-Ú]|so
  */
 export function deveCalarComRobo(hist: { direction: string; author?: string | null; content: string | null; created_at: string }[], agora = new Date()): boolean {
   const recentes = hist.filter((m) => agora.getTime() - new Date(m.created_at).getTime() < 24 * 3600e3);
-  const iRobo = recentes.findIndex((m) => m.direction === "in" && (RE_ROBO.test(m.content ?? "") || (m.content ?? "").length > 320));
+  // Segundos desde a última mensagem nossa antes da mensagem i (robô responde em 1 ou 2 segundos)
+  const gap = (i: number): number => {
+    for (let j = i - 1; j >= 0; j--) if (recentes[j].direction === "out") return (new Date(recentes[i].created_at).getTime() - new Date(recentes[j].created_at).getTime()) / 1000;
+    return Infinity;
+  };
+  const ehRobo = (i: number): boolean => {
+    const t = (recentes[i].content ?? "").trim();
+    if (/^\[contato compartilhado\]/i.test(t)) return false;
+    if (RE_ROBO.test(t) || t.length > 320 || /^\[resposta autom[aá]tica\]/i.test(t)) return true;
+    // 21/11: robô "inteligente" (1924 Burger, Mister Magoo) responde texto fluente 1 segundo depois da gente
+    return t.length > 40 && gap(i) <= 8;
+  };
+  const pareceGente = (i: number): boolean => {
+    const t = (recentes[i].content ?? "").trim();
+    if (/^\[contato compartilhado\]/i.test(t)) return true;
+    if (RE_GENTE.test(t)) return true;
+    if (ehRobo(i) || /^\[/.test(t)) return false;
+    // 21/11: a secretária da Oral Center escreveu 150 letras 6 minutos depois e foi tomada por robô
+    return t.length <= 80 || gap(i) > 20;
+  };
+  if (!recentes.length || recentes[recentes.length - 1].direction !== "in") return false;
+  // Tudo o que chegou depois da nossa última mensagem é de robô: não responde (21/11: a Marina apresentou
+  // a DemandIA inteira para o aviso de horário da Holic Burger)
+  let k = recentes.length - 1;
+  const desdeUltima: number[] = [];
+  while (k >= 0 && recentes[k].direction === "in") desdeUltima.unshift(k--);
+  if (desdeUltima.every((i) => ehRobo(i) || naoPedeResposta(recentes[i].content))) return true;
+  if (desdeUltima.some((i) => pareceGente(i))) return false;
+  const iRobo = recentes.findIndex((m, i) => m.direction === "in" && ehRobo(i));
   if (iRobo < 0) return false;
-  const ultima = recentes[recentes.length - 1];
-  if (!ultima || ultima.direction !== "in") return false;
-  const t = (ultima.content ?? "").trim();
-  const pareceGente = (t.length <= 80 && !RE_ROBO.test(t) && !/^\[/.test(t)) || RE_GENTE.test(t);
-  if (pareceGente) return false;
-  const respondeuDepois = recentes.slice(iRobo + 1).some((m) => m.direction === "out" && m.author !== "sistema");
-  return respondeuDepois;
+  return recentes.slice(iRobo + 1).some((m) => m.direction === "out" && m.author !== "sistema");
 }
 
 /** Nunca emoji de joinha (Kelvin, 16/11): soa seco. Sai do texto (e, se era o único emoji, entra um 😊 no lugar). */

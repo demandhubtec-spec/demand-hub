@@ -169,6 +169,8 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
     return { plural: "negócios de alimentação", singular: "negócio", artigo: "o", publico: "clientes", busca: "delivery" };
   if (/odonto|dent/.test(n)) return { plural: "clínicas odontológicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: "dentista" };
   if (/endocrin/.test(n)) return { plural: "clínicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: "endocrinologista" };
+  // 21/11: "Estética" caía na fala genérica de empresa ("Muita empresa perde cliente…")
+  if (/est[eé]tic|depila|harmoniza|laser|biomedic/.test(n)) return { plural: "clínicas de estética", singular: "clínica", artigo: "a", publico: "clientes", busca: "clínica de estética" };
   if (/cl[ií]nic|m[eé]dic|endocrin|consult|sa[uú]de|oncolog|geriatr|nutri|fisio|psic|anest|diagn/.test(n))
     return { plural: "clínicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: n.split(/[,;|]/)[0].trim() || "clínica" };
   // "Casa de verão" (ar-condicionado, piscinas) e qualquer outro: fala genérica de empresa, sem inventar nicho
@@ -267,6 +269,8 @@ export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string
   // 19/11 (Kelvin, aprovado): a dor do dono primeiro, depois o que a gente resolve, em dois balões curtos.
   if (ehAlimentacao(p))
     return `Muito restaurante vende bem, mas deixa boa parte do lucro na taxa do iFood e perde pedido na correria do WhatsApp.\n\nA gente resolve isso com o canal próprio de vocês: cardápio digital ou aplicativo com a cara da marca, e um atendente no WhatsApp que anota o pedido sozinho. Mais pedido, cliente voltando e sem taxa.`;
+  if (w.plural === "clínicas de estética")
+    return `Sabe quando a cliente chama fora do horário pra agendar e ninguém responde, ou desmarca em cima da hora?\n\nA gente resolve isso com um atendente inteligente no WhatsApp da clínica: ele agenda, confirma e reagenda a cliente sozinho, até fora do horário, e já avisa a profissional. Menos falta e agenda mais cheia.`;
   if (w.publico === "pacientes")
     return `Sabe quando o paciente chama com a clínica fechada e ninguém responde, ou esquece a consulta e não avisa?\n\nA gente resolve isso com um atendente inteligente no WhatsApp da clínica: ele agenda, confirma e reagenda o paciente sozinho, até fora do horário, direto na agenda do especialista, e já avisa o doutor. Menos falta e agenda mais cheia.`;
   return `Muita empresa perde cliente porque demora pra responder no WhatsApp e faz na mão o que podia rodar sozinho.\n\nA gente resolve isso com marketing, vendas e tecnologia sob medida: anúncio, site e um atendente inteligente no WhatsApp que responde e agenda na hora. Mais cliente e menos trabalho manual.`;
