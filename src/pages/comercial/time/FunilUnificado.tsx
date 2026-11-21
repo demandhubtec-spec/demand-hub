@@ -23,6 +23,9 @@ import {
   useCriarLeadManual,
   useDefinirTemperatura,
   useListaLeads,
+  type AcaoCard,
+  useAcoesCards,
+  useEditarNotaCard,
   useNotasCards,
   useTemperaturasManuais,
 } from "@/hooks/useComercial";
@@ -30,6 +33,8 @@ import { cn } from "@/lib/utils";
 import { FichaLead } from "../prospeccao/FichaLead";
 import { fmtData } from "../prospeccao/shared";
 import { type CardItem, Quadro, SeloOrigem } from "./FunilKanban";
+import { FichaDados } from "./FichaDados";
+import { atrasada, PainelAcoes, ProximaAcaoSecao, proximaPorCard, rotuloAcao } from "./ProximaAcao";
 import { AvisosRepetidos, FichaListaLead, ImportarRodada } from "./FunilLista";
 import {
   COLUNAS_UNICAS,
@@ -108,6 +113,9 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   const { data: listas = [], isLoading: l3 } = useListaLeads();
   const { data: notasCards = [] } = useNotasCards();
   const { data: tempManual } = useTemperaturasManuais();
+  const { data: acoes = [] } = useAcoesCards();
+  const proxPorCard = React.useMemo(() => proximaPorCard(acoes), [acoes]);
+  const [verAcoes, setVerAcoes] = React.useState(false);
   const updateLead = useUpdateLead();
   const atualizarLista = useAtualizarListaLead();
   const mudarInbound = useEtapaInbound();
@@ -273,12 +281,13 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
             nota,
             comentario: c ?? l.item.comentario ?? null,
             resumo: sdr?.contexto?.resumo ?? null,
+            acao: proxPorCard.get(l.id) ? { texto: rotuloAcao(proxPorCard.get(l.id)!), atrasada: atrasada(proxPorCard.get(l.id)!) } : null,
             etiqueta: l.item.etiqueta ?? (sdr?.contexto?.sdr ?? null),
           },
         };
       })
       .sort((a, b) => (RANK[a.item.nota ?? "Frio"] ?? 3) - (RANK[b.item.nota ?? "Frio"] ?? 3) || String(b.item.quando ?? "").localeCompare(String(a.item.quando ?? "")));
-  }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace, notasCards, tempManual]);
+  }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace, notasCards, tempManual, proxPorCard]);
 
   const conta = React.useMemo(() => {
     const m = new Map<OrigemLead, number>();
@@ -459,6 +468,26 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
         </>
       )}
 
+      {/* Próximas ações de todos os cards (21/11): o que fazer e quando, atrasadas em vermelho */}
+      {(() => {
+        const pend = acoes.filter((a) => !a.feita_em);
+        const atr = pend.filter(atrasada).length;
+        return (
+          <div className="mb-3 rounded-[12px] border border-border bg-surface">
+            <button onClick={() => setVerAcoes((v) => !v)} className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[14px] font-semibold">
+              Próximas ações <span className="rounded-full bg-primary-tint px-2 text-[12px] text-primary">{pend.length}</span>
+              {atr > 0 && <span className="rounded-full bg-negative-tint px-2 text-[12px] text-negative">{atr} atrasada{atr > 1 ? "s" : ""}</span>}
+              <span className="ml-auto text-[12px] font-normal text-muted">{verAcoes ? "esconder" : "ver"}</span>
+            </button>
+            {verAcoes && (
+              <div className="max-h-[320px] overflow-y-auto border-t border-border px-3 pb-2">
+                <PainelAcoes acoes={acoes} abrir={(card) => setAberto(linhas.find((l) => l.id === card) ?? null)} />
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       {verLixeira ? (
         <Lixeira itens={naLixeira} restaurar={(ids) => mandarLixeira(ids, false)} fechar={() => setVerLixeira(false)} />
       ) : l1 || l2 || l3 ? (
@@ -497,6 +526,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           }}
           notas={notasCards.filter((n) => n.card === aberto.id)}
           tempManual={tempManual?.get(aberto.id) ?? null}
+          acoes={acoes}
         />
       )}
       {fichaCompleta?.tipo === "google" && <FichaLead lead={fichaCompleta.lead} onClose={() => setFichaCompleta(null)} />}
@@ -765,6 +795,7 @@ function Prontuario({
   fichaCompleta,
   notas,
   tempManual,
+  acoes,
 }: {
   linha: Linha;
   etapaNome: string;
@@ -776,11 +807,14 @@ function Prontuario({
   fichaCompleta: () => void;
   notas: NotaCardItem[];
   tempManual: Temperatura | null;
+  acoes: AcaoCard[];
 }) {
   const [aba, setAba] = React.useState<"resumo" | "conversa" | "dados">("resumo");
   const [texto, setTexto] = React.useState("");
   const comentar = useComentarCard();
   const apagarNota = useApagarNotaCard();
+  const editarNota = useEditarNotaCard();
+  const [editandoNota, setEditandoNota] = React.useState<{ id: string; texto: string } | null>(null);
   const definirTemp = useDefinirTemperatura();
   const { showToast } = useToast();
   // Comentário por áudio (21/11): grava, o sistema transcreve e salva como comentário do card
@@ -935,6 +969,7 @@ function Prontuario({
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {aba === "resumo" && (
             <div className="space-y-5">
+              <ProximaAcaoSecao card={linha.id} empresa={it.titulo} acoes={acoes} />
               {/* Contexto escrito pela IA a partir da conversa (21/11): base para a ligação */}
               {sdr?.contexto && (
                 <section className="rounded-[10px] border border-border bg-surface-2/50 p-3.5">
@@ -999,12 +1034,47 @@ function Prontuario({
                   <ul className="mt-2 space-y-2">
                     {notas.map((n) => (
                       <li key={n.id} className="group rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-[14px] leading-relaxed">
-                        <div className="whitespace-pre-wrap">{n.texto}</div>
-                        <div className="mt-1 flex items-center text-[12px] text-muted">
+                        {editandoNota?.id === n.id ? (
+                          <div>
+                            <textarea
+                              value={editandoNota.texto}
+                              onChange={(e) => setEditandoNota({ id: n.id, texto: e.target.value })}
+                              rows={3}
+                              className="w-full resize-y rounded-[6px] border border-border bg-white p-2 text-[14px] outline-none focus:border-primary"
+                            />
+                            <div className="mt-1 flex justify-end gap-2">
+                              <Button size="sm" variant="ghost" onClick={() => setEditandoNota(null)}>
+                                Cancelar
+                              </Button>
+                              <Button
+                                size="sm"
+                                disabled={!editandoNota.texto.trim() || editarNota.isPending}
+                                onClick={() =>
+                                  editarNota.mutate(editandoNota, {
+                                    onSuccess: () => setEditandoNota(null),
+                                    onError: (e) => showToast(`Não salvou: ${(e as Error).message}`),
+                                  })
+                                }
+                              >
+                                Salvar
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="whitespace-pre-wrap">{n.texto}</div>
+                        )}
+                        <div className="mt-1 flex items-center gap-3 text-[12px] text-muted">
                           {fmtData(n.criado_em)}
+                          {n.editado_em && <span>· editado</span>}
+                          <button
+                            onClick={() => setEditandoNota({ id: n.id, texto: n.texto })}
+                            className="ml-auto opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
+                          >
+                            Editar
+                          </button>
                           <button
                             onClick={() => window.confirm("Apagar este comentário?") && apagarNota.mutate(n.id)}
-                            className="ml-auto opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
+                            className="opacity-0 transition-opacity hover:text-ink group-hover:opacity-100"
                           >
                             Apagar
                           </button>
@@ -1089,16 +1159,10 @@ function Prontuario({
           )}
           {aba === "dados" && (
             <div>
-              <dl className="space-y-2 text-[14px]">
-                {dados
-                  .filter(([, v]) => v != null && v !== "")
-                  .map(([k, v]) => (
-                    <div key={k} className="grid grid-cols-[150px_1fr] gap-3 border-b border-border/60 pb-2">
-                      <dt className="text-muted">{k}</dt>
-                      <dd>{v}</dd>
-                    </div>
-                  ))}
-              </dl>
+              <FichaDados
+                reg={r}
+                extras={dados.filter(([k]) => !["WhatsApp", "Segmento", "Cidade", "E-mail", "Contato"].includes(k))}
+              />
               <div className="mt-4 flex flex-wrap gap-2">
                 {wa && (
                   <a

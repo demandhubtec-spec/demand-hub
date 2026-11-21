@@ -42,6 +42,8 @@ export interface CardItem {
   origem?: OrigemLead | null;
   /** Só os contatos inbound vão para a lixeira. */
   podeLixeira?: boolean;
+  /** Próxima ação do card (21/11/2026): "📞 Ligação · ter 24/11 09:00". */
+  acao?: { texto: string; atrasada: boolean } | null;
   /** Resumo da conversa escrito pela IA (21/11/2026). */
   resumo?: string | null;
   /** Último comentário do Kelvin no card (18/11/2026). */
@@ -150,6 +152,12 @@ export function Quadro<K extends string>({
                     )}
                     {it.aviso && <div className="mt-1 text-[12px] text-attention">{it.aviso}</div>}
                     {it.resumo && <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-muted">{it.resumo}</div>}
+                    {it.acao && (
+                      <div className={cn("mt-1.5 rounded-[6px] px-1.5 py-0.5 text-[12px] font-medium", it.acao.atrasada ? "bg-negative-tint text-negative" : "bg-primary-tint text-primary")}>
+                        {it.acao.texto}
+                        {it.acao.atrasada ? " · atrasada" : ""}
+                      </div>
+                    )}
                     {it.comentario && <div className="mt-1 line-clamp-2 text-[12px] text-muted">Você: {it.comentario}</div>}
                     <div className="mt-1.5 flex items-center gap-2 text-[12px] text-muted">
                       {it.quando && <span>{fmtData(it.quando)}</span>}

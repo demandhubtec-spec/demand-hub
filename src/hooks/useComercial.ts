@@ -494,6 +494,7 @@ export interface NotaCard {
   card: string;
   texto: string;
   criado_em: string;
+  editado_em?: string | null;
 }
 
 /** Todos os comentários (para mostrar no card quantos tem e no prontuário o histórico). */
@@ -555,5 +556,109 @@ export function useDefinirTemperatura() {
       if (r.error) throw r.error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "card-temperatura"] }),
+  });
+}
+
+/* ───────────── Comentário editado e próxima ação do card (21/11/2026, Kelvin) ───────────── */
+
+export function useEditarNotaCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, texto }: { id: string; texto: string }) => {
+      const { error } = await supabase.from("comercial_card_notas").update({ texto: texto.trim(), editado_em: new Date().toISOString() }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["comercial", "card-notas"] }),
+  });
+}
+
+export type TipoAcao = "ligacao" | "whatsapp" | "visita" | "reuniao" | "proposta" | "email" | "outro";
+export const TIPOS_ACAO: { k: TipoAcao; nome: string }[] = [
+  { k: "ligacao", nome: "Ligação" },
+  { k: "whatsapp", nome: "WhatsApp" },
+  { k: "reuniao", nome: "Reunião" },
+  { k: "visita", nome: "Visita" },
+  { k: "proposta", nome: "Proposta" },
+  { k: "email", nome: "E-mail" },
+  { k: "outro", nome: "Outra" },
+];
+export const NOME_ACAO = Object.fromEntries(TIPOS_ACAO.map((t) => [t.k, t.nome])) as Record<TipoAcao, string>;
+
+export interface AcaoCard {
+  id: string;
+  card: string;
+  empresa: string | null;
+  tipo: TipoAcao;
+  quando: string | null;
+  descricao: string | null;
+  atividade_id: string | null;
+  feita_em: string | null;
+  criado_em: string;
+}
+
+/** Todas as ações dos cards (pendentes primeiro, pela data). */
+export function useAcoesCards() {
+  return useQuery({
+    queryKey: ["comercial", "card-acoes"],
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<AcaoCard[]> => {
+      const { data, error } = await supabase.from("comercial_card_acoes").select("*").order("quando", { ascending: true, nullsFirst: false }).limit(3000);
+      if (error) throw error;
+      return (data ?? []) as AcaoCard[];
+    },
+  });
+}
+
+/** Cria a próxima ação e a tarefa correspondente (Tarefas do comercial), para não esquecer. */
+export function useCriarAcao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { card: string; empresa: string; tipo: TipoAcao; quando: string | null; descricao: string }) => {
+      const { data: u } = await supabase.auth.getUser();
+      const hora = a.quando ? new Date(a.quando).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : null;
+      const { data: at, error: e1 } = await supabase
+        .from("atividades")
+        .insert({
+          titulo: `${NOME_ACAO[a.tipo]}${hora ? ` ${hora}` : ""} · ${a.empresa}`.slice(0, 120),
+          descricao: a.descricao || null,
+          departamento: "comercial",
+          prazo: a.quando ? a.quando.slice(0, 10) : null,
+          prioridade: "alta",
+          status: "a-fazer",
+          responsavel_id: u.user?.id ?? null,
+        })
+        .select("id")
+        .single();
+      if (e1) throw e1;
+      const { error } = await supabase.from("comercial_card_acoes").insert({
+        card: a.card,
+        empresa: a.empresa,
+        tipo: a.tipo,
+        quando: a.quando,
+        descricao: a.descricao || null,
+        atividade_id: (at as { id: string }).id,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comercial", "card-acoes"] });
+      qc.invalidateQueries({ queryKey: ["atividades"] });
+    },
+  });
+}
+
+/** Marca a ação como feita (e a tarefa como concluída). */
+export function useConcluirAcao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: AcaoCard) => {
+      const { error } = await supabase.from("comercial_card_acoes").update({ feita_em: new Date().toISOString() }).eq("id", a.id);
+      if (error) throw error;
+      if (a.atividade_id) await supabase.from("atividades").update({ status: "concluido" }).eq("id", a.atividade_id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comercial", "card-acoes"] });
+      qc.invalidateQueries({ queryKey: ["atividades"] });
+    },
   });
 }
