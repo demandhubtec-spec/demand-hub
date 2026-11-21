@@ -46,7 +46,7 @@ export function FunilLista({
   const [importar, setImportar] = React.useState(false);
 
   const daLista = todos.filter((l) => l.lista === lista);
-  const rodadas = [...new Set(daLista.map((l) => l.rodada ?? "Sem rodada"))];
+  const rodadas = [...new Set(daLista.map((l) => l.rodada ?? "Sem rodada"))].sort();
   const segmentos = [...new Set(daLista.map((l) => l.nicho).filter(Boolean) as string[])].sort((a, b) => a.localeCompare(b, "pt-BR"));
   const visiveis = daLista.filter(
     (l) => (!rodada || (l.rodada ?? "Sem rodada") === rodada) && (!segmento || l.nicho === segmento) && (!nota || l.nota === nota),
@@ -133,7 +133,7 @@ export function FunilLista({
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-2">
-        {lista !== "ligacoes" && rodadas.length > 0 && (
+        {rodadas.length > 0 && (
           <>
             <span className="mr-1 text-[12px] text-muted">Rodada</span>
             <button className={chip(!rodada)} onClick={() => setRodada("")}>
