@@ -406,13 +406,23 @@ async function detectReplies(cfg: any) {
   const { data: sent } = await sb.from("outreach_leads")
     .select("place_id, empresa, whatsapp, wa_sent_at, email_status, cadencia, toque_atual")
     .eq("wa_status", "enviado").gte("wa_sent_at", since).limit(500);
+  if (!sent?.length) return 0;
+  // 21/11: uma consulta só para os contatos que escreveram nos últimos 30 dias. Antes era uma consulta por lead
+  // (até 500) a cada minuto, e isso sozinho estourava o tráfego do plano grátis do Supabase.
+  const { data: ativos } = await sb.from("sdr_leads").select("id, phone, last_inbound_at")
+    .gte("last_inbound_at", since).limit(5000);
+  const porFim = new Map<string, { id: string; last_inbound_at: string }>();
+  for (const a of ativos || []) {
+    const t = String(a.phone || "").replace(/\D/g, "").slice(-8);
+    if (t) porFim.set(t, a);
+  }
   let n = 0;
   for (const l of sent || []) {
-    const tail = (l.whatsapp || "").slice(-8);
+    const tail = (l.whatsapp || "").replace(/\D/g, "").slice(-8);
     if (!tail) continue;
-    const { data: sl } = await sb.from("sdr_leads").select("id, last_inbound_at")
-      .like("phone", `%${tail}`).gt("last_inbound_at", l.wa_sent_at).limit(1);
-    if (!sl?.length) continue;
+    const achou = porFim.get(tail);
+    if (!achou || new Date(achou.last_inbound_at).getTime() <= new Date(l.wa_sent_at).getTime()) continue;
+    const sl = [achou];
     // sdr_messages.direction é 'in' | 'out' (antes buscava 'inbound' e nunca achava o texto)
     // 16/11: resposta automática (robô, boas-vindas, menu) não conta como resposta. Festa Fácil e Clínica
     // Campinense ficaram "respondeu" só com o robô, saíram da cutucada e ficaram sem follow-up nenhum.
