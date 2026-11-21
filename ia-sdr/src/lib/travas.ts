@@ -234,7 +234,8 @@ function normalizarFone(d: string): string {
 
 /** A conversa é sempre de 20 minutinhos (18/11: a Gabi alternava 20 e 30 no mesmo dia). */
 export function vinteMinutos(texto: string): string {
-  return (texto ?? "").replace(/\b(?:30|trinta)\s+(minutos|minutinhos|min)\b/gi, "20 minutinhos");
+  // 21/11: "de 20 a no máximo 30 minutinhos" é o combinado; só o "30 minutos" sozinho vira 20
+  return (texto ?? "").replace(/(?<!\b(?:a|até|ate|maximo|máximo)\s)\b(?:30|trinta)\s+(minutos|minutinhos|min)\b/gi, "20 minutinhos");
 }
 
 /**

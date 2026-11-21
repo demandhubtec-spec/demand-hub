@@ -212,7 +212,8 @@ test("ajustes da auditoria de 18/11", async () => {
   const t = await import("../src/lib/travas.ts");
   const pr = await import("../src/lib/prospeccao.ts");
   // 20 minutinhos sempre
-  assert.equal(t.vinteMinutos("um bate-papo de até 30 minutos, sem compromisso"), "um bate-papo de até 20 minutinhos, sem compromisso");
+  assert.equal(t.vinteMinutos("um bate-papo de 30 minutos, sem compromisso"), "um bate-papo de 20 minutinhos, sem compromisso");
+  assert.equal(t.vinteMinutos("de 20 a no máximo 30 minutinhos"), "de 20 a no máximo 30 minutinhos");
   // não se apresenta de novo
   const r = t.semApresentacaoRepetida("Tudo bem 😊\n\nAqui é a Gabi, da DemandIA. A gente ajuda empresas de Indaiatuba a receber mais clientes pelo Google.\n\nPosso te mandar um diagnóstico?", true);
   assert.ok(!/Aqui é a Gabi/.test(r));
