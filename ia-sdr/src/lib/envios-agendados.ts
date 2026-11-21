@@ -11,9 +11,10 @@ import { toLocal } from "./time.ts";
 import { comRodape, gmailRemetente, gmailSend } from "./outreach-email.ts";
 
 export async function runEnviosAgendados(now = new Date()) {
-  // Só em horário comercial (8h às 18h, dias úteis), como os outros envios
+  // Só em horário comercial: dias úteis das 8h às 18h e sábado das 8h ao meio-dia, como os follow-ups
+  // (21/11: os 5 envios aprovados para sábado 9h ficaram parados porque sábado era bloqueado)
   const { h, dow } = toLocal(now);
-  if (h < 8 || h >= 18 || dow === 0 || dow === 6) return { pulado: "fora do horário" };
+  if (h < 8 || dow === 0 || (dow === 6 ? h >= 12 : h >= 18)) return { pulado: "fora do horário" };
   const { data } = await db()
     .from("envios_agendados")
     .select("id,lead_id,texto,com_pdf,canal,para,assunto,place_id")
