@@ -17,6 +17,8 @@ export interface ContextoCard {
   ultima_resposta_em: string | null;
   motivo_parou: string | null;
   objetivo_ligacao: string;
+  /** Uma pessoa da empresa (não robô) respondeu? Sem isso o card não sai de "Mensagem ou ligação". */
+  conversou: boolean;
   sdr: string;
   atualizado_em: string;
 }
@@ -33,8 +35,9 @@ Temperatura:
 Mensagens de robô (menus, "bem-vindo", "nosso horário de atendimento", "assim que possível retornaremos", cardápio, promoções) NÃO contam como resposta.
 Um "pode sim" ou "pode mandar" sozinho para receber o diagnóstico, sem nenhuma reação depois, é morno, não quente.
 
+"conversou": true só se uma PESSOA da empresa respondeu de verdade (não conta robô, menu, resposta automática, promoção, figurinha ou reação).
 Responda SÓ um JSON:
-{"temperatura":"quente|morno|frio","resumo":"1 a 2 frases: o que aconteceu na conversa","ultima_resposta":"a última mensagem de gente da empresa, curta, ou null","motivo_parou":"por que a conversa parou, em poucas palavras, ou null","objetivo_ligacao":"1 frase: o que a ligação deve conseguir, com o gancho certo (ex.: falar com o Adriano, o dono, e marcar 20 a 30 minutinhos com o Kelvin; retomar o diagnóstico que ela pediu)"}
+{"conversou":true|false,"temperatura":"quente|morno|frio","resumo":"1 a 2 frases: o que aconteceu na conversa","ultima_resposta":"a última mensagem de gente da empresa, curta, ou null","motivo_parou":"por que a conversa parou, em poucas palavras, ou null","objetivo_ligacao":"1 frase: o que a ligação deve conseguir, com o gancho certo (ex.: falar com o Adriano, o dono, e marcar 20 a 30 minutinhos com o Kelvin; retomar o diagnóstico que ela pediu)"}
 Escreva em português do Brasil, simples, sem travessão.`;
 
 function fmt(d: string) {
@@ -85,6 +88,7 @@ export async function atualizarContextos(): Promise<{ atualizados: number; frios
             ultima_resposta_em: null,
             motivo_parou: "Nunca respondeu",
             objetivo_ligacao: "Apresentar a DemandIA, descobrir quem é o dono ou responsável e oferecer o diagnóstico gratuito ou 20 a 30 minutinhos com o Kelvin.",
+            conversou: false,
             sdr,
             atualizado_em: agora,
           };
@@ -101,7 +105,9 @@ export async function atualizarContextos(): Promise<{ atualizados: number; frios
           const j = JSON.parse(r.message.content ?? "{}") as Partial<ContextoCard>;
           // Encerrado (desqualificado ou pediu para sair) nunca volta como quente ou morno sozinho
           const encerrado = l.status === "desqualificado" || l.status === "opt_out";
-          const temp = !encerrado && (j.temperatura === "quente" || j.temperatura === "morno") ? j.temperatura : "frio";
+          const conversou = j.conversou === true;
+          // Sem conversa de verdade (só robô) não existe quente nem morno
+          const temp = !encerrado && conversou && (j.temperatura === "quente" || j.temperatura === "morno") ? j.temperatura : "frio";
           const ultimaGente = gente[gente.length - 1];
           ctx = {
             temperatura: temp,
@@ -110,6 +116,7 @@ export async function atualizarContextos(): Promise<{ atualizados: number; frios
             ultima_resposta_em: ultimaGente?.created_at ?? null,
             motivo_parou: j.motivo_parou ? String(j.motivo_parou).slice(0, 200) : null,
             objetivo_ligacao: String(j.objetivo_ligacao ?? "").slice(0, 300),
+            conversou,
             sdr,
             atualizado_em: agora,
           };

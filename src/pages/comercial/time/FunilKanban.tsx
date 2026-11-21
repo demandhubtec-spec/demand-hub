@@ -121,7 +121,7 @@ export function Quadro<K extends string>({
                     onClick={() => abrir(it.id)}
                     className={cn(
                       "cursor-pointer rounded-[12px] border border-border bg-surface p-2.5 text-left transition-colors hover:border-primary-bright/50",
-                      it.nota === "Quente" && "border-l-[3px] border-l-positive",
+                      it.nota === "Quente" && "border-l-[3px] border-l-negative",
                       it.aviso && "border-l-[3px] border-l-attention",
                     )}
                   >
@@ -134,9 +134,9 @@ export function Quadro<K extends string>({
                           <span
                             className={cn(
                               "rounded-full px-2 py-0.5 text-[12px] font-semibold",
-                              it.nota === "Quente" && "bg-positive-tint text-positive",
+                              it.nota === "Quente" && "bg-negative-tint text-negative",
                               it.nota === "Morno" && "bg-attention-tint text-attention",
-                              it.nota === "Frio" && "bg-surface-2 text-muted",
+                              it.nota === "Frio" && "bg-[#e8f1fb] text-[#2f6fe4]",
                             )}
                           >
                             {it.nota}

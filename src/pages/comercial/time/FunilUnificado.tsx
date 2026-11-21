@@ -187,7 +187,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           sub: [l.nicho, l.cidade ?? l.rodada?.split(" · ")[0]].filter(Boolean).join(" · "),
           quando: l.atualizado_em,
           conversa: sdr?.id ?? null,
-          nota: notaDoSdr(sdr) ?? l.nota,
+          nota: notaDoSdr(sdr),
           etiqueta:
             l.lista === "ligacoes"
               ? l.tentativas
@@ -238,10 +238,33 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
       .map((l) => {
         const t = tempManual?.get(l.id);
         const c = ultimo.get(l.id);
-        const nota = t ? TEMP[t] : l.item.nota;
         const sdr = l.item.conversa ? porId.get(l.item.conversa) : undefined;
-        const alvo: EtapaUnica | null = nota === "Quente" ? "qualificacao" : nota === "Morno" ? "conversa" : null;
-        const etapa = alvo && l.etapa !== "perdido" && ORDEM.indexOf(alvo) > ORDEM.indexOf(l.etapa) ? alvo : l.etapa;
+        const ctx = sdr?.contexto ?? null;
+        // Temperatura só pela conversa (ou escolhida à mão); a nota de perfil da lista não conta (21/11)
+        const nota = t ? TEMP[t] : ctx ? TEMP[ctx.temperatura] : notaDoSdr(sdr);
+        let etapa = l.etapa;
+        const fixa = ["perdido", "reuniao", "reuniao_realizada", "proposta", "ganho"].includes(etapa);
+        const qualifAMao =
+          (l.reg.tipo === "google" && l.reg.lead.status_comercial === "qualificacao") ||
+          (l.reg.tipo === "lista" && l.reg.lead.etapa === "qualificacao") ||
+          sdr?.status === "qualificado";
+        const ate = (alvo: EtapaUnica) => (ORDEM.indexOf(alvo) > ORDEM.indexOf(etapa) ? alvo : etapa);
+        if (!fixa && t) {
+          if (t === "quente") etapa = ate("qualificacao");
+          else if (t === "morno") etapa = ate("conversa");
+        } else if (!fixa && ctx) {
+          // Teve disparo: no mínimo "Mensagem ou ligação"
+          if (etapa === "entrada") etapa = "contato";
+          if (ctx.conversou === false) {
+            // Ninguém de verdade respondeu (só robô): não é conversa nem interesse
+            if ((etapa === "conversa" || etapa === "qualificacao") && !qualifAMao) etapa = "contato";
+          } else if (ctx.temperatura === "quente") {
+            etapa = ate("qualificacao");
+          } else {
+            if (etapa === "qualificacao" && !qualifAMao) etapa = "conversa";
+            etapa = ate("conversa");
+          }
+        }
         return {
           ...l,
           etapa,
@@ -845,7 +868,7 @@ function Prontuario({
               title="Temperatura do lead. Automática: calculada pela conversa no WhatsApp."
               className={cn(
                 "h-[22px] rounded-[6px] border-0 px-2 text-[12px] font-medium",
-                it.nota === "Quente" ? "bg-positive-tint text-positive" : it.nota === "Morno" ? "bg-attention-tint text-attention" : "bg-surface-2 text-muted",
+                it.nota === "Quente" ? "bg-negative-tint text-negative" : it.nota === "Morno" ? "bg-attention-tint text-attention" : it.nota === "Frio" ? "bg-[#e8f1fb] text-[#2f6fe4]" : "bg-surface-2 text-muted",
               )}
             >
               <option value="">{`Automática${!tempManual && it.nota ? ` (${it.nota})` : ""}`}</option>

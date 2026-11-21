@@ -49,6 +49,7 @@ export interface SdrLead {
     ultima_resposta_em: string | null;
     motivo_parou: string | null;
     objetivo_ligacao: string;
+    conversou?: boolean;
     sdr: string;
     atualizado_em: string;
   } | null;
