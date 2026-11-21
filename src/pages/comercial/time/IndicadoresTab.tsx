@@ -321,7 +321,9 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
       <div className="grid gap-4 xl:grid-cols-2">
         {funis.map(({ canal, linhas }) => {
           const venda = linhas[linhas.length - 1]?.valor ?? 0;
-          const top = linhas[0]?.valor ?? 0;
+          // 21/11: nas listas o funil começa em "Mensagem ou ligação" (quem de fato foi abordado)
+          const semEntrada = ["google", "instagram", "linkedin", "ligacoes"].includes(canal.key);
+          const top = (semEntrada ? linhas[1] : linhas[0])?.valor ?? 0;
           const Icone = canal.icone;
           return (
             <Card key={canal.key} className={cn("p-5", canal.emBreve && "opacity-50")}>
@@ -341,12 +343,12 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
                       {venda} {venda === 1 ? "venda" : "vendas"}
                     </div>
                     <div className="mt-1 text-[12px] text-muted">
-                      {fmtPct(top ? Math.round((venda / top) * 1000) / 10 : null, 1)} {canal.key === "inbound" ? "dos leads" : "da lista"}
+                      {fmtPct(top ? Math.round((venda / top) * 1000) / 10 : null, 1)} {canal.key === "inbound" ? "dos leads" : semEntrada ? "dos abordados" : "da lista"}
                     </div>
                   </div>
                 )}
               </div>
-              <FunilGrafico linhas={linhas} apagado={canal.emBreve || top === 0} />
+              <FunilGrafico linhas={linhas} semEntrada={semEntrada} apagado={canal.emBreve || top === 0} />
             </Card>
           );
         })}

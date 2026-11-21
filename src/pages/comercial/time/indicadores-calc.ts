@@ -129,7 +129,7 @@ export interface LinhaFunil {
   valor: number;
   conversao: number | null; // % da etapa anterior
   meta: number | null;
-  /** Meta em número (18/11): em cascata desde o topo, aplicando a meta % de cada etapa sobre a meta da anterior. */
+  /** Meta em número (21/11): a meta % sobre o realizado da etapa anterior. */
   metaNumero: number | null;
   estado: EstadoEtapa;
 }
@@ -138,13 +138,12 @@ export interface LinhaFunil {
 export function linhasFunil(canal: CanalFunil, contagem: number[], metas: Metas | undefined, baseMinima = 3): LinhaFunil[] {
   const etapas = ETAPAS_FUNIL[canal];
   const m = metas?.etapas?.[canal] ?? {};
-  // Meta em número: o topo é o que está na lista; cada etapa é a meta % sobre a meta em número da anterior
-  const metasNumero: (number | null)[] = [];
-  etapas.forEach((e, i) => {
-    if (i === 0) return metasNumero.push(contagem[0] ?? 0);
-    const prev = metasNumero[i - 1];
+  // Meta em número (21/11): a meta % aplicada sobre o REALIZADO da etapa anterior
+  // (ex.: 300 mensagens e meta de 50% para conversa = meta de 150 conversas)
+  const metasNumero: (number | null)[] = etapas.map((e, i) => {
+    if (i === 0) return null;
     const pct = m[e.key];
-    metasNumero.push(prev != null && pct != null ? Math.round((prev * pct) / 100) : null);
+    return pct != null ? Math.round(((contagem[i - 1] ?? 0) * pct) / 100) : null;
   });
   const linhas: LinhaFunil[] = etapas.map((e, i) => {
     const ant = i > 0 ? contagem[i - 1] : null;
