@@ -90,6 +90,7 @@ export async function exchangeCode(code: string, kind: GoogleKind = "google") {
     }).catch(() => null);
     email = r?.ok ? ((await r.json()) as { emailAddress?: string }).emailAddress ?? null : null;
   }
+  if (kind === "google") email = await emailDaAgenda(t.access_token);
   let sites: string[] | undefined;
   if (kind === "searchconsole") {
     // Quais sites essa conta enxerga no Search Console (a sincronização usa o do demandhub.com.br)
@@ -109,6 +110,34 @@ export async function exchangeCode(code: string, kind: GoogleKind = "google") {
 }
 
 const cache = new Map<GoogleKind, { token: string; exp: number }>();
+
+/** E-mail da agenda conectada: o título da agenda principal é o e-mail da conta (21/11: conferir que é a do Kelvin). */
+async function emailDaAgenda(token: string): Promise<string | null> {
+  const r = await fetch(`${API}/calendars/primary/events?maxResults=1`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null);
+  if (!r?.ok) return null;
+  const j = (await r.json()) as { summary?: string };
+  return j.summary && j.summary.includes("@") ? j.summary : null;
+}
+
+/**
+ * Confere a agenda conectada (roda no relógio): guarda o e-mail dela e quantos compromissos tem nos
+ * próximos 7 dias, para o portal e a equipe saberem qual agenda as SDRs estão olhando.
+ */
+export async function conferirAgendaConectada(): Promise<{ email: string | null; compromissos: number } | { skipped: string }> {
+  const row = await db().from("sdr_integrations").select("value").eq("key", "google").maybeSingle();
+  const v = (row.data?.value ?? {}) as Record<string, unknown>;
+  if (!v.refresh_token) return { skipped: "agenda não conectada" };
+  const ultima = typeof v.conferida_em === "string" ? Date.parse(v.conferida_em) : 0;
+  if (v.email && Date.now() - ultima < 6 * 3600e3) return { skipped: "conferida há pouco" };
+  const token = await accessToken("google");
+  const email = (await emailDaAgenda(token)) ?? (v.email as string | undefined) ?? null;
+  const agora = new Date();
+  const busy = await busyIntervals(agora, new Date(agora.getTime() + 7 * 86_400_000));
+  await db().from("sdr_integrations").update({
+    value: { ...v, email, conferida_em: agora.toISOString(), compromissos_7d: busy.length, proximos: busy.slice(0, 8).map((b) => b.start.toISOString()) },
+  }).eq("key", "google");
+  return { email, compromissos: busy.length };
+}
 
 export async function accessToken(kind: GoogleKind = "google"): Promise<string> {
   const hit = cache.get(kind);

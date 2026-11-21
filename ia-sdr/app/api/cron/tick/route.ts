@@ -15,6 +15,7 @@ import { db } from "@/src/lib/db.ts";
 import { dispararRoboPdf } from "@/src/lib/robo-pdf.ts";
 import { runCutucadas } from "@/src/lib/cutucada.ts";
 import { runEnviosAgendados } from "@/src/lib/envios-agendados.ts";
+import { conferirAgendaConectada } from "@/src/lib/google.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -53,8 +54,10 @@ async function handler(req: Request) {
   const [leo, rita] = await fichas;
   // Robô do GitHub (logo e PDF do relatório): o agendamento do GitHub falha, então o relógio chama ele
   const robo_pdf = await etapa(dispararRoboPdf, 30_000);
+  // Qual agenda as SDRs estão olhando (e-mail e compromissos dos próximos 7 dias), a cada 6 horas
+  const agenda = await etapa(conferirAgendaConectada, 20_000);
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, programados });
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, programados, agenda });
 }
 
 export const GET = handler;
