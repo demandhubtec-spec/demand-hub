@@ -230,11 +230,31 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
     // 18/11: a temperatura escolhida à mão vale acima da calculada, e o card mostra o último comentário
     const ultimo = new Map<string, string>();
     for (const n of notasCards) if (!ultimo.has(n.card)) ultimo.set(n.card, n.texto);
-    return out.map((l) => {
-      const t = tempManual?.get(l.id);
-      const c = ultimo.get(l.id);
-      return t || c ? { ...l, item: { ...l.item, nota: t ? TEMP[t] : l.item.nota, comentario: c ?? null } } : l;
-    });
+    // 21/11: a temperatura decide a etapa. Quente (mostrou interesse) vai para "Demonstrou interesse" e morno
+    // (conversou e parou) fica em "Conversa iniciada"; o card mostra o resumo da conversa e de qual SDR é.
+    const porId = new Map(contatos.map((c) => [c.id, c]));
+    const RANK = { Quente: 0, Morno: 1, Frio: 2 } as const;
+    return out
+      .map((l) => {
+        const t = tempManual?.get(l.id);
+        const c = ultimo.get(l.id);
+        const nota = t ? TEMP[t] : l.item.nota;
+        const sdr = l.item.conversa ? porId.get(l.item.conversa) : undefined;
+        const alvo: EtapaUnica | null = nota === "Quente" ? "qualificacao" : nota === "Morno" ? "conversa" : null;
+        const etapa = alvo && l.etapa !== "perdido" && ORDEM.indexOf(alvo) > ORDEM.indexOf(l.etapa) ? alvo : l.etapa;
+        return {
+          ...l,
+          etapa,
+          item: {
+            ...l.item,
+            nota,
+            comentario: c ?? l.item.comentario ?? null,
+            resumo: sdr?.contexto?.resumo ?? null,
+            etiqueta: l.item.etiqueta ?? (sdr?.contexto?.sdr ?? null),
+          },
+        };
+      })
+      .sort((a, b) => (RANK[a.item.nota ?? "Frio"] ?? 3) - (RANK[b.item.nota ?? "Frio"] ?? 3) || String(b.item.quando ?? "").localeCompare(String(a.item.quando ?? "")));
   }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace, notasCards, tempManual]);
 
   const conta = React.useMemo(() => {
@@ -844,6 +864,35 @@ function Prontuario({
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {aba === "resumo" && (
             <div className="space-y-5">
+              {/* Contexto escrito pela IA a partir da conversa (21/11): base para a ligação */}
+              {sdr?.contexto && (
+                <section className="rounded-[10px] border border-border bg-surface-2/50 p-3.5">
+                  <div className="mb-1.5 flex items-center gap-2 text-[12px] font-semibold text-muted">
+                    Contexto da conversa · {sdr.contexto.sdr}
+                    <span className="font-normal">atualizado {fmtData(sdr.contexto.atualizado_em)}</span>
+                  </div>
+                  <div className="space-y-1.5 text-[14px] leading-relaxed">
+                    <div>{sdr.contexto.resumo}</div>
+                    {sdr.contexto.ultima_resposta && (
+                      <div>
+                        <b>Última resposta</b>
+                        {sdr.contexto.ultima_resposta_em ? ` (${fmtData(sdr.contexto.ultima_resposta_em)})` : ""}: "{sdr.contexto.ultima_resposta}"
+                      </div>
+                    )}
+                    {sdr.contexto.motivo_parou && (
+                      <div>
+                        <b>Por que parou:</b> {sdr.contexto.motivo_parou}
+                      </div>
+                    )}
+                    <div>
+                      <b>Objetivo da ligação:</b> {sdr.contexto.objetivo_ligacao}
+                    </div>
+                    <div className="text-[13px] text-muted">
+                      Telefone: {sdr.phone}
+                    </div>
+                  </div>
+                </section>
+              )}
               {/* Comentários do Kelvin (18/11): o que aconteceu fora do WhatsApp, próximos passos, combinados */}
               <section>
                 <div className="mb-1.5 text-[12px] font-semibold text-muted">Seus comentários{notas.length ? ` (${notas.length})` : ""}</div>

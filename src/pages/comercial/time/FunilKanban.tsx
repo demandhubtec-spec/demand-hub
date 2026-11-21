@@ -42,6 +42,8 @@ export interface CardItem {
   origem?: OrigemLead | null;
   /** Só os contatos inbound vão para a lixeira. */
   podeLixeira?: boolean;
+  /** Resumo da conversa escrito pela IA (21/11/2026). */
+  resumo?: string | null;
   /** Último comentário do Kelvin no card (18/11/2026). */
   comentario?: string | null;
 }
@@ -147,6 +149,7 @@ export function Quadro<K extends string>({
                       <div className="mt-1 text-[14px] font-semibold text-positive">{it.valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</div>
                     )}
                     {it.aviso && <div className="mt-1 text-[12px] text-attention">{it.aviso}</div>}
+                    {it.resumo && <div className="mt-1 line-clamp-2 text-[12px] leading-snug text-muted">{it.resumo}</div>}
                     {it.comentario && <div className="mt-1 line-clamp-2 text-[12px] text-muted">Você: {it.comentario}</div>}
                     <div className="mt-1.5 flex items-center gap-2 text-[12px] text-muted">
                       {it.quando && <span>{fmtData(it.quando)}</span>}

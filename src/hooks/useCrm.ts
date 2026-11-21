@@ -41,6 +41,17 @@ export interface SdrLead {
   /** Temperatura pela conversa (17/11, migration 0037): quente, morno ou frio, e o porquê. */
   temperatura?: "quente" | "morno" | "frio" | null;
   temperatura_motivo?: string | null;
+  /** Contexto do card escrito pela IA a partir da conversa (21/11): resumo, última resposta e objetivo da ligação. */
+  contexto?: {
+    temperatura: "quente" | "morno" | "frio";
+    resumo: string;
+    ultima_resposta: string | null;
+    ultima_resposta_em: string | null;
+    motivo_parou: string | null;
+    objetivo_ligacao: string;
+    sdr: string;
+    atualizado_em: string;
+  } | null;
 }
 
 export interface SdrMensagem {

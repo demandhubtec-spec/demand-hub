@@ -16,6 +16,7 @@ import { dispararRoboPdf } from "@/src/lib/robo-pdf.ts";
 import { runCutucadas } from "@/src/lib/cutucada.ts";
 import { runEnviosAgendados } from "@/src/lib/envios-agendados.ts";
 import { conferirAgendaConectada } from "@/src/lib/google.ts";
+import { atualizarContextos } from "@/src/lib/contexto-card.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -56,8 +57,10 @@ async function handler(req: Request) {
   const robo_pdf = await etapa(dispararRoboPdf, 30_000);
   // Qual agenda as SDRs estão olhando (e-mail e compromissos dos próximos 7 dias), a cada 6 horas
   const agenda = await etapa(conferirAgendaConectada, 20_000);
+  // Contexto do card no funil (21/11): temperatura, resumo e objetivo da ligação, lidos pela IA na conversa
+  const contextos = await etapa(atualizarContextos, 60_000);
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, programados, agenda });
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, programados, agenda, contextos });
 }
 
 export const GET = handler;
