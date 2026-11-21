@@ -236,7 +236,7 @@ async function avisarAgendaFora(lead: Lead, e: unknown) {
   if (Date.now() - ultimoAvisoAgenda < 6 * 3600e3) return;
   ultimoAvisoAgenda = Date.now();
   const msg = String((e as Error)?.message ?? e).slice(0, 160);
-  await notifyOwner(`⚠️ A Google Agenda da Ana não respondeu (${msg}). Ela segue oferecendo horários do expediente, mas reconecte a agenda para não marcar em cima de compromisso. Lead: ${lead.empresa ?? lead.nome ?? lead.phone}`, lead.agente).catch(() => {});
+  await notifyOwner(`⚠️ A Google Agenda não respondeu (${msg}). Enquanto isso, as SDRs não sugerem horário: perguntam a preferência do lead. Reconecte em /api/google/connect. Lead: ${lead.empresa ?? lead.nome ?? lead.phone}`, lead.agente).catch(() => {});
 }
 
 /** Próximos horários livres reais da agenda (para a retomada já chegar com 2 opções concretas). */
@@ -434,6 +434,9 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           duracao_minutos: SDR_CONFIG.reuniao.duracaoMin,
           link_meet: ev.meetLink,
           convite_enviado_para: emails,
+          instrucao: ev.meetLink
+            ? "Confirme ao lead numa mensagem só: dia da semana, data, horário e este link_meet, e diga que o convite também foi para o e-mail."
+            : "Confirme dia e horário e diga que o link do Meet chega por aqui em seguida.",
         });
       } catch (e) {
         // Sem Google Agenda: a reunião fica reservada no banco e o Kelvin manda o convite à mão.
