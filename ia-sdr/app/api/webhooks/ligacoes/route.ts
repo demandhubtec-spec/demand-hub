@@ -6,7 +6,10 @@
  *   Corpo: um contato { id, empresa|nome, telefone, status|etapa, atendida, tentativas, valor, observacoes }
  *          ou uma lista [ {...}, {...} ] ou { contatos: [...] }
  *
- * Cada contato é gravado pelo id da empresa parceira: se já existe, atualiza a etapa e as tentativas.
+ * Se o telefone já é de um lead do funil (prospecção da Gabi e da Marina), o resultado da ligação vira
+ * comentário no card dele (com o resumo da IA de ligação) e a etapa avança quando a ligação marcou
+ * interesse, reunião ou recusa (21/11/2026). Nada de card duplicado.
+ * Senão, o contato é gravado pelo id da empresa parceira: se já existe, atualiza a etapa e as tentativas.
  * Nada é enviado para o lead daqui: só registra para o funil e os indicadores.
  */
 import { db } from "@/src/lib/db.ts";
@@ -48,7 +51,49 @@ export async function POST(req: Request) {
   return json({ ok: true, gravados, erros });
 }
 
+const ROTULO: Record<string, string> = {
+  na_lista: "na lista",
+  contato: "não atendeu",
+  atendida: "atendeu",
+  conversa: "conversou",
+  qualificacao: "demonstrou interesse",
+  reuniao: "reunião agendada",
+  reuniao_realizada: "reunião realizada",
+  proposta: "negociação",
+  ganho: "venda",
+  perdido: "sem interesse",
+};
+const ORDEM = ["respondeu", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
+
+/** Lead do funil com esse telefone: comentário no card e etapa. true = tratado aqui. */
+async function noFunil(l: LigacaoRecebida, bruto: Record<string, unknown>): Promise<boolean> {
+  const fim = (l.whatsapp ?? "").replace(/\D/g, "").slice(-8);
+  if (fim.length < 8) return false;
+  const { data: o } = await db()
+    .from("outreach_leads")
+    .select("place_id, status_comercial")
+    .like("whatsapp", `%${fim}`)
+    .not("place_id", "like", "%_comercial")
+    .limit(1)
+    .maybeSingle();
+  if (!o) return false;
+  const quando = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+  const gravacao = typeof bruto.gravacao_url === "string" ? bruto.gravacao_url : typeof bruto.recording_url === "string" ? bruto.recording_url : null;
+  const texto = [`📞 Ligação ${quando}: ${ROTULO[l.etapa] ?? l.etapa}`, l.observacoes, gravacao ? `Gravação: ${gravacao}` : null].filter(Boolean).join("\n");
+  await db().from("comercial_card_notas").insert({ card: `g:${o.place_id}`, texto: texto.slice(0, 4000) });
+  // Etapa: avança com interesse, reunião ou venda; recusa vai para perdido
+  const atual = (o as { status_comercial: string | null }).status_comercial;
+  const alvo = l.etapa === "perdido" ? "perdido" : ["qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"].includes(l.etapa) ? l.etapa : null;
+  if (alvo === "perdido" && !["reuniao", "reuniao_realizada", "proposta", "ganho"].includes(atual ?? "")) {
+    await db().from("outreach_leads").update({ status_comercial: "perdido", cadencia: "parada", proximo_toque_em: null, proximo_canal: null }).eq("place_id", (o as { place_id: string }).place_id);
+  } else if (alvo && ORDEM.indexOf(alvo) > ORDEM.indexOf(atual ?? "")) {
+    await db().from("outreach_leads").update({ status_comercial: alvo }).eq("place_id", (o as { place_id: string }).place_id);
+  }
+  return true;
+}
+
 async function gravar(l: LigacaoRecebida, bruto: Record<string, unknown>): Promise<string | null> {
+  if (await noFunil(l, bruto).catch(() => false)) return null;
   const { data: atual } = await db()
     .from("comercial_lista_leads")
     .select("id,tentativas")

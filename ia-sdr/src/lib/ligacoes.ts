@@ -96,6 +96,6 @@ export function lerLigacao(b: Record<string, unknown>): LigacaoRecebida | { erro
     etapa,
     tentativas: Number.isFinite(tent) && tent > 0 ? Math.round(tent) : etapa === "na_lista" ? 0 : 1,
     valor: valor != null && Number.isFinite(valor) ? valor : null,
-    observacoes: str(b.observacoes ?? b.notas ?? b.notes ?? b.resumo ?? b.summary),
+    observacoes: str(b.observacoes ?? b.notas ?? b.notes ?? b.resumo ?? b.summary ?? b.transcricao ?? b.transcript),
   };
 }

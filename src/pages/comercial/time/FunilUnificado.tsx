@@ -4,7 +4,7 @@
  * Nada some dos funis antigos: rodadas, notas, "Mandar para o time", "Nova rodada", lixeira do inbound e as fichas continuam aqui.
  */
 import * as React from "react";
-import { ChevronDown, ChevronUp, CircleHelp, ExternalLink, Filter, MessageCircle, Plus, RotateCcw, Search, Send, Trash2, Upload, X } from "lucide-react";
+import { ChevronDown, ChevronUp, CircleHelp, ExternalLink, Filter, Loader2, MessageCircle, Mic, Plus, RotateCcw, Search, Send, Square, Trash2, Upload, X } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -783,6 +783,54 @@ function Prontuario({
   const apagarNota = useApagarNotaCard();
   const definirTemp = useDefinirTemperatura();
   const { showToast } = useToast();
+  // Comentário por áudio (21/11): grava, o sistema transcreve e salva como comentário do card
+  const [gravando, setGravando] = React.useState(false);
+  const [transcrevendo, setTranscrevendo] = React.useState(false);
+  const gravador = React.useRef<MediaRecorder | null>(null);
+  const pedacos = React.useRef<Blob[]>([]);
+  async function alternarAudio() {
+    if (gravando) {
+      gravador.current?.stop();
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const rec = new MediaRecorder(stream);
+      pedacos.current = [];
+      rec.ondataavailable = (e) => {
+        if (e.data.size) pedacos.current.push(e.data);
+      };
+      rec.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop());
+        setGravando(false);
+        const blob = new Blob(pedacos.current, { type: rec.mimeType || "audio/webm" });
+        if (blob.size < 1500) return showToast("Áudio muito curto.");
+        setTranscrevendo(true);
+        try {
+          const base64 = await new Promise<string>((ok, erro) => {
+            const fr = new FileReader();
+            fr.onload = () => ok(String(fr.result).split(",")[1] ?? "");
+            fr.onerror = () => erro(fr.error);
+            fr.readAsDataURL(blob);
+          });
+          const r = await chamarSdr<{ texto: string }>("/api/time/transcrever", { base64, mimetype: blob.type });
+          comentar.mutate(
+            { card: linha.id, texto: `🎙️ ${r.texto}` },
+            { onError: (e) => showToast(`Não salvou o comentário: ${(e as Error).message}`) },
+          );
+        } catch (e) {
+          showToast(`Não consegui transcrever: ${(e as Error).message}`);
+        } finally {
+          setTranscrevendo(false);
+        }
+      };
+      gravador.current = rec;
+      rec.start();
+      setGravando(true);
+    } catch {
+      showToast("Não consegui usar o microfone. Libere o acesso no navegador.");
+    }
+  }
   const salvarComentario = () => {
     if (!texto.trim()) return;
     comentar.mutate(
@@ -929,7 +977,20 @@ function Prontuario({
                   placeholder="Escreva o que aconteceu ou o próximo passo (ex.: apresentei a proposta, ele vai pensar e volta segunda)"
                   className="w-full resize-y rounded-[8px] border border-border bg-white p-2.5 text-[14px] leading-relaxed outline-none focus:border-primary"
                 />
-                <div className="mt-1.5 flex justify-end">
+                <div className="mt-1.5 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={alternarAudio}
+                    disabled={transcrevendo}
+                    title={gravando ? "Parar e transcrever" : "Gravar um áudio: o sistema transcreve e salva como comentário"}
+                    className={cn(
+                      "inline-flex h-8 items-center gap-1.5 rounded-[8px] border border-border px-2.5 text-[13px]",
+                      gravando ? "border-negative bg-negative-tint text-negative" : "bg-white text-ink hover:border-primary",
+                    )}
+                  >
+                    {transcrevendo ? <Loader2 className="h-4 w-4 animate-spin" /> : gravando ? <Square className="h-3.5 w-3.5" /> : <Mic className="h-4 w-4" />}
+                    {transcrevendo ? "Transcrevendo…" : gravando ? "Parar" : "Áudio"}
+                  </button>
                   <Button size="sm" onClick={salvarComentario} disabled={!texto.trim() || comentar.isPending}>
                     {comentar.isPending ? "Salvando…" : "Comentar"}
                   </Button>
