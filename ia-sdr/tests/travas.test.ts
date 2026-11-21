@@ -288,3 +288,23 @@ test("coleta pela API do Google: lugar vira lead (18/11)", async () => {
   assert.equal(a.nichoNaRotacao("Restaurantes e alimentação"), true);
   assert.equal(a.nichoNaRotacao("Odontologia"), true);
 });
+
+test("auditoria 21/11 (tarde): recusas que escapavam e o 'vamos deixar na segunda'", () => {
+  assert.equal(recusou("Não, muito obrigado, já tem quem faz."), true);
+  assert.equal(recusou("Temos contrato até o meio do ano que vem"), true);
+  assert.equal(recusou("Não precisa"), true);
+  assert.equal(recusou("Vamos deixar na segunda. Qualquer imprevisto te aviso"), false);
+  assert.equal(recusou("vamos deixar pra lá"), true);
+  const dedetizadora = [
+    { direction: "out", content: "Preparei um diagnóstico gratuito. Posso te mandar?" },
+    { direction: "in", content: "Já temos uma empresa de marketing que faz o serviço para empresa" },
+    { direction: "in", content: "Temos contrato até o meio do ano que vem" },
+  ];
+  assert.equal(situacaoDaRecusa(dedetizadora).ultimaFoiRecusa, true);
+  const mudouDeIdeia = [
+    { direction: "out", content: "Posso te mandar?" },
+    { direction: "in", content: "não, obrigado" },
+    { direction: "in", content: "pensando bem, pode mandar" },
+  ];
+  assert.equal(situacaoDaRecusa(mudouDeIdeia).ultimaFoiRecusa, false);
+});

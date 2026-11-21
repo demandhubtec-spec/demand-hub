@@ -68,7 +68,11 @@ const RECUSA = [
   /\bnao (e|eh) do (nosso|meu) interesse/,
   /\bnao (queremos|precisamos|pretendemos contratar)\b/,
   /\bnao (quero|preciso)( (nao|disso|desse|nada|agora|no momento|contratar)\b|\s*[.!,]|\s*$)/,
-  /\bnao,? obrigad[oa]\b/,
+  /\bnao,? (muito )?obrigad[oa]\b/,
+  // 21/11: HD Clean "já tem quem faz", Dedetizadora "temos contrato até o meio do ano", GP Clean "não precisa"
+  /\bja (tem|temos|tenho) quem (faz|cuida|faca)\b/,
+  /\b(temos|tenho|estamos com|estamos em) (um )?contrato\b/,
+  /^\s*nao precisa\b/,
   /\b(dispenso|dispensamos)\b/,
   /\b(pode|podem) (tirar|remover|excluir) (meu|nosso|o) (numero|contato)/,
   /\bnao (me )?(mande|mandem|envie|enviem) mais/,
@@ -77,7 +81,9 @@ const RECUSA = [
   // 17/11: Haustier "estamos satisfeitos com os resultados", Dra. Laura "já temos agência de marketing"
   /\bestamos (muito )?satisfeit/,
   /\bja (temos|tenho) (uma |a )?(agencia|empresa de marketing|alguem que cuida|quem cuida)/,
-  /\bvamos deixar\b/,
+  // "vamos deixar pra lá" é recusa; "vamos deixar na segunda" (21/11, Moleka Fest marcando a reunião) não é
+  /\bvamos deixar (pra la|para la|quieto|isso|por enquanto|pra depois|para depois|pra outra|para outra)\b/,
+  /\bvamos deixar\s*[.!]*\s*$/,
 ];
 export function recusou(texto: string | null | undefined): boolean {
   const t = sem(String(texto ?? "")).replace(/^\[resposta automatica\].*$/s, "");
@@ -99,8 +105,20 @@ export function inboundsDeGente<T extends { direction: string; content: string }
 export function situacaoDaRecusa(msgs: { direction: string; content: string }[]): { ultimaFoiRecusa: boolean; recusas: number; semRespostaDepoisDoNao: boolean } {
   const gente = inboundsDeGente(msgs);
   const recusas = gente.filter((m) => recusou(m.content)).length;
-  const ultima = gente[gente.length - 1];
-  const ultimaFoiRecusa = !!ultima && recusou(ultima.content);
+  // A última "rajada" de gente conta inteira (21/11: Dedetizadora mandou "já temos uma empresa de marketing"
+  // e logo depois "temos contrato até o meio do ano"; só a última mensagem não parecia um não)
+  const fim = gente[gente.length - 1];
+  const rajada: typeof gente = [];
+  if (fim) {
+    for (let i = msgs.lastIndexOf(fim); i >= 0; i--) {
+      const m = msgs[i];
+      if (m.direction !== "in") break;
+      if (gente.includes(m)) rajada.unshift(m);
+    }
+  }
+  const virouSim = !!fim && /\b(pode (mandar|enviar|ser)|manda|sim|quero|topo|bora|vamos sim)\b/.test(sem(fim.content ?? ""));
+  const ultima = virouSim ? fim : [...rajada].reverse().find((m) => recusou(m.content)) ?? fim;
+  const ultimaFoiRecusa = !!ultima && !virouSim && recusou(ultima.content);
   // Depois do último "não" de gente só vieram mensagens nossas (ou de robô): a pessoa não respondeu à pergunta
   let semRespostaDepoisDoNao = false;
   if (ultimaFoiRecusa) {

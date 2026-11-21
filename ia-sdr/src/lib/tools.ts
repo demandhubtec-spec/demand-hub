@@ -242,7 +242,9 @@ async function avisarAgendaFora(lead: Lead, e: unknown) {
 /** Próximos horários livres reais da agenda (para a retomada já chegar com 2 opções concretas). */
 export async function proximosHorarios(now = new Date()): Promise<string[]> {
   const cfg = SDR_CONFIG.reuniao;
-  const busy = await busyIntervals(now, new Date(now.getTime() + (cfg.diasAFrente + 1) * 86_400_000)).catch(() => []);
+  // 21/11: sem conferir a agenda do Kelvin não sugere horário nenhum (pode cair em cima de compromisso)
+  const busy = await busyIntervals(now, new Date(now.getTime() + (cfg.diasAFrente + 1) * 86_400_000)).catch(() => null);
+  if (!busy) return [];
   return pickOptions(freeSlots(now, busy, cfg)).map((s) => formatBR(s.start));
 }
 
@@ -343,13 +345,19 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       const diasAFrente = cfg.diasAFrente + offsetDias;
       // Agenda do Google fora do ar (ex.: acesso expirado): oferece os horários do expediente mesmo assim
       // e avisa o Kelvin, em vez de travar a conversa com quem decide (Munhoz, 04/11)
+      // 21/11: sem conferir a agenda do Kelvin, NÃO sugere horário (o Kelvin pediu: nunca oferecer horário
+      // que já tem compromisso). Pede o dia e horário preferido do lead e o Kelvin confirma.
       let agendaOk = true;
       const busy = await busyIntervals(now, new Date(now.getTime() + (diasAFrente + 1) * 86_400_000)).catch(async (e) => {
         agendaOk = false;
         console.error("ver_horarios: agenda indisponível", e);
+        await logEvent(leadId, "agenda_erro", { erro: String((e as Error)?.message ?? e).slice(0, 300) }).catch(() => {});
         await avisarAgendaFora(lead, e);
         return [] as Awaited<ReturnType<typeof busyIntervals>>;
       });
+      if (!agendaOk) {
+        return "A agenda do especialista não pôde ser conferida agora. NÃO sugira nenhum dia nem horário. Pergunte ao lead qual dia e período (manhã ou tarde) ficam melhor pra ele e diga que você confirma o horário certinho em seguida. Registre a preferência com registrar_objetivo.";
+      }
       let slots = freeSlots(now, busy, { ...cfg, diasAFrente }).filter((s) => offsetDias === 0 || s.start >= localDayStart(base));
       if (input.preferencia === "sabado") slots = slots.filter((s) => toLocal(s.start).dow === 6);
       if (input.preferencia === "dias_de_semana") slots = slots.filter((s) => toLocal(s.start).dow !== 6);
@@ -378,8 +386,12 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (!emails.length) return "Preciso de pelo menos um e-mail válido para enviar o convite. Peça ao lead.";
 
       const end = new Date(start.getTime() + SDR_CONFIG.reuniao.duracaoMin * 60_000);
-      const busy = await busyIntervals(start, end).catch(() => []);
-      if (busy.length) return "Esse horário acabou de ser ocupado. Chame ver_horarios de novo e ofereça outras opções.";
+      const busy = await busyIntervals(start, end).catch(async (e) => {
+        await logEvent(leadId, "agenda_erro", { erro: String((e as Error)?.message ?? e).slice(0, 300) }).catch(() => {});
+        await avisarAgendaFora(lead, e);
+        return [] as Awaited<ReturnType<typeof busyIntervals>>;
+      });
+      if (busy.length) return "Esse horário já tem compromisso na agenda do especialista. Chame ver_horarios de novo e ofereça outras opções.";
 
       // Reserva no banco primeiro (índice único impede duas reuniões no mesmo horário)
       const ins = await db()
@@ -427,6 +439,7 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
         // Sem Google Agenda: a reunião fica reservada no banco e o Kelvin manda o convite à mão.
         // Perder a reunião por falha técnica é pior do que o convite chegar alguns minutos depois.
         console.error(e);
+        await logEvent(leadId, "agenda_erro", { erro: String((e as Error)?.message ?? e).slice(0, 300), etapa: "criar_evento" }).catch(() => {});
         await updateLead(leadId, { status: "agendado", email: lead.email ?? emails[0], next_followup_at: null, followup_attempts: 0 });
         await avisarReuniao(leadId, await dadosDaReuniao(lead, start, emails, null), lead.agente);
         return JSON.stringify({
