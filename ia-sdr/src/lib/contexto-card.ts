@@ -99,7 +99,9 @@ export async function atualizarContextos(): Promise<{ atualizados: number; frios
             maxTokens: 1500,
           });
           const j = JSON.parse(r.message.content ?? "{}") as Partial<ContextoCard>;
-          const temp = j.temperatura === "quente" || j.temperatura === "morno" ? j.temperatura : "frio";
+          // Encerrado (desqualificado ou pediu para sair) nunca volta como quente ou morno sozinho
+          const encerrado = l.status === "desqualificado" || l.status === "opt_out";
+          const temp = !encerrado && (j.temperatura === "quente" || j.temperatura === "morno") ? j.temperatura : "frio";
           const ultimaGente = gente[gente.length - 1];
           ctx = {
             temperatura: temp,
