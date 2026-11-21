@@ -3,10 +3,11 @@ import { AlertTriangle, Check, Handshake, Lightbulb, Instagram, Linkedin, MapPin
 import { Card } from "@/components/ui/card";
 import { useContatos } from "@/hooks/useCrm";
 import { useOutreachLeads } from "@/hooks/useProspeccao";
-import { type CanalFunil, type ListaLead, useInsights, useListaLeads, useMetas } from "@/hooks/useComercial";
+import { type CanalFunil, type ListaLead, useInsights, useListaLeads, useMetas, useTemperaturasManuais } from "@/hooks/useComercial";
 import { cn } from "@/lib/utils";
 import { FunilGrafico } from "./FunilGrafico";
-import { ETAPAS_FUNIL, contarFunil, desdeDias, fmtPct, linhasFunil, nivelGoogle, nivelInbound, nivelLista, type LinhaFunil } from "./indicadores-calc";
+import { ETAPAS_FUNIL, alcanceGoogle, alcanceLista, contarFunil, desdeDias, fmtPct, linhasFunil, nivelInbound, nivelKanban, type LinhaFunil } from "./indicadores-calc";
+import { ajustarPelaConversa, comAvancoDaGabi, daLista as daListaUnica, daOutbound, etapaListaDoTime, etapaOutbound, placeIdInstagram } from "./funis";
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
 const Rotulo = ({ children, className }: { children: React.ReactNode; className?: string }) => (
@@ -39,6 +40,28 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
   const { data: listas = [] } = useListaLeads();
   const { data: metas } = useMetas();
   const { data: ins } = useInsights();
+  const { data: tempManual } = useTemperaturasManuais();
+  // 21/11: mesma regra do Kanban (Funil e contatos) para cada lead, para os números baterem
+  const sdrPorFone = React.useMemo(() => new Map(contatos.map((c) => [fim8(c.phone), c])), [contatos]);
+  const doTimePorPlace = React.useMemo(() => new Map(leads.filter((p) => p.origem === "instagram").map((p) => [p.place_id, p])), [leads]);
+  const nivelDoGoogle = (l: (typeof leads)[number]): number | null => {
+    const e = etapaOutbound(l);
+    if (!e) return null;
+    const sdr = l.whatsapp ? sdrPorFone.get(fim8(l.whatsapp)) : undefined;
+    const qualifAMao = l.status_comercial === "qualificacao" || sdr?.status === "qualificado";
+    const etapa = ajustarPelaConversa(comAvancoDaGabi(daOutbound(e), sdr), sdr, tempManual?.get(`g:${l.place_id}`) ?? null, qualifAMao);
+    return nivelKanban(etapa, alcanceGoogle(l, sdr?.contexto?.conversou === true));
+  };
+  const nivelDaLista = (l: ListaLead): number => {
+    const pid = l.lista === "instagram" ? placeIdInstagram(l.perfil_url, l.perfil) : null;
+    const time = pid ? doTimePorPlace.get(pid) ?? null : null;
+    const sdr = fim8(l.whatsapp) ? sdrPorFone.get(fim8(l.whatsapp)) : undefined;
+    const base = comAvancoDaGabi(daListaUnica(time ? etapaListaDoTime(time) : l.etapa), sdr);
+    const qualifAMao = l.etapa === "qualificacao" || sdr?.status === "qualificado";
+    const etapa = ajustarPelaConversa(base, sdr, tempManual?.get(`l:${l.id}`) ?? null, qualifAMao);
+    const alcance = time ? alcanceGoogle(time, sdr?.contexto?.conversou === true) : alcanceLista(l.etapa_max);
+    return nivelKanban(etapa, alcance);
+  };
   const [dias, setDias] = React.useState<number | null>(30);
   const [segmento, setSegmento] = React.useState("");
   const desde = desdeDias(dias);
@@ -56,7 +79,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
   }, [leads, listas, contatos]);
 
   const daLista = (k: ListaLead["lista"]) =>
-    listas.filter((l) => l.lista === k).map((l) => ({ nivel: nivelLista(l), nicho: l.nicho, quando: l.criado_em }));
+    listas.filter((l) => l.lista === k).map((l) => ({ nivel: nivelDaLista(l), nicho: l.nicho, quando: l.criado_em }));
 
   const brutos: Canal[] = [
     {
@@ -65,7 +88,8 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
       sub: "WhatsApp com a Gabi",
       icone: MapPin,
       itens: leads
-        .map((l) => ({ nivel: nivelGoogle(l), nicho: l.nicho, quando: l.created_at }))
+        .filter((l) => l.origem !== "instagram") // aparece no funil do Instagram, pela lista
+        .map((l) => ({ nivel: nivelDoGoogle(l), nicho: l.nicho, quando: l.created_at }))
         .filter((x): x is { nivel: number; nicho: string | null; quando: string } => x.nivel !== null),
     },
     { key: "instagram", nome: "Instagram · Lista", sub: "Rodadas por concorrente", icone: Instagram, itens: daLista("instagram") },
@@ -136,7 +160,7 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
     const m = new Map<string, ListaLead[]>();
     listas.filter((l) => l.lista === "instagram").forEach((l) => m.set(l.rodada ?? "Sem rodada", [...(m.get(l.rodada ?? "Sem rodada") ?? []), l]));
     const r = [...m.entries()].map(([nome, ls]) => {
-      const niv = ls.map((l) => nivelLista(l));
+      const niv = ls.map((l) => nivelDaLista(l));
       const abordados = niv.filter((n) => n >= 1).length;
       const responderam = niv.filter((n) => n >= 2).length;
       return {
@@ -150,7 +174,8 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
       };
     });
     return r.sort((a, b) => b.leads - a.leads);
-  }, [listas]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listas, contatos, tempManual, leads]);
   const melhorRodada = [...rodadas].sort((a, b) => (b.reunioes - a.reunioes) || ((b.resposta ?? -1) - (a.resposta ?? -1)) || (b.quentes - a.quentes))[0];
 
   // Segmentos: de conversa para reunião, somando os canais
@@ -328,9 +353,10 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
         <Card className="p-5">
           <Rotulo>Como ler os funis</Rotulo>
           <div className="mt-4 space-y-4 text-[13px]">
-            <Legenda cor="bg-[linear-gradient(90deg,#ff6b81,#ffb35c)]" titulo="Gargalo" texto="A etapa mais longe da meta. É onde agir primeiro." />
-            <Legenda cor="bg-attention" titulo="Abaixo da meta" texto="Número em laranja, ao lado da meta da etapa." />
-            <Legenda cor="bg-positive" titulo="Venda" texto="O resultado final de cada canal, no canto do funil." />
+            <Legenda cor="bg-primary" titulo="Etapas do Kanban" texto="Entrada, mensagem ou ligação, conversa iniciada, demonstrou interesse, reunião agendada, reunião realizada, negociação e venda. A barra mostra quantos chegaram em cada etapa." />
+            <Legenda cor="bg-positive" titulo="Bateu a meta" texto="Conversão da etapa anterior igual ou acima da meta." />
+            <Legenda cor="bg-attention" titulo="Abaixo da meta" texto="Conversão menor que a meta da etapa." />
+            <Legenda cor="bg-negative" titulo="Gargalo" texto="A etapa mais longe da meta. É onde agir primeiro." />
             <button onClick={() => irPara("config")} className="flex gap-3 text-left">
               <Settings className="mt-0.5 h-4 w-4 shrink-0 text-primary-bright" />
               <span>

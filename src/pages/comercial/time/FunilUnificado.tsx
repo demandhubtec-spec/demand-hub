@@ -59,6 +59,9 @@ import {
   passoDoTime,
   patchOutbound,
   placeIdInstagram,
+  ORDEM_UNICA,
+  comAvancoDaGabi,
+  ajustarPelaConversa,
 } from "./funis";
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
@@ -69,13 +72,7 @@ const GRUPOS: { g: GrupoOrigem; sub: string }[] = [
 ];
 const CHAVE_FILTRO = "dh.funil.origens";
 
-/** A Gabi marca o avanço na conversa (qualificado, agendado, cliente). Se ela já foi além da etapa do card, o card acompanha. */
-const ORDEM: EtapaUnica[] = ["entrada", "contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
-function comAvancoDaGabi(e: EtapaUnica, sdr: Contato | undefined): EtapaUnica {
-  if (!sdr || e === "perdido") return e;
-  const g: EtapaUnica | null = sdr.status === "cliente" ? "ganho" : sdr.status === "agendado" ? "reuniao" : sdr.status === "qualificado" ? "qualificacao" : null;
-  return g && ORDEM.indexOf(g) > ORDEM.indexOf(e) ? g : e;
-}
+const ORDEM = ORDEM_UNICA;
 
 /** Um card do funil, com o registro de onde ele veio. */
 type Registro =
@@ -250,29 +247,11 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
         const ctx = sdr?.contexto ?? null;
         // Temperatura só pela conversa (ou escolhida à mão); a nota de perfil da lista não conta (21/11)
         const nota = t ? TEMP[t] : ctx ? TEMP[ctx.temperatura] : notaDoSdr(sdr);
-        let etapa = l.etapa;
-        const fixa = ["perdido", "reuniao", "reuniao_realizada", "proposta", "ganho"].includes(etapa);
         const qualifAMao =
           (l.reg.tipo === "google" && l.reg.lead.status_comercial === "qualificacao") ||
           (l.reg.tipo === "lista" && l.reg.lead.etapa === "qualificacao") ||
           sdr?.status === "qualificado";
-        const ate = (alvo: EtapaUnica) => (ORDEM.indexOf(alvo) > ORDEM.indexOf(etapa) ? alvo : etapa);
-        if (!fixa && t) {
-          if (t === "quente") etapa = ate("qualificacao");
-          else if (t === "morno") etapa = ate("conversa");
-        } else if (!fixa && ctx) {
-          // Teve disparo: no mínimo "Mensagem ou ligação"
-          if (etapa === "entrada") etapa = "contato";
-          if (ctx.conversou === false) {
-            // Ninguém de verdade respondeu (só robô): não é conversa nem interesse
-            if ((etapa === "conversa" || etapa === "qualificacao") && !qualifAMao) etapa = "contato";
-          } else if (ctx.temperatura === "quente") {
-            etapa = ate("qualificacao");
-          } else {
-            if (etapa === "qualificacao" && !qualifAMao) etapa = "conversa";
-            etapa = ate("conversa");
-          }
-        }
+        const etapa = ajustarPelaConversa(l.etapa, sdr, t ?? null, qualifAMao);
         return {
           ...l,
           etapa,

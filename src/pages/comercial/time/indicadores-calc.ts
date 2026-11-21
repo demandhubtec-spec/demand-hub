@@ -6,7 +6,7 @@
 import type { OutreachLead } from "@/hooks/useProspeccao";
 import type { Contato } from "@/hooks/useCrm";
 import type { CanalFunil, EtapaLista, ListaLead, Metas } from "@/hooks/useComercial";
-import { etapaInbound, etapaOutbound } from "./funis";
+import { type EtapaUnica, ORDEM_UNICA, etapaInbound, etapaOutbound } from "./funis";
 
 export interface EtapaFunil {
   key: EtapaLista;
@@ -15,45 +15,24 @@ export interface EtapaFunil {
   ajuda?: string;
 }
 
-const LISTA: EtapaFunil[] = [
-  { key: "na_lista", label: "Na lista" },
-  { key: "contato", label: "Mensagem ou ligação" },
-  { key: "conversa", label: "Conversa iniciada" },
-  { key: "qualificacao", label: "Qualificação" },
-  { key: "reuniao", label: "Reunião agendada" },
-  { key: "reuniao_realizada", label: "Reunião realizada" },
-  { key: "proposta", label: "Negociação" },
-  { key: "ganho", label: "Venda" },
-];
-
-// 18/11 (Kelvin): no Google e no Instagram a conversa vai direto para reunião (quem qualifica é a reunião).
-// A etapa Qualificação sai desses dois funis; quem estava nela conta como Conversa iniciada.
-const LISTA_DIRETO: EtapaFunil[] = [
-  { key: "na_lista", label: "Na lista", ajuda: "Empresas aprovadas para abordar: as que já receberam o 1º contato e as que estão na fila dos próximos dias." },
-  { key: "contato", label: "Disparo (mensagem ou ligação)", ajuda: "Recebeu o 1º contato: mensagem enviada ou ligação tentada, mesmo sem resposta. Fica abaixo de 100% só pelo que ainda está na fila." },
-  { key: "conversa", label: "Conversa iniciada", ajuda: "Respondeu de verdade no WhatsApp ou atendeu a ligação (resposta automática de robô não conta). Inclui quem respondeu que não tem interesse." },
-  { key: "reuniao", label: "Reunião agendada", ajuda: "Conversou e marcou reunião (a Gabi ou o time agendou)." },
-  { key: "reuniao_realizada", label: "Reunião realizada", ajuda: "A reunião aconteceu. É nela que o lead é qualificado." },
-  { key: "proposta", label: "Negociação / proposta", ajuda: "Recebeu proposta ou está negociando." },
+// 21/11 (Kelvin): os funis dos Indicadores seguem exatamente as colunas do Kanban (Funil e contatos)
+const FUNIL_KANBAN: EtapaFunil[] = [
+  { key: "na_lista", label: "Entrada", ajuda: "Todos os leads do canal: os que ainda vão receber o 1º contato e os que já receberam." },
+  { key: "contato", label: "Mensagem ou ligação", ajuda: "Receberam mensagem ou ligação. Abaixo de 100% é o que ainda está na fila." },
+  { key: "conversa", label: "Conversa iniciada", ajuda: "Uma pessoa de verdade respondeu e conversou (robô e resposta automática não contam)." },
+  { key: "qualificacao", label: "Demonstrou interesse", ajuda: "Na conversa, mostrou interesse: quis saber como funciona, pediu o diagnóstico, topou conversar." },
+  { key: "reuniao", label: "Reunião agendada", ajuda: "Marcou reunião com o Kelvin." },
+  { key: "reuniao_realizada", label: "Reunião realizada", ajuda: "A reunião aconteceu." },
+  { key: "proposta", label: "Negociação", ajuda: "Recebeu proposta ou está negociando." },
   { key: "ganho", label: "Venda", ajuda: "Fechou." },
 ];
 
 export const ETAPAS_FUNIL: Record<CanalFunil, EtapaFunil[]> = {
-  google: LISTA_DIRETO,
-  instagram: LISTA_DIRETO,
-  linkedin: LISTA,
-  ligacoes: [
-    { key: "na_lista", label: "Na lista" },
-    { key: "contato", label: "Ligações feitas" },
-    { key: "atendida", label: "Atendidas" },
-    { key: "conversa", label: "Conversa" },
-    { key: "qualificacao", label: "Qualificação" },
-    { key: "reuniao", label: "Reunião agendada" },
-    { key: "reuniao_realizada", label: "Reunião realizada" },
-    { key: "proposta", label: "Negociação" },
-    { key: "ganho", label: "Venda" },
-  ],
-  relacionamento: LISTA,
+  google: FUNIL_KANBAN,
+  instagram: FUNIL_KANBAN,
+  linkedin: FUNIL_KANBAN,
+  ligacoes: FUNIL_KANBAN,
+  relacionamento: FUNIL_KANBAN,
   inbound: [
     { key: "na_lista", label: "Leads do anúncio" },
     { key: "conversa", label: "Conversa iniciada" },
@@ -109,6 +88,27 @@ export function nivelLista(l: Pick<ListaLead, "lista" | "etapa" | "etapa_max">):
   if (l.lista === "instagram") return ordem >= 4 ? ordem - 2 : ordem >= 3 ? 2 : Math.min(ordem, 1);
   // Instagram e LinkedIn não têm a etapa "atendida"
   return ordem >= 3 ? ordem - 1 : Math.min(ordem, 1);
+}
+
+/**
+ * Nível no funil do Kanban (21/11): o índice da coluna em que o card está. Perdido conta até onde chegou
+ * (alcancou: 0 entrada, 1 mensagem ou ligação, 2 conversa...).
+ */
+export function nivelKanban(e: EtapaUnica, alcancou = 0): number {
+  return e === "perdido" ? alcancou : Math.max(0, ORDEM_UNICA.indexOf(e));
+}
+
+/** Até onde um lead perdido da lista chegou, na ordem do Kanban (etapa_max está na ordem global do banco). */
+export function alcanceLista(etapaMax: number | null | undefined): number {
+  const m = [0, 1, 2, 2, 3, 4, 5, 6, 7];
+  return m[Math.max(0, Math.min(8, etapaMax ?? 0))];
+}
+
+/** Até onde um lead perdido do Google chegou. */
+export function alcanceGoogle(l: OutreachLead, conversou: boolean): number {
+  if (conversou || l.respondeu_no_toque != null || l.email_status === "respondeu") return 2;
+  if ((l.toque_atual ?? 0) > 0 || l.wa_sent_at) return 1;
+  return 0;
 }
 
 /** Quantos leads chegaram em cada etapa (o primeiro número é o topo). */

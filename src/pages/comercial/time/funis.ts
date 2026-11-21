@@ -215,3 +215,39 @@ export function nomeEntrada(origens: OrigemLead[]): { label: string; dica: strin
   if (grupos.size === 1 && grupos.has("Outbound")) return { label: "Na lista", dica: "Lista aprovada, pronta para o primeiro contato" };
   return { label: "Entrada", dica: "Na lista ou acabou de chegar" };
 }
+
+/* ───────────── Etapa final do card (21/11/2026): a mesma regra para o Kanban e para os Indicadores ───────────── */
+
+export const ORDEM_UNICA: EtapaUnica[] = ["entrada", "contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
+
+/** A Gabi marca o avanço na conversa (qualificado, agendado, cliente). Se ela já foi além da etapa do card, o card acompanha. */
+export function comAvancoDaGabi(e: EtapaUnica, sdr: Contato | undefined | null): EtapaUnica {
+  if (!sdr || e === "perdido") return e;
+  const g: EtapaUnica | null = sdr.status === "cliente" ? "ganho" : sdr.status === "agendado" ? "reuniao" : sdr.status === "qualificado" ? "qualificacao" : null;
+  return g && ORDEM_UNICA.indexOf(g) > ORDEM_UNICA.indexOf(e) ? g : e;
+}
+
+/**
+ * Ajusta a etapa pela conversa real (21/11): quente (mostrou interesse) → Demonstrou interesse; morno → Conversa
+ * iniciada; só robô respondeu → fica em Mensagem ou ligação. Temperatura escolhida à mão vale acima da IA.
+ * qualifAMao: o card foi posto em Demonstrou interesse à mão (não desce sozinho).
+ */
+export function ajustarPelaConversa(
+  etapa: EtapaUnica,
+  sdr: Contato | undefined | null,
+  tempManual: "quente" | "morno" | "frio" | null | undefined,
+  qualifAMao: boolean,
+): EtapaUnica {
+  if (["perdido", "reuniao", "reuniao_realizada", "proposta", "ganho"].includes(etapa)) return etapa;
+  const ate = (alvo: EtapaUnica) => (ORDEM_UNICA.indexOf(alvo) > ORDEM_UNICA.indexOf(etapa) ? alvo : etapa);
+  if (tempManual === "quente") return ate("qualificacao");
+  if (tempManual === "morno") return ate("conversa");
+  if (tempManual) return etapa;
+  const ctx = sdr?.contexto;
+  if (!ctx) return etapa;
+  let e: EtapaUnica = etapa === "entrada" ? "contato" : etapa;
+  if (ctx.conversou === false) return (e === "conversa" || e === "qualificacao") && !qualifAMao ? "contato" : e;
+  if (ctx.temperatura === "quente") return ORDEM_UNICA.indexOf("qualificacao") > ORDEM_UNICA.indexOf(e) ? "qualificacao" : e;
+  if (e === "qualificacao" && !qualifAMao) e = "conversa";
+  return ORDEM_UNICA.indexOf("conversa") > ORDEM_UNICA.indexOf(e) ? "conversa" : e;
+}

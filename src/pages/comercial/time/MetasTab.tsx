@@ -14,22 +14,23 @@ const COLUNAS: { key: CanalFunil; nome: string }[] = [
   { key: "relacionamento", nome: "Relacionamento" },
 ];
 const LINHAS: { key: EtapaLista; nome: string }[] = [
-  { key: "contato", nome: "Disparo (mensagem ou ligação)" },
-  { key: "atendida", nome: "Ligação atendida" },
+  { key: "contato", nome: "Mensagem ou ligação" },
   { key: "conversa", nome: "Conversa iniciada" },
-  { key: "qualificacao", nome: "Qualificação" },
+  { key: "qualificacao", nome: "Demonstrou interesse" },
   { key: "reuniao", nome: "Reunião agendada" },
   { key: "reuniao_realizada", nome: "Reunião realizada" },
   { key: "proposta", nome: "Negociação / proposta" },
   { key: "ganho", nome: "Venda" },
 ];
+// 21/11: mesmas etapas do Kanban em todos os canais de prospecção; o Inbound segue como estava
+const KANBAN: EtapaLista[] = ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
 const SE_APLICA: Record<CanalFunil, EtapaLista[]> = {
-  google: ["contato", "conversa", "reuniao", "reuniao_realizada", "proposta", "ganho"],
-  instagram: ["contato", "conversa", "reuniao", "reuniao_realizada", "proposta", "ganho"],
-  linkedin: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
-  ligacoes: ["contato", "atendida", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
+  google: KANBAN,
+  instagram: KANBAN,
+  linkedin: KANBAN,
+  ligacoes: KANBAN,
   inbound: ["conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
-  relacionamento: ["contato", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
+  relacionamento: KANBAN,
 };
 const FASES: { key: FaseConversa; nome: string }[] = [
   { key: "abordagem", nome: "Abordagem (o lead responde)" },

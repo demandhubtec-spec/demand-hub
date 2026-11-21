@@ -3,125 +3,69 @@ import { cn } from "@/lib/utils";
 import { fmtPct, type LinhaFunil } from "./indicadores-calc";
 
 /**
- * Funil em formato de funil (de cima para baixo), com a conversão de cada etapa ao lado da meta.
- * Abaixo da meta: laranja. Etapa mais longe da meta: faixa vermelha e laranja com a marca GARGALO. Venda: verde.
+ * Funil dos Indicadores (21/11/2026, layout limpo): uma linha por etapa, na ordem do Kanban.
+ * Barra = quantos leads chegaram na etapa (proporcional ao topo). Conversão = % da etapa anterior.
+ * Meta = % esperada da etapa anterior: verde bateu, laranja abaixo, vermelho é o gargalo (a mais longe da meta).
  */
 export function FunilGrafico({ linhas, apagado = false }: { linhas: LinhaFunil[]; apagado?: boolean }) {
-  const W = 300;
-  const H = 34;
-  const GAP = 4;
-  const n = linhas.length;
   const topo = linhas[0]?.valor || 0;
-  const larguras = linhas.map((l, i) =>
-    apagado || !topo ? W - ((W - 70) * i) / Math.max(1, n - 1) : 60 + (W - 60) * Math.pow(l.valor / topo, 0.55),
-  );
-  const altura = n * (H + GAP);
+  const n = linhas.length;
   return (
-    <div className="flex flex-wrap items-start gap-x-5 gap-y-3">
-      <div className="min-w-[300px] flex-1">
-        {!apagado && (
-          <div className="mb-1 flex justify-end gap-3 text-[11px] uppercase tracking-wide text-muted/70">
-            <span>realizado · taxa</span>
-            <span className="min-w-[92px] text-right">meta · taxa</span>
-          </div>
-        )}
-        {linhas.map((l, i) => {
-          const ultima = i === n - 1;
-          return (
-            <div
-              key={l.key}
-              className="flex items-center justify-between gap-2 border-b border-dashed border-border/60"
-              style={{ height: H, marginBottom: GAP }}
-            >
-              <span
-                className={cn(
-                  "flex items-center gap-1 text-[13px]",
-                  apagado ? "text-muted" : ultima ? "font-semibold text-positive" : l.estado === "gargalo" ? "font-semibold text-negative" : "text-ink/90",
-                )}
-              >
-                {l.label}
-                {!apagado && <Ajuda linha={l} />}
+    <div className="text-[13px]">
+      <div className="grid grid-cols-[minmax(150px,1.1fr)_minmax(120px,2fr)_72px_92px] items-center gap-3 border-b border-border pb-1.5 text-[11px] uppercase tracking-wide text-muted/80">
+        <span>Etapa</span>
+        <span>Leads</span>
+        <span className="text-right">Conversão</span>
+        <span className="text-right">Meta</span>
+      </div>
+      {linhas.map((l, i) => {
+        const venda = i === n - 1;
+        const pct = topo ? Math.max(l.valor > 0 ? 2 : 0, (l.valor / topo) * 100) : 0;
+        const cor = venda ? "bg-positive" : l.estado === "gargalo" ? "bg-negative" : l.estado === "abaixo" ? "bg-attention" : "bg-primary";
+        return (
+          <div key={l.key} className="grid grid-cols-[minmax(150px,1.1fr)_minmax(120px,2fr)_72px_92px] items-center gap-3 border-b border-border/50 py-2">
+            <span className={cn("flex items-center gap-1", venda ? "font-semibold text-positive" : l.estado === "gargalo" ? "font-semibold text-negative" : "text-ink")}>
+              {l.label}
+              {!apagado && <Ajuda linha={l} />}
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-surface-2">
+                {!apagado && <span className={cn("block h-full rounded-full", cor)} style={{ width: `${pct}%` }} />}
               </span>
-              {!apagado && (
-                <span className="flex items-center gap-3 tabular-nums text-[12px]">
-                  {i === 0 ? (
-                    <span className="text-muted/70">topo · {l.valor}</span>
-                  ) : (
-                    <>
-                      <span className="text-right">
-                        <b
-                          className={cn(
-                            "font-semibold",
-                            l.estado === "gargalo" ? "text-negative" : l.estado === "abaixo" ? "text-attention" : l.estado === "sem_base" ? "text-muted" : "text-ink",
-                          )}
-                        >
-                          {l.valor}
-                        </b>
-                        <span className="text-muted"> · {fmtPct(l.conversao)}</span>
-                      </span>
-                      {l.meta != null && (
-                        <span className="min-w-[92px] text-right text-muted">
-                          meta <b className="font-semibold text-ink/80">{l.metaNumero ?? "-"}</b> · {l.meta}%
-                        </span>
-                      )}
-                      {l.estado === "gargalo" && (
-                        <span className="rounded-[6px] bg-negative-tint px-1.5 py-0.5 text-[12px] text-negative">gargalo</span>
-                      )}
-                    </>
+              <b className="w-9 text-right tabular-nums font-semibold">{apagado ? "–" : l.valor}</b>
+            </span>
+            <span className={cn("text-right tabular-nums", l.estado === "sem_base" ? "text-muted" : "text-ink")}>
+              {apagado || i === 0 ? <span className="text-muted">–</span> : fmtPct(l.conversao)}
+            </span>
+            <span className="text-right">
+              {apagado || i === 0 || l.meta == null ? (
+                <span className="text-muted">–</span>
+              ) : l.estado === "gargalo" ? (
+                <span className="rounded-[6px] bg-negative-tint px-1.5 py-0.5 text-[12px] font-medium text-negative">gargalo · {l.meta}%</span>
+              ) : (
+                <span
+                  className={cn(
+                    "rounded-[6px] px-1.5 py-0.5 text-[12px]",
+                    l.estado === "abaixo" ? "bg-attention-tint text-attention" : l.estado === "ok" ? "bg-positive-tint text-positive" : "text-muted",
                   )}
+                >
+                  {l.meta}%
                 </span>
               )}
-            </div>
-          );
-        })}
-      </div>
-      <svg width={W} height={altura} viewBox={`0 0 ${W} ${altura}`} className="shrink-0" aria-hidden>
-        <defs>
-          <linearGradient id="fg-roxo" x1="0" x2="1">
-            <stop offset="0" stopColor="#6e3aff" />
-            <stop offset="1" stopColor="#a47bff" />
-          </linearGradient>
-          <linearGradient id="fg-verde" x1="0" x2="1">
-            <stop offset="0" stopColor="#1f9e5f" />
-            <stop offset="1" stopColor="#2fd27f" />
-          </linearGradient>
-          <linearGradient id="fg-gargalo" x1="0" x2="1">
-            <stop offset="0" stopColor="#ff6b81" />
-            <stop offset="1" stopColor="#ffb35c" />
-          </linearGradient>
-        </defs>
-        {linhas.map((l, i) => {
-          const w1 = larguras[i];
-          const w2 = i + 1 < n ? larguras[i + 1] : larguras[i] * 0.92;
-          const y = i * (H + GAP);
-          const cx = W / 2;
-          const fill = apagado
-            ? "rgba(164,123,255,.10)"
-            : l.estado === "gargalo"
-              ? "url(#fg-gargalo)"
-              : i === n - 1
-                ? "url(#fg-verde)"
-                : "url(#fg-roxo)";
-          return (
-            <g key={l.key}>
-              <polygon points={`${cx - w1 / 2},${y} ${cx + w1 / 2},${y} ${cx + w2 / 2},${y + H} ${cx - w2 / 2},${y + H}`} fill={fill} />
-              <text x={cx} y={y + H / 2 + 6} textAnchor="middle" fontWeight={600} fontSize={16} fill="#fff">
-                {apagado ? "–" : l.valor}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-/** "?" ao lado da etapa: o que ela conta e de onde vem a taxa (18/11, Kelvin). */
+/** "?" ao lado da etapa: o que ela conta e de onde vem a taxa. */
 function Ajuda({ linha: l }: { linha: LinhaFunil }) {
   const taxa =
     l.anterior != null && l.labelAnterior
-      ? `Realizado: ${l.valor} de ${l.anterior} que chegaram em "${l.labelAnterior}" (${fmtPct(l.conversao)}).${l.meta != null ? ` Meta: ${l.metaNumero ?? "-"} (${l.meta}% da meta da etapa anterior, contando desde o topo da lista).` : ""}`
-      : `${l.valor} no topo do funil.`;
+      ? `${l.valor} de ${l.anterior} que chegaram em "${l.labelAnterior}" (${fmtPct(l.conversao)}).${l.meta != null ? ` Meta: ${l.meta}% da etapa anterior.` : ""}`
+      : `${l.valor} leads no topo do funil.`;
   const texto = [l.ajuda, taxa].filter(Boolean).join(" ");
   return (
     <span className="group relative inline-flex">
