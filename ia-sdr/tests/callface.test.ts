@@ -44,3 +44,8 @@ test("nota do card", () => {
   assert.match(n, /Retorno: quinta 14h/);
   assert.match(n, /calls\/1/);
 });
+
+test("WhatsApp de confirmação quando ligou num fixo", () => {
+  assert.equal(normalizarLeitura({ whatsapp: "(11) 98765-4321" }).whatsapp, "5511987654321");
+  assert.equal(normalizarLeitura({ whatsapp: "não tem" }).whatsapp, null);
+});

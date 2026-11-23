@@ -61,6 +61,7 @@ export interface LeituraLigacao {
   quem_atendeu: string | null;
   reuniao_inicio: string | null; // "AAAA-MM-DDTHH:MM", horário de Brasília
   email: string | null;
+  whatsapp: string | null; // número de WhatsApp para a confirmação, quando é outro (ligou num fixo)
   retorno: string | null;
   retorno_inicio: string | null;
   objecao: string | null;
@@ -87,6 +88,10 @@ export function normalizarLeitura(j: Record<string, unknown>): LeituraLigacao {
     quem_atendeu: s(j.quem_atendeu),
     reuniao_inicio: ri && DATA_RE.test(ri) ? ri : null,
     email: email && EMAIL_RE.test(email) ? email : null,
+    whatsapp: (() => {
+      const d = (s(j.whatsapp) ?? "").replace(/\D/g, "");
+      return d.length >= 10 && d.length <= 13 ? (d.startsWith("55") ? d : `55${d}`) : null;
+    })(),
     retorno: s(j.retorno),
     retorno_inicio: rt && DATA_RE.test(rt) ? rt : null,
     objecao: s(j.objecao),
@@ -109,6 +114,7 @@ falou_com_responsavel: true se conversou com o dono ou responsável.
 nome_responsavel: nome do dono/responsável citado, ou null.
 quem_atendeu: nome e função de quem atendeu, ou null.
 reuniao_inicio: dia e horário combinados para a reunião, no formato AAAA-MM-DDTHH:MM (Brasília), resolvendo "terça", "amanhã" etc. a partir da data da ligação; null se não houve.
+whatsapp: número de WhatsApp que a pessoa passou para receber a confirmação, só os dígitos com DDD (ex.: 11987654321); null se não passou outro número.
 email: e-mail confirmado para o convite (junte o que foi soletrado, ex.: "joao arroba clinica ponto com ponto br" vira joao@clinica.com.br); null se não houve.
 retorno: quando ligar de novo e com quem, em texto curto; null se não houve.
 retorno_inicio: o mesmo no formato AAAA-MM-DDTHH:MM, se der para saber; null se não.
@@ -181,7 +187,8 @@ export function notaDaLigacao(l: LeituraLigacao, extra: string | null, link: str
 
 /** Marca a reunião combinada na ligação e confirma no WhatsApp. Devolve o que aconteceu (vai para a nota). */
 async function marcarReuniao(b: Record<string, unknown>, l: LeituraLigacao, empresa: string | null): Promise<{ marcou: boolean; texto: string }> {
-  const fone = String(b.destination_number ?? "").replace(/\D/g, "");
+  // Ligou num fixo: a confirmação vai para o WhatsApp que a pessoa passou na ligação
+  const fone = l.whatsapp ?? String(b.destination_number ?? "").replace(/\D/g, "");
   if (fone.length < 10 || !l.reuniao_inicio) return { marcou: false, texto: "Reunião combinada sem dia e horário claros: conferir a ligação." };
   const phone = fone.startsWith("55") ? fone : `55${fone}`;
   const lead: Lead = await upsertLeadByPhone(phone, `${phone}@s.whatsapp.net`, l.nome_responsavel ?? undefined, "gabi");
