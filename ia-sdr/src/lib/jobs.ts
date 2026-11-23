@@ -92,6 +92,15 @@ export async function runFollowUps(now = new Date()) {
         continue;
       }
 
+      // Trava 4b (22/11): a IA que lê a conversa (contexto do card) viu recusa com outras palavras
+      // ("recusou no momento", "já possuem agência", "engano de contato")
+      const ctx = (fresh as { contexto?: { conversou?: boolean; temperatura?: string; motivo_parou?: string | null; resumo?: string } }).contexto;
+      if (ctx?.conversou && ctx.temperatura === "frio" && /recus|n[ãa]o (tem|t[êe]m|quer|precisa)|j[áa] (tem|t[êe]m|possu)|ag[êe]ncia|engano|fornecedor/i.test(`${ctx.motivo_parou ?? ""} ${ctx.resumo ?? ""}`)) {
+        await updateLead(lead.id, { next_followup_at: null });
+        await logEvent(lead.id, "followup_cancelado_recusa", { motivo: ctx.motivo_parou ?? ctx.resumo ?? "contexto" });
+        continue;
+      }
+
       const attempt = fresh.followup_attempts + 1;
       const msgs = toChat(hist);
       msgs.push({ role: "user", content: `[Sistema: o lead não respondeu. Escreva o follow-up nº ${attempt}.]` });
