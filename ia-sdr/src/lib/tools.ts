@@ -245,7 +245,13 @@ export async function proximosHorarios(now = new Date()): Promise<string[]> {
   // 21/11: sem conferir a agenda do Kelvin não sugere horário nenhum (pode cair em cima de compromisso)
   const busy = await busyIntervals(now, new Date(now.getTime() + (cfg.diasAFrente + 1) * 86_400_000)).catch(() => null);
   if (!busy) return [];
-  return pickOptions(freeSlots(now, busy, cfg)).map((s) => formatBR(s.start));
+  // 23/11 (Niki): ofereceu meio-dia do mesmo dia. As opções começam no próximo dia útil.
+  const hoje = toLocal(now);
+  const livres = freeSlots(now, busy, cfg).filter((s) => {
+    const l = toLocal(s.start);
+    return !(l.y === hoje.y && l.m === hoje.m && l.d === hoje.d);
+  });
+  return pickOptions(livres).map((s) => formatBR(s.start));
 }
 
 /**

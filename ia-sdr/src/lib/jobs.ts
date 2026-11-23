@@ -7,7 +7,7 @@ import { carregarPlaybook, manuaisAtuais, playbookAtual } from "./playbook.ts";
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { toChat } from "./chat.ts";
 import { callLLM } from "./llm.ts";
-import { addMessage, db, getLead, history, logEvent, tryLock, ultimoEvento, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
+import { addMessage, db, getLead, history, latestInboundId, logEvent, tryLock, ultimoEvento, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
 import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
 import { horarioProspeccaoV2, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
@@ -124,6 +124,16 @@ export async function runFollowUps(now = new Date()) {
       // A pessoa falou por último e ficou sem resposta (a IA falhou na hora): o "follow-up" responde a ela
       const ultimaDeGente = [...hist].reverse().find((m) => !(m.direction === "in" && String(m.content).startsWith("[resposta automática]")));
       const elaFalouPorUltimo = ultimaDeGente?.direction === "in";
+      // 23/11: conversa acontecendo agora (mensagem há menos de 20 min) não recebe follow-up; se foi a pessoa que
+      // acabou de falar, quem responde é o fluxo da conversa, não o follow-up
+      const ultimaMsg = hist[hist.length - 1];
+      const minDesdeUltima = ultimaMsg ? (now.getTime() - new Date(ultimaMsg.created_at).getTime()) / 60e3 : Infinity;
+      if (minDesdeUltima < (elaFalouPorUltimo ? 5 : 20)) {
+        await updateLead(lead.id, { next_followup_at: new Date(now.getTime() + (elaFalouPorUltimo ? 10 : 60) * 60e3).toISOString() });
+        await logEvent(lead.id, "followup_adiado", { motivo: "conversa acontecendo agora" });
+        continue;
+      }
+      const inboundAntes = await latestInboundId(lead.id);
       const extraCombinado = (combinado
         ? "\n\nIMPORTANTE: este é o retorno que você combinou com ele (dia e horário que ele pediu). Abra lembrando com leveza que ficou de falar hoje e retome o assunto de onde parou, com uma pergunta simples. Não diga que ele não respondeu."
         : "") + (elaFalouPorUltimo
@@ -147,6 +157,12 @@ export async function runFollowUps(now = new Date()) {
       const link = prosp && !temSiteProprio(prosp) && prosp.site_preview?.token ? linkPrevia(prosp.site_preview.token) : null;
       if (faltaLinkDoModelo(text, link, hist.filter((m) => m.direction === "out").map((m) => m.content))) text = `${text}\n\n${link}`;
 
+      // 23/11: a pessoa escreveu enquanto o follow-up era escrito → não manda; a conversa responde a ela
+      if ((await latestInboundId(lead.id)) !== inboundAntes) {
+        await updateLead(lead.id, { next_followup_at: null });
+        await logEvent(lead.id, "followup_abortado", { motivo: "a pessoa respondeu enquanto o follow-up era escrito" });
+        continue;
+      }
       const id = await sendText(destination(fresh), text);
       await addMessage({ lead_id: lead.id, direction: "out", author: "ia", kind: "followup", content: text, evolution_message_id: id });
 

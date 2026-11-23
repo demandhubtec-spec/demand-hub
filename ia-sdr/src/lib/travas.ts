@@ -187,7 +187,15 @@ export function semReapresentacao(texto: string, jaConversando: boolean): string
 
 /** Todas as travas de texto que valem para qualquer mensagem da SDR. */
 export function aplicarTravasDeTexto(texto: string, now: Date): string {
-  return limparFormatacao(vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now))))));
+  return limparFormatacao(tirarAssinatura(vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)))))));
+}
+
+/** 23/11 (OdontoTop): "Com carinho, Gabi" no meio da conversa. WhatsApp não leva assinatura. */
+export function tirarAssinatura(texto: string): string {
+  return (texto ?? "")
+    .replace(/\n*\s*(?:com carinho|abra[çc]os?|beijos?|att\.?|atenciosamente)\s*,?\s*\n?\s*(?:gabi|marina)\s*[😊🥰✨]?\s*$/iu, "")
+    .replace(/\n*\s*com carinho\s*,?\s*$/iu, "")
+    .trim();
 }
 
 /** 19/11: saiu "```" no fim de uma mensagem da Marina e "Pasei" no lugar de "Passei". Limpa antes de mandar. */

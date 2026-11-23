@@ -52,7 +52,15 @@ export async function handleInbound(leadId: string, messageId: string) {
   await sleep(SDR_CONFIG.debounceMs);
   if ((await latestInboundId(leadId)) !== messageId) return; // chegou mensagem mais nova: ela responde
 
-  if (!(await tryLock(leadId))) return; // outra execução já está respondendo
+  // 23/11 (Cássia Diaz, DC Odontologia): a pessoa respondeu enquanto o follow-up estava sendo escrito; o follow-up
+  // segurava a trava e a resposta dela era descartada. Agora espera a trava liberar (o follow-up desiste ao ver a mensagem nova).
+  let travou = await tryLock(leadId);
+  for (let i = 0; i < 8 && !travou; i++) {
+    await sleep(10_000);
+    if ((await latestInboundId(leadId)) !== messageId) return; // chegou mensagem mais nova: ela responde
+    travou = await tryLock(leadId);
+  }
+  if (!travou) return; // outra execução já está respondendo
   try {
     // Responde; se chegar mensagem nova enquanto respondia, responde de novo (até 3x)
     for (let round = 0; round < 3; round++) {
@@ -133,12 +141,13 @@ async function reply(leadId: string) {
   // Pediu para sair da demo na última mensagem (o webhook já registrou): a Ana faz a virada agora
   if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
 
-  // Trava 4 (16/11): o lead disse "não". Uma pergunta leve é permitida; no segundo "não", só agradece e encerra.
+  // Trava 4 (16/11): o lead disse "não". Desde 23/11: agradece e encerra, sem pergunta.
   const recusa = !emDemo && !doDono ? situacaoDaRecusa(hist) : { ultimaFoiRecusa: false, recusas: 0, semRespostaDepoisDoNao: false };
   const avisoRecusa = recusa.ultimaFoiRecusa
     ? recusa.recusas >= 2
       ? "\n\n## ATENÇÃO: recusa repetida\nO lead já disse mais de uma vez que não tem interesse. Agradeça com carinho em UMA frase curta, deixe a porta aberta, NÃO faça pergunta nenhuma e chame encerrar_contato com motivo \"desqualificado\" (ou \"opt_out\" se pediu para não mandar mais mensagem)."
-      : "\n\n## ATENÇÃO: o lead acabou de dizer que não tem interesse\nAcolha e faça no máximo UMA pergunta leve (o que pesa mais: o momento ou já têm alguém cuidando). Não ofereça horário, não mande diagnóstico e não insista. Se ele pediu para não mandar mais mensagem, agradeça e chame encerrar_contato com motivo \"opt_out\"."
+      // 23/11 (Kelvin): depois do "não" não tem pergunta. Churrascada, Odontoclinic Itu e Service Ar ouviram "o que pesa mais?"
+      : "\n\n## ATENÇÃO: o lead acabou de dizer que não tem interesse\nAgradeça com carinho em UMA frase curta, deixe a porta aberta, NÃO faça pergunta nenhuma (nada de \"o que pesa mais\"), não ofereça horário nem diagnóstico e chame encerrar_contato com motivo \"desqualificado\" (ou \"opt_out\" se pediu para não mandar mais mensagem). Exceção: se o motivo do não for falta de tempo, muito movimento ou pouca gente, siga a regra própria disso no roteiro."
     : "";
 
   let finalText = "";
