@@ -211,7 +211,7 @@ export function naoPedeResposta(texto: string | null | undefined): boolean {
 
 /** O abre-follow-up obrigatório ("Bom dia! Tudo bem? Aqui é a Gabi, da DemandIA 😊") não conta como repetição. */
 export function ehAberturaPadrao(linha: string): boolean {
-  return /^\s*(?:oi,?\s*)?(?:bom dia|boa tarde|boa noite)[^.!?\n]{0,20}[!.,]?\s*(?:tudo bem\??\s*)?(?:aqui (?:é|e) a (?:gabi|marina),? da demandia\s*[😊🥰✨]?\s*[.!]?)?\s*$/iu.test(linha ?? "");
+  return /^\s*(?:oi,?\s*)?(?:bom dia|boa tarde|boa noite)[^.!?\n]{0,20}[!.,]?\s*(?:tudo bem\??\s*)?(?:aqui (?:é|e) a (?:gabi|marina),? da demandia\s*[😊🥰✨]?\s*[.!]?)?\s*(?:como (?:voc[êe] )?(?:est[áa]|vai)\??\s*[😊🥰✨]?)?\s*$/iu.test(linha ?? "");
 }
 
 /**

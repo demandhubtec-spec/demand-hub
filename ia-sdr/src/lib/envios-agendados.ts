@@ -30,7 +30,9 @@ export async function runEnviosAgendados(now = new Date()) {
     try {
       // E-mail (do Gmail da DemandIA, com a assinatura de sempre)
       if (e.canal === "email") {
-        const enviado = await gmailSend(String(e.para), String(e.assunto), comRodape(e.texto), await gmailRemetente());
+        // 22/11: conversa da Marina → o e-mail sai em nome dela (texto termina com "Marina\nDemandIA")
+        const daMarina = /\n\s*Marina\s*\n\s*DemandIA\s*$/i.test(e.texto);
+        const enviado = await gmailSend(String(e.para), String(e.assunto), comRodape(e.texto), await gmailRemetente(), daMarina ? "Marina da DemandIA" : undefined);
         if (e.place_id) await db().from("outreach_log").insert({ channel: "email", event: "sent", place_id: e.place_id, detail: { to: e.para, subject: e.assunto, avulso: true, programado: true, thread: enviado.threadId, msg: `${e.para} · ${e.assunto} (programado)` } });
         await db().from("envios_agendados").update({ status: "enviado", enviado_em: new Date().toISOString() }).eq("id", e.id);
         enviados++;

@@ -309,3 +309,9 @@ test("auditoria 21/11 (tarde): recusas que escapavam e o 'vamos deixar na segund
   ];
   assert.equal(situacaoDaRecusa(mudouDeIdeia).ultimaFoiRecusa, false);
 });
+
+test("abertura do follow-up com 'Como você está?' conta como saudação padrão (22/11)", async () => {
+  const t = await import("../src/lib/travas.ts");
+  assert.equal(t.ehAberturaPadrao("Bom dia! Tudo bem? Aqui é a Gabi, da DemandIA 😊 Como você está?"), true);
+  assert.equal(t.ehAberturaPadrao("Boa tarde, Hildo! Tudo bem? Aqui é a Marina, da DemandIA 😊 Como vai?"), true);
+});

@@ -69,13 +69,13 @@ function b64url(s: string | Uint8Array) {
 
 const enc = (s: string) => `=?UTF-8?B?${Buffer.from(s, "utf8").toString("base64")}?=`;
 
-export function buildMime(to: string, subject: string, body: string, from?: string | null) {
+export function buildMime(to: string, subject: string, body: string, from?: string | null, nome?: string) {
   const subj = enc(subject);
   const b = `dh_${Date.now().toString(36)}`;
   const parte = (tipo: string, conteudo: string) =>
     [`--${b}`, `Content-Type: ${tipo}; charset=UTF-8`, "Content-Transfer-Encoding: base64", "", Buffer.from(conteudo, "utf8").toString("base64")].join("\r\n");
   return [
-    ...(from ? [`From: ${enc(REMETENTE_NOME)} <${from}>`, `List-Unsubscribe: <mailto:${from}?subject=sair>`] : []),
+    ...(from ? [`From: ${enc(nome ?? REMETENTE_NOME)} <${from}>`, `List-Unsubscribe: <mailto:${from}?subject=sair>`] : []),
     `To: ${to}`,
     `Subject: ${subj}`,
     "MIME-Version: 1.0",
@@ -130,11 +130,11 @@ export function ajustarTempo(texto: string, toqueAtual: number): string {
   return texto.replace(/\b(te chamei|te mandei mensagem|falei com voc[eê]s?)( no whats ?app)? hoje cedo\b/gi, (_m, a, b) => `${a}${b ?? ""} esses dias`);
 }
 
-export async function gmailSend(to: string, subject: string, body: string, from?: string | null) {
+export async function gmailSend(to: string, subject: string, body: string, from?: string | null, nome?: string) {
   const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
     method: "POST",
     headers: { Authorization: `Bearer ${await accessToken("gmail")}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ raw: b64url(buildMime(to, subject, body, from)) }),
+    body: JSON.stringify({ raw: b64url(buildMime(to, subject, body, from, nome)) }),
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`Gmail ${res.status}: ${JSON.stringify(json).slice(0, 300)}`);
@@ -238,7 +238,7 @@ const log = (event: string, detail: Record<string, unknown>, place_id: string | 
 
 /** Assinatura da Gabi + rodapé de opt-out (a não ser que o texto já fale em "sair"). */
 export function comRodape(body: string) {
-  const assinado = body.includes(ASSINATURA) || /\n\s*(Ana|Gabi)\s*\n\s*DemandIA\s*$/i.test(body) ? body : `${body.trim()}\n\n${ASSINATURA}`;
+  const assinado = body.includes(ASSINATURA) || /\n\s*(Ana|Gabi|Marina)\s*\n\s*DemandIA\s*$/i.test(body) ? body : `${body.trim()}\n\n${ASSINATURA}`;
   return /\bsair\b/i.test(body) ? assinado : `${assinado}\n\n${RODAPE_OPTOUT}`;
 }
 
