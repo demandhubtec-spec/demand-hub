@@ -14,8 +14,10 @@
  */
 import { db } from "@/src/lib/db.ts";
 import { lerLigacao, type LigacaoRecebida } from "@/src/lib/ligacoes.ts";
+import { ehCallface, tratarCallface } from "@/src/lib/callface.ts";
 
 export const runtime = "nodejs";
+export const maxDuration = 120;
 
 const json = (b: unknown, status = 200) => Response.json(b, { status });
 
@@ -23,10 +25,20 @@ export async function POST(req: Request) {
   const segredo = process.env.LIGACOES_WEBHOOK_SECRET || "";
   if (!segredo) return json({ error: "webhook de ligações ainda não configurado (falta LIGACOES_WEBHOOK_SECRET na Vercel)" }, 503);
   const url = new URL(req.url);
-  const recebido = req.headers.get("x-webhook-secret") ?? url.searchParams.get("secret") ?? "";
+  // Callface manda o valor fixo no header X-Callface-Signature (23/11)
+  const recebido = req.headers.get("x-webhook-secret") ?? req.headers.get("x-callface-signature") ?? url.searchParams.get("secret") ?? "";
   if (recebido !== segredo) return json({ error: "unauthorized" }, 401);
 
   const corpo = (await req.json().catch(() => null)) as unknown;
+  // Ligações da Gabi pelo Callface: lê a ligação, marca a reunião e confirma no WhatsApp
+  if (ehCallface(corpo)) {
+    try {
+      return json(await tratarCallface(corpo));
+    } catch (e) {
+      console.error("Callface", e);
+      return json({ ok: false, erro: String((e as Error)?.message ?? e).slice(0, 300) }, 500);
+    }
+  }
   const itens: Record<string, unknown>[] = Array.isArray(corpo)
     ? corpo
     : corpo && typeof corpo === "object" && Array.isArray((corpo as { contatos?: unknown }).contatos)

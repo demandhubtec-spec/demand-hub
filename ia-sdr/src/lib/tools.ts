@@ -6,7 +6,7 @@
 import { SDR_CONFIG } from "../config/sdr.ts";
 import { evaluateBant, faturamentoMinimo, normalizeFaturamento } from "./bant.ts";
 import type { Tool } from "./llm.ts";
-import { activeMeeting, addMessage, db, getLead, logEvent, updateLead, type Lead } from "./db.ts";
+import { activeMeeting, addMessage, db, getLead, logEvent, ultimoEventoEm, updateLead, type Lead } from "./db.ts";
 import { env } from "./env.ts";
 import { destination, sendDocument, sendText } from "./evolution.ts";
 import { busyIntervals, cancelMeeting, createMeeting } from "./google.ts";
@@ -261,6 +261,9 @@ export async function proximosHorarios(now = new Date()): Promise<string[]> {
  */
 async function podeAgendar(lead: Lead): Promise<boolean> {
   if (evaluateBant(lead).qualificado) return true;
+  // 23/11: reunião combinada na ligação da Gabi (Callface) nas últimas 48 horas
+  const lig = await ultimoEventoEm(lead.id, "ligacao_callface").catch(() => null);
+  if (lig && Date.now() - new Date(lig).getTime() < 48 * 3600e3) return true;
   const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
   return !!p;
 }
