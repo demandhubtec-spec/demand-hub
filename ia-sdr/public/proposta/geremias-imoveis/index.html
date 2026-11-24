@@ -174,7 +174,9 @@ nav a{color:inherit;text-decoration:none}
 .pays{display:grid;gap:10px;margin-top:20px}
 .pays div{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:14px 16px;border-radius:14px;border:1px solid var(--line);background:rgba(11,4,32,.5);font-size:15px}
 .pays b{font:700 16px Sora;white-space:nowrap}
-.offer .btn{width:100%;justify-content:center;margin-top:20px}
+.offer .btn{width:100%;justify-content:center;margin-top:16px}
+.today{margin-top:18px;padding:14px 16px;border-radius:14px;background:rgba(232,145,58,.12);border:1px solid rgba(232,145,58,.45);font-size:14px;color:#F4D9BD;line-height:1.5}
+.today b{color:#fff}
 .edtoggle{cursor:pointer;border:1px solid rgba(34,211,238,.45);background:rgba(34,211,238,.08);color:var(--cyan);font:700 13px Sora;padding:10px 16px;border-radius:12px}
 body.edit .edtoggle{background:var(--cyan);color:#0B0420}
 .ed{display:none}
@@ -205,8 +207,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 <header class="hero" id="entregas">
   <div class="wrap">
     <span class="eyebrow"><i></i>Proposta · Geremias Imóveis</span>
-    <h1>Geremias, ser encontrado no Google <span class="grad-text">e virar a primeira ligação.</span></h1>
-    <p class="lead">Um site feito para vender, com lançamentos, Minha Casa Minha Vida e locação, que leva o cliente direto para o seu WhatsApp. E a ficha do Google Meu Negócio otimizada para subir no ranking. Tudo entregue em 30 dias.</p>
+    <h1>Geremias, apareça em primeiro no Google <span class="grad-text">e seja a primeira opção do cliente, na frente do concorrente.</span></h1>
+    <p class="lead">Site que vende e ficha do Google otimizada, levando o cliente direto para o seu WhatsApp. Pronto em 30 dias.</p>
     <div class="deliv">
       <div class="card dv"><div class="ic">🌐</div><h3>Site focado em venda</h3><p>Direto ao ponto: o cliente vê o imóvel e chama você no WhatsApp.</p>
         <ul><li>Lançamentos, Minha Casa Minha Vida e locação</li><li>Sua história e sua experiência no mercado</li><li>Botão de WhatsApp em todas as seções</li><li>Feito para o celular, com estrutura de SEO</li><li>Ligado à ficha do Google Meu Negócio</li></ul></div>
@@ -302,12 +304,13 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
         <div class="line tot"><span>Valor normal</span><span id="vTot"></span></div>
         <div class="ed"><label>Site (R$)<input type="number" data-f="site"></label><label>Google Meu Negócio (R$)<input type="number" data-f="gmn"></label></div>
       </div>
-      <div class="card offer"><span class="tag">Condição especial</span><h4>Site + Google Meu Negócio</h4>
+      <div class="card offer"><span class="tag">Condição especial · válida hoje</span><h4>Site + Google Meu Negócio</h4>
         <div class="big" id="vOffer"></div><div class="sub">À vista · entrega em até 30 dias</div>
         <span class="save" id="vSave"></span>
         <div class="pays"><div><span>À vista no PIX</span><b id="vPix"></b></div><div><span>Cartão de crédito<small id="vCardTot" style="display:block;color:var(--muted);font-size:12.5px"></small></span><b id="vCard"></b></div></div>
         <div class="ed"><label>Valor da oferta (R$)<input type="number" data-f="offer"></label><label>Total no cartão (R$)<input type="number" data-f="card"></label><label>Parcelas no cartão<input type="number" data-f="n"></label></div>
-        <button class="btn" id="accept">Quero fechar →</button>
+        <div class="today">⏳ <b>Condição exclusiva para fechamento hoje, 24/11/2026, durante a reunião.</b> O link de pagamento é gerado na hora: PIX à vista ou 3x no cartão de crédito.</div>
+        <button class="btn" id="accept">Quero fechar hoje →</button>
       </div>
     </div>
     <p class="note">Depois dos 30 dias, se quiser continuar com a gestão da ficha e do site, a gente apresenta uma proposta de acompanhamento mensal. Sem obrigação.</p>
@@ -333,7 +336,7 @@ function paint(){
   document.getElementById('vPix').textContent=fmt(cfg.offer);
   document.getElementById('vCard').textContent=`${cfg.n}× de ${fmt(parc)}`;document.getElementById('vCardTot').textContent=`total de ${fmt(cfg.card)}`;
   const s=tot-cfg.offer;const sv=document.getElementById('vSave');sv.style.display=s>0?'inline-block':'none';sv.textContent=`Você economiza ${fmt(s)}`;
-  document.getElementById('mtext').textContent=`Olá! Aqui é o Geremias, da Geremias Imóveis.\nQuero fechar a proposta da DemandIA:\n\n• Site da imobiliária\n• Otimização do Google Meu Negócio (30 dias)\n• Relatório de insights\n\nValor: ${fmt(cfg.offer)} à vista no PIX ou ${cfg.n}× de ${fmt(parc)} no cartão (total ${fmt(cfg.card)}).`;
+  document.getElementById('mtext').textContent=`Olá! Aqui é o Geremias, da Geremias Imóveis.\nQuero fechar a proposta da DemandIA:\n\n• Site da imobiliária\n• Otimização do Google Meu Negócio (30 dias)\n• Relatório de insights\n\nCondição especial de fechamento hoje.\nValor: ${fmt(cfg.offer)} à vista no PIX ou ${cfg.n}× de ${fmt(parc)} no cartão (total ${fmt(cfg.card)}).`;
 }
 document.querySelectorAll('[data-f]').forEach(i=>{i.value=cfg[i.dataset.f];i.addEventListener('input',()=>{cfg[i.dataset.f]=+i.value||0;if(cfg.n<1)cfg.n=1;paint()})});
 const tg=document.getElementById('edToggle');tg.onclick=()=>{const on=!document.body.classList.contains('edit');document.body.classList.toggle('edit',on);tg.textContent=on?'✓ Concluir edição':'✏️ Editar valores'};
