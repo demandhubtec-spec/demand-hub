@@ -14,6 +14,11 @@ const pick = <T,>(a: T[]) => a[Math.floor(Math.random() * a.length)];
 function spHour(): number {
   return Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hourCycle: "h23" }).format(new Date()));
 }
+/** Minuto do dia em Brasília (17h30 = 1050). */
+function spMinutoDoDia(): number {
+  const [h, m] = new Intl.DateTimeFormat("en-GB", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date()).split(":").map(Number);
+  return h * 60 + m;
+}
 function spWeekday(): number {
   const d = new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short" }).format(new Date());
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(d);
@@ -358,6 +363,22 @@ function segmentoDoLead(l: { place_id?: string | null; nicho?: string | null; em
   return dentroDoIcp(seg, l, ig) ? seg : "fora";
 }
 
+/**
+ * Turno de alimentação (23/11/2026, Kelvin, teste de duas semanas): quem só abre à noite (pizzaria, hamburgueria,
+ * lanches, bar) recebe o 1º contato das 17h30 às 18h30, de segunda a sexta; restaurante de almoço, café, doces e
+ * salgados, das 9h às 11h. O resto segue a janela normal. Mesma regra em ia-sdr/src/lib/turno.ts (follow-ups).
+ */
+type Turno = "noite" | "almoco";
+const NOITE_RE = /pizz|hamburg|burger|burguer|(?<!\p{L})lanch|(?<!\p{L})bar(?!\p{L})|(?<!\p{L})pub(?!\p{L})|espetaria|espetinho|hot ?dog|petiscaria|choperia|cervejaria|boteco/iu;
+const ALIMENTACAO_RE = /aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|a[cç]a[ií]|gelat|sorvet|churras|espetaria|coxinha|padaria|cantina|(?<!\p{L})bar(?!\p{L})/iu;
+function turnoDoLead(l: { nicho?: string | null; empresa?: string | null }): Turno | null {
+  const t = `${l.nicho ?? ""} ${l.empresa ?? ""}`;
+  if (!ALIMENTACAO_RE.test(t)) return null;
+  return NOITE_RE.test(t) ? "noite" : "almoco";
+}
+const JANELA_NOITE: [number, number] = [17 * 60 + 30, 18 * 60 + 30];
+const JANELA_ALMOCO: [number, number] = [9 * 60, 11 * 60];
+
 /** ICP (18/11): quem tem estrutura e dinheiro para investir. Sem dado (nota/avaliações vazias), passa. */
 function dentroDoIcp(seg: Segmento, l: { empresa?: string | null; avaliacoes?: number | null; observacoes?: string | null }, ig: boolean): boolean {
   const nome = String(l.empresa ?? "");
@@ -582,9 +603,11 @@ Deno.serve(async (req) => {
   if (reativados) out.reativados = reativados;
 
   if (!cfg.wa_enabled) return Response.json({ ...out, skip: "wa_disabled" });
-  const h = spHour(), wd = spWeekday();
+  const h = spHour(), wd = spWeekday(), minuto = spMinutoDoDia();
+  // 23/11 (Kelvin): janela extra das 17h30 às 18h30 (seg a sex) só para pizzaria, hamburgueria, lanches e bar
+  const noiteAgora = cfg.send_days.includes(wd) && wd >= 1 && wd <= 5 && minuto >= JANELA_NOITE[0] && minuto < JANELA_NOITE[1];
   // 18/11 (Kelvin): sábado o primeiro contato vai só até meio-dia
-  if (!cfg.send_days.includes(wd) || h < cfg.send_start_hour || h > cfg.send_end_hour || (wd === 6 && h >= 12))
+  if (!noiteAgora && (!cfg.send_days.includes(wd) || h < cfg.send_start_hour || h > cfg.send_end_hour || (wd === 6 && h >= 12)))
     return Response.json({ ...out, skip: "fora_da_janela" });
   if (FERIADOS.has(spYmd())) return Response.json({ ...out, skip: "feriado" });
   // Sábado: só de manhã e só follow-up (abordagem nova fica para dia útil)
@@ -635,7 +658,7 @@ Deno.serve(async (req) => {
   }
 
   // 1) Follow-up da cadência que já venceu (vem antes das abordagens novas), pelo número de cada lead
-  if (!cfg.dry_run && !cfg.test_number) {
+  if (!cfg.dry_run && !cfg.test_number && !noiteAgora) {
     const r = await followUp(cfg, tokens);
     if (r) return Response.json({ ...out, ...r });
   }
@@ -680,9 +703,17 @@ Deno.serve(async (req) => {
   if (cfg.exigir_aprovacao !== false) filaBase = filaBase.eq("msg_status", "aprovada");
   if (jaTestados.length) filaBase = filaBase.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
   const { data: fila } = await filaBase.order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(600);
+  // Turno de alimentação: à noite só sai quem é da noite; de dia, a noite espera e o almoço só sai das 9h às 11h
+  const noTurno = (l: any) => {
+    const t = turnoDoLead(l);
+    if (noiteAgora) return t === "noite";
+    if (t === "noite") return false;
+    if (t === "almoco") return minuto >= JANELA_ALMOCO[0] && minuto < JANELA_ALMOCO[1];
+    return true;
+  };
   let candidatos: any[] = [];
   for (const seg of ordemSeg) {
-    candidatos = (fila ?? []).filter((l: any) => segmentoDoLead(l) === seg).slice(0, 10);
+    candidatos = (fila ?? []).filter((l: any) => segmentoDoLead(l) === seg && noTurno(l)).slice(0, 10);
     if (candidatos.length) break;
   }
   if (!candidatos?.length) return Response.json({ ...out, skip: cfg.exigir_aprovacao !== false ? "nenhuma_aprovada" : "fila_vazia" });

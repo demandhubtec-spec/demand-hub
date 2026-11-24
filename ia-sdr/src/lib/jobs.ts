@@ -10,7 +10,8 @@ import { callLLM } from "./llm.ts";
 import { addMessage, db, getLead, history, latestInboundId, logEvent, tryLock, ultimoEvento, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
 import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
-import { horarioProspeccaoV2, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
+import { horarioProspeccaoV2, isBusinessDay, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
+import { naJanelaDoTurno, proximaJanelaDoTurno, turnoDoLead } from "./turno.ts";
 import { followUpPrompt, followUpPromptProspeccaoV2 } from "./prompt.ts";
 import { humanizar } from "./estilo.ts";
 import { formatBR, toLocal } from "./time.ts";
@@ -40,7 +41,10 @@ export function janelaRetornoCombinado(now: Date): boolean {
 export async function runFollowUps(now = new Date()) {
   // Sábado de manhã também vale para a prospecção v2 (o filtro fino é por lead, abaixo)
   const comercial = isBusinessTime(now) || horarioProspeccaoV2(now);
-  if (!comercial && !janelaRetornoCombinado(now)) return { skipped: "fora do horário comercial" };
+  // 23/11 (Kelvin): pizzaria, hamburgueria, lanches e bar recebem das 17h30 às 18h30 (teste de duas semanas)
+  const diaUtilV2 = (d: Date) => isBusinessDay(d, PROSPECCAO_V2);
+  const noiteAgora = naJanelaDoTurno(now, "noite", diaUtilV2);
+  if (!comercial && !noiteAgora && !janelaRetornoCombinado(now)) return { skipped: "fora do horário comercial" };
   await carregarPlaybook();
 
   const { data } = await db()
@@ -62,7 +66,6 @@ export async function runFollowUps(now = new Date()) {
       if (!fresh.next_followup_at || new Date(fresh.next_followup_at) > now) continue;
       // Fora do horário comercial só sai o retorno combinado com o lead
       const combinado = await ehRetornoCombinado(fresh);
-      if (!comercial && !combinado) continue;
       if (isBlocked(fresh.phone, fresh.whatsapp_jid)) {
         await updateLead(lead.id, { next_followup_at: null, ai_paused: true });
         continue;
@@ -71,8 +74,16 @@ export async function runFollowUps(now = new Date()) {
       // (em 30/10 o AS Odontologia recebeu um "Passando pra retomar" do SDR por cima da cadência).
       const prosp = await prospeccaoDoTelefone(fresh.phone).catch(() => null);
       const v2 = ehFluxoV2(prosp);
+      // Alimentação (23/11, teste): noite (pizzaria, hamburgueria, lanches, bar) das 17h30 às 18h30; almoço, café,
+      // doces e salgados das 9h às 11h. Fora da janela, o follow-up vai para o começo da próxima (e sai da frente da fila).
+      const turno = v2 ? turnoDoLead(prosp) : null;
+      if (!combinado && turno) {
+        if (!naJanelaDoTurno(now, turno, diaUtilV2)) {
+          await updateLead(lead.id, { next_followup_at: proximaJanelaDoTurno(now, turno, diaUtilV2).toISOString() });
+          continue;
+        }
+      } else if (!combinado && (v2 ? !horarioProspeccaoV2(now) : !isBusinessTime(now))) continue;
       // Prospecção v2: só no horário dela (sábado até meio-dia); inbound: só no comercial normal
-      if (!combinado && (v2 ? !horarioProspeccaoV2(now) : !isBusinessTime(now))) continue;
       if (prosp && !v2 && prosp.cadencia === "ativa") {
         await updateLead(lead.id, { next_followup_at: null });
         continue;
