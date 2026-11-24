@@ -50,6 +50,7 @@ export type ResultadoLigacao =
   | "retorno_combinado"
   | "sem_interesse"
   | "nao_falou_com_responsavel"
+  | "falou_sem_decisao"
   | "caixa_postal"
   | "numero_errado"
   | "pediu_para_nao_ligar";
@@ -69,7 +70,7 @@ export interface LeituraLigacao {
   resumo: string;
 }
 
-const RESULTADOS: ResultadoLigacao[] = ["reuniao_agendada", "retorno_combinado", "sem_interesse", "nao_falou_com_responsavel", "caixa_postal", "numero_errado", "pediu_para_nao_ligar"];
+const RESULTADOS: ResultadoLigacao[] = ["reuniao_agendada", "retorno_combinado", "sem_interesse", "nao_falou_com_responsavel", "falou_sem_decisao", "caixa_postal", "numero_errado", "pediu_para_nao_ligar"];
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DATA_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
@@ -87,7 +88,10 @@ export function normalizarLeitura(j: Record<string, unknown>): LeituraLigacao {
     const primeiro = t.split(/[\s,]+/)[0];
     return /^[A-ZÀ-Ý][a-zà-ÿ]+$/.test(primeiro) && !/^(Não|Nao|Sim|Dono|Dona|Recepção|Recepcao|Secretária|Secretaria|Responsável|Responsavel|Proprietário|Proprietario|Atendente|Gerente|Doutor|Doutora|Dr|Dra)$/i.test(primeiro) ? t : null;
   };
-  const resultado = RESULTADOS.includes(j.resultado as ResultadoLigacao) ? (j.resultado as ResultadoLigacao) : "nao_falou_com_responsavel";
+  let resultado = RESULTADOS.includes(j.resultado as ResultadoLigacao) ? (j.resultado as ResultadoLigacao) : "nao_falou_com_responsavel";
+  // 24/11 (Ivone Imóveis): falou com a responsável e saiu "não falou com o responsável"
+  if (j.falou_com_responsavel === true && resultado === "nao_falou_com_responsavel") resultado = "falou_sem_decisao";
+  if (j.falou_com_responsavel !== true && resultado === "falou_sem_decisao") resultado = "nao_falou_com_responsavel";
   const email = s(j.email)?.toLowerCase().replace(/\s+/g, "") ?? null;
   const ri = s(j.reuniao_inicio);
   const rt = s(j.retorno_inicio);
@@ -120,7 +124,7 @@ async function lerComIA(b: Record<string, unknown>, agora: Date): Promise<Leitur
   const hoje = agora.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
   const system = `Você lê ligações de prospecção da Gabi (DemandIA), que liga para empresas para marcar um bate-papo de 20 a 30 minutos com o especialista Kelvin. A data da ligação é ${hoje} (horário de Brasília).
 Responda SÓ com um JSON com estas chaves:
-resultado: um de ${RESULTADOS.join(", ")} (reuniao_agendada só se a pessoa topou um dia e horário).
+resultado: um de ${RESULTADOS.join(", ")} (reuniao_agendada só se a pessoa topou um dia e horário; falou_sem_decisao quando falou com o dono/responsável mas não houve sim, não nem retorno combinado; caixa_postal também para gravação da operadora como "seu recado será entregue quando o celular estiver disponível").
 falou_com_responsavel: true se conversou com o dono ou responsável.
 nome_responsavel: só o nome próprio do dono/responsável citado (ex.: "Carlos"), ou null. Nunca escreva "não informado": use null.
 quem_atendeu: nome e função de quem atendeu, ou null.
@@ -183,6 +187,16 @@ export function ehTesteCallface(b: Record<string, unknown>): boolean {
   return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(b.call_id ?? ""));
 }
 
+/**
+ * 24/11: gravação da operadora ("seu recado será entregue assim que o celular estiver disponível", "deixe sua
+ * mensagem após o sinal") entrava como "atendeu". É caixa postal.
+ */
+const OPERADORA_RE = /recado (ser[áa]|vai ser) entregue|celular (estiver|esteja|est[áa]) (dispon[íi]vel|desligado|fora)|ap[óo]s o sinal|deixe (seu|sua) (recado|mensagem)|grave (seu|sua) (recado|mensagem)|caixa (de mensagens|postal)|fora da [áa]rea de cobertura|desligado ou fora/i;
+export function ehGravacaoDaOperadora(b: Record<string, unknown>): boolean {
+  const texto = `${transcricaoEmTexto(b.transcription)}\n${String(b.summarization ?? "")}`;
+  return OPERADORA_RE.test(texto);
+}
+
 /** Ligação sem conversa (não atendeu, caixa postal, caiu): não precisa da IA. */
 export function semConversa(b: Record<string, unknown>): boolean {
   const status = String(b.call_status ?? "").toUpperCase();
@@ -196,6 +210,7 @@ const ROTULO: Record<ResultadoLigacao, string> = {
   retorno_combinado: "retorno combinado",
   sem_interesse: "sem interesse",
   nao_falou_com_responsavel: "não falou com o responsável",
+  falou_sem_decisao: "falou com o responsável, sem decisão",
   caixa_postal: "caixa postal",
   numero_errado: "número errado",
   pediu_para_nao_ligar: "pediu para não ligar",
@@ -331,7 +346,9 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
 
   const l: LeituraLigacao = semConversa(b)
     ? normalizarLeitura({ resultado: "caixa_postal", temperatura: "frio", resumo: `Ligação sem conversa (${String(b.call_status ?? "não atendeu").toLowerCase()}).` })
-    : await lerComIA(b, agora);
+    : ehGravacaoDaOperadora(b)
+      ? normalizarLeitura({ resultado: "caixa_postal", temperatura: "frio", resumo: "Caiu na gravação da operadora (caixa postal)." })
+      : await lerComIA(b, agora);
   const fone = String(b.destination_number ?? "").replace(/\D/g, "");
   const fim = fone.slice(-8);
   const { data: o } = fim.length === 8

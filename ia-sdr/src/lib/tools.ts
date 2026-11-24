@@ -113,6 +113,7 @@ export const TOOLS: Tool[] = [
         quando: { type: "string", description: "Data e hora no formato ISO com fuso de Brasília, ex: 2026-11-03T10:30:00-03:00. Sem hora definida, use 09:30." },
         com_quem: { type: "string", description: "Com quem retomar (nome e função, se souber)." },
         nota: { type: "string", description: "O que foi combinado, em uma frase." },
+        ligacao: { type: "boolean", description: "true quando o combinado é a Gabi LIGAR para a pessoa nesse horário (não mensagem)." },
       },
       required: ["quando"],
     },
@@ -367,7 +368,11 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       if (!agendaOk) {
         return "A agenda do especialista não pôde ser conferida agora. NÃO sugira nenhum dia nem horário. Pergunte ao lead qual dia e período (manhã ou tarde) ficam melhor pra ele e diga que você confirma o horário certinho em seguida. Registre a preferência com registrar_objetivo.";
       }
-      let slots = freeSlots(now, busy, { ...cfg, diasAFrente }).filter((s) => offsetDias === 0 || s.start >= localDayStart(base));
+      // 24/11 (Odontológica Sorocaba): ofereceu 16h do mesmo dia. Opções só a partir do próximo dia útil.
+      const hojeL = toLocal(now);
+      let slots = freeSlots(now, busy, { ...cfg, diasAFrente })
+        .filter((s) => offsetDias === 0 || s.start >= localDayStart(base))
+        .filter((s) => { const l = toLocal(s.start); return !(l.y === hojeL.y && l.m === hojeL.m && l.d === hojeL.d); });
       if (input.preferencia === "sabado") slots = slots.filter((s) => toLocal(s.start).dow === 6);
       if (input.preferencia === "dias_de_semana") slots = slots.filter((s) => toLocal(s.start).dow !== 6);
       if (!slots.length) return "Sem horários livres nesse período. Pergunte se o lead prefere outra semana ou encaminhe para humano.";
@@ -525,6 +530,14 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
           .from("outreach_leads")
           .update({ retorno_em: quando.toISOString(), retorno_nota: nota, ...(input.com_quem && !p.responsavel_contato ? { responsavel_contato: String(input.com_quem) } : {}) })
           .eq("place_id", p.place_id);
+      }
+      // 24/11 (Kelvin): ligação combinada pelo WhatsApp quem faz é a Gabi (Callface). O Kelvin é avisado para
+      // colocar na campanha do dia; o WhatsApp só retoma no dia seguinte, se a ligação não resolver.
+      if (input.ligacao === true) {
+        await logEvent(leadId, "ligacao_combinada", { quando: quando.toISOString(), com_quem: input.com_quem ?? null, nota: input.nota ?? null }).catch(() => null);
+        await notifyOwner(`📞 Ligação combinada pelo WhatsApp (${nomeDaSdr(lead.agente)}): ${p?.empresa ?? lead.nome ?? lead.phone} — ${formatBR(quando)}${input.com_quem ? `, falar com ${input.com_quem}` : ""}.${input.nota ? ` ${input.nota}` : ""}\nColocar na campanha da Gabi no Callface.\nwa.me/${lead.phone}`, lead.agente).catch(() => null);
+        await updateLead(leadId, { next_followup_at: new Date(quando.getTime() + 24 * 3600e3).toISOString() });
+        return `Ligação guardada para ${formatBR(quando)}. Confirme o dia e o horário em que a Gabi liga, agradeça e encerre por agora, sem mais perguntas.`;
       }
       await updateLead(leadId, { next_followup_at: quando.toISOString() });
       return `Retorno guardado para ${formatBR(quando)}. Agradeça, confirme que retoma nesse dia e encerre por agora, sem mais perguntas.`;

@@ -36,3 +36,11 @@ test("prospecção v2 usa o Prompt System (sem BANT, sem 👍)", () => {
   assert.ok(!s.includes("👍)"));
   assert.ok(s.includes('cumprimente com "bom dia"'));
 });
+
+test("prompt: no prompt da Marina, quem liga continua sendo a Gabi (24/11)", async () => {
+  const { comNomeDaSdr } = await import("../src/lib/sdrs.ts");
+  const { preencherVariaveis } = await import("../src/lib/prompt-gabi.ts");
+  const t = preencherVariaveis(comNomeDaSdr("Você é a Gabi. Quem liga é sempre a ⟦Gabi⟧.", "marina"), {});
+  assert.equal(t, "Você é a Marina. Quem liga é sempre a Gabi.");
+  assert.equal(preencherVariaveis(comNomeDaSdr("Você é a Gabi. Quem liga é a ⟦Gabi⟧.", "gabi"), {}), "Você é a Gabi. Quem liga é a Gabi.");
+});

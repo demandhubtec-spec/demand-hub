@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { alcanceDaLigacao, ehCallface, ehTesteCallface, semConversa, etapaDoResultado, inicioBrasilia, normalizarLeitura, notaDaLigacao, transcricaoEmTexto } from "../src/lib/callface.ts";
+import { alcanceDaLigacao, ehCallface, ehGravacaoDaOperadora, ehTesteCallface, semConversa, etapaDoResultado, inicioBrasilia, normalizarLeitura, notaDaLigacao, transcricaoEmTexto } from "../src/lib/callface.ts";
 
 test("reconhece o envio do Callface", () => {
   assert.equal(ehCallface({ call_id: "x", destination_number: "+5511999999999" }), true);
@@ -71,4 +71,17 @@ test("nome que não é nome vira null", () => {
   assert.equal(normalizarLeitura({ nome_responsavel: "proprietário" }).nome_responsavel, null);
   assert.equal(normalizarLeitura({ nome_responsavel: "Carlos Souza" }).nome_responsavel, "Carlos Souza");
   assert.equal(normalizarLeitura({ quem_atendeu: "Não identificado" }).quem_atendeu, null);
+});
+
+test("callface: falou com o responsável sem decisão não vira 'não falou' (24/11, Ivone Imóveis)", () => {
+  const l = normalizarLeitura({ resultado: "nao_falou_com_responsavel", falou_com_responsavel: true, temperatura: "morno", resumo: "x" });
+  assert.equal(l.resultado, "falou_sem_decisao");
+  assert.equal(etapaDoResultado(l, false), "conversa");
+  assert.equal(normalizarLeitura({ resultado: "falou_sem_decisao", falou_com_responsavel: false }).resultado, "nao_falou_com_responsavel");
+});
+
+test("callface: gravação da operadora é caixa postal (24/11)", () => {
+  assert.equal(ehGravacaoDaOperadora({ transcription: [{ role: "user", text: "Seu recado será entregue assim que o celular estiver disponível." }] }), true);
+  assert.equal(ehGravacaoDaOperadora({ summarization: "Caiu na caixa de mensagens. Grave sua mensagem após o sinal." }), true);
+  assert.equal(ehGravacaoDaOperadora({ transcription: [{ role: "user", text: "O Ivan não está hoje, liga amanhã." }] }), false);
 });

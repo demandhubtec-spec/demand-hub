@@ -26,7 +26,7 @@ export function idPromptDaSdr(v: unknown): string {
 
 /** Troca o nome da Gabi pelo da SDR num texto pronto (prompt padrão, por exemplo). */
 export function comNomeDaSdr(texto: string, v: unknown): string {
-  return sdrValida(v) === "gabi" ? texto : texto.replace(/\bGabi\b/g, nomeDaSdr(v));
+  return sdrValida(v) === "gabi" ? texto : texto.replace(/(?<!⟦)\bGabi\b/g, nomeDaSdr(v));
 }
 
 /**

@@ -88,7 +88,7 @@ Chame ver_horarios e ofereça DUAS opções em DOIS dias úteis diferentes, um h
 Mantenha as MESMAS duas opções se precisar repetir, inclusive mais tarde no mesmo dia: não troque por outros dias. Se a pessoa disser que não pode nesses dias ou horários, não desista: pergunte "Qual dia e horário ficam melhor pra você?", confira em ver_horarios e confirme. O objetivo é sempre sair com um dia marcado, de acordo com a rotina da pessoa. Se a pessoa sugerir um horário ("consegue segunda 10h30?"), confira em ver_horarios e confirme esse direto, sem oferecer outras opções.
 Aceitou ou escolheu um horário: NÃO ofereça os horários de novo. Peça o e-mail para o convite e use agendar_reuniao com o horário escolhido. Confirme UMA vez só, numa mensagem com dia da semana, data, horário e o link do Meet que a ferramenta devolver em link_meet (ex.: "Prontinho, Cláudia! Nossa conversa com o Kelvin ficou marcada para terça, 24/11, às 15h 😊 O link da reunião é este: https://meet.google.com/... Também te mandei o convite no e-mail."). Se a ferramenta não devolver link_meet, diga que o link do Meet chega por aqui em seguida. Se a pessoa propuser outro dia ou horário, confira em ver_horarios (a agenda do Kelvin) e, se estiver livre, marque direto.
 Reunião marcada: chame também lead_quente (o Kelvin é avisado). Só então, se ainda não sabe o porte, faça a pergunta leve da qualificação (clínica: quantos profissionais e funcionários; alimentação: pedidos mais pelo WhatsApp ou pelo iFood) e registre com registrar_objetivo.
-Se for ligação, use combinar_retorno com o horário e o nome.`,
+Ligação (24/11, Kelvin; Odontológica Sorocaba): pelo WhatsApp você NUNCA liga na hora e nunca escreve "posso te ligar agora?" ou "te ligo em 20 minutos". Quem liga é sempre a ⟦Gabi⟧, da nossa equipe, depois. Se a pessoa preferir telefone (ou disser que só atende por ligação), combine o dia e o horário dessa ligação, a partir do próximo dia útil (no mesmo dia só se a própria pessoa pedir um horário de hoje), e confirme com o nome de quem vai atender. Se você é a ⟦Gabi⟧, diga "eu mesma te ligo" ("Combinado, Gabriela! Eu mesma te ligo quarta, 25/11, às 10h 😊"); se não for, diga que "a ⟦Gabi⟧, da nossa equipe, te liga". Registre com combinar_retorno com ligacao: true, o horário e o nome.`,
   },
   {
     titulo: "Objeções",
@@ -171,7 +171,8 @@ Se perguntarem se você é uma IA, diga a verdade: é a assistente virtual da De
 
 /** Troca as {{variáveis}} pelos valores do lead. Variável desconhecida fica como está (o portal avisa). */
 export function preencherVariaveis(texto: string, vars: Record<string, string>): string {
-  return texto.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: string) => (k in vars ? vars[k] : m));
+  // ⟦Gabi⟧ = a Gabi de verdade (quem faz as ligações), que não vira "Marina" no prompt da Marina
+  return texto.replace(/\{\{\s*([a-z_]+)\s*\}\}/g, (m, k: string) => (k in vars ? vars[k] : m)).replace(/⟦Gabi⟧/g, "Gabi");
 }
 
 /** Seções em texto para o prompt (títulos como cabeçalho, texto como está). */

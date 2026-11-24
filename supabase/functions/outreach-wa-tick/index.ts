@@ -378,6 +378,8 @@ function turnoDoLead(l: { nicho?: string | null; empresa?: string | null }): Tur
 }
 const JANELA_NOITE: [number, number] = [17 * 60 + 30, 18 * 60 + 30];
 const JANELA_ALMOCO: [number, number] = [9 * 60, 11 * 60];
+/** 24/11 (Kelvin): ~10 envios do dia (5 por SDR) ficam guardados para a janela da noite, senão o teto acaba antes. */
+const RESERVA_NOITE_POR_SDR = 5;
 
 /** ICP (18/11): quem tem estrutura e dinheiro para investir. Sem dado (nota/avaliações vazias), passa. */
 function dentroDoIcp(seg: Segmento, l: { empresa?: string | null; avaliacoes?: number | null; observacoes?: string | null }, ig: boolean): boolean {
@@ -711,6 +713,14 @@ Deno.serve(async (req) => {
     if (t === "almoco") return minuto >= JANELA_ALMOCO[0] && minuto < JANELA_ALMOCO[1];
     return true;
   };
+  // Reserva da noite: de dia, cada SDR para 5 antes do teto se há pizzaria/hamburgueria/lanches/bar esperando
+  const noitePendentes = (fila ?? []).filter((l: any) => turnoDoLead(l) === "noite").length;
+  const reservaNoite = !noiteAgora && wd >= 1 && wd <= 5 && cfg.send_days.includes(wd) && minuto < JANELA_NOITE[0]
+    ? Math.min(RESERVA_NOITE_POR_SDR, Math.ceil(noitePendentes / Math.max(1, disponiveis.length)))
+    : 0;
+  const tetoAgora = (x: Sdr) => Math.max(0, (tetos[x] ?? 0) - reservaNoite);
+  const sdrAgora = reservaNoite ? proximaSdr(feitos, { gabi: tetoAgora("gabi"), marina: tetoAgora("marina") }, disponiveis) : sdr;
+  if (!sdrAgora) return Response.json({ ...out, skip: "reserva_noite", feitos, reservaNoite });
   let candidatos: any[] = [];
   for (const seg of ordemSeg) {
     candidatos = (fila ?? []).filter((l: any) => segmentoDoLead(l) === seg && noTurno(l)).slice(0, 10);
@@ -721,15 +731,15 @@ Deno.serve(async (req) => {
   // Nunca duas SDRs no mesmo contato: quem já conversa com a gente (ficha na Gabi ou na Marina) só recebe
   // pela SDR dessa conversa. Se ela não tem vaga agora, o lead espera e vai o próximo da fila.
   let lead: any = null;
-  let quem: Sdr = sdr;
+  let quem: Sdr = sdrAgora;
   for (const c of candidatos) {
     const fim8c = String(c.whatsapp).replace(/\D/g, "").slice(-8);
     const { data: ficha } = fim8c.length === 8
       ? await sb.from("sdr_leads").select("agente").like("phone", `%${fim8c}`).limit(1)
       : { data: [] };
     const dona = (ficha?.[0]?.agente === "marina" ? "marina" : ficha?.length ? "gabi" : null) as Sdr | null;
-    if (!dona) { lead = c; quem = sdr; break; }
-    if (disponiveis.includes(dona) && feitos[dona] < tetos[dona]) { lead = c; quem = dona; break; }
+    if (!dona) { lead = c; quem = sdrAgora; break; }
+    if (disponiveis.includes(dona) && feitos[dona] < tetoAgora(dona)) { lead = c; quem = dona; break; }
   }
   if (!lead) return Response.json({ ...out, skip: "fila_aguardando_sdr", sdr });
 
