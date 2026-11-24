@@ -34,7 +34,7 @@ export async function registrar(m: MsgCanal) {
  * Avisa o Kelvin no WhatsApp pessoal dele pelo número da SDR do assunto (16/11: a Marina fala com ele
  * pelo número dela, como a Gabi). Se o número da Marina falhar, o aviso sai pelo da Gabi.
  */
-async function avisarKelvin(texto: string, sdr: unknown = "gabi") {
+export async function avisarKelvin(texto: string, sdr: unknown = "gabi") {
   if (!env.alertPhone) return;
   const quem = sdrValida(sdr);
   try {

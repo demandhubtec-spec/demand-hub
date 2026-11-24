@@ -11,9 +11,11 @@
  */
 import { callLLM } from "./llm.ts";
 import { db, logEvent, updateLead, upsertLeadByPhone, type Lead } from "./db.ts";
-import { enviarAoLead } from "./canal.ts";
+import { avisarKelvin, enviarAoLead } from "./canal.ts";
+import { busyIntervals } from "./google.ts";
+import { freeSlots } from "./schedule.ts";
 import { proximosHorarios, runTool } from "./tools.ts";
-import { formatBR } from "./time.ts";
+import { formatBR, toLocal } from "./time.ts";
 
 /** É um envio do Callface? (eles mandam call_id e destination_number) */
 export function ehCallface(b: unknown): b is Record<string, unknown> {
@@ -58,6 +60,7 @@ export type ResultadoLigacao =
 export interface LeituraLigacao {
   resultado: ResultadoLigacao;
   falou_com_responsavel: boolean;
+  quer_hoje: boolean;
   nome_responsavel: string | null;
   quem_atendeu: string | null;
   reuniao_inicio: string | null; // "AAAA-MM-DDTHH:MM", horário de Brasília
@@ -99,6 +102,7 @@ export function normalizarLeitura(j: Record<string, unknown>): LeituraLigacao {
   return {
     resultado,
     falou_com_responsavel: j.falou_com_responsavel === true,
+    quer_hoje: j.quer_hoje === true,
     nome_responsavel: nome(j.nome_responsavel),
     quem_atendeu: s(j.quem_atendeu),
     reuniao_inicio: ri && DATA_RE.test(ri) ? ri : null,
@@ -122,10 +126,11 @@ export function inicioBrasilia(s: string): Date {
 
 async function lerComIA(b: Record<string, unknown>, agora: Date): Promise<LeituraLigacao> {
   const hoje = agora.toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
-  const system = `Você lê ligações de prospecção da Gabi (DemandIA), que liga para empresas para marcar um bate-papo de 20 a 30 minutos com o especialista Kelvin. A data da ligação é ${hoje} (horário de Brasília).
+  const system = `Você lê ligações de prospecção da Gabi (DemandIA), que liga para empresas para marcar um bate-papo de 20 a 30 minutos com o nosso especialista. A data da ligação é ${hoje} (horário de Brasília).
 Responda SÓ com um JSON com estas chaves:
 resultado: um de ${RESULTADOS.join(", ")} (reuniao_agendada só se a pessoa topou um dia e horário; falou_sem_decisao quando falou com o dono/responsável mas não houve sim, não nem retorno combinado; caixa_postal também para gravação da operadora como "seu recado será entregue quando o celular estiver disponível").
 falou_com_responsavel: true se conversou com o dono ou responsável.
+quer_hoje: true se a pessoa pediu para conversar com o especialista agora ou ainda hoje.
 nome_responsavel: só o nome próprio do dono/responsável citado (ex.: "Carlos"), ou null. Nunca escreva "não informado": use null.
 quem_atendeu: nome e função de quem atendeu, ou null.
 reuniao_inicio: dia e horário combinados para a reunião, no formato AAAA-MM-DDTHH:MM (Brasília), resolvendo "terça", "amanhã" etc. a partir da data da ligação; null se não houve.
@@ -237,21 +242,26 @@ export function notaDaLigacao(l: LeituraLigacao, extra: string | null, link: str
 async function marcarReuniao(b: Record<string, unknown>, l: LeituraLigacao, empresa: string | null): Promise<{ marcou: boolean; texto: string }> {
   // Ligou num fixo: a confirmação vai para o WhatsApp que a pessoa passou na ligação
   const fone = l.whatsapp ?? String(b.destination_number ?? "").replace(/\D/g, "");
-  if (fone.length < 10 || !l.reuniao_inicio) return { marcou: false, texto: "Reunião combinada sem dia e horário claros: conferir a ligação." };
+  if (fone.length < 10 || (!l.reuniao_inicio && !l.quer_hoje)) return { marcou: false, texto: "Reunião combinada sem dia e horário claros: conferir a ligação." };
   const phone = fone.startsWith("55") ? fone : `55${fone}`;
   const lead: Lead = await upsertLeadByPhone(phone, `${phone}@s.whatsapp.net`, l.nome_responsavel ?? undefined, "gabi");
   if (!lead.empresa && empresa) await updateLead(lead.id, { empresa });
   if (l.nome_responsavel && !lead.nome) await updateLead(lead.id, { nome: l.nome_responsavel });
   // Libera o agendar_reuniao para este lead (mesmo sem ser da prospecção do WhatsApp)
   await logEvent(lead.id, "ligacao_callface", { call_id: b.call_id, resultado: l.resultado, reuniao_inicio: l.reuniao_inicio, email: l.email });
-  const inicio = inicioBrasilia(l.reuniao_inicio);
+  const inicio = l.reuniao_inicio ? inicioBrasilia(l.reuniao_inicio) : new Date();
   const quando = formatBR(inicio);
   const primeiro = l.nome_responsavel ? `, ${l.nome_responsavel.split(" ")[0]}` : "";
+  // 24/11 (Kelvin): pediu agora ou hoje → a Gabi não recusa. Confere a agenda: tem horário livre hoje, o Kelvin é
+  // avisado para ver se consegue e a pessoa recebe "estou confirmando"; sem horário hoje, vão 2 opções.
+  const hojeL = toLocal(new Date());
+  const ehHoje = (d: Date) => { const x = toLocal(d); return x.y === hojeL.y && x.m === hojeL.m && x.d === hojeL.d; };
+  if (l.quer_hoje || ehHoje(inicio)) return await confirmarHoje(lead, empresa, inicio, primeiro);
 
   if (!l.email) {
     await enviarAoLead(
       lead.id,
-      `Oi${primeiro}! Aqui é a Gabi, da DemandIA, que falou com você agora há pouco por telefone 😊\n\nPra eu te mandar o convite do bate-papo com o Kelvin (${quando}), qual e-mail eu uso?`,
+      `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora há pouco por telefone 😊\n\nPra eu te mandar o convite do bate-papo com nosso especialista (${quando}), qual e-mail eu uso?`,
     );
     return { marcou: false, texto: `Combinou ${quando}, mas sem e-mail: a Gabi pediu o e-mail no WhatsApp para fechar o convite.` };
   }
@@ -266,7 +276,7 @@ async function marcarReuniao(b: Record<string, unknown>, l: LeituraLigacao, empr
   if (res.ok) {
     await enviarAoLead(
       lead.id,
-      `Oi${primeiro}! Aqui é a Gabi, da DemandIA 😊 Obrigada pela conversa por telefone!\n\nNosso bate-papo com o Kelvin ficou confirmado para ${quando}.${res.link_meet ? ` O link da reunião é este: ${res.link_meet}` : ""}\n\nTambém te mandei o convite no e-mail ${l.email}. Até lá!`,
+      `Oi${primeiro}! Aqui é a Gabi, da Demand 😊 Obrigada pela conversa por telefone!\n\nNosso bate-papo com nosso especialista ficou confirmado para ${quando}.${res.link_meet ? ` O link da reunião é este: ${res.link_meet}` : ""}\n\nTambém te mandei o convite no e-mail ${l.email}. Até lá!`,
     );
     return { marcou: true, texto: `Reunião marcada para ${quando}${res.link_meet ? ` (${res.link_meet})` : ""}. Confirmação enviada no WhatsApp e convite no e-mail.` };
   }
@@ -274,11 +284,42 @@ async function marcarReuniao(b: Record<string, unknown>, l: LeituraLigacao, empr
   // Horário ocupado ou fora da agenda: a Gabi do WhatsApp oferece outros dois
   const opcoes = await proximosHorarios().catch(() => [] as string[]);
   const texto = opcoes.length >= 2
-    ? `Oi${primeiro}! Aqui é a Gabi, da DemandIA, que falou com você por telefone 😊\n\nFui confirmar na agenda do Kelvin e o horário de ${quando} acabou de ser preenchido. Tenho estas duas opções: ${opcoes[0]} ou ${opcoes[1]}. Qual fica melhor pra você?`
-    : `Oi${primeiro}! Aqui é a Gabi, da DemandIA, que falou com você por telefone 😊\n\nFui confirmar na agenda do Kelvin e o horário de ${quando} acabou de ser preenchido. Qual outro dia e horário ficam bons pra você?`;
+    ? `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você por telefone 😊\n\nFui confirmar na agenda do nosso especialista e o horário de ${quando} acabou de ser preenchido. Tenho estas duas opções: ${opcoes[0]} ou ${opcoes[1]}. Qual fica melhor pra você?`
+    : `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você por telefone 😊\n\nFui confirmar na agenda do nosso especialista e o horário de ${quando} acabou de ser preenchido. Qual outro dia e horário ficam bons pra você?`;
   await enviarAoLead(lead.id, texto);
   await updateLead(lead.id, { email: lead.email ?? l.email });
   return { marcou: false, texto: `Combinou ${quando}, mas não deu para marcar (${out.slice(0, 120)}). A Gabi ofereceu outros horários no WhatsApp.` };
+}
+
+/** Pediu agora/hoje: confere a agenda de hoje e avisa o Kelvin; o lead recebe a confirmação no WhatsApp. */
+async function confirmarHoje(lead: Lead, empresa: string | null, inicio: Date, primeiro: string): Promise<{ marcou: boolean; texto: string }> {
+  const agora = new Date();
+  const fimDoDia = new Date(agora.getTime() + 24 * 3600e3);
+  const busy = await busyIntervals(agora, fimDoDia).catch(() => null);
+  const hojeL = toLocal(agora);
+  const livresHoje = busy
+    ? freeSlots(agora, busy).filter((s) => { const x = toLocal(s.start); return x.y === hojeL.y && x.m === hojeL.m && x.d === hojeL.d; })
+    : [];
+  const pedido = inicio.getTime() > agora.getTime() + 10 * 60e3 ? `hoje, ${formatBR(inicio)}` : "agora";
+  const nome = empresa ?? lead.empresa ?? lead.nome ?? `+${lead.phone}`;
+  if (livresHoje.length || !busy) {
+    const opcoes = livresHoje.slice(0, 4).map((s) => s.start.toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" }));
+    await avisarKelvin(
+      `⚡ ${nome} quer conversar ${pedido} (ligação da Gabi).${opcoes.length ? ` Sua agenda tem horário livre hoje: ${opcoes.join(", ")}.` : " Não consegui conferir sua agenda agora."} Consegue? A Gabi avisou que está confirmando com você.\nwa.me/${lead.phone}`,
+      "gabi",
+    ).catch(() => null);
+    await enviarAoLead(lead.id, `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nJá estou vendo na agenda do nosso especialista se dá pra ser ${pedido === "agora" ? "agora" : "ainda hoje"} e te confirmo por aqui em instantes.`);
+    await logEvent(lead.id, "pediu_hoje", { pedido, livres: opcoes });
+    return { marcou: false, texto: `Pediu para ${pedido}. Kelvin avisado para confirmar; a Gabi disse no WhatsApp que está confirmando.` };
+  }
+  const opcoes = await proximosHorarios().catch(() => [] as string[]);
+  await enviarAoLead(
+    lead.id,
+    opcoes.length >= 2
+      ? `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nConferi a agenda do nosso especialista e hoje já está completa. Tenho estas duas opções: ${opcoes[0]} ou ${opcoes[1]}. Qual fica melhor pra você?`
+      : `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nConferi a agenda do nosso especialista e hoje já está completa. Qual outro dia e horário ficam bons pra você?`,
+  );
+  return { marcou: false, texto: `Pediu para ${pedido}, mas a agenda de hoje está cheia: a Gabi ofereceu outros horários no WhatsApp.` };
 }
 
 /** Retorno combinado vira próxima ação (ligação) no card, com tarefa para o Kelvin. */
@@ -358,7 +399,7 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
 
   let extra: string | null = null;
   let marcou = false;
-  if (l.resultado === "reuniao_agendada") {
+  if (l.resultado === "reuniao_agendada" || l.quer_hoje) {
     const r = await marcarReuniao(b, l, empresa).catch((e) => ({ marcou: false, texto: `Não consegui marcar sozinha: ${String((e as Error)?.message ?? e).slice(0, 160)}` }));
     marcou = r.marcou;
     extra = r.texto;
