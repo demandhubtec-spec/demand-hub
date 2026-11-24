@@ -6,7 +6,7 @@ import { useOutreachLeads } from "@/hooks/useProspeccao";
 import { type CanalFunil, type ListaLead, useInsights, useListaLeads, useMetas, useTemperaturasManuais } from "@/hooks/useComercial";
 import { cn } from "@/lib/utils";
 import { FunilGrafico } from "./FunilGrafico";
-import { ETAPAS_FUNIL, alcanceGoogle, alcanceLista, contarFunil, desdeDias, fmtPct, linhasFunil, nivelInbound, nivelKanban, type LinhaFunil } from "./indicadores-calc";
+import { ETAPAS_FUNIL, alcanceGoogle, alcanceLista, contarFunil, desdeDias, fmtPct, linhasFunil, nivelInbound, nivelKanban, nivelLista, type LinhaFunil } from "./indicadores-calc";
 import { ajustarPelaConversa, comAvancoDaGabi, daLista as daListaUnica, daOutbound, etapaListaDoTime, etapaOutbound, placeIdInstagram } from "./funis";
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
@@ -53,6 +53,8 @@ export function IndicadoresTab({ irPara }: { irPara: (aba: "insights" | "config"
     return nivelKanban(etapa, alcanceGoogle(l, sdr?.contexto?.conversou === true));
   };
   const nivelDaLista = (l: ListaLead): number => {
+    // 23/11: ligações contam pelo resultado da ligação (não pela conversa no WhatsApp)
+    if (l.lista === "ligacoes") return nivelLista(l);
     const pid = l.lista === "instagram" ? placeIdInstagram(l.perfil_url, l.perfil) : null;
     const time = pid ? doTimePorPlace.get(pid) ?? null : null;
     const sdr = fim8(l.whatsapp) ? sdrPorFone.get(fim8(l.whatsapp)) : undefined;

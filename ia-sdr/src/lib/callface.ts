@@ -146,7 +146,7 @@ export function etapaDoResultado(l: LeituraLigacao, marcou: boolean): string {
     case "reuniao_agendada":
       return marcou ? "reuniao" : "qualificacao";
     case "retorno_combinado":
-      return l.temperatura === "quente" ? "qualificacao" : "conversa";
+      return !l.falou_com_responsavel ? "atendida" : l.temperatura === "quente" ? "qualificacao" : "conversa";
     case "sem_interesse":
     case "pediu_para_nao_ligar":
     case "numero_errado":
@@ -154,8 +154,30 @@ export function etapaDoResultado(l: LeituraLigacao, marcou: boolean): string {
     case "caixa_postal":
       return "contato";
     default:
-      return "atendida";
+      return l.falou_com_responsavel ? "conversa" : "atendida";
   }
+}
+
+const ORDEM_LIGACAO: Record<string, number> = { na_lista: 0, contato: 1, atendida: 2, conversa: 3, qualificacao: 4, reuniao: 5, reuniao_realizada: 6, proposta: 7, ganho: 8 };
+
+/** Até onde a ligação chegou (para quem recusou, conta até onde foi antes do não). */
+export function alcanceDaLigacao(l: LeituraLigacao, etapa: string): number {
+  if (etapa !== "perdido") return ORDEM_LIGACAO[etapa] ?? 1;
+  if (l.resultado === "numero_errado") return 2;
+  return l.falou_com_responsavel ? 3 : 2;
+}
+
+/** É o envio de teste do Callface (call_id de exemplo, sem conversa)? */
+export function ehTesteCallface(b: Record<string, unknown>): boolean {
+  return !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(b.call_id ?? ""));
+}
+
+/** Ligação sem conversa (não atendeu, caixa postal, caiu): não precisa da IA. */
+export function semConversa(b: Record<string, unknown>): boolean {
+  const status = String(b.call_status ?? "").toUpperCase();
+  const dur = Number(b.call_duration ?? 0);
+  const texto = transcricaoEmTexto(b.transcription).trim();
+  return (!!status && status !== "FINISHED") || (!texto && (!Number.isFinite(dur) || dur < 15));
 }
 
 const ROTULO: Record<ResultadoLigacao, string> = {
@@ -249,15 +271,45 @@ async function agendarRetorno(card: string, empresa: string, l: LeituraLigacao) 
   await db().from("comercial_card_acoes").insert({ card, empresa, tipo: "ligacao", quando: quando.toISOString(), descricao, atividade_id: (atv as { id?: string } | null)?.id ?? null });
 }
 
+/** Atualiza (ou cria) a empresa no funil de Ligações. Nunca volta etapa; recusa vira perdido guardando até onde chegou. */
+async function registrarNaListaDeLigacoes(b: Record<string, unknown>, l: LeituraLigacao, etapa: string, nota: string, empresa: string | null, fone: string) {
+  const fim = fone.slice(-8);
+  if (fim.length < 8) return;
+  const { data: atual } = await db().from("comercial_lista_leads").select("id,etapa,etapa_max,tentativas").eq("lista", "ligacoes").like("whatsapp", `%${fim}`).order("criado_em", { ascending: true }).limit(1).maybeSingle();
+  const alcance = alcanceDaLigacao(l, etapa);
+  const a = atual as { id: string; etapa: string; etapa_max: number | null; tentativas: number | null } | null;
+  const nivelAtual = a ? (a.etapa === "perdido" ? -1 : ORDEM_LIGACAO[a.etapa] ?? 0) : -1;
+  const novaEtapa = etapa === "perdido" ? "perdido" : a && a.etapa !== "perdido" && nivelAtual > (ORDEM_LIGACAO[etapa] ?? 0) ? a.etapa : etapa;
+  const campos = {
+    etapa: novaEtapa,
+    etapa_max: Math.max(a?.etapa_max ?? 0, alcance),
+    observacoes: nota.slice(0, 4000),
+    canal: "ligação",
+    email: l.email ?? undefined,
+    payload: { call_id: b.call_id, call_link: b.call_link, resultado: l.resultado, temperatura: l.temperatura, falou_com_responsavel: l.falou_com_responsavel },
+  };
+  if (a) {
+    await db().from("comercial_lista_leads").update({ ...campos, tentativas: (a.tentativas ?? 0) + 1 }).eq("id", a.id);
+  } else {
+    await db().from("comercial_lista_leads").insert({
+      ...campos,
+      lista: "ligacoes",
+      externo_id: `cf:${fone}`,
+      empresa: empresa ?? l.nome_responsavel ?? fone,
+      whatsapp: fone,
+      tentativas: 1,
+      rodada: "Gabi · Callface",
+    });
+  }
+}
+
 /**
  * Trata um envio do Callface. Devolve um resumo do que foi feito.
  * Repetido (mesmo event_id ou call_id) não faz nada de novo.
  */
 export async function tratarCallface(b: Record<string, unknown>, agora = new Date()): Promise<Record<string, unknown>> {
-  const transcricao = transcricaoEmTexto(b.transcription);
-  const resumoCf = typeof b.summarization === "string" ? b.summarization : "";
-  // Teste do botão "Salvar webhook" (payload de exemplo, sem conversa)
-  if (!transcricao.trim() && resumoCf.trim().length < 30) return { ok: true, teste: true };
+  // Teste do botão "Salvar webhook" (payload de exemplo)
+  if (ehTesteCallface(b)) return { ok: true, teste: true };
 
   const chave = String(b.event_id ?? b.call_id ?? "");
   if (chave) {
@@ -266,7 +318,9 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
     await logEvent(null, "callface_recebido", { chave, call_id: b.call_id, numero: b.destination_number });
   }
 
-  const l = await lerComIA(b, agora);
+  const l: LeituraLigacao = semConversa(b)
+    ? normalizarLeitura({ resultado: "caixa_postal", temperatura: "frio", resumo: `Ligação sem conversa (${String(b.call_status ?? "não atendeu").toLowerCase()}).` })
+    : await lerComIA(b, agora);
   const fone = String(b.destination_number ?? "").replace(/\D/g, "");
   const fim = fone.slice(-8);
   const { data: o } = fim.length === 8
@@ -286,7 +340,8 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
 
   if (o) {
     const placeId = (o as { place_id: string }).place_id;
-    await db().from("comercial_card_notas").insert({ card: `g:${placeId}`, texto: nota.slice(0, 4000) });
+    // Ligação sem conversa (não atendeu) conta no funil de Ligações, mas não enche o card de comentários
+    if (l.resultado !== "caixa_postal") await db().from("comercial_card_notas").insert({ card: `g:${placeId}`, texto: nota.slice(0, 4000) });
     const atual = (o as { status_comercial: string | null }).status_comercial ?? "";
     const ORDEM = ["respondeu", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
     if (etapa === "perdido" && !["reuniao", "reuniao_realizada", "proposta", "ganho"].includes(atual)) {
@@ -295,22 +350,10 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
       await db().from("outreach_leads").update({ status_comercial: etapa }).eq("place_id", placeId);
     }
     if (l.resultado === "retorno_combinado") await agendarRetorno(`g:${placeId}`, empresa ?? fone, l).catch(() => null);
-  } else {
-    // Contato que não está no funil da prospecção: entra no funil de Ligações
-    const externo = String(b.call_id ?? `tel:${fone}`);
-    const campos = {
-      empresa: empresa ?? l.nome_responsavel ?? (fone || "Ligação"),
-      whatsapp: fone || null,
-      email: l.email,
-      etapa,
-      observacoes: nota.slice(0, 4000),
-      canal: "ligação",
-      payload: { call_id: b.call_id, call_link: b.call_link, resultado: l.resultado, temperatura: l.temperatura },
-    };
-    const { data: atual } = await db().from("comercial_lista_leads").select("id,tentativas").eq("lista", "ligacoes").eq("whatsapp", fone).limit(1).maybeSingle();
-    if (atual) await db().from("comercial_lista_leads").update({ ...campos, tentativas: ((atual as { tentativas: number }).tentativas ?? 0) + 1 }).eq("id", (atual as { id: string }).id);
-    else await db().from("comercial_lista_leads").insert({ ...campos, lista: "ligacoes", externo_id: externo, tentativas: 1, rodada: "Ligações" });
   }
+
+  // Funil de Ligações (Indicadores): toda ligação conta, com o resultado e até onde chegou
+  await registrarNaListaDeLigacoes(b, l, etapa, nota, empresa, fone).catch((e) => console.error("lista de ligações", e));
 
   // Recusa clara: a Gabi do WhatsApp também não insiste
   if (["sem_interesse", "pediu_para_nao_ligar"].includes(l.resultado) && fone.length >= 10) {

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ehCallface, etapaDoResultado, inicioBrasilia, normalizarLeitura, notaDaLigacao, transcricaoEmTexto } from "../src/lib/callface.ts";
+import { alcanceDaLigacao, ehCallface, ehTesteCallface, semConversa, etapaDoResultado, inicioBrasilia, normalizarLeitura, notaDaLigacao, transcricaoEmTexto } from "../src/lib/callface.ts";
 
 test("reconhece o envio do Callface", () => {
   assert.equal(ehCallface({ call_id: "x", destination_number: "+5511999999999" }), true);
@@ -48,4 +48,20 @@ test("nota do card", () => {
 test("WhatsApp de confirmação quando ligou num fixo", () => {
   assert.equal(normalizarLeitura({ whatsapp: "(11) 98765-4321" }).whatsapp, "5511987654321");
   assert.equal(normalizarLeitura({ whatsapp: "não tem" }).whatsapp, null);
+});
+
+test("teste do Callface e ligação sem conversa", () => {
+  assert.equal(ehTesteCallface({ call_id: "uuid da ligação" }), true);
+  assert.equal(ehTesteCallface({ call_id: "3f6c2a8e-5b1d-4c7e-9a2f-0d8e7b6c5a41" }), false);
+  assert.equal(semConversa({ call_status: "NO_ANSWER", transcription: [] }), true);
+  assert.equal(semConversa({ call_status: "FINISHED", call_duration: 5, transcription: [] }), true);
+  assert.equal(semConversa({ call_status: "FINISHED", call_duration: 90, transcription: [{ role: "user", text: "alô" }] }), false);
+});
+
+test("até onde a ligação chegou", () => {
+  const recusou = normalizarLeitura({ resultado: "sem_interesse", falou_com_responsavel: true });
+  assert.equal(alcanceDaLigacao(recusou, "perdido"), 3);
+  assert.equal(alcanceDaLigacao(normalizarLeitura({ resultado: "sem_interesse" }), "perdido"), 2);
+  assert.equal(alcanceDaLigacao(normalizarLeitura({ resultado: "reuniao_agendada" }), "reuniao"), 5);
+  assert.equal(etapaDoResultado(normalizarLeitura({ resultado: "nao_falou_com_responsavel" }), false), "atendida");
 });

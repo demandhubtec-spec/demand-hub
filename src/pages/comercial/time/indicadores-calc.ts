@@ -27,11 +27,24 @@ const FUNIL_KANBAN: EtapaFunil[] = [
   { key: "ganho", label: "Venda", ajuda: "Fechou." },
 ];
 
+// 23/11 (Kelvin): as ligações da Gabi (Callface) têm funil próprio: ligou, atendeu, conversou com o responsável, interesse, reunião
+const FUNIL_LIGACOES: EtapaFunil[] = [
+  { key: "na_lista", label: "Na lista", ajuda: "Empresas na lista de ligações." },
+  { key: "contato", label: "Ligações feitas", ajuda: "A Gabi ligou (atendendo ou não)." },
+  { key: "atendida", label: "Atendeu", ajuda: "Alguém atendeu a ligação (recepção ou responsável)." },
+  { key: "conversa", label: "Conversou com o responsável", ajuda: "A Gabi conversou de fato com o dono ou responsável." },
+  { key: "qualificacao", label: "Demonstrou interesse", ajuda: "Topou a conversa com o Kelvin ou pediu retorno com interesse." },
+  { key: "reuniao", label: "Reunião agendada", ajuda: "A reunião foi marcada na agenda do Kelvin." },
+  { key: "reuniao_realizada", label: "Reunião realizada", ajuda: "A reunião aconteceu." },
+  { key: "proposta", label: "Negociação", ajuda: "Recebeu proposta ou está negociando." },
+  { key: "ganho", label: "Venda", ajuda: "Fechou." },
+];
+
 export const ETAPAS_FUNIL: Record<CanalFunil, EtapaFunil[]> = {
   google: FUNIL_KANBAN,
   instagram: FUNIL_KANBAN,
   linkedin: FUNIL_KANBAN,
-  ligacoes: FUNIL_KANBAN,
+  ligacoes: FUNIL_LIGACOES,
   relacionamento: FUNIL_KANBAN,
   inbound: [
     { key: "na_lista", label: "Leads do anúncio" },

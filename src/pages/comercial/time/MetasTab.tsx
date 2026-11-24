@@ -15,6 +15,7 @@ const COLUNAS: { key: CanalFunil; nome: string }[] = [
 ];
 const LINHAS: { key: EtapaLista; nome: string }[] = [
   { key: "contato", nome: "Mensagem ou ligação" },
+  { key: "atendida", nome: "Atendeu (só ligações)" },
   { key: "conversa", nome: "Conversa iniciada" },
   { key: "qualificacao", nome: "Demonstrou interesse" },
   { key: "reuniao", nome: "Reunião agendada" },
@@ -28,7 +29,7 @@ const SE_APLICA: Record<CanalFunil, EtapaLista[]> = {
   google: KANBAN,
   instagram: KANBAN,
   linkedin: KANBAN,
-  ligacoes: KANBAN,
+  ligacoes: ["contato", "atendida", "conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   inbound: ["conversa", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"],
   relacionamento: KANBAN,
 };

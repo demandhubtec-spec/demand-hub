@@ -171,7 +171,10 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
         },
       });
     }
+    // 23/11: a ligação de uma empresa que já tem card (prospecção do WhatsApp) vira comentário nesse card, não card novo
+    const fonesProspeccao = new Set(prospeccao.map((p) => fim8(p.whatsapp)).filter(Boolean));
     for (const l of listas) {
+      if (l.lista === "ligacoes" && fim8(l.whatsapp) && fonesProspeccao.has(fim8(l.whatsapp))) continue;
       const pid = l.lista === "instagram" ? placeIdInstagram(l.perfil_url, l.perfil) : null;
       const time = pid ? doTimePorPlace.get(pid) ?? null : null;
       const etapaLista: EtapaLista = time ? etapaListaDoTime(time) : l.etapa;
