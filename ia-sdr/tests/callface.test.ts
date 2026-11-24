@@ -65,3 +65,10 @@ test("até onde a ligação chegou", () => {
   assert.equal(alcanceDaLigacao(normalizarLeitura({ resultado: "reuniao_agendada" }), "reuniao"), 5);
   assert.equal(etapaDoResultado(normalizarLeitura({ resultado: "nao_falou_com_responsavel" }), false), "atendida");
 });
+
+test("nome que não é nome vira null", () => {
+  assert.equal(normalizarLeitura({ nome_responsavel: "não informado" }).nome_responsavel, null);
+  assert.equal(normalizarLeitura({ nome_responsavel: "proprietário" }).nome_responsavel, null);
+  assert.equal(normalizarLeitura({ nome_responsavel: "Carlos Souza" }).nome_responsavel, "Carlos Souza");
+  assert.equal(normalizarLeitura({ quem_atendeu: "Não identificado" }).quem_atendeu, null);
+});

@@ -75,7 +75,18 @@ const DATA_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
 /** Normaliza o JSON que a IA devolveu (nada fora do formato passa). */
 export function normalizarLeitura(j: Record<string, unknown>): LeituraLigacao {
-  const s = (v: unknown) => (typeof v === "string" && v.trim() && !/^(null|vazio|-|n\/a)$/i.test(v.trim()) ? v.trim() : null);
+  // 23/11 (teste): a IA devolveu "não informado" e a confirmação saiu "Oi, não!"
+  const s = (v: unknown) =>
+    typeof v === "string" && v.trim() && !/^(null|vazio|-|n\/a|nenhum|nenhuma|desconhecid[oa]|n[ãa]o (informad[oa]|identificad[oa]|sei|mencionad[oa]|dito|disse|houve|tem))\.?$/i.test(v.trim())
+      ? v.trim()
+      : null;
+  // Nome de gente: palavras com letra maiúscula, sem cargo nem palavra solta ("não", "dono", "recepção")
+  const nome = (v: unknown) => {
+    const t = s(v);
+    if (!t) return null;
+    const primeiro = t.split(/[\s,]+/)[0];
+    return /^[A-ZÀ-Ý][a-zà-ÿ]+$/.test(primeiro) && !/^(Não|Nao|Sim|Dono|Dona|Recepção|Recepcao|Secretária|Secretaria|Responsável|Responsavel|Proprietário|Proprietario|Atendente|Gerente|Doutor|Doutora|Dr|Dra)$/i.test(primeiro) ? t : null;
+  };
   const resultado = RESULTADOS.includes(j.resultado as ResultadoLigacao) ? (j.resultado as ResultadoLigacao) : "nao_falou_com_responsavel";
   const email = s(j.email)?.toLowerCase().replace(/\s+/g, "") ?? null;
   const ri = s(j.reuniao_inicio);
@@ -84,7 +95,7 @@ export function normalizarLeitura(j: Record<string, unknown>): LeituraLigacao {
   return {
     resultado,
     falou_com_responsavel: j.falou_com_responsavel === true,
-    nome_responsavel: s(j.nome_responsavel),
+    nome_responsavel: nome(j.nome_responsavel),
     quem_atendeu: s(j.quem_atendeu),
     reuniao_inicio: ri && DATA_RE.test(ri) ? ri : null,
     email: email && EMAIL_RE.test(email) ? email : null,
@@ -111,7 +122,7 @@ async function lerComIA(b: Record<string, unknown>, agora: Date): Promise<Leitur
 Responda SÓ com um JSON com estas chaves:
 resultado: um de ${RESULTADOS.join(", ")} (reuniao_agendada só se a pessoa topou um dia e horário).
 falou_com_responsavel: true se conversou com o dono ou responsável.
-nome_responsavel: nome do dono/responsável citado, ou null.
+nome_responsavel: só o nome próprio do dono/responsável citado (ex.: "Carlos"), ou null. Nunca escreva "não informado": use null.
 quem_atendeu: nome e função de quem atendeu, ou null.
 reuniao_inicio: dia e horário combinados para a reunião, no formato AAAA-MM-DDTHH:MM (Brasília), resolvendo "terça", "amanhã" etc. a partir da data da ligação; null se não houve.
 whatsapp: número de WhatsApp que a pessoa passou para receber a confirmação, só os dígitos com DDD (ex.: 11987654321); null se não passou outro número.
