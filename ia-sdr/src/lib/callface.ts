@@ -11,6 +11,7 @@
  */
 import { callLLM } from "./llm.ts";
 import { db, logEvent, updateLead, upsertLeadByPhone, type Lead } from "./db.ts";
+import { agendarRecadoLigacao, motivoDoRecado } from "./recado-ligacao.ts";
 import { avisarKelvin, enviarAoLead } from "./canal.ts";
 import { busyIntervals } from "./google.ts";
 import { freeSlots } from "./schedule.ts";
@@ -385,7 +386,8 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
     await logEvent(null, "callface_recebido", { chave, call_id: b.call_id, numero: b.destination_number });
   }
 
-  const l: LeituraLigacao = semConversa(b)
+  const sem = semConversa(b);
+  const l: LeituraLigacao = sem
     ? normalizarLeitura({ resultado: "caixa_postal", temperatura: "frio", resumo: `Ligação sem conversa (${String(b.call_status ?? "não atendeu").toLowerCase()}).` })
     : ehGravacaoDaOperadora(b)
       ? normalizarLeitura({ resultado: "caixa_postal", temperatura: "frio", resumo: "Caiu na gravação da operadora (caixa postal)." })
@@ -429,6 +431,9 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
     const { data: s } = await db().from("sdr_leads").select("id").like("phone", `%${fim}`).limit(1).maybeSingle();
     if (s) await updateLead((s as { id: string }).id, { next_followup_at: null, status: l.resultado === "pediu_para_nao_ligar" ? "opt_out" : "desqualificado" });
   }
-  return { ok: true, resultado: l.resultado, etapa, marcou, no_funil: !!o };
+  // 24/11 (Kelvin): não atendeu ou desligou logo → recado no WhatsApp (fila, em horário comercial)
+  const motivo = motivoDoRecado(l, Number(b.call_duration ?? 0), sem);
+  const recado = motivo && fone.length >= 10 ? await agendarRecadoLigacao(fone, empresa, motivo, agora).catch((e) => `erro: ${String((e as Error)?.message ?? e).slice(0, 120)}`) : null;
+  return { ok: true, resultado: l.resultado, etapa, marcou, no_funil: !!o, recado };
 }
 

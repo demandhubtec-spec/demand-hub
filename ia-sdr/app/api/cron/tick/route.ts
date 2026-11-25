@@ -15,6 +15,7 @@ import { db } from "@/src/lib/db.ts";
 import { dispararRoboPdf } from "@/src/lib/robo-pdf.ts";
 import { runCutucadas } from "@/src/lib/cutucada.ts";
 import { runEnviosAgendados } from "@/src/lib/envios-agendados.ts";
+import { runRecadosPendentes } from "@/src/lib/recado-ligacao.ts";
 import { conferirAgendaConectada } from "@/src/lib/google.ts";
 import { atualizarContextos } from "@/src/lib/contexto-card.ts";
 
@@ -51,6 +52,8 @@ async function handler(req: Request) {
   // Prospecção v2: "Fico no aguardo do atendimento" para quem não respondeu ao "Oi, tudo bem?" em 1 hora
   const cutucadas = await etapa(runCutucadas, 60_000);
   // Mensagens que o Kelvin aprovou para sair num horário certo (17/11)
+  // Ligações da Gabi que nem conectaram (lista da campanha): recado no WhatsApp entra na fila (24/11)
+  const recados = await etapa(runRecadosPendentes, 40_000);
   const programados = await etapa(runEnviosAgendados, 90_000);
   const [leo, rita] = await fichas;
   // Robô do GitHub (logo e PDF do relatório): o agendamento do GitHub falha, então o relógio chama ele
@@ -60,7 +63,7 @@ async function handler(req: Request) {
   // Contexto do card no funil (21/11): temperatura, resumo e objetivo da ligação, lidos pela IA na conversa
   const contextos = await etapa(atualizarContextos, 60_000);
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, programados, agenda, contextos });
+  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, recados, programados, agenda, contextos });
 }
 
 export const GET = handler;
