@@ -29,7 +29,7 @@ export async function OPTIONS(req: Request) {
 }
 
 /** Só dígitos, com o código do país (8 a 15 dígitos). */
-export function soDigitos(n: unknown): string | null {
+function soDigitos(n: unknown): string | null {
   const d = String(n ?? "").replace(/\D/g, "").replace(/^00/, "");
   return d.length >= 8 && d.length <= 15 ? d : null;
 }
