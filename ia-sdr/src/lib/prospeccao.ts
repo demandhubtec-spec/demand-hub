@@ -256,7 +256,7 @@ export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<str
     tipo: `${w.artigo} ${w.singular}`,
     busca: w.busca,
     dono: donoParaCitar(p) ?? "o responsável",
-    especialista: "nosso especialista, o Kelvin",
+    especialista: "nosso especialista",
   };
 }
 
