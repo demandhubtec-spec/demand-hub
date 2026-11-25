@@ -662,3 +662,53 @@ export function useConcluirAcao() {
     },
   });
 }
+
+/** Motivo de cada card que foi para Perdido (24/11/2026, Kelvin): toda venda perdida tem um motivo. */
+export interface PerdaCard {
+  card: string;
+  empresa: string | null;
+  motivo: string;
+  detalhe: string | null;
+  criado_em: string;
+}
+
+export const MOTIVOS_PERDA = [
+  "Preço",
+  "Sem interesse",
+  "Já tem agência ou fornecedor",
+  "Não é o momento",
+  "Sem orçamento",
+  "Não respondeu mais",
+  "Fora do perfil",
+  "Fechou com concorrente",
+  "Outro",
+] as const;
+
+export function usePerdas() {
+  return useQuery({
+    queryKey: ["comercial", "perdas"],
+    refetchInterval: 60_000,
+    queryFn: async (): Promise<Map<string, PerdaCard>> => {
+      const { data, error } = await supabase.from("comercial_perdas").select("*");
+      if (error) throw error;
+      return new Map(((data ?? []) as PerdaCard[]).map((p) => [p.card, p]));
+    },
+  });
+}
+
+/** Grava o motivo da perda e deixa um comentário no card (fica no histórico). */
+export function useRegistrarPerda() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ card, empresa, motivo, detalhe }: { card: string; empresa: string; motivo: string; detalhe?: string }) => {
+      const d = detalhe?.trim() || null;
+      const { error } = await supabase.from("comercial_perdas").upsert({ card, empresa, motivo, detalhe: d, criado_em: new Date().toISOString() });
+      if (error) throw error;
+      await supabase.from("comercial_card_notas").insert({ card, texto: `❌ Perdido. Motivo: ${motivo}${d ? ` (${d})` : ""}` });
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comercial", "perdas"] });
+      qc.invalidateQueries({ queryKey: ["comercial", "card-notas"] });
+    },
+  });
+}

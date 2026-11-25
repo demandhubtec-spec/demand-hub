@@ -59,8 +59,11 @@ export function Quadro<K extends string>({
   abrir,
   abrirConversa,
   paraLixeira,
+  aoPerder,
 }: {
   paraLixeira?: (id: string) => void;
+  /** Arrastou para a coluna final (Perdido): quem usa o quadro pede o motivo antes de mover (24/11). */
+  aoPerder?: (id: string, para: K) => void;
   colunas: readonly Coluna<K>[];
   itens: CardItem[];
   etapa: (id: string) => K | null;
@@ -68,21 +71,16 @@ export function Quadro<K extends string>({
   abrir: (id: string) => void;
   abrirConversa: (id: string) => void;
 }) {
-  const [mostrarPerdidos, setMostrarPerdidos] = React.useState(false);
+  // 24/11 (Kelvin): a coluna Perdido fica sempre à vista, à direita de Venda
   const [sobre, setSobre] = React.useState<K | null>(null);
   const quadro = useArrastarParaRolar<HTMLDivElement>();
-  const visiveis = colunas.filter((c) => !c.fim || mostrarPerdidos);
+  const visiveis = colunas;
   const porColuna = (k: K) => itens.filter((i) => etapa(i.id) === k);
-  const perdidos = colunas.filter((c) => c.fim).reduce((n, c) => n + porColuna(c.key).length, 0);
 
   return (
     <div>
       <div className="mb-3 flex flex-wrap items-center gap-3 text-[13px] text-muted">
         <span>Arraste o card para mudar de etapa. Segure em qualquer espaço vazio do quadro para mover a visão.</span>
-        <label className="ml-auto inline-flex cursor-pointer items-center gap-1.5">
-          <input type="checkbox" checked={mostrarPerdidos} onChange={(e) => setMostrarPerdidos(e.target.checked)} />
-          Mostrar perdidos ({perdidos})
-        </label>
       </div>
       <div ref={quadro} className="flex cursor-grab select-none gap-3 overflow-x-auto pb-3 [scrollbar-width:thin]">
         {visiveis.map((col) => {
@@ -99,10 +97,14 @@ export function Quadro<K extends string>({
                 e.preventDefault();
                 setSobre(null);
                 const id = e.dataTransfer.getData("text/plain");
-                if (id && etapa(id) !== col.key) mover(id, col.key);
+                if (id && etapa(id) !== col.key) {
+                  if (col.fim && aoPerder) aoPerder(id, col.key);
+                  else mover(id, col.key);
+                }
               }}
               className={cn(
                 "flex w-[248px] shrink-0 flex-col rounded-[12px] border border-border bg-surface-2/40 p-2.5 transition-colors",
+                col.fim && "bg-negative-tint/30",
                 sobre === col.key && "border-primary-bright bg-primary-tint/40",
               )}
             >

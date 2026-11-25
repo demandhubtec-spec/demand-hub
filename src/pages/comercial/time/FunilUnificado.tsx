@@ -28,6 +28,9 @@ import {
   useEditarNotaCard,
   useNotasCards,
   useTemperaturasManuais,
+  MOTIVOS_PERDA,
+  usePerdas,
+  useRegistrarPerda,
 } from "@/hooks/useComercial";
 import { cn } from "@/lib/utils";
 import { FichaLead } from "../prospeccao/FichaLead";
@@ -109,6 +112,10 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   const { contatos, isLoading: l2 } = useContatos();
   const { data: listas = [], isLoading: l3 } = useListaLeads();
   const { data: notasCards = [] } = useNotasCards();
+  const { data: perdas } = usePerdas();
+  const registrarPerda = useRegistrarPerda();
+  // Card arrastado para Perdido esperando o motivo (24/11)
+  const [perdendo, setPerdendo] = React.useState<{ id: string; para: EtapaUnica } | null>(null);
   const { data: tempManual } = useTemperaturasManuais();
   const { data: acoes = [] } = useAcoesCards();
   const proxPorCard = React.useMemo(() => proximaPorCard(acoes), [acoes]);
@@ -265,11 +272,13 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
             resumo: sdr?.contexto?.resumo ?? null,
             acao: proxPorCard.get(l.id) ? { texto: rotuloAcao(proxPorCard.get(l.id)!), atrasada: atrasada(proxPorCard.get(l.id)!) } : null,
             etiqueta: l.item.etiqueta ?? (sdr?.contexto?.sdr ?? null),
+            // Perdido mostra o motivo no card (24/11)
+            aviso: etapa === "perdido" && perdas?.get(l.id) ? `Motivo: ${perdas.get(l.id)!.motivo}${perdas.get(l.id)!.detalhe ? ` (${perdas.get(l.id)!.detalhe})` : ""}` : etapa === "perdido" ? null : l.item.aviso,
           },
         };
       })
       .sort((a, b) => (RANK[a.item.nota ?? "Frio"] ?? 3) - (RANK[b.item.nota ?? "Frio"] ?? 3) || String(b.item.quando ?? "").localeCompare(String(a.item.quando ?? "")));
-  }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace, notasCards, tempManual, proxPorCard]);
+  }, [prospeccao, listas, contatos, sdrPorFone, doTimePorPlace, notasCards, tempManual, proxPorCard, perdas]);
 
   const conta = React.useMemo(() => {
     const m = new Map<OrigemLead, number>();
@@ -484,6 +493,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           itens={visiveis.map((l) => l.item)}
           etapa={(id) => porId.get(id)?.etapa ?? null}
           mover={mover}
+          aoPerder={(id, para) => setPerdendo({ id, para })}
           abrir={(id) => setAberto(porId.get(id) ?? null)}
           abrirConversa={abrirConversa}
           paraLixeira={(id) => {
@@ -493,12 +503,29 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
         />
       )}
 
+      {perdendo && (
+        <MotivoPerda
+          empresa={porId.get(perdendo.id)?.item.titulo ?? ""}
+          fechar={() => setPerdendo(null)}
+          confirmar={(motivo, detalhe) => {
+            const l = porId.get(perdendo.id);
+            const { id, para } = perdendo;
+            setPerdendo(null);
+            if (!l) return;
+            registrarPerda.mutate(
+              { card: id, empresa: l.item.titulo, motivo, detalhe },
+              { onSuccess: () => mover(id, para), onError: (e) => showToast(`Erro: ${(e as Error).message}`) },
+            );
+          }}
+        />
+      )}
+
       {aberto && (
         <Prontuario
           linha={linhas.find((l) => l.id === aberto.id) ?? aberto}
           etapaNome={colunas.find((c) => c.key === (linhas.find((l) => l.id === aberto.id) ?? aberto).etapa)?.label ?? ""}
           etapas={colunas.map((c) => ({ key: c.key, label: c.label }))}
-          mover={(para) => mover(aberto.id, para)}
+          mover={(para) => (para === "perdido" ? setPerdendo({ id: aberto.id, para }) : mover(aberto.id, para))}
           sdr={aberto.item.conversa ? contatos.find((c) => c.id === aberto.item.conversa) ?? null : null}
           onClose={() => setAberto(null)}
           abrirConversa={abrirConversa}
@@ -739,7 +766,7 @@ function Lixeira({ itens, restaurar, fechar }: { itens: Contato[]; restaurar: (i
 function ComoFunciona({ fechar }: { fechar: () => void }) {
   const regras: [string, string][] = [
     ["Um funil só", "Google, Instagram, LinkedIn, Ligações, Anúncios e os leads cadastrados à mão ficam no mesmo quadro. O filtro Origem do lead escolhe o que aparece."],
-    ["Etapas iguais para todos", "Entrada, Mensagem ou ligação, Conversa iniciada, Qualificação, Reunião agendada, Reunião realizada, Negociação e Venda. Perdidos ficam no Mostrar perdidos."],
+    ["Etapas iguais para todos", "Entrada, Mensagem ou ligação, Conversa iniciada, Qualificação, Reunião agendada, Reunião realizada, Negociação, Venda e Perdido. Ao arrastar para Perdido, o portal pede o motivo (preço, sem interesse...), que fica no card e no histórico."],
     ["Inbound pula uma etapa", "Quem vem de anúncio já chega conversando: entra direto e vai para Conversa iniciada, sem passar por Mensagem ou ligação."],
     ["Ligações se encaixam", "Ligações feitas contam como Mensagem ou ligação. Atendidas e Conversa contam como Conversa iniciada."],
     ["Origem em todo card", "Cada card mostra de onde veio e o grupo (Outbound, Inbound ou Relacionamento). No topo de cada etapa, a barrinha mostra a mistura de origens."],
@@ -1296,6 +1323,49 @@ function NovoLead({ onClose }: { onClose: () => void }) {
             }
           >
             {criar.isPending ? "Salvando…" : "Salvar lead"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ───────────── Motivo da perda (24/11/2026, Kelvin) ───────────── */
+function MotivoPerda({ empresa, fechar, confirmar }: { empresa: string; fechar: () => void; confirmar: (motivo: string, detalhe: string) => void }) {
+  const [motivo, setMotivo] = React.useState<string>("");
+  const [detalhe, setDetalhe] = React.useState("");
+  const precisaDetalhe = motivo === "Outro";
+  return (
+    <Dialog open onOpenChange={(o) => !o && fechar()}>
+      <DialogContent className="max-w-[440px]">
+        <DialogTitle>Por que {empresa || "esse lead"} foi perdido?</DialogTitle>
+        <DialogDescription>Toda venda perdida precisa de um motivo. Ele aparece no card e fica no histórico.</DialogDescription>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {MOTIVOS_PERDA.map((m) => (
+            <button
+              key={m}
+              onClick={() => setMotivo(m)}
+              className={cn(
+                "rounded-full border px-3 py-1 text-[13px]",
+                motivo === m ? "border-negative bg-negative-tint font-semibold text-negative" : "border-border bg-surface text-ink hover:border-negative/50",
+              )}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+        <textarea
+          value={detalhe}
+          onChange={(e) => setDetalhe(e.target.value)}
+          placeholder={precisaDetalhe ? "Conte o motivo" : "Detalhe (opcional): o que a pessoa disse"}
+          className="mt-3 h-20 w-full rounded-[8px] border border-border bg-surface p-2 text-[13px] outline-none focus:border-primary"
+        />
+        <div className="mt-3 flex justify-end gap-2">
+          <Button variant="outline" onClick={fechar}>
+            Cancelar
+          </Button>
+          <Button disabled={!motivo || (precisaDetalhe && !detalhe.trim())} onClick={() => confirmar(motivo, detalhe)}>
+            Mover para Perdido
           </Button>
         </div>
       </DialogContent>
