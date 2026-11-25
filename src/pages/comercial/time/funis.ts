@@ -46,7 +46,9 @@ export type EtapaInbound = (typeof COLUNAS_INBOUND)[number]["key"];
 /** Coluna de um lead da prospecção ativa. Quem ainda não foi abordado fica fora (está na Aprovação). */
 export function etapaOutbound(l: OutreachLead): EtapaOutbound | null {
   const sc = l.status_comercial;
-  if (sc === "perdido" || sc === "descartado" || l.wa_status === "optout" || l.cadencia === "parada") return "perdido";
+  // 24/11 (Kelvin): Perdido é só quem disse que não quer (ou foi marcado perdido à mão). Cadência parada não é perda:
+  // o lead segue na etapa em que está (agora o próximo passo é a ligação).
+  if (sc === "perdido" || sc === "descartado" || l.wa_status === "optout") return "perdido";
   if (sc === "ganho" || sc === "proposta" || sc === "reuniao_realizada" || sc === "reuniao" || sc === "qualificacao") return sc;
   if (sc === "respondeu" || l.wa_status === "respondeu" || l.email_status === "respondeu" || l.cadencia === "respondeu") return "conversa";
   const abordado =
