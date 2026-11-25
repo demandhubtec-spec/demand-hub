@@ -12,6 +12,7 @@
 import { callLLM } from "./llm.ts";
 import { db, logEvent, updateLead, upsertLeadByPhone, type Lead } from "./db.ts";
 import { agendarRecadoLigacao, motivoDoRecado } from "./recado-ligacao.ts";
+import { agendarMaterial } from "./material-ligacao.ts";
 import { avisarKelvin, enviarAoLead } from "./canal.ts";
 import { busyIntervals } from "./google.ts";
 import { freeSlots } from "./schedule.ts";
@@ -72,6 +73,7 @@ export interface LeituraLigacao {
   objecao: string | null;
   temperatura: "quente" | "morno" | "frio";
   resumo: string;
+  material: "whatsapp" | "email" | null; // 25/11: pediu para mandar o material/apresentação por esse canal
 }
 
 const RESULTADOS: ResultadoLigacao[] = ["reuniao_agendada", "retorno_combinado", "sem_interesse", "nao_falou_com_responsavel", "falou_sem_decisao", "caixa_postal", "numero_errado", "pediu_para_nao_ligar"];
@@ -117,6 +119,7 @@ export function normalizarLeitura(j: Record<string, unknown>): LeituraLigacao {
     objecao: s(j.objecao),
     temperatura: temp,
     resumo: s(j.resumo) ?? "",
+    material: j.material === "whatsapp" || j.material === "email" ? j.material : null,
   };
 }
 
@@ -141,7 +144,8 @@ retorno: quando ligar de novo e com quem, em texto curto; null se não houve.
 retorno_inicio: o mesmo no formato AAAA-MM-DDTHH:MM, se der para saber; null se não.
 objecao: a principal objeção nas palavras da pessoa, ou null.
 temperatura: quente, morno ou frio.
-resumo: 2 ou 3 frases com quem falou, o que disse e o próximo passo.`;
+material: "whatsapp" ou "email" se a pessoa pediu para mandarmos material, apresentação, portfólio ou informações por esse canal (e-mail só se ela passou o e-mail); null se não pediu.
+resumo: 2 ou 3 frases com quem falou, o que disse e o próximo passo. Escreva a empresa como "Demand" (nunca "DemandIA") e só em português.`;
   const conteudo = [
     `Número: ${b.destination_number ?? ""}`,
     b.summarization ? `Resumo do Callface:\n${String(b.summarization).slice(0, 4000)}` : "",
@@ -406,6 +410,20 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
     marcou = r.marcou;
     extra = r.texto;
   }
+  // 25/11 (Kelvin): pediu "manda por WhatsApp/e-mail" → o material sai sozinho pela fila
+  let material: string | null = null;
+  if (l.material && !marcou && l.resultado !== "pediu_para_nao_ligar") {
+    material = await agendarMaterial({
+      canal: l.material === "email" && l.email ? "email" : "whatsapp",
+      fone,
+      whatsapp: l.whatsapp,
+      email: l.email,
+      nome: l.nome_responsavel,
+      empresa,
+      placeId: (o as { place_id?: string } | null)?.place_id ?? null,
+    }, agora).catch((e) => `Material não foi para a fila: ${String((e as Error)?.message ?? e).slice(0, 120)}`);
+    extra = [extra, `📎 ${material}`].filter(Boolean).join("\n");
+  }
   const etapa = etapaDoResultado(l, marcou);
   const nota = notaDaLigacao(l, extra, typeof b.call_link === "string" ? b.call_link : null);
 
@@ -432,8 +450,8 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
     if (s) await updateLead((s as { id: string }).id, { next_followup_at: null, status: l.resultado === "pediu_para_nao_ligar" ? "opt_out" : "desqualificado" });
   }
   // 24/11 (Kelvin): não atendeu ou desligou logo → recado no WhatsApp (fila, em horário comercial)
-  const motivo = motivoDoRecado(l, Number(b.call_duration ?? 0), sem);
+  const motivo = material ? null : motivoDoRecado(l, Number(b.call_duration ?? 0), sem);
   const recado = motivo && fone.length >= 10 ? await agendarRecadoLigacao(fone, empresa, motivo, agora).catch((e) => `erro: ${String((e as Error)?.message ?? e).slice(0, 120)}`) : null;
-  return { ok: true, resultado: l.resultado, etapa, marcou, no_funil: !!o, recado };
+  return { ok: true, resultado: l.resultado, etapa, marcou, no_funil: !!o, recado, material };
 }
 
