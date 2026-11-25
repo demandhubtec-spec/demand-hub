@@ -18,7 +18,7 @@ test("texto do material: nome, empresa curta, diagnóstico opcional e pergunta d
   assert.match(t, /^Oi, Giovana!/);
   assert.match(t, /a Oral Unic\./);
   assert.doesNotMatch(t, /diagnóstico que/);
-  assert.match(t, /Qual o melhor dia e horário pra Giovana\?$/);
+  assert.match(t, /Qual o melhor dia e horário pra você\?$/);
   const t2 = textoDoMaterial(null, null, "x", "https://r");
   assert.match(t2, /^Oi! Aqui é a Gabi, da Demand/);
   assert.match(t2, /diagnóstico que nosso especialista preparou/);

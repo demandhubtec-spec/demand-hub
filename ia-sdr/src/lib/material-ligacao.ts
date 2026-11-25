@@ -44,7 +44,7 @@ export function textoDoMaterial(nome: string | null, empresa: string | null, por
     `${oi} Aqui é a Gabi, da Demand 😊 Como combinamos na ligação, segue o material pra ${emp}.`,
     `Aqui dá pra ver como a gente ajuda em marketing, vendas e tecnologia: ${portfolio}`,
     relatorio ? `E aqui o diagnóstico que nosso especialista preparou pra ${emp}: ${relatorio}` : null,
-    `Ele mostra tudo isso ao vivo numa conversa rápida de 20 minutinhos, sem custo. Qual o melhor dia e horário pra ${nome ? nome.split(" ")[0] : "conversar com o responsável"}?`,
+    `Nosso especialista mostra tudo isso ao vivo numa conversa rápida de 20 minutinhos, sem custo. Qual o melhor dia e horário pra ${nome ? "você" : "conversar com o responsável"}?`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -85,7 +85,7 @@ export async function agendarMaterial(p: PedidoMaterial, agora = new Date()): Pr
   // E-mail: quando pediu por e-mail, ou quando não há WhatsApp
   if (p.email) {
     const assunto = `Demand | material${empresa ? ` para a ${nomeCurto(empresa)}` : ""}`;
-    await db().from("envios_agendados").insert({ lead_id: null, place_id: p.placeId, canal: "email", para: p.email, assunto, texto: texto.replace(/\s*😊/g, ""), com_pdf: false, enviar_em: em });
+    await db().from("envios_agendados").insert({ lead_id: null, place_id: p.placeId, canal: "email", para: p.email, assunto, texto: texto.replace(/\s*😊/g, "."), com_pdf: false, enviar_em: em });
     await logEvent(null, "material_ligacao", { canal: "email", para: p.email, portfolio, relatorio: !!relatorio });
     return `Material (portfólio${relatorio ? " + diagnóstico" : ""}) na fila do e-mail para ${p.email}.`;
   }
