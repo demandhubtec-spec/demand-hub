@@ -65,6 +65,7 @@ import {
   ORDEM_UNICA,
   comAvancoDaGabi,
   ajustarPelaConversa,
+  comLigacao,
 } from "./funis";
 
 const fim8 = (t: string | null | undefined) => (t ?? "").replace(/\D/g, "").slice(-8);
@@ -155,6 +156,8 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
   // Todos os cards, de todas as origens, já com a etapa única
   const linhas = React.useMemo<Linha[]>(() => {
     const out: Linha[] = [];
+    // 25/11: etapa da ligação de cada telefone, para o card do Google andar junto
+    const ligPorFone = new Map(listas.filter((x) => x.lista === "ligacoes" && fim8(x.whatsapp)).map((x) => [fim8(x.whatsapp), x.etapa]));
     for (const l of prospeccao) {
       if (l.origem === "instagram") continue; // aparece pela lista do Instagram
       const e = etapaOutbound(l);
@@ -162,7 +165,7 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
       const sdr = l.whatsapp ? sdrPorFone.get(fim8(l.whatsapp)) : undefined;
       out.push({
         id: `g:${l.place_id}`,
-        etapa: comAvancoDaGabi(daOutbound(e), sdr),
+        etapa: comAvancoDaGabi(comLigacao(daOutbound(e), l.whatsapp ? ligPorFone.get(fim8(l.whatsapp)) : null), sdr),
         origem: "google",
         reg: { tipo: "google", lead: l },
         item: {
@@ -261,7 +264,11 @@ export function FunilUnificado({ abrirConversa }: { abrirConversa: (id: string) 
           (l.reg.tipo === "google" && l.reg.lead.status_comercial === "qualificacao") ||
           (l.reg.tipo === "lista" && l.reg.lead.etapa === "qualificacao") ||
           sdr?.status === "qualificado";
-        const etapa = ajustarPelaConversa(l.etapa, sdr, t ?? null, qualifAMao);
+        const ajustada = ajustarPelaConversa(l.etapa, sdr, t ?? null, qualifAMao, l.reg.tipo === "inbound");
+        // O resultado da ligação é piso: a conversa por telefone conta mesmo sem conversa no WhatsApp (25/11)
+        const lig =
+          l.reg.tipo === "google" ? (l.reg.lead.whatsapp ? ligPorFone.get(fim8(l.reg.lead.whatsapp)) : null) : l.reg.tipo === "lista" && l.reg.lead.lista === "ligacoes" ? l.reg.lead.etapa : null;
+        const etapa = t ? ajustada : comLigacao(ajustada, lig);
         return {
           ...l,
           etapa,

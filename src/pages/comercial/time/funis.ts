@@ -204,7 +204,15 @@ export const origemDaFonte = (f: string | null | undefined): OrigemLead =>
   f && (ORIGENS as { k: string }[]).some((o) => o.k === f) ? (f as OrigemLead) : "outro";
 
 export const daOutbound = (e: EtapaOutbound): EtapaUnica => (e === "disparar" ? "entrada" : e === "enviado" ? "contato" : e);
-export const daLista = (e: EtapaLista): EtapaUnica => (e === "na_lista" ? "entrada" : e === "atendida" ? "conversa" : e);
+// 25/11 (Kelvin, jornada): ligação atendida só pela recepção ainda não é conversa com o lead → "Mensagem ou ligação".
+export const daLista = (e: EtapaLista): EtapaUnica => (e === "na_lista" ? "entrada" : e === "atendida" ? "contato" : e);
+
+/** 25/11: o card do Google também anda com a ligação da Gabi (a ligação dele não vira card separado). Fica a etapa mais avançada. */
+export function comLigacao(e: EtapaUnica, lig: EtapaLista | null | undefined): EtapaUnica {
+  if (!lig || e === "perdido" || lig === "perdido") return e;
+  const l = daLista(lig);
+  return ORDEM_UNICA.indexOf(l) > ORDEM_UNICA.indexOf(e) ? l : e;
+}
 export const daInbound = (e: EtapaInbound): EtapaUnica => (e === "recebido" ? "entrada" : e === "atendimento" ? "conversa" : e);
 export const paraOutbound = (u: EtapaUnica): EtapaOutbound => (u === "entrada" ? "disparar" : u === "contato" ? "enviado" : u);
 export const paraLista = (u: EtapaUnica): EtapaLista => (u === "entrada" ? "na_lista" : u);
@@ -239,6 +247,7 @@ export function ajustarPelaConversa(
   sdr: Contato | undefined | null,
   tempManual: "quente" | "morno" | "frio" | null | undefined,
   qualifAMao: boolean,
+  inbound = false,
 ): EtapaUnica {
   if (["perdido", "reuniao", "reuniao_realizada", "proposta", "ganho"].includes(etapa)) return etapa;
   const ate = (alvo: EtapaUnica) => (ORDEM_UNICA.indexOf(alvo) > ORDEM_UNICA.indexOf(etapa) ? alvo : etapa);
@@ -247,7 +256,9 @@ export function ajustarPelaConversa(
   if (tempManual) return etapa;
   const ctx = sdr?.contexto;
   if (!ctx) return etapa;
-  let e: EtapaUnica = etapa === "entrada" ? "contato" : etapa;
+  // Inbound não passa por "Mensagem ou ligação": quem chegou pelo anúncio e ainda não conversou fica na Entrada (25/11)
+  if (inbound && etapa === "entrada" && ctx.conversou === false) return "entrada";
+  let e: EtapaUnica = etapa === "entrada" ? (inbound ? "conversa" : "contato") : etapa;
   if (ctx.conversou === false) return (e === "conversa" || e === "qualificacao") && !qualifAMao ? "contato" : e;
   if (ctx.temperatura === "quente") return ORDEM_UNICA.indexOf("qualificacao") > ORDEM_UNICA.indexOf(e) ? "qualificacao" : e;
   if (e === "qualificacao" && !qualifAMao) e = "conversa";
