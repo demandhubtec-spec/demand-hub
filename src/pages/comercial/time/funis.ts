@@ -257,7 +257,7 @@ export function ajustarPelaConversa(
   const ctx = sdr?.contexto;
   if (!ctx) return etapa;
   // Inbound não passa por "Mensagem ou ligação": quem chegou pelo anúncio e ainda não conversou fica na Entrada (25/11)
-  if (inbound && etapa === "entrada" && ctx.conversou === false) return "entrada";
+  if (inbound && ctx.conversou === false) return (etapa === "entrada" || etapa === "conversa" || etapa === "qualificacao") && !qualifAMao ? "entrada" : etapa;
   let e: EtapaUnica = etapa === "entrada" ? (inbound ? "conversa" : "contato") : etapa;
   if (ctx.conversou === false) return (e === "conversa" || e === "qualificacao") && !qualifAMao ? "contato" : e;
   if (ctx.temperatura === "quente") return ORDEM_UNICA.indexOf("qualificacao") > ORDEM_UNICA.indexOf(e) ? "qualificacao" : e;
