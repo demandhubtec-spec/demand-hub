@@ -11,6 +11,7 @@ import { formatBR } from "./time.ts";
 import { linkPrevia } from "./extras.ts";
 import { nomeCurto } from "./travas.ts";
 import { portfolioDoSegmento } from "./material-ligacao.ts";
+import { ofertaDoNicho, ofertaEmTexto } from "./oferta-nicho.ts";
 
 export interface Prospeccao {
   place_id?: string;
@@ -174,6 +175,10 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
   if (/est[eé]tic|depila|harmoniza|laser|biomedic/.test(n)) return { plural: "clínicas de estética", singular: "clínica", artigo: "a", publico: "clientes", busca: "clínica de estética" };
   if (/cl[ií]nic|m[eé]dic|endocrin|consult|sa[uú]de|oncolog|geriatr|nutri|fisio|psic|anest|diagn/.test(n))
     return { plural: "clínicas", singular: "clínica", artigo: "a", publico: "pacientes", busca: n.split(/[,;|]/)[0].trim() || "clínica" };
+  // 27/11: novos nichos foco
+  if (/faculdade|universidade|curso|t[eé]cnico|profissionalizante|idioma|ingl[eê]s|educa[cç]/.test(n)) return { plural: "escolas e cursos", singular: "escola", artigo: "a", publico: "alunos", busca: n.split(/[,;|]/)[0].trim() || "curso" };
+  if (/academia|crossfit|cross fit|pilates|muscula|funcional|fitness/.test(n)) return { plural: "academias e estúdios", singular: "academia", artigo: "a", publico: "alunos", busca: /pilates/.test(n) ? "pilates" : /cross/.test(n) ? "crossfit" : "academia" };
+  if (/construtora|incorporadora/.test(n)) return { plural: "construtoras e incorporadoras", singular: "construtora", artigo: "a", publico: "clientes", busca: "construtora" };
   // "Casa de verão" (ar-condicionado, piscinas) e qualquer outro: fala genérica de empresa, sem inventar nicho
   return { plural: "empresas", singular: "empresa", artigo: "a", publico: "clientes", busca: /ver[aã]o|climatiz|ar.?condic/.test(n) ? "ar-condicionado" : "o serviço de vocês" };
 }
@@ -259,23 +264,20 @@ export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<str
     dono: donoParaCitar(p) ?? "o responsável",
     especialista: "nosso especialista",
     portfolio: portfolioDoSegmento(p.nicho, p.empresa),
+    oferta: ofertaEmTexto(ofertaDoNicho(ehAlimentacao(p) ? "alimentação" : p.nicho, p.empresa)),
+    reuniao: ofertaDoNicho(ehAlimentacao(p) ? "alimentação" : p.nicho, p.empresa).reuniao,
   };
 }
 
 /** A frase do "o que a gente faz" da apresentação, no jeito do segmento e com a cidade certa (ou sem cidade). */
 export function apresentacaoDoLead(p: Prospeccao, phone?: string | null): string {
-  const w = palavrasDoNicho(p.nicho);
+  void palavrasDoNicho;
   void phone; // a apresentação não cita mais a cidade (19/11)
   // 18/11 (Kelvin): a DemandIA não é agência e não "implementa IA": desenvolve soluções inteligentes sob medida,
   // do zero, no processo de cada empresa. A frase tem que chamar a atenção do dono.
   // 19/11 (Kelvin, aprovado): a dor do dono primeiro, depois o que a gente resolve, em dois balões curtos.
-  if (ehAlimentacao(p))
-    return `Muito restaurante vende bem, mas deixa boa parte do lucro na taxa do iFood e perde pedido na correria do WhatsApp.\n\nA gente resolve isso com o canal próprio de vocês: cardápio digital ou aplicativo com a cara da marca, e um atendente no WhatsApp que anota o pedido sozinho. Mais pedido, cliente voltando e sem taxa.`;
-  if (w.plural === "clínicas de estética")
-    return `Sabe quando a cliente chama fora do horário pra agendar e ninguém responde, ou desmarca em cima da hora?\n\nA gente resolve isso com um atendente inteligente no WhatsApp da clínica: ele agenda, confirma e reagenda a cliente sozinho, até fora do horário, e já avisa a profissional. Menos falta e agenda mais cheia.`;
-  if (w.publico === "pacientes")
-    return `Sabe quando o paciente chama com a clínica fechada e ninguém responde, ou esquece a consulta e não avisa?\n\nA gente resolve isso com um atendente inteligente no WhatsApp da clínica: ele agenda, confirma e reagenda o paciente sozinho, até fora do horário, direto na agenda do especialista, e já avisa o doutor. Menos falta e agenda mais cheia.`;
-  return `Muita empresa perde cliente porque demora pra responder no WhatsApp e faz na mão o que podia rodar sozinho.\n\nA gente resolve isso com marketing, vendas e tecnologia sob medida: anúncio, site e um atendente inteligente no WhatsApp que responde e agenda na hora. Mais cliente e menos trabalho manual.`;
+  // 27/11 (Kelvin): a chamada é a dor do nicho (oferta-nicho.ts)
+  return ofertaDoNicho(ehAlimentacao(p) ? "alimentação" : p.nicho, p.empresa).chamada;
 }
 
 /** Dados do lead para a Gabi (v2). O que ela faz com eles está no Prompt System (prompt-gabi.ts / portal). */
