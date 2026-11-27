@@ -34,7 +34,8 @@ test("etapa do funil pelo resultado", () => {
   const base = normalizarLeitura({ resultado: "reuniao_agendada" });
   assert.equal(etapaDoResultado(base, true), "reuniao");
   assert.equal(etapaDoResultado(base, false), "qualificacao");
-  assert.equal(etapaDoResultado(normalizarLeitura({ resultado: "sem_interesse" }), false), "perdido");
+  assert.equal(etapaDoResultado(normalizarLeitura({ resultado: "sem_interesse", falou_com_responsavel: true }), false), "perdido");
+  assert.equal(etapaDoResultado(normalizarLeitura({ resultado: "sem_interesse", falou_com_responsavel: false }), false), "atendida");
   assert.equal(etapaDoResultado(normalizarLeitura({ resultado: "caixa_postal" }), false), "contato");
 });
 

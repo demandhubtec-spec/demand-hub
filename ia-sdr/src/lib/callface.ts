@@ -172,7 +172,9 @@ export function etapaDoResultado(l: LeituraLigacao, marcou: boolean): string {
       return marcou ? "reuniao" : "qualificacao";
     case "retorno_combinado":
       return !l.falou_com_responsavel ? "atendida" : l.temperatura === "quente" ? "qualificacao" : "conversa";
+    // 27/11 (Kelvin): "não" de recepção ou funcionário não é decisão da empresa. Perdido só quando o responsável recusa.
     case "sem_interesse":
+      return l.falou_com_responsavel ? "perdido" : "atendida";
     case "pediu_para_nao_ligar":
     case "numero_errado":
       return "perdido";
@@ -313,7 +315,15 @@ async function confirmarHoje(lead: Lead, empresa: string | null, inicio: Date, p
       `⚡ ${nome} quer conversar ${pedido} (ligação da Gabi).${opcoes.length ? ` Sua agenda tem horário livre hoje: ${opcoes.join(", ")}.` : " Não consegui conferir sua agenda agora."} Consegue? A Gabi avisou que está confirmando com você.\nwa.me/${lead.phone}`,
       "gabi",
     ).catch(() => null);
-    await enviarAoLead(lead.id, `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nJá estou vendo na agenda do nosso especialista se dá pra ser ${pedido === "agora" ? "agora" : "ainda hoje"} e te confirmo por aqui em instantes.`);
+    // 27/11: com horário livre hoje, a Gabi já oferece (antes ela só dizia "estou vendo" e o lead esfriava: Carolina Campos, 26/11)
+    await enviarAoLead(
+      lead.id,
+      opcoes.length >= 2
+        ? `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nO nosso especialista consegue hoje às ${opcoes[0]} ou às ${opcoes[1]}. Qual fica melhor pra você? Te mando o link na hora.`
+        : opcoes.length === 1
+          ? `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nO nosso especialista consegue hoje às ${opcoes[0]}. Pode ser? Te mando o link na hora.`
+          : `Oi${primeiro}! Aqui é a Gabi, da Demand, que falou com você agora por telefone 😊\n\nJá estou vendo na agenda do nosso especialista se dá pra ser ${pedido === "agora" ? "agora" : "ainda hoje"} e te confirmo por aqui em instantes.`,
+    );
     await logEvent(lead.id, "pediu_hoje", { pedido, livres: opcoes });
     return { marcou: false, texto: `Pediu para ${pedido}. Kelvin avisado para confirmar; a Gabi disse no WhatsApp que está confirmando.` };
   }
@@ -435,6 +445,10 @@ export async function tratarCallface(b: Record<string, unknown>, agora = new Dat
     const ORDEM = ["respondeu", "qualificacao", "reuniao", "reuniao_realizada", "proposta", "ganho"];
     if (etapa === "perdido" && !["reuniao", "reuniao_realizada", "proposta", "ganho"].includes(atual)) {
       await db().from("outreach_leads").update({ status_comercial: "perdido", cadencia: "parada", proximo_toque_em: null, proximo_canal: null }).eq("place_id", placeId);
+      // Todo perdido tem motivo (24/11)
+      const motivo = l.resultado === "numero_errado" ? "Fora do perfil" : "Sem interesse";
+      const detalhe = l.resultado === "pediu_para_nao_ligar" ? "Pediu para não ligar mais" : l.resultado === "numero_errado" ? "Número errado" : `O responsável recusou na ligação${l.objecao ? `: ${l.objecao}` : ""}`.slice(0, 200);
+      await db().from("comercial_perdas").upsert({ card: `g:${placeId}`, empresa: empresa ?? fone, motivo, detalhe }, { onConflict: "card" });
     } else if (["qualificacao", "reuniao"].includes(etapa) && ORDEM.indexOf(etapa) > ORDEM.indexOf(atual)) {
       await db().from("outreach_leads").update({ status_comercial: etapa }).eq("place_id", placeId);
     }
