@@ -10,6 +10,7 @@ import { db } from "./db.ts";
 import { formatBR } from "./time.ts";
 import { linkPrevia } from "./extras.ts";
 import { nomeCurto } from "./travas.ts";
+import { portfolioDoSegmento } from "./material-ligacao.ts";
 
 export interface Prospeccao {
   place_id?: string;
@@ -257,6 +258,7 @@ export function varsPromptGabi(p: Prospeccao, phone?: string | null): Record<str
     busca: w.busca,
     dono: donoParaCitar(p) ?? "o responsável",
     especialista: "nosso especialista",
+    portfolio: portfolioDoSegmento(p.nicho, p.empresa),
   };
 }
 

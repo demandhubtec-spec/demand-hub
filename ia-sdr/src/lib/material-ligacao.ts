@@ -35,13 +35,17 @@ export interface PedidoMaterial {
   nome: string | null; // dono/responsável
   empresa: string | null;
   placeId: string | null;
+  /** De onde veio o pedido (muda o "como combinamos na ligação"). Padrão: ligação. */
+  origem?: "ligacao" | "whatsapp";
+  /** Quem assina ("Gabi" ou "Marina"). Padrão: Gabi. */
+  sdr?: string;
 }
 
-export function textoDoMaterial(nome: string | null, empresa: string | null, portfolio: string, relatorio: string | null): string {
+export function textoDoMaterial(nome: string | null, empresa: string | null, portfolio: string, relatorio: string | null, origem: "ligacao" | "whatsapp" = "ligacao", sdr = "Gabi"): string {
   const oi = nome ? `Oi, ${nome.split(" ")[0]}!` : "Oi!";
   const emp = empresa ? nomeCurto(empresa) : "vocês";
   return [
-    `${oi} Aqui é a Gabi, da Demand 😊 Como combinamos na ligação, segue o material pra ${emp}.`,
+    `${oi} Aqui é a ${sdr}, da Demand 😊 Como combinamos ${origem === "whatsapp" ? "no WhatsApp" : "na ligação"}, segue o material pra ${emp}.`,
     `Aqui dá pra ver como a gente ajuda em marketing, vendas e tecnologia: ${portfolio}`,
     relatorio ? `E aqui o diagnóstico que nosso especialista preparou pra ${emp}: ${relatorio}` : null,
     `Nosso especialista mostra tudo isso ao vivo numa conversa rápida de 20 minutinhos, sem custo. Qual o melhor dia e horário pra ${nome ? "você" : "conversar com o responsável"}?`,
@@ -64,7 +68,7 @@ export async function agendarMaterial(p: PedidoMaterial, agora = new Date()): Pr
     if (ol?.relatorio_token && ol.diagnosticos) relatorio = linkRelatorio(ol.relatorio_token);
   }
   const portfolio = portfolioDoSegmento(nicho, empresa);
-  const texto = textoDoMaterial(p.nome, empresa, portfolio, relatorio);
+  const texto = textoDoMaterial(p.nome, empresa, portfolio, relatorio, p.origem ?? "ligacao", p.sdr ?? "Gabi");
   const em = new Date(agora.getTime() + 3 * 60e3).toISOString();
 
   // WhatsApp: o número que a pessoa passou, ou o que a Gabi ligou se for celular

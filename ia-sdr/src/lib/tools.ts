@@ -61,6 +61,7 @@ export const TOOLS: Tool[] = [
           description: "Preferência do lead, se ele disse alguma",
         },
         a_partir_de: { type: "string", description: "Opcional. Data AAAA-MM-DD a partir da qual buscar, se o lead pediu outro dia" },
+        hoje: { type: "boolean", description: "true SÓ quando o lead pediu para conversar hoje. Traz os horários livres de hoje (a partir de 1 hora daqui)." },
       },
     },
   },
@@ -372,7 +373,9 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
       const hojeL = toLocal(now);
       let slots = freeSlots(now, busy, { ...cfg, diasAFrente })
         .filter((s) => offsetDias === 0 || s.start >= localDayStart(base))
-        .filter((s) => { const l = toLocal(s.start); return !(l.y === hojeL.y && l.m === hojeL.m && l.d === hojeL.d); });
+        .filter((s) => { const l = toLocal(s.start); const ehHoje = l.y === hojeL.y && l.m === hojeL.m && l.d === hojeL.d; return input.hoje === true ? ehHoje && s.start.getTime() - now.getTime() >= 60 * 60e3 : !ehHoje; });
+      // 26/11 (Carolina Campos): pediu reunião no mesmo dia e ouviu que a agenda estava cheia, com horário livre
+      if (input.hoje === true && !slots.length) return "Hoje não há mais horário livre na agenda do especialista. Diga isso com carinho e ofereça o primeiro horário de amanhã (chame ver_horarios de novo sem 'hoje').";
       if (input.preferencia === "sabado") slots = slots.filter((s) => toLocal(s.start).dow === 6);
       if (input.preferencia === "dias_de_semana") slots = slots.filter((s) => toLocal(s.start).dow !== 6);
       if (!slots.length) return "Sem horários livres nesse período. Pergunte se o lead prefere outra semana ou encaminhe para humano.";

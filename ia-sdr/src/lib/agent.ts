@@ -24,8 +24,10 @@ import { nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { systemPrompt } from "./prompt.ts";
 import { ehFluxoV2, prospeccaoDoTelefone, temSiteProprio } from "./prospeccao.ts";
 import { encerrarLead, runTool, TOOLS } from "./tools.ts";
-import { aplicarTravasDeTexto, deveCalarComRobo, extrairIndicacao, naoPedeResposta, nomeCurto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semApresentacaoRepetida, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
+import { aplicarTravasDeTexto, deveCalarComRobo, deveCalarNaDespedida, extrairEmail, extrairIndicacao, naoPedeResposta, nomeCurto, dizQueEnviouDiagnostico, faltaLinkDoModelo, linkDoModeloNaFerramenta, semApresentacaoRepetida, semPromessaDeConvite, semReapresentacao, situacaoDaRecusa } from "./travas.ts";
 import { linkPrevia } from "./extras.ts";
+import { agendarMaterial } from "./material-ligacao.ts";
+import { nomeDaSdr } from "./sdrs.ts";
 import { avisarFalha, avisarIndicacao, orientacoesPara } from "./canal.ts";
 import type { OrigemAnuncio } from "./anuncio.ts";
 import {
@@ -138,6 +140,26 @@ async function reply(leadId: string) {
     await logEvent(leadId, "robo_ignorado", { ultima: String(hist[hist.length - 1]?.content ?? "").slice(0, 120) }).catch(() => null);
     return;
   }
+  // 27/11: "Obrigada!" / "Por nada!" sem fim (Lia, atendente virtual). Já nos despedimos e só veio agradecimento: silêncio
+  if (!emDemo && !doDono && prospeccao && deveCalarNaDespedida(hist)) {
+    await logEvent(leadId, "despedida_ignorada", { ultima: String(hist[hist.length - 1]?.content ?? "").slice(0, 80) }).catch(() => null);
+    return;
+  }
+  // 27/11: passaram o e-mail no WhatsApp (RJC Clínica, Nova Opção Turismo) e nada saiu. O material vai sozinho
+  let avisoEmail = "";
+  if (!emDemo && !doDono && prospeccao?.place_id) {
+    const iUlt = hist.map((m) => m.direction).lastIndexOf("out");
+    const email = hist.slice(iUlt + 1).filter((m) => m.direction === "in").map((m) => extrairEmail(m.content)).find(Boolean) ?? null;
+    if (email) {
+      const ja = await ultimoEvento<{ email?: string }>(leadId, "material_email_whatsapp").catch(() => null);
+      if (ja?.email !== email) {
+        const r = await agendarMaterial({ canal: "email", fone: String(lead.phone), whatsapp: null, email, nome: null, empresa: prospeccao.empresa ?? null, placeId: prospeccao.place_id, origem: "whatsapp", sdr: nomeDaSdr(lead.agente) }).catch((e) => `falhou: ${e}`);
+        await logEvent(leadId, "material_email_whatsapp", { email, r: String(r).slice(0, 160) }).catch(() => null);
+        if (String(r).includes("na fila do e-mail"))
+          avisoEmail = `\n\n## O material já está indo por e-mail\nO sistema já mandou o portfólio${prospeccao.diag_enviado_em ? "" : " (e o diagnóstico, se estiver pronto)"} para ${email}. Diga só "Combinado! Acabei de te mandar por lá 😊" e, se a pessoa é quem decide, convide para o bate-papo de 20 minutinhos com nosso especialista. Não peça o e-mail de novo.`;
+      }
+    }
+  }
   // Pediu para sair da demo na última mensagem (o webhook já registrou): a Ana faz a virada agora
   if (!emDemo && demoIni && demoFim && Date.now() - new Date(demoFim.em).getTime() < 120_000) demoAcabouAgora = true;
 
@@ -168,7 +190,7 @@ async function reply(leadId: string) {
           tools: [TOOL_ENCERRAR_DEMO],
         })
       : await callLLM({
-          system: systemPrompt(lead, meeting, agora, prospeccao, orientacoes, anuncio, (demoIni ? contextoPosDemo(demoAcabouAgora) : "") + avisoRecusa),
+          system: systemPrompt(lead, meeting, agora, prospeccao, orientacoes, anuncio, (demoIni ? contextoPosDemo(demoAcabouAgora) : "") + avisoRecusa + avisoEmail),
           messages,
           // encerrar_demo fica na lista para o histórico da virada continuar válido
           tools: demoIni ? [...TOOLS, TOOL_ENCERRAR_DEMO] : TOOLS,

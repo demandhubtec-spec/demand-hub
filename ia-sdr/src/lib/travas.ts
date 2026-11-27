@@ -187,7 +187,56 @@ export function semReapresentacao(texto: string, jaConversando: boolean): string
 
 /** Todas as travas de texto que valem para qualquer mensagem da SDR. */
 export function aplicarTravasDeTexto(texto: string, now: Date): string {
-  return limparFormatacao(tirarAssinatura(vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)))))));
+  return siteCerto(semPerguntaDeFaturamento(limparFormatacao(tirarAssinatura(vinteMinutos(tirarJoinha(tirarQuerida(limparCaracteresEstranhos(corrigirSaudacao(texto, now)))))))));
+}
+
+/** 27/11: a Gabi mandou o site errado (demandia.com.br). O nosso é demandhub.com.br. */
+export function siteCerto(texto: string): string {
+  return (texto ?? "").replace(/\b(?:https?:\/\/)?(?:www\.)?demand-?ia\.com(?:\.br)?/gi, "demandhub.com.br");
+}
+
+/**
+ * 27/11 (Galpão do Churrasco): a Ivianh contou que investe até R$ 2 mil e ouviu pergunta de faturamento.
+ * Na prospecção não se pergunta faturamento: o balão com essa pergunta sai da mensagem.
+ */
+export function semPerguntaDeFaturamento(texto: string): string {
+  const baloes = (texto ?? "").split(/\n\s*\n/);
+  const re = /\?|\b(?:me (?:conta|fala|diz)|pode(?:ria)? (?:me )?(?:contar|dizer|falar))\b/i;
+  const fat = /\b(?:faturamento|faturam|fatura(?:r|m)?\b|faturando|receita mensal|quanto (?:voc[eê]s )?(?:vendem|ganham|tiram)|acima de r\$|ticket m[eé]dio)/i;
+  const novos = baloes.filter((b) => !(fat.test(b) && re.test(b)));
+  return novos.length ? novos.join("\n\n") : texto;
+}
+
+/** Só agradecimento, despedida ou "ok" (sem pergunta nem informação nova). */
+export function soDespedida(texto: string | null | undefined): boolean {
+  const t = String(texto ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z\s]/g, " ").replace(/\s+/g, " ").trim();
+  if (!t) return true; // só emoji/pontuação
+  if (t.split(" ").length > 12) return false;
+  return /^(?:(?:ok|okay|blz|beleza|certo|ta|ta bom|combinado|perfeito|show|otimo|maravilha|obrigad[oa]s?|muito obrigad[oa]|obg|brigad[oa]|valeu|vlw|de nada|por nada|imagina|disponha|igualmente|nos que agradecemos|eu que agradeco|tenha (?:um )?(?:otimo|bom|excelente) (?:dia|tarde|fim de semana|final de semana)|bom dia|boa tarde|boa noite|ate mais|ate logo|tchau|abracos?|abs|amem|grat[ao]|sucesso|para voce tambem|pra voce tambem|voce tambem|tambem|e nos|nos)\s*)+$/.test(t);
+}
+
+/**
+ * 27/11: troca sem fim de "Obrigada!" / "Por nada!" com a Lia (atendente virtual) e com gente que só agradece.
+ * Se a nossa última mensagem já era um agradecimento ou despedida, sem pergunta, e do outro lado só veio
+ * agradecimento, despedida, "ok" ou emoji: não responde.
+ */
+export function deveCalarNaDespedida(hist: { direction: string; content: string | null }[]): boolean {
+  if (!hist.length || hist[hist.length - 1].direction !== "in") return false;
+  let k = hist.length - 1;
+  const desde: string[] = [];
+  while (k >= 0 && hist[k].direction === "in") desde.unshift(String(hist[k--].content ?? ""));
+  if (k < 0) return false;
+  const nossa = String(hist[k].content ?? "");
+  if (nossa.includes("?")) return false;
+  const nossaEhDespedida = soDespedida(nossa) || /\b(obrigad[ao]|por nada|de nada|imagina|disponha|sucesso|[oó]timo dia|[oó]tima semana|bom fim de semana|at[eé] mais|fico [àa] disposi[cç][aã]o|qualquer coisa,? (?:[eé] s[oó] )?(?:chamar|me chamar|me avisar))\b/i.test(nossa);
+  return nossaEhDespedida && desde.every((d) => soDespedida(d) || naoPedeResposta(d));
+}
+
+const RE_EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
+/** E-mail que a pessoa escreveu na mensagem (27/11: RJCCLINICA@GMAIL.COM e a Beatriz passaram e nada saiu). */
+export function extrairEmail(texto: string | null | undefined): string | null {
+  const m = String(texto ?? "").match(RE_EMAIL);
+  return m ? m[0].toLowerCase().replace(/\.$/, "") : null;
 }
 
 /** 23/11 (OdontoTop): "Com carinho, Gabi" no meio da conversa. WhatsApp não leva assinatura. */
