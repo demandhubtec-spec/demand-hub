@@ -51,6 +51,7 @@ const APIFY = "https://api.apify.com/v2";
 
 const apifyToken = () => process.env.APIFY_TOKEN || "";
 const spHora = (d = new Date()) => Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", hour: "numeric", hourCycle: "h23" }).format(d));
+const spDiaDoMes = (d = new Date()) => Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", day: "numeric" }).format(d));
 const spDiaSemana = (d = new Date()) =>
   ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", weekday: "short" }).format(d));
 
@@ -267,13 +268,15 @@ export async function rodarAuto(opts: { forcar?: boolean } = {}, agora = new Dat
   const comGoogle = !!googlePlacesKey();
   const h = spHora(agora);
   const diaUtilCedo = comGoogle && spDiaSemana(agora) >= 1 && spDiaSemana(agora) <= 5 && h >= 6 && h < 20 && agora.getTime() - ultima > 3 * 3600e3;
-  if (cfg.auto_ativo && !cfg.auto_run_id && (opts.forcar || (domingoANoite && !jaRodouNaSemana) || diaUtilCedo)) {
+  // 28/11 (Kelvin): a cota do Google vira à meia-noite do dia 1º; a coleta já roda na madrugada (00h20 e 01h20)
+  const viradaDoMes = comGoogle && spDiaDoMes(agora) === 1 && h < 6 && agora.getTime() - ultima > 3 * 3600e3;
+  if (cfg.auto_ativo && !cfg.auto_run_id && (opts.forcar || (domingoANoite && !jaRodouNaSemana) || diaUtilCedo || viradaDoMes)) {
     const meta = (cfg.auto_meta_dia ?? 30) * 5;
     const tem = await estoque();
     const falta = meta - tem;
     out.estoque = { tem, meta };
     if (falta <= 0) {
-      if (!diaUtilCedo || opts.forcar) await log("coleta", `Fila já cobre a semana (${tem} de ${meta}); sem coleta nova`);
+      if ((!diaUtilCedo && !viradaDoMes) || opts.forcar) await log("coleta", `Fila já cobre a semana (${tem} de ${meta}); sem coleta nova`);
       await db().from("outreach_config").update({ auto_ultima_coleta: agora.toISOString() }).eq("id", 1);
     } else if (comGoogle && cidades.length && nichos.length) {
       out.google = await coletarPeloGoogle(cfg, cidades, nichos, falta, agora);

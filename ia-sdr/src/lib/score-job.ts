@@ -13,8 +13,8 @@ import { toLocal } from "./time.ts";
 const CAMPOS =
   "place_id,nicho,empresa,avaliacoes,nota,fotos,tem_descricao,tem_horario,responde_avaliacoes,posicao_busca,site,site_fonte,instagram,observacoes,whatsapp,decisor,socios,email,cnpj_email,porte,cnpj_situacao,ig_perfil,ig_perfil_em,score_em,enriquecido_em";
 const FILA = ["sem", "gerando", "rascunho", "aprovada"];
-/** Teto do Instagram do score: US$ 0,20 por dia (cerca de 65 perfis) e nunca deixa menos de US$ 0,50 no mês. */
-const TETO_DIA_USD = 0.2;
+/** Teto do Instagram do score: US$ 0,60 por dia (cerca de 200 perfis) e nunca deixa menos de US$ 0,50 no mês. */
+const TETO_DIA_USD = 0.6;
 const RESERVA_MES_USD = 0.5;
 const POR_RODADA = 20;
 
@@ -30,8 +30,6 @@ async function gastoScoreHoje(): Promise<number> {
 }
 
 async function lerInstagram(): Promise<Record<string, unknown>> {
-  const { h, dow } = toLocal(new Date());
-  if (dow === 0 || h < 8 || h >= 19) return { skipped: "fora do horário" };
   if (!process.env.APIFY_TOKEN) return { skipped: "sem APIFY_TOKEN" };
   const { data: o } = await db().rpc("outreach_orcamento");
   const orc = (o ?? {}) as { gasto_usd?: number; teto_usd?: number };
