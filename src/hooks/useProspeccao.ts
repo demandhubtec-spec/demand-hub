@@ -63,6 +63,11 @@ export interface OutreachLead {
   duda_nota?: string | null;
   avaliacoes: number | null;
   observacoes: string | null;
+  /** Score de qualidade (28/11): 0 a 100, faixa A/B/C, dor mais visível e o que pesou. */
+  score?: number | null;
+  score_faixa?: "A" | "B" | "C" | null;
+  score_dor?: string | null;
+  score_detalhe?: { blocos?: Record<string, number>; motivos?: string[] } | null;
   origem: string | null;
   coletado_em: string | null;
   wa_status: WaStatus;

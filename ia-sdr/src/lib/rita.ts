@@ -148,7 +148,7 @@ export function lerPerfil(p: any): PerfilInstagram {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
-async function perfisInstagram(usuarios: string[]): Promise<{ perfis: PerfilInstagram[]; custo: number }> {
+export async function perfisInstagram(usuarios: string[]): Promise<{ perfis: PerfilInstagram[]; custo: number }> {
   const token = process.env.APIFY_TOKEN;
   if (!token || !usuarios.length) return { perfis: [], custo: 0 };
   const r = await fetch(`${APIFY}/acts/${ATOR_INSTAGRAM}/runs?token=${token}&waitForFinish=120`, {

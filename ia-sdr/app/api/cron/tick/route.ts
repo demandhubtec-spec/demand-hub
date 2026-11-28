@@ -18,6 +18,7 @@ import { runEnviosAgendados } from "@/src/lib/envios-agendados.ts";
 import { runRecadosPendentes } from "@/src/lib/recado-ligacao.ts";
 import { conferirAgendaConectada } from "@/src/lib/google.ts";
 import { atualizarContextos } from "@/src/lib/contexto-card.ts";
+import { runScoreLeads } from "@/src/lib/score-job.ts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -34,6 +35,8 @@ async function handler(req: Request) {
     }));
   // Léo (ficha das empresas) e Rita/Duda (diagnósticos) começam já, em paralelo com o resto
   const fichas = Promise.all([etapa(rodarLeoComVez, 200_000), etapa(runRitaEDuda, 200_000)]);
+  // Score de qualidade dos leads da fila (28/11): Instagram pelo Apify com teto e cálculo do score, em paralelo
+  const scoreLeads = etapa(runScoreLeads, 180_000);
   // Garante que o WhatsApp está conectado; depois manda lembretes e follow-ups.
   const whatsapp = await etapa(ensureWhatsAppsConnected, 70_000);
   // Follow-ups ligados? O Kelvin desliga tudo colocando 0 em "Follow-ups de WhatsApp por dia" (Prospecção > Controles)
@@ -56,6 +59,7 @@ async function handler(req: Request) {
   const recados = await etapa(runRecadosPendentes, 40_000);
   const programados = await etapa(runEnviosAgendados, 90_000);
   const [leo, rita] = await fichas;
+  const score = await scoreLeads;
   // Robô do GitHub (logo e PDF do relatório): o agendamento do GitHub falha, então o relógio chama ele
   const robo_pdf = await etapa(dispararRoboPdf, 30_000);
   // Qual agenda as SDRs estão olhando (e-mail e compromissos dos próximos 7 dias), a cada 6 horas
@@ -63,7 +67,7 @@ async function handler(req: Request) {
   // Contexto do card no funil (21/11): temperatura, resumo e objetivo da ligação, lidos pela IA na conversa
   const contextos = await etapa(atualizarContextos, 60_000);
   // O Estúdio (Time de Marketing IA) tem relógio próprio, a cada minuto: /api/cron/estudio
-  return Response.json({ ok: true, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, recados, programados, agenda, contextos });
+  return Response.json({ ok: true, score, whatsapp, reminders, followups, pedidos, retomadas, demo, leo, rita, robo_pdf, cutucadas, recados, programados, agenda, contextos });
 }
 
 export const GET = handler;

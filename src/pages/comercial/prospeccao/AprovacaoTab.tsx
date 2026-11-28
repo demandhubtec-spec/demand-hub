@@ -137,8 +137,20 @@ export function CardLead({ lead, abertoInicial = true }: { lead: OutreachLead; a
             >
               Prioridade {prio.nivel.toLowerCase()} · {prio.nota}
             </span>
+            {lead.score_faixa && (
+              <span
+                className={cn(
+                  "rounded-full px-2 py-[2px] text-[12px] font-semibold",
+                  lead.score_faixa === "A" ? "bg-positive-tint text-positive" : lead.score_faixa === "B" ? "bg-primary-tint text-primary-bright" : "bg-surface-2 text-muted",
+                )}
+                title={(lead.score_detalhe?.motivos ?? []).join(" · ")}
+              >
+                Score {lead.score_faixa} · {lead.score}
+              </span>
+            )}
           </div>
           {prio.motivos.length > 0 && <div className="text-[12px] text-muted">Por quê: {prio.motivos.join(", ")}</div>}
+          {lead.score_dor && <div className="text-[12px] text-muted">Dor mais visível: {lead.score_dor}</div>}
           <div className="text-[12px] text-muted">
             {[lead.nicho, lead.cidade, lead.decisor && `Decisor: ${lead.decisor}`, lead.email ? "tem e-mail" : "sem e-mail", (lead.tentativa ?? 1) > 1 && `${lead.tentativa}ª tentativa`]
               .filter(Boolean)
@@ -294,7 +306,8 @@ export function AprovacaoTab() {
   const contPrio = (n: FiltroPrioridade) => (n === "todas" ? doFiltro.length : doFiltro.filter((l) => pontuacao(l).nivel === n).length);
   const lista = doFiltro
     .filter((l) => prio === "todas" || pontuacao(l).nivel === prio)
-    .sort((a, b) => (ordem === "maior" ? 1 : -1) * (pontuacao(b).nota - pontuacao(a).nota));
+    // 28/11: com score de qualidade, ordena por ele (A primeiro); sem score, pela prioridade de antes
+    .sort((a, b) => (ordem === "maior" ? 1 : -1) * ((b.score ?? pontuacao(b).nota) - (a.score ?? pontuacao(a).nota)));
 
   const emCadencia = leads.filter((l) => l.cadencia === "ativa" && l.wa_status === "enviado").length;
   const emBloco = useAprovarEmBloco();

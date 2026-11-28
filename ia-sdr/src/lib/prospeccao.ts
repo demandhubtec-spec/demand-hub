@@ -6,6 +6,7 @@
  *
  * Só lê outreach_leads. Quem escreve lá é o motor (outreach-wa-tick) e o portal.
  */
+import { scoreEmTexto } from "./score-lead.ts";
 import { db } from "./db.ts";
 import { formatBR } from "./time.ts";
 import { linkPrevia } from "./extras.ts";
@@ -32,6 +33,10 @@ export interface Prospeccao {
   diagnostico?: unknown;
   /** Raio-x digital da Rita (Instagram, site e Google): o diagnóstico de quem veio da lista do Instagram. */
   diagnosticos?: unknown;
+  /** Score de qualidade (28/11): 0 a 100, faixa A/B/C e a dor mais visível. */
+  score?: number | null;
+  score_faixa?: string | null;
+  score_dor?: string | null;
   /** Cadência: os toques escritos pela Ana e quantos já foram feitos. */
   sequencia?: { n: number; canal: string; assunto?: string; texto: string }[] | null;
   toque_atual?: number | null;
@@ -79,7 +84,7 @@ export async function prospeccaoDoTelefone(phone: string): Promise<Prospeccao | 
   if (tail.length < 8) return null;
   const r = await db()
     .from("outreach_leads")
-    .select("place_id,email,empresa,cadencia,nicho,cidade,endereco,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,diagnosticos,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em")
+    .select("place_id,email,empresa,cadencia,nicho,cidade,endereco,decisor,cargo_decisor,site,instagram,observacoes,wa_message,wa_sent_at,diagnostico,diagnosticos,sequencia,toque_atual,ultimo_toque_em,site_preview,marca,socios,status_comercial,retorno_em,retorno_nota,diag_enviado_em,responsavel_contato,retomadas,retomada_em,score,score_faixa,score_dor")
     .like("whatsapp", `%${tail}`)
     // O robô marca ultimo_toque_em ANTES de enviar e wa_sent_at só depois; a resposta automática
     // da empresa pode chegar nesse meio tempo, então vale qualquer um dos dois.
@@ -292,7 +297,7 @@ function contextoProspeccaoV2(p: Prospeccao): string {
 Você chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Primeira mensagem: "${v(p.wa_message)}".
 Empresa: ${v(nomeCurto(p.empresa, p.cidade, p.endereco))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${cidadeReal(p) || "não sabemos pelo cadastro (use a do prompt)"} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
 ${p.diagnostico ? `\nDados verificados da empresa no Google (pode usar UM número para mostrar a dor, sem chamar de diagnóstico nem de análise, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDados verificados da empresa (Instagram, site e Google; pode usar UM número para mostrar a dor, sem chamar de diagnóstico nem de análise, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}${ehAlimentacao(p) ? CONTEXTO_RESTAURANTE : ""}
-Situação agora: contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
+${scoreEmTexto(p) ? `${scoreEmTexto(p)}\n` : ""}Situação agora: contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
 }
 
 const RE_ALIMENTACAO = /aliment|restaur|lanch|pizz|hamburg|burger|confeit|doce|salgad|marmit|a[cç]a[ií]|gelat|sorvet|padar|caf[eé]|\bbar\b|churras|gastronom|comida|food|delivery|chef|cardápio|espetaria|coxinha|buffet/i;

@@ -733,7 +733,8 @@ Deno.serve(async (req) => {
   let filaBase = sb.from("outreach_leads").select("*").eq("wa_status", "pendente").not("whatsapp", "is", null);
   if (cfg.exigir_aprovacao !== false) filaBase = filaBase.eq("msg_status", "aprovada");
   if (jaTestados.length) filaBase = filaBase.not("place_id", "in", `(${jaTestados.map((id) => `"${id}"`).join(",")})`);
-  const { data: fila } = await filaBase.order("prioridade", { ascending: true }).order("created_at", { ascending: true }).limit(600);
+  // 28/11: dentro da prioridade, o score de qualidade decide a ordem (A primeiro; sem score por último)
+  const { data: fila } = await filaBase.order("prioridade", { ascending: true }).order("score", { ascending: false, nullsFirst: false }).order("created_at", { ascending: true }).limit(600);
   // Turno de alimentação: à noite só sai quem é da noite; de dia, a noite espera e o almoço só sai das 9h às 11h
   const noTurno = (l: any) => {
     const t = turnoDoLead(l);
