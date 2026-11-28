@@ -56,6 +56,8 @@ async function lerInstagram(): Promise<Record<string, unknown>> {
   const { perfis, custo } = await perfisInstagram(usuarios);
   if (custo > 0)
     await db().from("outreach_coletas").insert({ custo_usd: custo, lugares_coletados: 0, novos_adicionados: 0, observacoes: `Score: Instagram (${usuarios.length} perfis)` });
+  // Apify não devolveu nada (sem crédito, token ou falha): não marca os leads como lidos, tenta de novo depois
+  if (!perfis.length) return { lidos: 0, pedidos: usuarios.length, custo, falha: "o Apify não devolveu perfis" };
   const porUsuario = new Map(perfis.map((p) => [p.usuario, p]));
   const agora = new Date().toISOString();
   await Promise.all(
