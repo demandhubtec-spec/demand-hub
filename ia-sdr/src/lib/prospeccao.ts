@@ -178,6 +178,7 @@ export function palavrasDoNicho(nicho: string | null | undefined): { plural: str
   // 27/11: novos nichos foco
   if (/faculdade|universidade|curso|t[eé]cnico|profissionalizante|idioma|ingl[eê]s|educa[cç]/.test(n)) return { plural: "escolas e cursos", singular: "escola", artigo: "a", publico: "alunos", busca: n.split(/[,;|]/)[0].trim() || "curso" };
   if (/academia|crossfit|cross fit|pilates|muscula|funcional|fitness/.test(n)) return { plural: "academias e estúdios", singular: "academia", artigo: "a", publico: "alunos", busca: /pilates/.test(n) ? "pilates" : /cross/.test(n) ? "crossfit" : "academia" };
+  if (/distribuidor|atacad|revenda|importador/.test(n)) return { plural: "distribuidoras", singular: "distribuidora", artigo: "a", publico: "lojistas", busca: "distribuidora" };
   if (/construtora|incorporadora/.test(n)) return { plural: "construtoras e incorporadoras", singular: "construtora", artigo: "a", publico: "clientes", busca: "construtora" };
   // "Casa de verão" (ar-condicionado, piscinas) e qualquer outro: fala genérica de empresa, sem inventar nicho
   return { plural: "empresas", singular: "empresa", artigo: "a", publico: "clientes", busca: /ver[aã]o|climatiz|ar.?condic/.test(n) ? "ar-condicionado" : "o serviço de vocês" };

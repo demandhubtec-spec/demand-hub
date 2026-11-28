@@ -30,12 +30,12 @@ test("motivo do recado", () => {
 test("texto do recado da Gabi e da Marina", () => {
   const g = textoDoRecado("nao_atendeu", "gabi", "Clínica Sorriso | Odontologia em Itu");
   assert.match(g, /Aqui é a Gabi, da Demand/);
-  assert.match(g, /pra Clínica Sorriso:/);
+  assert.match(g, /clientes da Clínica Sorriso\./);
   assert.doesNotMatch(g, /Kelvin|agora há pouco/);
   const m = textoDoRecado("desligou", "marina", null);
   assert.match(m, /Aqui é a Marina/);
   assert.match(m, /ligação da Gabi, da nossa equipe, caiu/);
-  assert.match(m, /nosso especialista preparou:/);
+  assert.match(m, /consultoria gratuita/);
 });
 
 test("nome curto", () => {

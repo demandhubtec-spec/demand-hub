@@ -48,7 +48,7 @@ export function textoDoMaterial(nome: string | null, empresa: string | null, por
     `${oi} Aqui é a ${sdr}, da Demand 😊 Como combinamos ${origem === "whatsapp" ? "no WhatsApp" : "na ligação"}, segue o material pra ${emp}.`,
     `Aqui dá pra ver como a gente ajuda em marketing, vendas e tecnologia: ${portfolio}`,
     relatorio ? `E aqui o diagnóstico que nosso especialista preparou pra ${emp}: ${relatorio}` : null,
-    `Nosso especialista mostra tudo isso ao vivo numa conversa rápida de 20 minutinhos, sem custo. Qual o melhor dia e horário pra ${nome ? "você" : "conversar com o responsável"}?`,
+    `Nosso especialista faz uma consultoria 100% gratuita, de uns 20 minutinhos pelo Meet, e te mostra na prática como ficaria pra ${emp}. Qual o melhor dia e horário pra ${nome ? "você" : "conversar com o responsável"}?`,
   ]
     .filter(Boolean)
     .join("\n\n");
@@ -57,7 +57,7 @@ export function textoDoMaterial(nome: string | null, empresa: string | null, por
 /** Põe o material na fila. Devolve o que fez (vai para a nota do card). */
 export async function agendarMaterial(p: PedidoMaterial, agora = new Date()): Promise<string> {
   let nicho: string | null = null;
-  let relatorio: string | null = null;
+  const relatorio: string | null = null;
   let empresa = p.empresa;
   if (p.placeId) {
     const { data: o } = await db().from("outreach_leads").select("empresa,nicho,wa_status,status_comercial,relatorio_token,diagnosticos").eq("place_id", p.placeId).maybeSingle();
@@ -65,7 +65,8 @@ export async function agendarMaterial(p: PedidoMaterial, agora = new Date()): Pr
     if (ol?.wa_status === "optout") return "Material não enviado: a empresa pediu para não ser chamada.";
     nicho = ol?.nicho ?? null;
     empresa = empresa ?? ol?.empresa ?? null;
-    if (ol?.relatorio_token && ol.diagnosticos) relatorio = linkRelatorio(ol.relatorio_token);
+    // 27/11 (Kelvin): o diagnóstico está em revisão; o material leva só o portfólio e o convite para a consultoria
+    void linkRelatorio;
   }
   const portfolio = portfolioDoSegmento(nicho, empresa);
   const texto = textoDoMaterial(p.nome, empresa, portfolio, relatorio, p.origem ?? "ligacao", p.sdr ?? "Gabi");

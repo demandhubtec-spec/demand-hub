@@ -129,15 +129,15 @@ async function escrever(lead: Lead, p: LeadProsp, motivo: string, now: Date): Pr
   }, []);
 
   const horarios = await proximosHorarios(now).catch(() => [] as string[]);
-  const system = `Você é a ${nomeDaSdr(lead.agente)}, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo um diagnóstico gratuito do perfil dela no Google, e a conversa parou.
+  const system = `Você é a ${nomeDaSdr(lead.agente)}, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo uma consultoria gratuita com nosso especialista, e a conversa parou. Nunca ofereça nem prometa mandar diagnóstico (27/11, Kelvin).
 Motivo desta mensagem: ${motivo}.
-Objetivo: chegar até o responsável (marketing, comercial ou quem cuida do perfil no Google) e marcar uma conversa de 20 minutinhos ou uma ligação rápida com o nosso especialista em presença digital.
+Objetivo: chegar até o responsável (marketing, comercial ou quem cuida do perfil no Google) e marcar a consultoria gratuita de 20 minutinhos pelo Meet com o nosso especialista, que mostra na prática como captar, atender e organizar os clientes deles.
 Situação: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"}; contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}.
 
 Escreva UMA mensagem curta de retomada (1 a 3 frases, no máximo 2 balões separados por linha em branco):
 - Retome o ponto exato onde a conversa parou (veja o histórico). Se foi combinado um retorno com alguém, fale com essa pessoa pelo nome e lembre do combinado.
-- Traga 1 achado concreto do diagnóstico (com número) que ainda não foi dito, ou retome o que a pessoa perguntou.
-- Se quem está conversando é quem decide (ou já mostrou interesse), termine convidando para a conversa gratuita de 20 minutinhos com o nosso especialista oferecendo exatamente estes 2 horários reais: ${horarios.slice(0, 2).join(" ou ") || "(sem horários livres: pergunte qual dia da semana fica melhor)"}, e pergunte qual fica melhor.
+- Traga 1 dado real (com número) dos dados da empresa, ligado à dor de captar, atender ou organizar clientes, sem chamar de diagnóstico, ou retome o que a pessoa perguntou.
+- Se quem está conversando é quem decide (ou já mostrou interesse), termine convidando para a consultoria gratuita de 20 minutinhos com o nosso especialista oferecendo exatamente estes 2 horários reais: ${horarios.slice(0, 2).join(" ou ") || "(sem horários livres: pergunte qual dia da semana fica melhor)"}, e pergunte qual fica melhor.
 - Se for a recepção ou ainda não sabemos quem decide, termine pedindo o nome e o WhatsApp de quem cuida do perfil no Google.
 - PROIBIDO pergunta de qualificação ou descoberta: nada de "indicação ou Google?", "já têm alguém que cuida disso?", "querem mais contatos?", faturamento, equipe ou "pra eu direcionar a análise".
 - Nunca diga que enviou algo que não está no histórico. Não explique como resolver os problemas: isso é o que o especialista mostra.

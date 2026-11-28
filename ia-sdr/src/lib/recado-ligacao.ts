@@ -47,7 +47,8 @@ export function textoDoRecado(motivo: MotivoRecado, sdr: unknown, empresa: strin
   const abertura = motivo === "desligou"
     ? `Oi! Aqui é a ${eu}, da Demand 😊 ${quem === "gabi" ? "Acho que a nossa ligação caiu" : "Acho que a ligação da Gabi, da nossa equipe, caiu"}.`
     : `Oi! Aqui é a ${eu}, da Demand 😊 ${ligou}, mas acho que não foi um bom momento.`;
-  const doQue = `É sobre um diagnóstico gratuito que nosso especialista preparou${empresa ? ` pra ${nomeCurto(empresa)}` : ""}: como vocês aparecem hoje no Google e no Instagram e como a tecnologia pode ajudar no dia a dia.`;
+  // 27/11 (Kelvin): a oferta é a consultoria gratuita, não o diagnóstico
+  const doQue = `É sobre uma consultoria gratuita, de uns 20 minutinhos pelo Meet, em que nosso especialista mostra na prática como captar, atender e organizar os clientes${empresa ? ` da ${nomeCurto(empresa)}` : ""}.`;
   return `${abertura}\n\n${doQue}\n\nPosso te contar por aqui?`;
 }
 

@@ -13,6 +13,7 @@ test("segmento do lead", () => {
   assert.equal(segmentoDoLead("Restaurantes e alimentação"), "alimentacao");
   assert.equal(segmentoDoLead("Imobiliária"), "imobiliaria");
   assert.equal(segmentoDoLead("Construtora"), "construtora");
+  assert.equal(segmentoDoLead("Distribuidora", "Distribuidora de tabacaria e headshop"), "b2b");
   assert.equal(segmentoDoLead("Casa de verão"), "generico");
 });
 
@@ -20,5 +21,5 @@ test("oferta em texto traz dor, promessa, reunião e pergunta", () => {
   const t = ofertaEmTexto(ofertaDoNicho("Academia"));
   assert.match(t, /janeiro/);
   assert.match(t, /aula experimental/);
-  assert.match(t, /motivo da reunião/);
+  assert.match(t, /consultoria gratuita/);
 });

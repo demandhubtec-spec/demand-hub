@@ -1,3 +1,4 @@
+import { portfolioDoSegmento } from "./material-ligacao.ts";
 /**
  * Ferramentas que a IA SDR pode usar durante a conversa.
  * As regras críticas (só agenda se qualificado, só horário válido, sem conflito) são
@@ -20,6 +21,9 @@ import { nomeDaSdr, sdrValida } from "./sdrs.ts";
 
 /** Texto que acompanha o PDF prometido quando ele fica pronto (envio programado automático, 18/11). */
 export const TEXTO_PDF_PROMETIDO = "Prontinho, como te falei, segue o diagnóstico 😊 Qualquer dúvida, é só me chamar por aqui!";
+
+/** 27/11 (Kelvin): PDF do diagnóstico em revisão. true = a ferramenta não manda nada. */
+export const DIAGNOSTICO_PAUSADO = true;
 
 export const TOOLS: Tool[] = [
   {
@@ -563,6 +567,10 @@ export async function runTool(name: string, input: Input, leadId: string): Promi
     }
 
     case "enviar_diagnostico": {
+      // 27/11 (Kelvin): o diagnóstico em PDF está em revisão e a promessa de mandar atrasava a reunião.
+      // A oferta agora é a consultoria gratuita no Meet; nada de PDF por mensagem.
+      if (DIAGNOSTICO_PAUSADO)
+        return `NÃO mande diagnóstico nem prometa mandar (está em revisão). Ofereça a consultoria gratuita de 20 minutinhos no Meet com nosso especialista. Se pedirem material, mande o portfólio: ${portfolioDoSegmento((await prospeccaoDoTelefone(lead.phone).catch(() => null))?.nicho ?? null)}`;
       const p = await prospeccaoDoTelefone(lead.phone).catch(() => null);
       if (!p?.place_id) return "Este contato não veio da prospecção: não há diagnóstico para mandar.";
       if (p.diag_enviado_em) return "O diagnóstico já foi enviado nesta conversa. Não mande de novo: siga para a reunião com duas opções de horário em dois dias úteis diferentes.";

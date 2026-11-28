@@ -234,7 +234,7 @@ test("ajustes da auditoria de 18/11", async () => {
   const ap = pr.apresentacaoDoLead({ place_id: "ig_caipa", empresa: "Caipa e Brasa", nicho: "Restaurante", cidade: null, endereco: null, observacoes: null } as never);
   assert.ok(/canal próprio/.test(ap) && /cardápio digital/.test(ap) && /iFood/.test(ap) && /sem taxa/.test(ap) && !/ de Indaiatuba/.test(ap));
   const ap2 = pr.apresentacaoDoLead({ place_id: "g1", empresa: "Clínica X", nicho: "Clínica médica", cidade: "Indaiatuba", endereco: "Rua A, 1 - Centro, Salto - SP, 13320-000", observacoes: null } as never);
-  assert.ok(ap2.startsWith("Sabe quando o paciente chama com a clínica fechada") && /agenda, confirma e reagenda/.test(ap2));
+  assert.ok(ap2.startsWith("Sabe quando o paciente chama com a clínica fechada") && /confirma, lembra e reagenda/.test(ap2));
 });
 
 test("auditoria 19/11: reação, indicação, robô de pedido, abertura do follow-up, formatação, feriado", async () => {
