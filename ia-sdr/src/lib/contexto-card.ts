@@ -87,7 +87,7 @@ export async function atualizarContextos(): Promise<{ atualizados: number; frios
             ultima_resposta: null,
             ultima_resposta_em: null,
             motivo_parou: "Nunca respondeu",
-            objetivo_ligacao: "Apresentar a DemandIA, descobrir quem é o dono ou responsável e oferecer o diagnóstico gratuito ou 20 a 30 minutinhos com o Kelvin.",
+            objetivo_ligacao: "Apresentar a DemandIA, descobrir quem é o dono ou responsável e convidar para a consultoria gratuita de 20 minutinhos pelo Meet com o nosso especialista.",
             conversou: false,
             sdr,
             atualizado_em: agora,
