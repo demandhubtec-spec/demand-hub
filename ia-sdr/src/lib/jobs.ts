@@ -10,7 +10,7 @@ import { callLLM } from "./llm.ts";
 import { addMessage, db, getLead, history, latestInboundId, logEvent, tryLock, ultimoEvento, unlock, updateLead, type Lead, type Meeting } from "./db.ts";
 import { isBlocked } from "./bloqueio.ts";
 import { destination, sendText } from "./evolution.ts";
-import { horarioProspeccaoV2, isBusinessDay, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
+import { clampToBusinessTime, horarioProspeccaoV2, isBusinessDay, isBusinessTime, nextFollowUpAt, PROSPECCAO_V2 } from "./followup.ts";
 import { naJanelaDoTurno, proximaJanelaDoTurno, turnoDoLead } from "./turno.ts";
 import { followUpPrompt, followUpPromptProspeccaoV2 } from "./prompt.ts";
 import { humanizar } from "./estilo.ts";
@@ -82,7 +82,12 @@ export async function runFollowUps(now = new Date()) {
           await updateLead(lead.id, { next_followup_at: proximaJanelaDoTurno(now, turno, diaUtilV2).toISOString() });
           continue;
         }
-      } else if (!combinado && (v2 ? !horarioProspeccaoV2(now) : !isBusinessTime(now))) continue;
+      } else if (!combinado && (v2 ? !horarioProspeccaoV2(now) : !isBusinessTime(now))) {
+        // 28/11: no sábado os contatos que chegaram sozinhos (fora da prospecção) ficavam no topo da fila sem sair,
+        // ocupavam as 25 vagas da rodada e travavam os follow-ups da Gabi. Vão para o próximo horário comercial.
+        if (!v2) await updateLead(lead.id, { next_followup_at: clampToBusinessTime(now).toISOString() });
+        continue;
+      }
       // Prospecção v2: só no horário dela (sábado até meio-dia); inbound: só no comercial normal
       if (prosp && !v2 && prosp.cadencia === "ativa") {
         await updateLead(lead.id, { next_followup_at: null });
