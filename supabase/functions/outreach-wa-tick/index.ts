@@ -353,7 +353,9 @@ type Segmento = "saude" | "restaurante" | "educacao" | "academia" | "imobiliaria
 // 28/11 (Kelvin): nichos foco = alimentação, clínicas, educação (faculdades, cursos profissionalizantes, técnicos e
 // idiomas; sem escola regular), academias (CrossFit e Pilates), imobiliárias, construtoras e B2B (distribuidoras).
 // Eventos, ar-condicionado, piscina, advocacia e pet ficam fora. Quando um segmento não tem fila, os outros seguem.
-const MIX: Record<Segmento, number> = { saude: 0.2, restaurante: 0.2, educacao: 0.15, academia: 0.15, imobiliaria: 0.1, construtora: 0.1, b2b: 0.1 };
+// Dezembro (28/11, Kelvin): foco em alimentação, educação e academias (matrícula e "projeto verão" para janeiro);
+// clínica está saturada no fim do ano. O restante fica com uma fatia pequena.
+const MIX: Record<Segmento, number> = { restaurante: 0.3, educacao: 0.25, academia: 0.25, saude: 0.05, imobiliaria: 0.05, construtora: 0.05, b2b: 0.05 };
 const RE_FORA = /pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic|evento|buffet infantil|festa|ar.?condicionado|climatiza|refrigera[cç]|piscina/;
 const RE_ESCOLA_REGULAR = /col[eé]gio|escola infantil|educa[cç][aã]o infantil|ber[cç][aá]rio|creche|ensino fundamental|escola municipal|escola estadual|e\.?e\.?\s/;
 const RE_EDUCACAO = /faculdade|universit|centro universit|curso|escola t[eé]cnica|ensino t[eé]cnico|t[eé]cnico em|profissionalizante|idioma|ingl[eê]s|english|espanhol|language|wizard|fisk|ccaa|\bcna\b|microlins|preparat[oó]rio|pr[eé].?vestibular|concurso|p[oó]s.?gradua|ead\b|educa[cç]/;

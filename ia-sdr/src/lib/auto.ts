@@ -164,16 +164,20 @@ async function estoque(): Promise<number> {
     .not("whatsapp", "is", null) // só conta quem tem WhatsApp: sem número não dá para abordar
     .in("msg_status", ["sem", "gerando", "rascunho", "aprovada"])
     .limit(3000);
-  // 18/11: só contam os nichos que ainda recebem primeiro contato (clínica e alimentação)
+  // Só contam os nichos que recebem primeiro contato (28/11: os nichos foco, mesma regra do outreach-wa-tick)
   return ((data ?? []) as { place_id: string; nicho: string | null }[]).filter((l) => nichoNaRotacao(l.nicho, l.place_id)).length;
 }
 
-/** O nicho ainda recebe primeiro contato? (18/11, Kelvin: só saúde/clínica e alimentação) */
+/**
+ * O nicho ainda recebe primeiro contato? 28/11 (Kelvin): alimentação, clínicas, educação (sem escola regular),
+ * academias, imobiliárias, construtoras e B2B. Eventos, ar-condicionado, piscina, advocacia e pet ficam fora.
+ */
 export function nichoNaRotacao(nicho: string | null | undefined, placeId?: string | null): boolean {
   const n = String(nicho ?? "").toLowerCase();
-  if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic/.test(n)) return false;
+  if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic|evento|festa|ar.?condicionado|climatiza|refrigera[cç]|piscina/.test(n)) return false;
   if (String(placeId ?? "").startsWith("ig_") && !n) return true;
-  return /aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|dermat|nutri|fisio|psic|sa[uú]de/.test(n);
+  if (/col[eé]gio|escola infantil|educa[cç][aã]o infantil|creche|ber[cç][aá]rio/.test(n)) return false;
+  return /aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|dermat|nutri|fisio|psic|sa[uú]de|educa[cç]|faculdade|curso|t[eé]cnic|idioma|ingl[eê]s|academia|crossfit|pilates|fitness|imobili|im[oó]veis|construtora|incorporadora|distribuidora|atacad|tabacaria|head ?shop/.test(n);
 }
 
 async function gastoDoMes(): Promise<{ gasto: number; teto: number }> {
