@@ -5,7 +5,7 @@
  */
 import { db, getLead, logEvent, updateLead } from "./db.ts";
 import { enviarAoLead } from "./canal.ts";
-import { runTool, TEXTO_PDF_PROMETIDO } from "./tools.ts";
+import { DIAGNOSTICO_PAUSADO, runTool, TEXTO_PDF_PROMETIDO } from "./tools.ts";
 import { prospeccaoDoTelefone } from "./prospeccao.ts";
 import { toLocal } from "./time.ts";
 import { comRodape, gmailRemetente, gmailSend } from "./outreach-email.ts";
@@ -39,6 +39,12 @@ export async function runEnviosAgendados(now = new Date()) {
         continue;
       }
       if (!e.lead_id) throw new Error("sem lead");
+      // 28/11 (Kelvin): diagnóstico em revisão. Envio antigo com PDF não sai (a RR Lanches recebeu um às 8h02).
+      if (e.com_pdf && DIAGNOSTICO_PAUSADO) {
+        await db().from("envios_agendados").update({ status: "cancelado", erro: "diagnóstico pausado (consultoria gratuita no lugar)" }).eq("id", e.id);
+        await logEvent(e.lead_id, "envio_programado_cancelado", { motivo: "diagnostico_pausado" });
+        continue;
+      }
       if (e.com_pdf) {
         // 18/11: PDF ainda não ficou pronto? Espera mais 30 minutos (até 3 dias), sem mandar o texto sozinho
         const lead0 = await getLead(e.lead_id);

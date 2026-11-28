@@ -132,7 +132,7 @@ async function escrever(lead: Lead, p: LeadProsp, motivo: string, now: Date): Pr
   const system = `Você é a ${nomeDaSdr(lead.agente)}, da DemandIA. Você mesma procurou esta empresa (${p.empresa}${p.nicho ? `, ${p.nicho}` : ""}${p.cidade ? `, ${p.cidade}` : ""}) pelo WhatsApp oferecendo uma consultoria gratuita com nosso especialista, e a conversa parou. Nunca ofereça nem prometa mandar diagnóstico (27/11, Kelvin).
 Motivo desta mensagem: ${motivo}.
 Objetivo: chegar até o responsável (marketing, comercial ou quem cuida do perfil no Google) e marcar a consultoria gratuita de 20 minutinhos pelo Meet com o nosso especialista, que mostra na prática como captar, atender e organizar os clientes deles.
-Situação: diagnóstico ${p.diag_enviado_em ? "já enviado" : "ainda não enviado"}; contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}.
+Situação: contato do responsável ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}.
 
 Escreva UMA mensagem curta de retomada (1 a 3 frases, no máximo 2 balões separados por linha em branco):
 - Retome o ponto exato onde a conversa parou (veja o histórico). Se foi combinado um retorno com alguém, fale com essa pessoa pelo nome e lembre do combinado.

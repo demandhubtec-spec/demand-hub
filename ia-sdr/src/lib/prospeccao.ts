@@ -286,14 +286,13 @@ function contextoProspeccaoV2(p: Prospeccao): string {
   const v = (x: unknown) => (x === null || x === undefined || x === "" ? "não informado" : String(x));
   const dono = donoParaCitar(p);
   const site = temSiteProprio(p);
-  const diagEnviado = !!p.diag_enviado_em;
   return `
 
 ## Dados deste lead (prospecção ativa)
 Você chamou esta empresa em ${p.wa_sent_at ? formatBR(new Date(p.wa_sent_at)) : "data não registrada"}. Primeira mensagem: "${v(p.wa_message)}".
 Empresa: ${v(nomeCurto(p.empresa, p.cidade, p.endereco))} (nome no Google: ${v(p.empresa)}; na conversa use o nome curto) | Nicho: ${v(p.nicho)} | Cidade: ${cidadeReal(p) || "não sabemos pelo cadastro (use a do prompt)"} | Dono/decisor: ${dono ?? "não sabemos o nome"} | Site próprio: ${site ? `TEM (${v(p.site_preview?.site_atual || p.site)})` : "NÃO TEM"} | Instagram: ${v(p.instagram)}
-${p.diagnostico ? `\nDiagnóstico verificado (pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDiagnóstico verificado (raio-x do Instagram, do site e do Google; pode usar os números, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}${ehAlimentacao(p) ? CONTEXTO_RESTAURANTE : ""}
-Situação agora: diagnóstico ${diagEnviado ? "JÁ ENVIADO" : "ainda NÃO enviado"} · contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
+${p.diagnostico ? `\nDados verificados da empresa no Google (pode usar UM número para mostrar a dor, sem chamar de diagnóstico nem de análise, sem inventar nada além disso):\n${JSON.stringify(p.diagnostico)}\n` : p.diagnosticos ? `\nDados verificados da empresa (Instagram, site e Google; pode usar UM número para mostrar a dor, sem chamar de diagnóstico nem de análise, sem inventar nada além disso):\n${JSON.stringify(p.diagnosticos).slice(0, 6000)}\n` : ""}${veioDoInstagram(p) ? contextoInstagram(p) : ""}${ehAlimentacao(p) ? CONTEXTO_RESTAURANTE : ""}
+Situação agora: contato do dono ${p.responsavel_contato ? `já temos (${p.responsavel_contato})` : "ainda não temos"}${p.retorno_em ? ` · retorno combinado para ${formatBR(new Date(p.retorno_em))}${p.retorno_nota ? ` (${p.retorno_nota})` : ""}` : ""}.`;
 }
 
 const RE_ALIMENTACAO = /aliment|restaur|lanch|pizz|hamburg|burger|confeit|doce|salgad|marmit|a[cç]a[ií]|gelat|sorvet|padar|caf[eé]|\bbar\b|churras|gastronom|comida|food|delivery|chef|cardápio|espetaria|coxinha|buffet/i;
@@ -494,7 +493,7 @@ export function opcaoDoMenu(texto: string): string | null {
 export function recadoParaRobo(p: Prospeccao, sdr = "Gabi"): string {
   const w = palavrasDoNicho(p.nicho);
   const tipo = `${w.artigo} ${w.singular}`;
-  return `Oi! Aqui é a ${sdr}, da DemandIA 😊 O assunto é um diagnóstico gratuito de como ${tipo} aparece no Google, para o responsável. Fico no aguardo!`;
+  return `Oi! Aqui é a ${sdr}, da DemandIA 😊 O assunto é uma consultoria gratuita com nosso especialista sobre como ${tipo} pode captar, atender e organizar melhor os clientes. É para o responsável. Fico no aguardo!`;
 }
 
 /**

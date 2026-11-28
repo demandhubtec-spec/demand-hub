@@ -23,3 +23,13 @@ test("oferta em texto traz dor, promessa, reunião e pergunta", () => {
   assert.match(t, /aula experimental/);
   assert.match(t, /consultoria gratuita/);
 });
+
+test("28/11: recado para robô e prompt sem diagnóstico", async () => {
+  const { recadoParaRobo } = await import("../src/lib/prospeccao.ts");
+  const r = recadoParaRobo({ nicho: "clínica odontológica" } as never, "Marina");
+  assert.ok(!/diagn/i.test(r), r);
+  assert.match(r, /consultoria gratuita/);
+  const { readFileSync } = await import("node:fs");
+  const pg = readFileSync(new URL("../src/lib/prompt-gabi.ts", import.meta.url), "utf8");
+  assert.ok(!pg.includes("pode perguntar se viram"));
+});
