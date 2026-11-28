@@ -4,7 +4,8 @@
  *  - Empresa ativa (25): Instagram com seguidores e post recente, nota no Google, cuida do perfil.
  *  - Dor visível (25): sem site próprio, mal posicionado no Google, depende de app/link de terceiros, não responde avaliações.
  *  - Contato (20): WhatsApp celular, nome de quem decide, e-mail.
- * Faixas: A (70+) liga primeiro e WhatsApp personalizado; B (50 a 69) WhatsApp pela dor; C (abaixo de 50) só o leve, no fim da fila.
+ * Faixas: A (70+) liga primeiro e WhatsApp personalizado; B (50 a 69) WhatsApp pela situação do nicho; C (abaixo de 50) só o leve, no fim da fila.
+ * A "dor" é hipótese da análise (28/11, Kelvin): a SDR nunca afirma, conta como situação comum do nicho e pergunta.
  * Só usa dados já coletados (Google, CNPJ do Léo, Instagram pelo Apify): nada é inventado.
  */
 
@@ -185,9 +186,12 @@ export function scoreEmTexto(s: { score?: number | null; score_faixa?: string | 
   if (!s?.score_faixa) return "";
   const abordagem =
     s.score_faixa === "A"
-      ? "lead forte: personalize com um dado real da empresa e convide para a consultoria"
+      ? "lead forte: capriche, use um dado real da empresa como curiosidade e convide para a consultoria"
       : s.score_faixa === "B"
-        ? "lead médio: abra pela dor principal"
+        ? "lead médio: abra pela situação comum do nicho e pergunte como é com eles"
         : "lead fraco: mensagem leve, sem insistir";
-  return `Qualidade do lead: ${s.score_faixa} (${s.score ?? "?"}/100) · ${abordagem}${s.score_dor ? ` · dor mais visível: ${s.score_dor}` : ""}`;
+  // 28/11 (Kelvin): a dor é hipótese da nossa análise, não fato. Na conversa vira história do nicho + pergunta.
+  return `Qualidade do lead: ${s.score_faixa} (${s.score ?? "?"}/100) · ${abordagem}${
+    s.score_dor ? ` · hipótese de dor (NÃO afirme; conte como situação comum do nicho e pergunte): ${s.score_dor}` : ""
+  }`;
 }

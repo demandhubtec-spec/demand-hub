@@ -37,6 +37,6 @@ test("ajudantes do score", () => {
   assert.equal(faixaDoScore(70), "A");
   assert.equal(faixaDoScore(55), "B");
   assert.equal(faixaDoScore(49), "C");
-  assert.match(scoreEmTexto({ score: 78, score_faixa: "A", score_dor: "não tem site próprio" }), /A \(78\/100\).*não tem site próprio/);
+  assert.match(scoreEmTexto({ score: 78, score_faixa: "A", score_dor: "não tem site próprio" }), /A \(78\/100\).*NÃO afirme.*não tem site próprio/);
   assert.equal(scoreEmTexto(null), "");
 });
