@@ -349,17 +349,32 @@ const EVO_TOKEN_GABI = Deno.env.get("EVOLUTION_INSTANCE_TOKEN") || "";
  * E entra o ICP: clínica com estrutura (não consultório de um profissional só, nem hospital/laboratório/rede) e
  * alimentação com movimento (Google com avaliações ou Instagram com seguidores).
  */
-type Segmento = "saude" | "restaurante" | "outros";
-const MIX: Record<Segmento, number> = { saude: 0.5, restaurante: 0.5, outros: 0 };
+type Segmento = "saude" | "restaurante" | "educacao" | "academia" | "imobiliaria" | "construtora" | "b2b";
+// 28/11 (Kelvin): nichos foco = alimentação, clínicas, educação (faculdades, cursos profissionalizantes, técnicos e
+// idiomas; sem escola regular), academias (CrossFit e Pilates), imobiliárias, construtoras e B2B (distribuidoras).
+// Eventos, ar-condicionado, piscina, advocacia e pet ficam fora. Quando um segmento não tem fila, os outros seguem.
+const MIX: Record<Segmento, number> = { saude: 0.2, restaurante: 0.2, educacao: 0.15, academia: 0.15, imobiliaria: 0.1, construtora: 0.1, b2b: 0.1 };
+const RE_FORA = /pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic|evento|buffet infantil|festa|ar.?condicionado|climatiza|refrigera[cç]|piscina/;
+const RE_ESCOLA_REGULAR = /col[eé]gio|escola infantil|educa[cç][aã]o infantil|ber[cç][aá]rio|creche|ensino fundamental|escola municipal|escola estadual|e\.?e\.?\s/;
+const RE_EDUCACAO = /faculdade|universit|centro universit|curso|escola t[eé]cnica|ensino t[eé]cnico|t[eé]cnico em|profissionalizante|idioma|ingl[eê]s|english|espanhol|language|wizard|fisk|ccaa|\bcna\b|microlins|preparat[oó]rio|pr[eé].?vestibular|concurso|p[oó]s.?gradua|ead\b|educa[cç]/;
+const RE_ACADEMIA = /academia|crossfit|cross fit|\bbox\b|pilates|fitness|\bgym\b|muscula[cç]|treinamento funcional|studio fit|personal/;
+const RE_IMOB = /imobili|im[oó]veis|corretor|corretora de im/;
+const RE_CONSTRUTORA = /construtora|incorporadora|loteamento|empreendimento|constru[cç][aã]o civil/;
+const RE_B2B = /distribuidora|distribui[cç][aã]o|atacad|atacarejo|tabacaria|head ?shop|tabaco|fornecedor|ind[uú]stria|importadora|representa[cç][oõ]es/;
 function segmentoDoLead(l: { place_id?: string | null; nicho?: string | null; empresa?: string | null; avaliacoes?: number | null; observacoes?: string | null }): Segmento | "fora" {
   const ig = String(l.place_id ?? "").startsWith("ig_");
-  // Google: pelo nicho da coleta. Lista do Instagram: nicho e nome (lá o nicho às vezes vem vazio)
-  const n = `${l.nicho ?? ""} ${ig ? l.empresa ?? "" : ""}`.toLowerCase();
-  if (/pet\b|pet shop|veterin|advoca|advogad|jur[ií]dic/.test(n)) return "fora";
-  let seg: Segmento = "outros";
-  if (/aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|a[cç]a[ií]|gelat|sorvet|churras|espetaria|coxinha/.test(n)) seg = "restaurante";
+  // Google: nicho da coleta e nome. Lista do Instagram: nicho e nome (lá o nicho às vezes vem vazio)
+  const n = `${l.nicho ?? ""} ${l.empresa ?? ""}`.toLowerCase();
+  if (RE_FORA.test(n)) return "fora";
+  let seg: Segmento | null = null;
+  if (RE_B2B.test(n)) seg = "b2b";
+  else if (/aliment|restaur|hamburg|burger|pizz|lanch|caf[eé]|confeit|doce|salgad|marmit|delivery|gastronom|food|a[cç]a[ií]|gelat|sorvet|churras|espetaria|coxinha/.test(n)) seg = "restaurante";
   else if (/cl[ií]nic|m[eé]dic|odont|dent|endocrin|est[eé]tic|harmoniza|depila|dermat|nutri|fisio|psic|sa[uú]de/.test(n)) seg = "saude";
-  if (seg === "outros") return "fora";
+  else if (RE_EDUCACAO.test(n) && !RE_ESCOLA_REGULAR.test(n)) seg = "educacao";
+  else if (RE_ACADEMIA.test(n)) seg = "academia";
+  else if (RE_IMOB.test(n)) seg = "imobiliaria";
+  else if (RE_CONSTRUTORA.test(n)) seg = "construtora";
+  if (!seg) return "fora";
   return dentroDoIcp(seg, l, ig) ? seg : "fora";
 }
 
@@ -393,6 +408,18 @@ function dentroDoIcp(seg: Segmento, l: { empresa?: string | null; avaliacoes?: n
     if (av !== null && (av < 30 || av > 1500)) return false;
     return true;
   }
+  // 28/11: redes grandes não são o perfil; o resto pelo número de avaliações no Google (negócio ativo)
+  if (seg === "educacao") {
+    if (/\b(unip|anhanguera|est[aá]cio|uninove|unicamp|usp|puc|unesp|ufscar|federal|estadual|senai|senac|sesi|etec|fatec|ifsp)\b/i.test(nome)) return false;
+    return av === null || av >= 20;
+  }
+  if (seg === "academia") {
+    if (/smart ?fit|blue ?fit|bio ?ritmo|selfit|panobianco|bodytech|just ?fit/i.test(nome)) return false;
+    return av === null || av >= 30;
+  }
+  // Distribuidora e construtora quase não têm avaliação no Google: não filtra por isso
+  if (seg === "construtora" || seg === "b2b") return true;
+  if (seg === "imobiliaria") return av === null || av >= 5;
   if (ig) {
     const m = String(l.observacoes ?? "").match(/([0-9]+(?:[.,][0-9]+)?)\s*(mil)?\s*seguidores/i);
     if (!m) return true;
@@ -693,12 +720,12 @@ Deno.serve(async (req) => {
     const { data: ns } = await sb.from("outreach_leads").select("place_id,nicho,empresa,avaliacoes,observacoes").in("place_id", idsHoje.slice(i, i + 200));
     for (const n of ns ?? []) nichoDe.set(n.place_id, segmentoDoLead(n));
   }
-  const feitosSeg: Record<Segmento, number> = { saude: 0, restaurante: 0, outros: 0 };
+  const feitosSeg = Object.fromEntries(Object.keys(MIX).map((k) => [k, 0])) as Record<Segmento, number>;
   for (const t of tentativas ?? []) {
     const seg = nichoDe.get(String(t.place_id ?? ""));
     if (seg && seg !== "fora") feitosSeg[seg as Segmento]++;
   }
-  const totalSeg = feitosSeg.saude + feitosSeg.restaurante + feitosSeg.outros;
+  const totalSeg = Object.values(feitosSeg).reduce((a, b) => a + b, 0);
   // Maior déficit primeiro (quanto falta para chegar na fatia do segmento depois do próximo envio)
   const ordemSeg = (Object.keys(MIX) as Segmento[]).filter((k) => MIX[k] > 0).sort((a, b) => (MIX[b] * (totalSeg + 1) - feitosSeg[b]) - (MIX[a] * (totalSeg + 1) - feitosSeg[a]));
   let filaBase = sb.from("outreach_leads").select("*").eq("wa_status", "pendente").not("whatsapp", "is", null);
